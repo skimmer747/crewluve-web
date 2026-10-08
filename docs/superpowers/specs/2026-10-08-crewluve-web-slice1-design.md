@@ -249,11 +249,13 @@ Everything else from the 2026-10-08 idea board is on the roadmap (§13). The use
 - **Reserve and hot standby**
   - "{Name} is on reserve|on hot standby in **{City}** — on call until {cd} which is **{T}**."
   - Fallbacks drop the clause, then the city.
-- **Training**
-  - "{Name} is in training in **{City}** — finishes in {cd} which is **{T}**."
-- **Event** (a manual event that isn't reserve or standby)
+- **Training and events** (training events, and manual events that aren't reserve or standby)
   - "{Name}: **{Title}** in **{City}** — finishes in {cd} which is **{T}**."
-  - Fallbacks go down to "{Name}: **{Title}**".
+  - Without a city: "{Name}: **{Title}** — finishes in {cd} which is **{T}**."
+  - Titles:
+    - training is "{event_type} Training", which is Duty's `TrainingEvent.displayTitle`
+    - a manual event is its title, or "Manual Event" if blank
+  - Crewluve's "is in training in {City}" sentence only appears when a leg has no title, which never happens for Crewlu data, so the site doesn't use it.
 - **Off / elsewhere**
   - "{Name} is in **{City}** — flies to **{Dest}** in {cd} which is **{T}**."
   - Fallbacks: "{Name} is in **{City}**", then "{Name} is in **{CODE}**", then "{Name} is off duty"
@@ -279,8 +281,8 @@ Everything else from the 2026-10-08 idea board is on the roadmap (§13). The use
 ### 4.4 Countdown cards
 
 **Card layout**
-- A centered column with a 16 px gap and 24 px padding.
-- Title row: a 28 px icon in the card color, then a 22 px weight-600 title.
+- A column with a 16 px gap and 24 px padding.
+- Title row: a 28 px icon in the card color, then a 22 px weight-600 title. The row is **left-aligned**; the app's HStack ends in a Spacer. The big number and subtitle are centered.
 - There is **no chevron** in slice 1. The card is not tappable until the Schedule slice exists, as on Crewluve iPad.
 
 **Big number**
@@ -307,9 +309,12 @@ Everything else from the 2026-10-08 idea board is on the roadmap (§13). The use
 - **Subtitle** (15 px, secondary): "Sun, Mar 1 at 5:57 PM · Orlando" in the **pilot's home** time zone, with the target's city. On 24-hour locales: "Sun, Mar 1 at 17:57 · Orlando".
 
 **"~N days" fallback card**
-- When it shows: the status is away, there's no exact target, and the current trip's `end_date` is in the future.
-- It uses the arrival card's header in green.
-- The body is "~N days", "~1 day", or "Soon" (under 12 h), in 52 px bold rounded green. N = days until `end_date`, rounded up.
+- When it shows: the status is away, there's no exact target, and a trip covers now that has **no flight legs** (for example, all its flights are hidden). Trips with flights always get an exact target, or deliberately none (§6.5).
+- It uses the arrival card's header ("Back Home In", green house).
+- The body is copied from Crewluve `EstimatedReturnCardView`: remaining = max(total days − day number, 0).
+  - Day number = calendar days since the trip's start, counted in the base's time zone, plus 1, and capped at the total.
+  - Total = `trips.days`, or the calendar-day count.
+  - It shows "Soon" when remaining is 0, "~1 day", or "~N days", in 52 px bold rounded green.
 - No subtitle.
 
 **Leave card** (status is Home)
@@ -341,12 +346,14 @@ Everything else from the 2026-10-08 idea board is on the roadmap (§13). The use
 
 **Left button: sign out**
 - A round glass button with the sign-out icon.
-- It confirms first: "Sign out on this device?" with [Cancel] [Sign out].
+- It asks first with the browser's confirmation dialog: "Sign out on this device?"
+- In demo mode the same button exits the demo and goes to the sign-in screen, with no confirmation.
 
 **Center: two rows** (11 px, tabular digits)
 - **Row 1:** a cloud icon and "Checked {t} ago" — time since the last successful fetch. Under 5 s it reads "Checked just now".
   - Icon color by age: under 2 min green, under 5 min blue, under 10 min orange, otherwise red.
 - **Row 2:** an up-arrow-circle icon (secondary color) and "Schedule updated {t} ago" — time since the newest `updated_at` among the fetched rows, meaning the last time the pilot's phone sent a change.
+  - Crewluve colors this icon by freshness. Here it stays neutral, because a schedule that hasn't changed in days is normal and shouldn't look alarming in red.
 - `{t}`: under 1 min "42s"; under 1 h "3m 07s"; under 24 h "2h 05m"; otherwise ">1 day". It ticks every second.
 - **Problems replace both rows** with an orange warning icon and one of:
   - "Offline — showing the schedule from {time}"
@@ -364,10 +371,11 @@ Everything else from the 2026-10-08 idea board is on the roadmap (§13). The use
 
 ### 4.7 Demo mode
 
-- `?demo=1` makes no network calls. It uses a deterministic synthetic schedule for a UPS-style pilot named "Alex" (base SDF, home LEX), anchored to the current time.
+- `?demo=1` makes no network calls. It uses a deterministic synthetic schedule for a UPS-style pilot named "Alex" (base SDF, home LEX, drives to work), anchored to the current time.
 - `&scene=` jumps "now" to a named moment:
-  - `home`, `driving-to-work`, `base`, `flying`, `turn`, `layover`, `delayed`
-  - `last-leg`, `driving-home`, `commuting-home`, `reserve`, `training`
+  - `home`, `driving-to-work`, `base`, `flying` (the default), `turn`, `layover`, `delayed`
+  - `last-leg`, `driving-home`, `reserve`, `training`
+  - `commuting-home` — this one uses a jumpseat-commuter variant of Alex (home MCO, Delta jumpseats instead of drives)
 - A capsule banner reads "Demo — sample pilot", like Crewluve's demo banner.
 - The sign-in screen links to demo mode.
 - Demo mode is the visual test bed.
@@ -383,6 +391,8 @@ Everything else from the 2026-10-08 idea board is on the roadmap (§13). The use
 7. A commuter whose ride home isn't logged gets no Back Home countdown. The site doesn't guess.
 8. Every audit bug in §6.11 is fixed. That includes the report window: from report time to the first departure, the site says "at base", where Crewlu's generator said "Home".
 9. Ground transport gets its own sentence instead of "In Flight".
+10. The footer's "Schedule updated" icon stays neutral instead of turning red as it ages (§4.5).
+11. The drive home moves with a late last flight (§6.2). Crewlu's stored commute times don't.
 
 ## 5. Behavior summary (what the visitor experiences)
 
@@ -436,6 +446,7 @@ All reads are `select` only. Every query filters `deleted_at is null`. RLS scope
   - If `in <= out`, or block is longer than 26 h, use the scheduled pair.
   - Drop rows whose times fall before 2000-01-01 or after now + 2 years. There is a live row dated 4026.
 - **Flight numbers:** stripped of leading zeros when all digits ("0081" → "81").
+- **Drive home follows a late flight.** A `toHome` commute linked to a trip (`source_trip_id`) is shifted by that trip's last-flight delay (effective block-in minus scheduled block-in), within ±6 h. Its scheduled end is kept for the delay color. Crewlu writes commute times once, so without this a 40-minute-late flight would leave the "Back Home In" countdown 40 minutes early. That would be delay-blindness again.
 
 ### 6.3 Building legs
 
@@ -466,7 +477,7 @@ All reads are `select` only. Every query filters `deleted_at is null`. RLS scope
   - reserve if the title contains RSVA–RSSD, LCO or RCID, or the category name contains "reserve" (PSG:894-929).
   - event otherwise.
   - An event whose title matches `driv|car|truck` also counts as a drive for homecomings.
-- **training** — each training event, at `station`.
+- **training** — each training event, at `station`, titled "{event_type} Training".
 
 **Trim:** after building, any home, base, or layover leg that runs into a flight is cut back to that flight's start (`SharedPilotStatus.swift:199-236`).
 
@@ -492,22 +503,26 @@ All reads are `select` only. Every query filters `deleted_at is null`. RLS scope
 
 ### 6.5 Arrival target (status is not Home)
 
-1. **Reserve, Hot Standby, or Training → "Released In"**, counting to that leg's end.
-2. **Otherwise, build a block** of legs chained by gaps of ≤24 h (on effective times) that covers t.
-   - Stop the block at the first arrival home that comes before a later trip. This avoids the 24 h merge overshoot.
-3. **Find homecomings:** H = legs in the block that are flights, jumpseats, drives, or drive-titled events, where:
-   - the arrival is effHome,
-   - the end is after t,
-   - the next leg is **not** in the same trip.
+A **homecoming move** is a flight, jumpseat, drive, or drive-titled event that arrives at effHome. Events at home never count.
 
-   Events at home never count.
-4. **If H is not empty → "Back Home In"**, counting to the latest end in H. The city is the home city.
-5. **Else, if the pilot's most recent trip has ended** (its last flight's `in` ≤ t) and the pilot isn't home:
-   - Look for a ride: the first standalone jumpseat or drive to effHome that starts before the next trip's first leg, within 3 days.
-   - Found → **"Back Home In"**, counting to the ride's end.
-   - None → **no countdown** (C26).
-6. **Else, if the current trip's last flight is still ahead →** "Back at Base In" when it lands at the base, otherwise "{City} In", counting to that flight's `in`.
-7. **Else → the "~N days" fallback** if the trip's `end_date` is in the future, or no card.
+1. **Reserve, Hot Standby, or Training → "Released In"**, counting to that leg's end.
+2. **Already riding home:** the current leg is a standalone homecoming move (a drive home, or a jumpseat home) → **"Back Home In"**, counting to its end.
+3. **Pick the current trip T** — the first rule that applies:
+   - the current leg's trip
+   - otherwise, the previous leg's trip, if it ended ≤24 h ago
+   - otherwise, the next leg's trip, if it starts ≤24 h from now (the pilot is driving or positioned for it)
+   - otherwise, none
+4. **With a T:**
+   1. **Final arrival home:** the trip's homecoming move that ends after t, with no other leg of T starting at or after its end. If there is one → **"Back Home In"**, counting to its end.
+   2. **Ride home:** the first standalone homecoming move (drive or jumpseat) that meets all of these. If there is one → **"Back Home In"**, counting to its end.
+      - it ends after t
+      - it starts no earlier than T's last flight departs
+      - it starts before any *other* trip's first leg
+      - it starts within 3 days of T's last flight landing
+   3. **Final flight still ahead:** if T's last flight is still ahead → "Back at Base In" when it lands at the base, otherwise "{City} In", counting to that flight's `in`.
+   4. **Otherwise → no countdown** (C26). The trip is over and no ride home is logged.
+5. **Without a T:** the first standalone homecoming move that ends after t, starts within 3 days, and starts before the next trip's first leg → **"Back Home In"**. Otherwise no target.
+6. **No target, but a trip covers t and has no flight legs →** the "~N days" fallback (§4.4).
 
 **Rules for every target:**
 - Never a leg from the next trip (C14).
@@ -540,11 +555,16 @@ All reads are `select` only. Every query filters `deleted_at is null`. RLS scope
 ### 6.8 Days home
 
 **"Been home N days"**
-- Count from the end of the **last real arrival home**: a flight, jumpseat, or drive arriving at effHome that ends the block. Do not count from the trip's end at the base (C25).
+- Count from the end of the **last real arrival home**: a homecoming move that ended at or before t and isn't followed by more legs of its own trip. Do not count from the trip's end at the base (C25).
 - N = floor((t − arrival) / 24 h). The pill shows when N ≥ 1.
 - If no arrival home exists in the window, hide the pill.
 
 **"Gone for N days"** (Home narrative): the last completed trip's length, as in §4.3.
+
+**Mid-trip nights at home** (a trip's duty-period gap at effHome) show the Home status, as in Crewluve. In that case:
+- the days-home pill is hidden
+- "after being gone for" is dropped
+- the "next trip" in the sentence is the trip already in progress
 
 ### 6.9 Time zones
 
@@ -589,8 +609,8 @@ All of these come from the 2026-07-02 Crewluve leave/return-home audit, C1–C30
 
 - Vite 5, TypeScript 5 (strict), and Vitest 2 — the same majors as crewlu-globe — plus **Preact** for TSX components.
 - **Licenses:**
-  - Phosphor icon paths are MIT.
-  - `@photostructure/tz-lookup` (v11) is CC0-1.0 (public domain), and it's used only at build time.
+  - Phosphor icon paths are MIT. `@phosphor-icons/core` is installed on demand by `npm run icons`, and the paths are copied into a committed file.
+  - `geo-tz` is MIT, with timezone-boundary-builder data under ODbL. It's installed on demand by `npm run airports`.
   - The airport data comes from Crewlu's own tables plus OurAirports (public domain), through the globe's list.
   - All of these are credited in `THIRD_PARTY_NOTICES.md`.
 - `@supabase/supabase-js` 2.x, using the same project URL and publishable key as `crewlu-globe/src/supabase.ts`, with `persistSession: true` and `autoRefreshToken: true`.
@@ -656,23 +676,25 @@ airports.json ───────────────────┤
 
 ### 7.4 Airport dataset
 
-- `scripts/build-airports.mjs` reads the globe's generated list, `~/Dev/crewlu-globe/public/data/airports.json` (9,056 entries `{iata, lat, lng, city, country}`). That list's city names already come from Crewlu's airport data, which wins over OurAirports.
-- It adds an IANA zone per airport with `@photostructure/tz-lookup` (a build-time dev dependency) from lat/lng.
-- It writes a compact `public/data/airports.json`, which is committed. CI never regenerates it.
-- A test pins known zones:
+- `scripts/build-airports.mjs` reads the globe's generated list, `~/Dev/crewlu-globe/public/data/airports.json` (9,056 unique entries `{iata, lat, lng, city, country}`). That list's city names already come from Crewlu's airport data, which wins over OurAirports. Verified: SDF Louisville, CGN Cologne, BLR Bangalore.
+- It adds an IANA zone per airport from lat/lng using **`geo-tz`** (MIT; boundaries from timezone-boundary-builder, ODbL).
+  - geo-tz is accurate near zone borders, where `tz-lookup` isn't.
+  - It's about 74 MB, so `npm run airports` installs it on demand with `--no-save` and it never enters package.json or CI.
+- It writes a compact `public/data/airports.json` (`[iata, city, country, lat, lng, tz]` tuples), which is committed. CI never regenerates it.
+- A test checks each pinned airport's zone gives the right October 2026 abbreviation. (Zone *names* can legitimately vary, for example America/Kentucky/Louisville vs America/New_York, so the test pins abbreviations instead.)
 
-| Airport | Zone |
+| Airport | Abbreviation |
 |---|---|
-| SDF | America/Kentucky/Louisville |
-| LEX | America/New_York |
-| ANC | America/Anchorage |
-| HNL | Pacific/Honolulu |
-| ONT | America/Los_Angeles |
-| CGN | Europe/Berlin |
-| HKG | Asia/Hong_Kong |
-| BLR | Asia/Kolkata |
-| MCO | America/New_York |
-| PHX | America/Phoenix |
+| SDF | EDT |
+| LEX | EDT |
+| MCO | EDT |
+| ANC | AKDT |
+| HNL | HST |
+| ONT | PDT |
+| PHX | MST |
+| CGN | GMT+2 |
+| HKG | GMT+8 |
+| BLR | GMT+5:30 |
 
 ## 8. Error handling
 
