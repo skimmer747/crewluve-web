@@ -12,10 +12,30 @@ export interface Airport {
 
 export interface AirportIndex {
   get(code: string | null | undefined): Airport | undefined
-  /** City name, falling back to the code itself; null only when there is no code. */
+  /** City name, falling back to the code itself when the airport is unknown or its city name is empty; null only when there is no code. */
   city(code: string | null | undefined): string | null
-  /** IANA time zone, or null for unknown airports. */
+  /** IANA time zone, or null for unknown airports and for zones this runtime's Intl does not know. */
   tz(code: string | null | undefined): string | null
+}
+
+const zoneKnown = new Map<string, boolean>()
+
+/**
+ * Whether this runtime's Intl accepts the zone. Older tz data rejects newer zones (for example
+ * America/Coyhaique before tzdata 2025b), and formatting a time in one throws. Checked once per zone.
+ */
+function runtimeKnowsZone(timeZone: string): boolean {
+  let known = zoneKnown.get(timeZone)
+  if (known === undefined) {
+    try {
+      new Intl.DateTimeFormat('en-US', { timeZone })
+      known = true
+    } catch {
+      known = false
+    }
+    zoneKnown.set(timeZone, known)
+  }
+  return known
 }
 
 export function buildAirportIndex(rows: AirportTuple[]): AirportIndex {
@@ -28,8 +48,11 @@ export function buildAirportIndex(rows: AirportTuple[]): AirportIndex {
   const get = (code: string | null | undefined) => map.get(clean(code))
   return {
     get,
-    city: (code) => (clean(code) ? get(code)?.city ?? clean(code) : null),
-    tz: (code) => get(code)?.tz ?? null,
+    city: (code) => (clean(code) ? get(code)?.city || clean(code) : null),
+    tz: (code) => {
+      const zone = get(code)?.tz
+      return zone && runtimeKnowsZone(zone) ? zone : null
+    },
   }
 }
 

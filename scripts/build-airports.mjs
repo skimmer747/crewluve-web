@@ -23,7 +23,7 @@ for (const r of JSON.parse(readFileSync(source, 'utf8'))) {
   if (!tz) continue
   seen.add(iata)
   const round = (n) => Math.round(n * 1e4) / 1e4
-  out.push([iata, String(r.city ?? iata), String(r.country ?? ''), round(r.lat), round(r.lng), tz])
+  out.push([iata, String(r.city || iata), String(r.country ?? ''), round(r.lat), round(r.lng), tz])
 }
 out.sort((a, b) => (a[0] < b[0] ? -1 : 1))
 mkdirSync(dirname(outFile), { recursive: true })

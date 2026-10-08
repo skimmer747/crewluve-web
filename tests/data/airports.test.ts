@@ -17,6 +17,18 @@ describe('buildAirportIndex', () => {
     expect(idx.tz('XYZ')).toBeNull()
     expect(idx.city(null)).toBeNull()
   })
+
+  it('falls back to the code when an airport has an empty city name', () => {
+    const blank = buildAirportIndex([['AMB', '', 'MG', -13.1884, 48.988, 'Asia/Riyadh']])
+    expect(blank.city('AMB')).toBe('AMB')
+  })
+
+  it('has no time zone when the runtime does not know the zone, but keeps the city', () => {
+    // e.g. America/Coyhaique on runtimes with tz data older than 2025b
+    const odd = buildAirportIndex([['BBA', 'Balmaceda', 'CL', -45.916, -71.6895, 'Not/AZone']])
+    expect(odd.tz('BBA')).toBeNull()
+    expect(odd.city('BBA')).toBe('Balmaceda')
+  })
 })
 
 describe('generated public/data/airports.json', () => {
@@ -39,5 +51,10 @@ describe('generated public/data/airports.json', () => {
     expect(idx.city('SDF')).toBe('Louisville')
     expect(idx.city('CGN')).toBe('Cologne')
     expect(idx.city('BLR')).toBe('Bangalore')
+  })
+
+  it('gives every airport a city name', () => {
+    const blanks = rows.filter(([, city]) => city.trim() === '')
+    expect(blanks.length, `blank city, e.g. ${blanks.slice(0, 5).map(([iata]) => iata).join(', ')}`).toBe(0)
   })
 })
