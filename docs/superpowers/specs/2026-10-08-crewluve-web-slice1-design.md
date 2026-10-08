@@ -721,7 +721,7 @@ airports.json ───────────────────┤
 - Rows the pilot marked hidden in Crewlu are dropped.
 
 **Session and cache**
-- Supabase keeps the session in this origin's localStorage. Sign-out runs `supabase.auth.signOut()`, removes `crewluve.schedule.v1`, and reloads.
+- Supabase keeps the session in this origin's localStorage. Sign-out runs `supabase.auth.signOut()`, removes `crewluve.schedule.v1`, and returns to the sign-in screen.
 
 **Credentials**
 - The visitor holds the pilot's CrewLu Cloud password. That password grants full account access in Crewlu, so the pilot should share it only with people they trust.
