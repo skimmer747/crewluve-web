@@ -309,7 +309,7 @@ Everything else from the 2026-10-08 idea board is on the roadmap (§13). The use
 - **Subtitle** (15 px, secondary): "Sun, Mar 1 at 5:57 PM · Orlando" in the **pilot's home** time zone, with the target's city. On 24-hour locales: "Sun, Mar 1 at 17:57 · Orlando".
 
 **"~N days" fallback card**
-- When it shows: the status is away, there's no exact target, and a trip covers now that has **no flight legs** (for example, all its flights are hidden). Trips with flights always get an exact target, or deliberately none (§6.5).
+- When it shows: a trip covers now that has **no flight legs** (for example, all its flights are hidden). Trips with flights always get an exact target, or deliberately none (§6.5). The engine can't tell where the pilot is, so the sentence card shows Crewluve's "On duty" (the Unknown status) above this card.
 - It uses the arrival card's header ("Back Home In", green house).
 - The body is copied from Crewluve `EstimatedReturnCardView`: remaining = max(total days − day number, 0).
   - Day number = calendar days since the trip's start, counted in the base's time zone, plus 1, and capped at the total.
