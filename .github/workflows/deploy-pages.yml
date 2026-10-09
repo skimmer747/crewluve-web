@@ -7,10 +7,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Read-only by default. Only the deploy job, which runs no project code, may publish to Pages.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 # Never cancel an in-progress production deploy.
 concurrency:
@@ -22,6 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
@@ -36,6 +37,9 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
     # GitHub Pages often fails the first deploy with "Deployment failed, try again later"

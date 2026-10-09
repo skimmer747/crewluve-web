@@ -202,9 +202,21 @@ describe('signOut', () => {
     expect(mock.auth.signOut).toHaveBeenCalledWith({ scope: 'local' })
   })
 
-  it('still resolves when the sign-out request fails, because auth drops the local session anyway', async () => {
+  it('still resolves when the sign-out request fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
     mock.auth.signOut.mockResolvedValue({ error: offline() })
     await expect(signOut()).resolves.toBeUndefined()
+  })
+
+  it('removes the stored session when auth keeps it, as it does offline with an expired token', async () => {
+    // auth-js returns early without removing anything when it can't load the session first: an expired token that
+    // couldn't be refreshed because the network or the sign-in service is down. A sign-out must still leave nothing.
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const store = new Map([['crewluve-auth', '{"refresh_token":"r"}']])
+    vi.stubGlobal('localStorage', { getItem: (k: string) => store.get(k) ?? null, removeItem: (k: string) => void store.delete(k) })
+    mock.auth.signOut.mockResolvedValue({ error: offline() })
+    await signOut()
+    expect(store.has('crewluve-auth')).toBe(false)
   })
 
   it('removes the stored session itself if the client throws, so a sign-out never leaves credentials behind', async () => {

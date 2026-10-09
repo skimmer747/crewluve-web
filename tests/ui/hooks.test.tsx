@@ -253,6 +253,18 @@ describe('useAirports, on a slow or failing link', () => {
     expect(screen.getByTestId('city').textContent).toBe('loading')
   })
 
+  it('falls back to codes after 300 ms by default', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
+    function Default() {
+      const airports = useAirports()
+      return <span data-testid="city">{airports ? airports.city('SDF') : 'loading'}</span>
+    }
+    render(<Default />)
+    await new Promise((r) => setTimeout(r, 150))
+    expect(screen.getByTestId('city').textContent).toBe('loading')
+    await waitFor(() => expect(screen.getByTestId('city').textContent).toBe('SDF'), { timeout: 1000 })
+  })
+
   it('keeps a list that arrived before the slow-link fallback', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => listed))
     render(<Cities slowMs={30} />)
@@ -357,6 +369,19 @@ describe('useSchedule, timing and cleanup', () => {
       window.dispatchEvent(new Event('online'))
     })
     expect(load).toHaveBeenCalledTimes(2)
+  })
+
+  it('waits for the page to be visible again before refreshing on reconnect', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(1_000_000)
+    const load = vi.fn(async () => raw(1))
+    render(<Grab load={load} cache={memoryCache()} />)
+    await flush()
+    setVisibility('hidden')
+    await act(async () => {
+      window.dispatchEvent(new Event('online'))
+    })
+    expect(load).toHaveBeenCalledTimes(1)
   })
 
   it('says offline as soon as the connection drops', async () => {

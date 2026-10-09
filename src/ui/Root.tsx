@@ -70,14 +70,15 @@ function LiveSchedule({ onSignedOut: finish }: { onSignedOut: () => void }) {
   const cache = useMemo(() => localScheduleCache(), [])
   const ended = useRef(false)
   const endSession = async () => {
+    // Forget the schedule first, so closing the tab during a slow sign-out leaves nothing behind. From here on,
+    // `ended` keeps any fetch still in flight from writing it back.
     ended.current = true
+    cache.clear()
     try {
       await signOut()
     } catch (err) {
-      reportOnce('Signing out failed; clearing this device anyway', err)
+      reportOnce('Signing out failed; this device is cleared anyway', err)
     }
-    // Even if signing out failed, this device must not keep the pilot's schedule.
-    cache.clear()
     finish()
   }
   const schedule = useSchedule({

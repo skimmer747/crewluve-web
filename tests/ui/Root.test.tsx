@@ -127,6 +127,37 @@ describe('Root: ending the session', () => {
     error.mockRestore()
   })
 
+  it('never writes a fetch that lands while signing out to the device', async () => {
+    vi.stubGlobal('confirm', vi.fn(() => true))
+    let land!: (raw: RawSchedule) => void
+    vi.mocked(fetchSchedule).mockImplementation(() => new Promise<RawSchedule>((resolve) => (land = resolve)))
+    let finishSignOut!: () => void
+    vi.mocked(session.signOut).mockImplementation(() => new Promise<void>((resolve) => (finishSignOut = resolve)))
+    render(<Root />)
+    await waitFor(() => expect(fetchSchedule).toHaveBeenCalledTimes(1))
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+    // The load settles over several promise hops, so give it a macrotask.
+    await act(async () => {
+      land(alex())
+      await new Promise((r) => setTimeout(r, 0))
+    })
+    expect(cached()).toBeNull()
+    expect(screen.queryByText("Where's Alex?")).toBeNull()
+    await act(async () => finishSignOut())
+    expect(await screen.findByRole('button', { name: 'Sign in' })).toBeTruthy()
+    expect(cached()).toBeNull()
+  })
+
+  it('forgets the schedule before the sign-out request finishes', async () => {
+    vi.stubGlobal('confirm', vi.fn(() => true))
+    vi.mocked(session.signOut).mockImplementation(() => new Promise<void>(() => {}))
+    render(<Root />)
+    await screen.findByText("Where's Alex?")
+    await waitFor(() => expect(cached()).not.toBeNull())
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+    await waitFor(() => expect(cached()).toBeNull())
+  })
+
   it('clears this device and returns to sign-in when the session ends elsewhere', async () => {
     let endedElsewhere!: () => void
     vi.mocked(session.onSignedOut).mockImplementation((onOut) => {

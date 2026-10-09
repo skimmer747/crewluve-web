@@ -84,19 +84,21 @@ export function onSignedOut(onOut: () => void): () => void {
  * of the account. Visitors use the pilot's own login, so a global sign-out here would sign the pilot's Crewlu app out
  * on their iPhone too.
  *
- * The visitor is signed out here even when the request fails (the client drops its local session regardless), and even
- * when the client can't be loaded: then the stored session is removed directly, so credentials are never left behind.
+ * The stored session is always removed at the end, whatever happened before. auth-js returns early, keeping it, when it
+ * can't load the session first: an expired token it couldn't refresh because the network or the sign-in service is down.
+ * The client may also fail to load at all. Either way a sign-out must never leave credentials behind on this device.
  */
 export async function signOut(): Promise<void> {
   try {
     const { supabase } = await loadClient()
-    await supabase.auth.signOut({ scope: 'local' })
+    const { error } = await supabase.auth.signOut({ scope: 'local' })
+    if (error) reportOnce('Sign-out did not finish with CrewLu Cloud; removing the stored session directly', error)
   } catch (err) {
     reportOnce('Sign-out could not use the CrewLu Cloud client; removing the stored session directly', err)
-    try {
-      localStorage.removeItem(AUTH_STORAGE_KEY)
-    } catch {
-      // Storage is blocked, so nothing was stored either.
-    }
+  }
+  try {
+    localStorage.removeItem(AUTH_STORAGE_KEY)
+  } catch {
+    // Storage is blocked, so nothing was stored either.
   }
 }

@@ -761,6 +761,7 @@ airports.json ───────────────────┤
 
 **Session and cache**
 - Supabase keeps the session in this origin's localStorage. Sign-out runs `supabase.auth.signOut({ scope: 'local' })`, removes `crewluve.schedule.v1`, and returns to the sign-in screen.
+  - **The device forgets first.** The schedule is cleared before the sign-out request goes out, and the stored session is removed afterwards whatever the request's outcome. Offline with an expired token, auth-js returns early and would keep the session, so the next visitor could open the pilot's schedule.
   - **Local scope is essential.** The default, global, revokes every session on the account. Visitors use the pilot's login, so it would sign the pilot's Crewlu app out on every device. Duty hit this on 2026-07-14.
 - **A stored session counts as signed in.** A return visit shows the cached schedule at once, even offline with an expired token. A dead session ends through the fetch's auth error or Supabase's SIGNED_OUT event.
 - **Empty results.** Row-level security answers a request without a valid session with empty tables, not an error. So an all-empty fetch is believed only while the session is live; otherwise it signs out.
@@ -840,12 +841,15 @@ object-src 'none'; base-uri 'self'; form-action 'self'
 
 - **Repo:** `skimmer747/crewluve-web`, public, branch `main`. Repo creation and pushes happen only when the user asks.
 - **Workflow:** `.github/workflows/deploy-pages.yml`, copied from crewlu-globe. It runs `npm ci`, `npx vitest run`, `npm run build`, `upload-pages-artifact`, and `deploy-pages`, with up to 3 attempts (Pages often fails the first one).
+  - Only the deploy job, which runs no project code, holds the Pages permissions; the build job is read-only and doesn't keep the git credential.
 - **Node version:** CI reads it from `.nvmrc` (24, the current LTS). supabase-js 2.117 needs Node 22 or later.
 - **No CI secrets.** The publishable key is public by design.
-- **Custom domain**
-  - `public/CNAME` contains `crewluve.crewlu.net`.
-  - DNS: one CNAME record, `crewluve` → `skimmer747.github.io`, in the crewlu.net zone. The user adds it; Claude walks them through. crewlu.net's CAA already allows letsencrypt.org.
-  - In GitHub, under Settings → Pages, set the custom domain and enable "Enforce HTTPS" once the certificate is issued.
+- **Custom domain** (in this order, as GitHub recommends, so no one else can claim the subdomain)
+  - In GitHub, under Settings → Pages, set the custom domain first. Verifying crewlu.net for the account is recommended.
+  - Then DNS: one CNAME record, `crewluve` → `skimmer747.github.io`, in the crewlu.net zone. The user adds it; Claude walks them through. crewlu.net's CAA already allows letsencrypt.org.
+  - Enable "Enforce HTTPS" once the certificate is issued.
+  - `public/CNAME` records the domain, though a deploy from GitHub Actions ignores it.
+- **Push from `main`** after `slice1` is merged; the workflow deploys only from `main`.
   - If the certificate never provisions, remove the domain, wait about a minute, and re-add it. This is the globe's 2026-06-22 fix.
 - **Linking from the website:** a link from crewlu.net/crewluve/ to the new site is a separate CrewLu-Website change, made only when asked.
 
@@ -877,6 +881,7 @@ object-src 'none'; base-uri 'self'; form-action 'self'
 | 22 | Batch F review fixes: sign-out is local-only; read-only is enforced by a fetch wrapper and a source scan; hidden rows are filtered in the query; a stored session renders the cache at once; an all-empty fetch needs a live session; late fetches after sign-out are discarded; the client loads only in live mode. | Design (Batch F review) |
 | 23 | Visual check: the countdown number uses `18cqi` (52 px on every current iPhone, still fitting "11d 08h 39m" on a 320 px phone), and the production CSP drops `'unsafe-inline'` from `style-src`. | Design (Task 32) |
 | 24 | Batch I review fixes: a sign-in outage keeps the session and cache instead of bouncing the visitor to sign-in; reconnecting refreshes at once and going offline shows at once; `airports.json` is preloaded, with codes shown after 300 ms on slow links; a failed sign-out still clears the device. | Design (Batch I review) |
+| 25 | Final review fixes: sign-out removes the stored session even when auth-js keeps it (offline with an expired token), the device forgets the schedule before the sign-out request, the deploy job alone holds the Pages permissions, and the deploy guide sets the custom domain before DNS and pushes from `main`. | Design (final review) |
 
 ## 13. Roadmap (after slice 1)
 
