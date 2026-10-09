@@ -83,6 +83,20 @@ export function clockText(ms: number, timeZone: string, h24: boolean): string {
   return `${hour % 12 === 0 ? 12 : hour % 12}:${pad2(minute)}${hour < 12 ? 'am' : 'pm'}`
 }
 
+/**
+ * A clock time with its day when that isn't today in `timeZone`: "7:59am", "Thu 7:59am", or "Oct 2, 7:59am".
+ * A weekday name is unambiguous only for the six days before today (a week back it repeats today's),
+ * so anything older, or ahead of `now`, gets the date.
+ */
+export function clockWithDayText(ms: number, now: number, timeZone: string, h24: boolean): string {
+  const time = clockText(ms, timeZone, h24)
+  const daysAgo = calendarDay(now, timeZone) - calendarDay(ms, timeZone)
+  if (daysAgo === 0) return time
+  const p = zonedParts(ms, timeZone)
+  if (daysAgo >= 1 && daysAgo <= 6) return `${WEEKDAYS[p.weekday].slice(0, 3)} ${time}`
+  return `${MONTHS[p.month - 1].slice(0, 3)} ${p.day}, ${time}`
+}
+
 /** {T}: "1:00pm EST" or "13:00 EST" (formattedLocalTime). */
 export function timeWithZone(ms: number, timeZone: string, h24: boolean): string {
   return `${clockText(ms, timeZone, h24)} ${zoneAbbr(ms, timeZone)}`

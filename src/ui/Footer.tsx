@@ -1,4 +1,4 @@
-import { agoText, clockText } from '../copy/format'
+import { agoText, clockWithDayText } from '../copy/format'
 import { Icon } from './Icon'
 import type { Problem } from './problem'
 
@@ -63,7 +63,9 @@ export function Footer(p: FooterProps) {
 
 function problemText(p: FooterProps): string {
   if (p.problem?.kind === 'offline') {
-    return p.lastSuccessAt != null ? `Offline — showing the schedule from ${clockText(p.lastSuccessAt, p.viewerTz, p.h24)}` : 'Offline'
+    return p.lastSuccessAt != null
+      ? `Offline — showing the schedule from ${clockWithDayText(p.lastSuccessAt, p.now, p.viewerTz, p.h24)}`
+      : 'Offline'
   }
   return "Couldn't reach CrewLu Cloud — will retry"
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  agoText, ageText, arrivalWhenText, cardCountdown, clockText, daysText, delayText, departureText,
+  agoText, ageText, arrivalWhenText, cardCountdown, clockText, clockWithDayText, daysText, delayText, departureText,
   leaveWhenText, longDateTimeText, narrativeCountdown, ordinalSuffix, timeWithZone, tripDepartsText,
 } from '../../src/copy/format'
 
@@ -73,6 +73,37 @@ describe('clock times', () => {
   it('adds the zone for {T}', () => {
     expect(timeWithZone(afternoon, NY, false)).toBe('1:10pm EDT')
     expect(timeWithZone(afternoon, 'Europe/Berlin', true)).toBe('19:10 GMT+2')
+  })
+})
+
+describe('clockWithDayText', () => {
+  const now = Date.UTC(2026, 9, 9, 12, 0) // Fri 9 Oct, 8:00am EDT
+
+  it('gives just the time for today', () => {
+    expect(clockWithDayText(Date.UTC(2026, 9, 9, 11, 59), now, NY, false)).toBe('7:59am')
+    expect(clockWithDayText(Date.UTC(2026, 9, 9, 11, 59), now, NY, true)).toBe('07:59')
+  })
+
+  it('adds the weekday for an earlier day this week', () => {
+    expect(clockWithDayText(Date.UTC(2026, 9, 8, 11, 59), now, NY, false)).toBe('Thu 7:59am')
+    expect(clockWithDayText(Date.UTC(2026, 9, 8, 11, 59), now, NY, true)).toBe('Thu 07:59')
+    expect(clockWithDayText(Date.UTC(2026, 9, 3, 11, 59), now, NY, false)).toBe('Sat 7:59am') // six days back
+  })
+
+  it('adds the date once the weekday would repeat today’s', () => {
+    expect(clockWithDayText(Date.UTC(2026, 9, 2, 11, 59), now, NY, false)).toBe('Oct 2, 7:59am') // a week back: also a Friday
+    expect(clockWithDayText(Date.UTC(2026, 9, 2, 11, 59), now, NY, true)).toBe('Oct 2, 07:59')
+    expect(clockWithDayText(Date.UTC(2026, 8, 20, 11, 59), now, NY, false)).toBe('Sep 20, 7:59am')
+  })
+
+  it('gives the date for a time ahead of now, such as after the clock was set back', () => {
+    expect(clockWithDayText(Date.UTC(2026, 9, 10, 11, 59), now, NY, false)).toBe('Oct 10, 7:59am')
+  })
+
+  it('decides what counts as today in the viewer’s zone', () => {
+    const lateNight = Date.UTC(2026, 9, 9, 3, 30) // Thu 8 Oct, 11:30pm EDT: already Friday in UTC
+    expect(clockWithDayText(lateNight, now, NY, false)).toBe('Thu 11:30pm')
+    expect(clockWithDayText(lateNight, now, 'UTC', false)).toBe('3:30am')
   })
 })
 

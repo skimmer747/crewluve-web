@@ -8,9 +8,12 @@ export function Celebration({ playKey }: { playKey: number }) {
 
   useEffect(() => {
     if (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    const start = performance.now()
+    // The clock starts at the first frame we are handed, as in the Swift. Reading performance.now() here instead
+    // would let a frame stamped a few ms earlier give a negative time, and the loop would end before drawing anything.
+    let start: number | null = null
     let raf = 0
     const tick = (now: number) => {
+      start ??= now
       const next = celebrationFrame(now - start)
       setFrame(next)
       if (next) raf = requestAnimationFrame(tick)

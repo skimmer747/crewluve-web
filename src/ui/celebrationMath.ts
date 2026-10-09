@@ -38,6 +38,11 @@ const SCALE_KEYS: [number, number][] = [[1.3, 0.3], [0.9, 0.25], [1.2, 0.3], [1.
 const OFFSET_KEYS: [number, number][] = [[-12, 0.25], [0, 0.2], [-10, 0.25], [0, 0.2], [-6, 0.2], [0, 0.2]]
 const ROTATION_KEYS: [number, number][] = [[8, 0.25], [-8, 0.3], [6, 0.25], [-6, 0.25], [0, 0.25]]
 
+/** Quadratic ease-out for p from 0 to 1: quick at first, slowing to a stop (stands in for SwiftUI's easeOut). */
+function easeOut(p: number): number {
+  return 1 - (1 - p) * (1 - p)
+}
+
 /** Keyframe track: ease out from the previous value to each [value, seconds] in turn (stands in for SpringKeyframe). */
 function track(keys: [number, number][], seconds: number, initial: number): number {
   let from = initial
@@ -45,7 +50,7 @@ function track(keys: [number, number][], seconds: number, initial: number): numb
   for (const [to, duration] of keys) {
     if (seconds < start + duration) {
       const p = (seconds - start) / duration
-      return from + (to - from) * (1 - (1 - p) * (1 - p))
+      return from + (to - from) * easeOut(p)
     }
     from = to
     start += duration
@@ -63,7 +68,7 @@ export function celebrationFrame(elapsedMs: number): CelebrationFrame | null {
     if (t > 0 && t < 1) hearts.push({ x: h.x + h.drift * t, y: -t * 35 - 12, size: h.size, opacity: 1 - t, scale: 1 - t * 0.4 })
   }
   return {
-    opacity: e < 2 ? 1 : 1 - (e - 2) / 0.4,
+    opacity: e < 2 ? 1 : 1 - easeOut((e - 2) / 0.4),
     armRaise: Math.cos(e * Math.PI * 3) * 0.5 + 0.5,
     scale: track(SCALE_KEYS, e, 1),
     offsetY: track(OFFSET_KEYS, e, 0),
