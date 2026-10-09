@@ -32,6 +32,27 @@ describe('RawBuilder rows match the columns fetchSchedule selects', () => {
   })
 })
 
+// Spec §6.1: the nine tables the site reads, and the ones it never reads.
+const READ_TABLES = ['pilot_infos', 'trips', 'duty_periods', 'flights', 'commutes', 'jumpseats', 'training_events', 'manual_events', 'event_categories']
+const NEVER_READ_TABLES = ['pilots', 'pilot_personal_infos', 'crew_members', 'jumpseat_riders', 'hotels', 'caterings', 'catering_photos', 'aircraft_notes', 'profiles']
+
+describe('COLUMNS (spec §6.1)', () => {
+  it('has exactly the nine tables the spec lists', () => {
+    expect(Object.keys(COLUMNS).sort()).toEqual([...READ_TABLES].sort())
+  })
+
+  it.each(NEVER_READ_TABLES)('does not include %s, which the site never reads', (table) => {
+    expect(Object.keys(COLUMNS)).not.toContain(table)
+  })
+
+  it('names every column: no table is read with *', () => {
+    for (const columns of Object.values(COLUMNS)) {
+      expect(columns).not.toContain('*')
+      expect(columns).toMatch(/^[a-z_]+(,[a-z_]+)*$/)
+    }
+  })
+})
+
 describe('RawBuilder', () => {
   it('turns minute offsets into ISO instants', () => {
     expect(raw.flights[0].scheduled_block_out_time).toBe('2026-10-09T10:00:00.000Z')

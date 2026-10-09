@@ -11,7 +11,7 @@ const PAGE = 1000
 
 /** The slice of the Supabase client this module uses, so tests can pass a fake. */
 export interface SelectClient {
-  // PostgREST's builder types are deep generics; this module only chains select/is/gte/lte/order/range.
+  // PostgREST's builder types are deep generics; this module only chains select/is/not/gte/lte/order/range.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   from(table: string): any
 }
@@ -32,10 +32,18 @@ type Table = keyof typeof COLUMNS
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Filter = (query: any) => any
 
+/**
+ * Rows the pilot hid in Crewlu are not downloaded at all (spec §9); normalize.ts still drops any that get through.
+ * It applies to every table that selects the flag. `not ... is true` keeps rows where the flag is false or null.
+ */
+const hidesRows = (table: Table) => COLUMNS[table].split(',').includes('hidden_from_timeline')
+
 async function selectAll<T>(client: SelectClient, table: Table, filter: Filter): Promise<T[]> {
   const rows: T[] = []
+  const skipHidden = hidesRows(table)
   for (let from = 0; ; from += PAGE) {
-    const res = await filter(client.from(table).select(COLUMNS[table]).is('deleted_at', null))
+    const live = client.from(table).select(COLUMNS[table]).is('deleted_at', null)
+    const res = await filter(skipHidden ? live.not('hidden_from_timeline', 'is', true) : live)
       .order('id', { ascending: true })
       .range(from, from + PAGE - 1)
     if (res.error) throw new ScheduleFetchError(res.error.message ?? `${table} failed`, res.status ?? null, res.error.code ?? null)
