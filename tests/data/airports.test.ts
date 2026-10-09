@@ -30,6 +30,20 @@ describe('buildAirportIndex', () => {
     expect(odd.city('BBA')).toBe('Balmaceda')
   })
 
+  it('skips rows with a blank code, so no lookup can land on them', () => {
+    const odd = buildAirportIndex([
+      ['', 'Nowhere', 'XX', 0, 0, 'Europe/Berlin'],
+      ['  ', 'Nowhere else', 'XX', 0, 0, 'Europe/Berlin'],
+      ['SDF', 'Louisville', 'USA', 38.17, -85.74, 'America/Kentucky/Louisville'],
+    ])
+    expect(odd.get('')).toBeUndefined()
+    expect(odd.get(null)).toBeUndefined()
+    expect(odd.tz(null)).toBeNull()
+    expect(odd.city(null)).toBeNull()
+    expect(odd.city('SDF')).toBe('Louisville')
+    expect(odd.tz('SDF')).toBe('America/Kentucky/Louisville')
+  })
+
   it('trims and uppercases the codes it is built from', () => {
     const padded = buildAirportIndex([[' sdf ', 'Louisville', 'USA', 38.17, -85.74, 'America/Kentucky/Louisville']])
     expect(padded.city('SDF')).toBe('Louisville')
@@ -75,7 +89,7 @@ describe('generated public/data/airports.json', () => {
   it.each([
     ['GOH', 'America/Godthab'], ['KBP', 'Europe/Kiev'], ['CIS', 'Pacific/Enderbury'],
     ['CJS', 'America/Denver'], ['BBA', 'America/Punta_Arenas'],
-  ])('%s uses %s, the older name browsers know', (code, zone) => {
+  ])('%s uses %s, a zone older browsers know', (code, zone) => {
     expect(idx.tz(code)).toBe(zone)
   })
 

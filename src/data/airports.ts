@@ -26,6 +26,7 @@ export function buildAirportIndex(rows: AirportTuple[]): AirportIndex {
   const map = new Map<string, Airport>()
   for (const [iata, city, country, lat, lng, tz] of rows) {
     const code = clean(iata)
+    if (!code) continue
     map.set(code, { iata: code, city, country, lat, lng, tz })
   }
   return {

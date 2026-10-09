@@ -44,6 +44,10 @@ describe('isKnownZone', () => {
   it('rejects a zone the runtime does not know', () => {
     expect(isKnownZone('Not/AZone')).toBe(false)
   })
+
+  it('rejects an empty zone name', () => {
+    expect(isKnownZone('')).toBe(false)
+  })
 })
 
 describe('viewerTimeZone', () => {
@@ -56,6 +60,6 @@ describe('viewerTimeZone', () => {
   })
 
   it('falls back to UTC when the runtime reports no zone', () => {
-    expect(viewerTimeZone(() => undefined as unknown as string)).toBe('UTC')
+    expect(viewerTimeZone(() => undefined)).toBe('UTC')
   })
 })

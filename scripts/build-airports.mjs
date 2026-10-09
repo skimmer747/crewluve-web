@@ -16,14 +16,20 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const source = process.env.AIRPORTS_SOURCE ?? resolve(root, '../crewlu-globe/public/data/airports.json')
 const outFile = resolve(root, 'public/data/airports.json')
 
-// Zones created or renamed in recent years, mapped to names that older browsers know. Modern
-// runtimes still accept the old names as links, and they keep today's offsets.
+// Zones renamed in recent years, mapped to their older names. These are true aliases: the older name
+// is a link to the same zone, and modern runtimes still accept it, but older browsers know only it.
 const OLDER_NAMES = new Map([
   ['America/Nuuk', 'America/Godthab'],
   ['Europe/Kyiv', 'Europe/Kiev'],
   ['Pacific/Kanton', 'Pacific/Enderbury'],
-  ['America/Ciudad_Juarez', 'America/Denver'],
-  ['America/Coyhaique', 'America/Punta_Arenas'], // both are permanently UTC-3
+])
+
+// Zones too new for older browsers, mapped to a DIFFERENT zone that only has the same rules today.
+// These are stand-ins, not aliases: if Mexico or Chile change their rules, they become wrong even in
+// modern browsers. Recheck each one every time this file is regenerated.
+const SAME_RULES_TODAY = new Map([
+  ['America/Ciudad_Juarez', 'America/Denver'], // same rules since Nov 2022
+  ['America/Coyhaique', 'America/Punta_Arenas'], // same rules since tzdata 2025b (both are permanently UTC-3)
 ])
 const remapped = new Map()
 
@@ -51,7 +57,7 @@ for (const r of JSON.parse(readFileSync(source, 'utf8'))) {
     skipped['no zone']++
     continue
   }
-  const tz = OLDER_NAMES.get(found) ?? found
+  const tz = OLDER_NAMES.get(found) ?? SAME_RULES_TODAY.get(found) ?? found
   if (tz !== found) remapped.set(found, (remapped.get(found) ?? 0) + 1)
   seen.add(iata)
   const round = (n) => Math.round(n * 1e4) / 1e4
@@ -62,10 +68,15 @@ mkdirSync(dirname(outFile), { recursive: true })
 writeFileSync(outFile, JSON.stringify(out))
 console.log(`wrote ${out.length} airports to ${outFile}`)
 console.log(`skipped: ${Object.entries(skipped).map(([reason, n]) => `${n} ${reason}`).join(', ')}`)
-if (remapped.size > 0) {
-  const list = [...remapped].map(([from, n]) => `${from} -> ${OLDER_NAMES.get(from)} (${n})`)
-  console.log(`remapped to older zone names: ${list.join(', ')}`)
-}
+const summarize = (names) =>
+  [...remapped]
+    .filter(([from]) => names.has(from))
+    .map(([from, n]) => `${from} -> ${names.get(from)} (${n})`)
+    .join(', ')
+const aliases = summarize(OLDER_NAMES)
+const standIns = summarize(SAME_RULES_TODAY)
+if (aliases) console.log(`mapped to older names: ${aliases}`)
+if (standIns) console.log(`stand-ins that only share today's rules, recheck them: ${standIns}`)
 
 // A zone this Node's Intl rejects would throw when a time is formatted in it, so flag any that are left.
 const rejected = [...new Set(out.map((row) => row[5]))].filter((zone) => {

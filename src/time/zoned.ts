@@ -93,10 +93,10 @@ export function isKnownZone(timeZone: string): boolean {
   return known
 }
 
-/** The viewer's IANA zone, or "UTC" when the browser reports none, or one it cannot format times in. */
-export function viewerTimeZone(resolve = () => Intl.DateTimeFormat().resolvedOptions().timeZone): string {
+/** The viewer's IANA zone, or "UTC" when the browser reports none (some engines don't) or one it cannot format times in. */
+export function viewerTimeZone(resolve: () => string | undefined = () => Intl.DateTimeFormat().resolvedOptions().timeZone): string {
   const zone = resolve()
-  return typeof zone === 'string' && zone !== '' && isKnownZone(zone) ? zone : 'UTC'
+  return typeof zone === 'string' && isKnownZone(zone) ? zone : 'UTC'
 }
 
 /** True when the locale uses a 24-hour clock (Crewluve follows the device's 12/24-hour setting). */

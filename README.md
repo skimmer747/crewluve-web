@@ -26,3 +26,5 @@ python3 -I scripts/make-icons.py   # public/icons/*.png
 
 `npm run airports` expects the CrewLu Flight Globe checkout next to this repo (`../crewlu-globe`).
 To read its `airports.json` from somewhere else, set `AIRPORTS_SOURCE=/path/to/airports.json`.
+
+Two zones are swapped for stand-ins that only share today's rules (`SAME_RULES_TODAY` in `scripts/build-airports.mjs`); recheck them every time you regenerate.
