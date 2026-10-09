@@ -113,7 +113,7 @@ export function arrivalWhenText(ms: number, timeZone: string, h24: boolean): str
   const p = zonedParts(ms, timeZone)
   const time = h24
     ? `${pad2(p.hour)}:${pad2(p.minute)}`
-    : `${p.hour % 12 === 0 ? 12 : p.hour % 12}:${pad2(p.minute)} ${p.hour < 12 ? 'AM' : 'PM'}`
+    : `${p.hour % 12 === 0 ? 12 : p.hour % 12}:${pad2(p.minute)}\u202F${p.hour < 12 ? 'AM' : 'PM'}`
   return `${WEEKDAYS[p.weekday].slice(0, 3)}, ${MONTHS[p.month - 1].slice(0, 3)} ${p.day} at ${time}`
 }
 

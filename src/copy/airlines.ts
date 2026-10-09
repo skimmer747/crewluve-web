@@ -63,19 +63,20 @@ const resolve = (code: string) => ICAO_TO_IATA[code.trim().toUpperCase()] ?? cod
 const toHex = ([r, g, b]: [number, number, number]) =>
   `#${[r, g, b].map((c) => Math.round(c * 255).toString(16).padStart(2, '0')).join('').toUpperCase()}` as const
 
+// In the three lookups below, a blank code (null, empty or only whitespace) means "no airline code".
 export function airlineName(code: string | null): string {
-  if (!code) return 'Commercial'
+  if (!code?.trim()) return 'Commercial'
   const c = resolve(code)
   return NAMES[c] ?? c
 }
 
 export function airlineIcon(code: string | null): IconName {
-  if (!code) return 'Airplane'
+  if (!code?.trim()) return 'Airplane'
   return SYMBOLS[resolve(code)] ?? 'Airplane'
 }
 
 export function airlineColor(code: string | null): ColorToken {
-  if (!code) return 'blue'
+  if (!code?.trim()) return 'blue'
   const c = resolve(code)
   if (c === '5X') return 'ups' // #663300 light, #E09E33 dark (the only theme-aware brand color)
   const rgb = RGB[c]
@@ -84,5 +85,5 @@ export function airlineColor(code: string | null): ColorToken {
 
 /** {FL}: " on UPS flight 2961"; empty when there is no usable (all-digit) flight number. */
 export function flightPhrase(airline: string | null, number: string | null): string {
-  return number ? ` on ${airlineName(airline)} flight ${number}` : ''
+  return number && /^\d+$/.test(number) ? ` on ${airlineName(airline)} flight ${number}` : ''
 }

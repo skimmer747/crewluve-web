@@ -30,4 +30,19 @@ describe('flightPhrase', () => {
     expect(flightPhrase('DL', '1234')).toBe(' on Delta flight 1234')
     expect(flightPhrase(null, null)).toBe('')
   })
+
+  it('omits the phrase for placeholders, which are not all digits', () => {
+    expect(flightPhrase('5X', 'CML')).toBe('')
+    expect(flightPhrase('5X', 'HOT-12')).toBe('')
+    expect(flightPhrase(null, 'XXXX')).toBe('')
+  })
+})
+
+describe('a whitespace-only airline code', () => {
+  it('counts as no code, like null', () => {
+    expect(airlineName('  ')).toBe('Commercial')
+    expect(airlineIcon('  ')).toBe('Airplane')
+    expect(airlineColor('  ')).toBe('blue')
+    expect(flightPhrase('  ', '2961')).toBe(' on Commercial flight 2961')
+  })
 })

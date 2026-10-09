@@ -35,6 +35,16 @@ describe('demoRawForScene', () => {
     expect(raw.newestUpdatedAt).toBe(now - 3 * 3_600_000)
   })
 
+  it('shows the ANC→SDF delay only from the scene where the crew learns of it', () => {
+    const now = Date.UTC(2026, 9, 20, 12)
+    const lateBy = (scene: 'flying' | 'delayed') => {
+      const f = demoRawForScene(scene, now).flights.find((x) => x.flight_number === '2962')!
+      return Date.parse(f.block_out_time!) - Date.parse(f.scheduled_block_out_time!)
+    }
+    expect(lateBy('flying')).toBe(0)
+    expect(lateBy('delayed')).toBe(40 * 60_000)
+  })
+
   it('validates scene names', () => {
     expect(isDemoScene('layover')).toBe(true)
     expect(isDemoScene('nope')).toBe(false)

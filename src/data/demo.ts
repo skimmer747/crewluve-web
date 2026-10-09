@@ -29,12 +29,17 @@ export function isDemoScene(value: string | null): value is DemoScene {
   return value != null && Object.prototype.hasOwnProperty.call(DEMO_SCENES, value)
 }
 
+/** Minutes after report when the crew learns the ANC→SDF flight will be 40 minutes late: the 'delayed' scene. */
+export const DELAY_KNOWN_AT = 1300
+
 /**
  * Alex's schedule, in minutes around `anchor` (the report time of the main trip, demo-t1).
  * driver: home LEX, base SDF, drives to work. jumpseater: home MCO, rides Delta jumpseats.
+ * `delayKnown` false leaves the ANC→SDF flight on its scheduled times, as CrewLu Cloud would before the delay.
  */
-export function demoRaw(variant: DemoVariant, anchor: number): RawSchedule {
+export function demoRaw(variant: DemoVariant, anchor: number, delayKnown = true): RawSchedule {
   const b = new RawBuilder(anchor)
+  const late = delayKnown ? { actualOut: 1600, actualIn: 1900 } : {}
   b.pilot('Alex', 'SDF', variant === 'driver' ? 'LEX' : 'MCO')
 
   b.trip('demo-t0', {
@@ -60,7 +65,7 @@ export function demoRaw(variant: DemoVariant, anchor: number): RawSchedule {
       {
         start: 1500,
         end: 1930,
-        flights: [{ dep: 'ANC', arr: 'SDF', out: 1560, in: 1860, actualOut: 1600, actualIn: 1900, number: '2962' }],
+        flights: [{ dep: 'ANC', arr: 'SDF', out: 1560, in: 1860, ...late, number: '2962' }],
       },
     ],
   })
@@ -93,6 +98,7 @@ export function demoRaw(variant: DemoVariant, anchor: number): RawSchedule {
 /** The demo schedule positioned so that `now` lands on `scene`. */
 export function demoRawForScene(scene: DemoScene, now: number): RawSchedule {
   const { variant, offset } = DEMO_SCENES[scene]
-  const raw = demoRaw(variant, now - offset * 60_000)
+  // Scenes before the delay is known show the flight on time, so the countdowns aren't red a day early.
+  const raw = demoRaw(variant, now - offset * 60_000, offset >= DELAY_KNOWN_AT)
   return { ...raw, fetchedAt: now, newestUpdatedAt: now - 3 * 3_600_000 }
 }

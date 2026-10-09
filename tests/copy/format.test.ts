@@ -90,6 +90,13 @@ describe('departureText', () => {
     const lateNight = Date.UTC(2026, 9, 8, 3, 30) // Wed 7 Oct, 11:30pm EDT
     expect(departureText(Date.UTC(2026, 9, 8, 10, 30), lateNight, NY, false)).toBe('tomorrow at 6:30am')
   })
+
+  it('takes the ordinal from the same zone as the date (C5)', () => {
+    // 03:00Z on Nov 2 is still Sun Nov 1 in New York: the zone says "1st", UTC says "2nd".
+    expect(departureText(Date.UTC(2026, 10, 2, 3, 0), Date.UTC(2026, 9, 29, 13, 0), NY, false)).toBe(
+      'Sunday the 1st at 10:00pm',
+    )
+  })
 })
 
 describe('long dates', () => {
@@ -98,7 +105,7 @@ describe('long dates', () => {
   })
 
   it('formats the arrival card subtitle like iOS', () => {
-    expect(arrivalWhenText(Date.UTC(2026, 9, 10, 18, 50), NY, false)).toBe('Sat, Oct 10 at 2:50 PM')
+    expect(arrivalWhenText(Date.UTC(2026, 9, 10, 18, 50), NY, false)).toBe('Sat, Oct 10 at 2:50\u202FPM')
     expect(arrivalWhenText(Date.UTC(2026, 9, 10, 18, 50), NY, true)).toBe('Sat, Oct 10 at 14:50')
   })
 
@@ -111,6 +118,7 @@ describe('long dates', () => {
   })
 
   it('takes the ordinal from the same zone as the date (C5)', () => {
-    expect(leaveWhenText(Date.UTC(2026, 9, 10, 2, 0), NY, false)).toBe('Departs Friday October 9th at 10:00pm')
+    // 02:00Z on Oct 2 is still Thu Oct 1 in New York: the zone says "1st", UTC says "2nd".
+    expect(leaveWhenText(Date.UTC(2026, 9, 2, 2, 0), NY, false)).toBe('Departs Thursday October 1st at 10:00pm')
   })
 })

@@ -155,7 +155,9 @@ export class RawBuilder {
   }
 
   build(fetchedAtMinutes = 0): RawSchedule {
-    const rows = structuredClone(this.rows)
+    // A JSON copy, not structuredClone: that needs Safari 15.4, and this builder runs in the browser for demo mode.
+    // Rows hold only strings, numbers, booleans and null, so nothing is lost.
+    const rows: ScheduleRows = JSON.parse(JSON.stringify(this.rows))
     return { ...rows, fetchedAt: this.anchor + fetchedAtMinutes * MIN, newestUpdatedAt: newestUpdatedAt(rows) }
   }
 }
