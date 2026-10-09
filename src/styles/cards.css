@@ -90,13 +90,16 @@
   line-height: 1;
 }
 
-/* 52/32 pt like the app; shrinks on narrow cards like minimumScaleFactor(0.5). */
+/* 52/32 pt like the app; shrinks on narrow cards like minimumScaleFactor(0.5).
+   The vw line comes first for browsers without container units (cqi): they drop the second line and keep it. */
 .countdown-value .num {
+  font-size: min(52px, 12.5vw);
   font-size: min(52px, 15.5cqi);
   font-weight: 700;
 }
 
 .countdown-value .unit {
+  font-size: min(32px, 7.5vw);
   font-size: min(32px, 9.5cqi);
   font-weight: 500;
   color: var(--text);
@@ -228,6 +231,7 @@
 /* Sign-in (web only). */
 .signin {
   min-height: 100vh;
+  min-height: 100dvh;
   justify-content: center;
   text-align: center;
 }
