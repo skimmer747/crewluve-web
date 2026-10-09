@@ -1,8 +1,8 @@
 import type { AirportIndex } from '../data/airports'
 import { arrivalOf, type DriveLeg, type DutyLeg, type MoveLeg } from '../engine/legs'
-import type { Snapshot } from '../engine/snapshot'
+import { DELAY_THRESHOLD_MIN, type Snapshot } from '../engine/snapshot'
 import { flightPhrase } from './airlines'
-import { delayText, narrativeCountdown, timeWithZone } from './format'
+import { daysText, delayText, departureText, longDateTimeText, narrativeCountdown, timeWithZone } from './format'
 
 export type SpanColor = 'status' | 'green' | 'red'
 
@@ -171,7 +171,51 @@ export function safeNarrative(s: Snapshot, ctx: NarrativeCtx): Span[] {
   }
 }
 
-// Replaced with the full Home templates in Task 16.
-function homeSentence(s: Snapshot, n: Sentence, _city: (code: string) => string) {
-  return n.t(`${s.name} is home and relaxing.`).spans
+/** Home templates (NarrativeCardView.swift:106-171). */
+function homeSentence(s: Snapshot, n: Sentence, city: (code: string) => string): Span[] {
+  const { name } = s
+  const nf = s.nextFlight
+  const { now, viewerTz, h24 } = n.ctx
+
+  // Commuter at home with the drive to work logged: tell the work story (no delay suffix, as in the app).
+  if (s.driveToWork && nf) {
+    return n.t(`${name} is home — heads to base, then on to `).b(city(nf.arr)).t(', departing in ').cd(nf.start)
+      .t(' at ').time(nf.start).t('.').spans
+  }
+
+  const prev = s.lastTripDays
+  const hb = s.homecoming
+  // {HB}: ". Back home in {cd} on **Monday October 12th at 8:02pm EDT**."
+  const backHome = (homecoming: number) =>
+    n.t('. Back home in ').cd(homecoming, 'green').t(' on ').b(longDateTimeText(homecoming, viewerTz, h24)).t('.')
+
+  if (nf) {
+    const dep = departureText(nf.start, now, viewerTz, h24)
+    const dest = city(nf.arr)
+    const commute = s.pilot.effHome && nf.dep !== s.pilot.effHome ? city(nf.dep) : null
+    const goneFor = daysText(s.nextTripDays ?? 1)
+    if (prev != null) {
+      n.t(`${name} is home after being gone for `).b(daysText(prev)).t('! ')
+      if (commute) n.t('Commuting to ').b(commute).t(' then heading to ').b(dest).t(` ${dep}`)
+      else n.t('Heading to ').b(dest).t(` ${dep}`)
+      if (hb) backHome(hb.time)
+      else n.t(' — gone for ').b(goneFor).t('.')
+    } else {
+      n.t(`${name} is home — `)
+      if (commute) n.t('commutes to ').b(commute).t(' then heads to ').b(dest).t(` ${dep}`)
+      else n.t('heads to ').b(dest).t(` ${dep}`)
+      if (hb) backHome(hb.time)
+      else n.t(' and will be gone for ').b(goneFor).t('.')
+    }
+  } else if (prev != null) {
+    n.t(`${name} is home after being gone for `).b(daysText(prev)).t(' and is relaxing.')
+  } else {
+    n.t(`${name} is home and relaxing.`)
+  }
+
+  const delay = s.delay
+  if (delay && delay.minutes >= DELAY_THRESHOLD_MIN) {
+    n.t(' The flight to ').b(city(delay.flight.arr)).t(' is delayed ').b(delayText(delay.minutes)).t('.')
+  }
+  return n.spans
 }
