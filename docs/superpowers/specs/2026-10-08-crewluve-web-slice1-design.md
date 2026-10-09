@@ -196,8 +196,8 @@ Everything else from the 2026-10-08 idea board is on the roadmap (§13). The use
 | Base | building.2.fill | purple |
 | Reserve | clock.badge.questionmark | red |
 | Hot standby | bolt.fill | orange |
-| Training / event | book.fill (car.fill if the title contains "driv", "truck" or "car") | purple |
-| Off / elsewhere | mappin.and.ellipse | gray |
+| Training / event | book.fill (car.fill if the title has a word starting "driv", or the word "truck" or "car", §6.3) | purple |
+| Off / elsewhere | mappin.and.ellipse | secondary (the app's gray text color) |
 | Unknown | circle.fill | gray |
 
 **Sentence templates.** These are copied verbatim from `NarrativeCardView.swift`.
@@ -207,6 +207,7 @@ Everything else from the 2026-10-08 idea board is on the roadmap (§13). The use
   - Last trip and next trip known: "{Name} is home after being gone for **{N} days**! Heading to **{City}** {dep}. {HB}."
     - Without {HB}: "…{dep} — gone for **{M} days**."
     - Commuter: "…! Commuting to **{BaseCity}** then heading to **{City}** {dep}…"
+    - The commuter wording appears only when a standalone jumpseat is logged from home to the trip's first departure airport, after now and before the trip's first leg. {dep} is then that jumpseat's departure. This is Crewluve's `UpcomingTripInfo.swift:67-108`. Without a logged jumpseat, the plain "Heading to" wording is used with the first flight's time. No commute is guessed.
   - Last trip only: "{Name} is home after being gone for **{N} days** and is relaxing."
   - Next trip only: "{Name} is home — heads to **{City}** {dep}. {HB}."
     - Without {HB}: "…{dep} and will be gone for **{M} days**."
@@ -227,8 +228,10 @@ Everything else from the 2026-10-08 idea board is on the roadmap (§13). The use
   - The verb is "riding" for deadheads and jumpseats (§6.3).
   - Shorter forms first drop " from **{Dep}**", then the landing clause. Last resort: "{Name} is in flight".
   - After a delayed or early departure: "{Name} was delayed|pushed early in **{Dep}** and is flying to **{Dest}**{FL} — landing in {cd, red|green} which is **{T}**."
-- **At base before a delayed or early first departure**
+- **At base, or off, before a delayed or early first departure**
   - "{Name} is delayed|is pushing early in **{Dep}** and will be flying to **{Dest}**{FL} — departing in {cd, red|green}."
+  - It also applies when the status is Off, for example a report window away from base, so the sentence agrees with the red or green card. The app does the same.
+  - Delayed-departure countdowns are red or green everywhere on the site. The app uses the status color in this one spot; the site keeps one rule.
 - **Ground transport** (web only; the apps wrongly say "In Flight")
   - "{Name} is riding to **{Dest}** by ground from **{Dep}** — arrives in {cd} which is **{T}**."
 - **Turn**
@@ -850,6 +853,7 @@ object-src 'none'; base-uri 'self'; form-action 'self'
 | 18 | The demo's Anchorage delay appears only from the `delayed` scene on (§4.7). | Design (early browser check) |
 | 19 | Engine fixes from review, each pinned by tests: "base" always means the pilot's base; airport fields accept only 3 characters or a UPS base plus "Z"; reserve codes and drive words match whole words; one drive-home rule for status, countdown, and the "heads home" sentence; a location-less event doesn't move the pilot; commercial deadheads are never UPS; inverted trips are dropped. | Design (Batch C review) |
 | 20 | Batch D review fixes: the sentence shows "On duty" whenever the "~N days" card shows; the current trip comes from the nearest trip legs, not neighboring events; `trips.days` of 0 falls back to the calendar count. Celebrating during "Released In" matches Crewluve, which celebrates any arrival under 24 h while not at home or base. | Design (Batch D review) |
+| 21 | Batch E review fixes: the home sentence's commuter wording appears only with a logged jumpseat to work, as in the app; Off uses the delayed-departure sentence; every template branch is pinned by tests. | Design (Batch E review) |
 
 ## 13. Roadmap (after slice 1)
 

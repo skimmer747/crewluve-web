@@ -96,7 +96,7 @@ tests/…                              mirrors src/; tests/fixtures/ holds share
 
 ## Execution notes (read before your batch)
 
-Tasks 1–14 are done on branch `slice1` and passed both reviews. Review fixes changed some of their code from the blocks printed in those tasks. **The repo is the source of truth for files that already exist.** Later tasks depend on these changes.
+Tasks 1–17 are done on branch `slice1` and passed both reviews. Review fixes changed some of their code from the blocks printed in those tasks. **The repo is the source of truth for files that already exist.** Later tasks depend on these changes.
 
 **From Batch A (Tasks 1–4):**
 
@@ -150,7 +150,15 @@ Tasks 1–14 are done on branch `slice1` and passed both reviews. Review fixes c
 - **`safeSnapshot`** can't throw from its catch block, and logs each distinct failure once (at most 10 per page).
 - **`toIata`** maps only `SDFZ`, `ANCZ`, `ONTZ` and `MIAZ` to their bases; other 4-letter values are null.
 
-**Full suite after Batch D:** 314 tests in 15 files. Steps that run a single test file are unaffected. A full-suite run just has more tests than a task's own count.
+**From Batch E (Tasks 15–17):**
+
+- **`Snapshot.nextCommute: MoveLeg | null`** is the logged jumpseat from home to the next trip's first departure airport. The home sentence uses the "Commuting to" wording only when it exists, as Crewluve does.
+- **`src/reportOnce.ts`** (new) logs each distinct failure once, at most 10 per page. `safeSnapshot` and `safeNarrative` use it.
+- **Off with a delayed or early next flight** uses the base's delayed-departure sentence (a shared `departing()` helper in narrative.ts).
+- **`statusVisual`** tolerates a missing in-flight leg.
+- **`tests/fixtures/departures.ts`** (new) holds shared departure scenes for the copy tests.
+
+**Full suite after Batch E:** 422 tests in 19 files. Steps that run a single test file are unaffected. A full-suite run just has more tests than a task's own count.
 
 ---
 
@@ -3673,7 +3681,7 @@ These are Crewluve's sentence templates (§4.3), copied verbatim from `Narrative
 - Create: `src/copy/narrative.ts`
 - Test: `tests/copy/narrativeAway.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { describe, expect, it, vi } from 'vitest'
@@ -3794,12 +3802,12 @@ describe('narrative edge cases', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/copy/narrativeAway.test.ts`
 Expected: FAIL, because `src/copy/narrative.ts` can't be resolved.
 
-- [ ] **Step 3: Write `src/copy/narrative.ts`**
+- [x] **Step 3: Write `src/copy/narrative.ts`**
 
 The `case 'home'` branch calls `homeSentence`. Task 16 fills in the full version; for now it is a one-line stub, so this task compiles and its tests pass.
 
@@ -3985,12 +3993,12 @@ function homeSentence(s: Snapshot, n: Sentence, _city: (code: string) => string)
 
 `noUnusedParameters` flags `_city` on this stub. TypeScript skips parameters whose names start with an underscore, so the build stays clean. Task 16 replaces the stub.
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run tests/copy/narrativeAway.test.ts && npx tsc --noEmit`
 Expected: PASS, and `tsc` prints nothing.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/copy/narrative.ts tests/copy/narrativeAway.test.ts
@@ -4009,7 +4017,7 @@ These are the Home templates (`NarrativeCardView.swift:106-171`). Sam lives at b
 - Modify: `src/copy/narrative.ts` (replace the `homeSentence` stub and its imports)
 - Test: `tests/copy/narrativeHome.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -4102,12 +4110,12 @@ describe('home narrative', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/copy/narrativeHome.test.ts`
 Expected: FAIL. Only "neither" passes, because the stub always says "is home and relaxing."
 
-- [ ] **Step 3: Update the imports at the top of `src/copy/narrative.ts`**
+- [x] **Step 3: Update the imports at the top of `src/copy/narrative.ts`**
 
 Replace:
 
@@ -4125,7 +4133,7 @@ import { flightPhrase } from './airlines'
 import { daysText, delayText, departureText, longDateTimeText, narrativeCountdown, timeWithZone } from './format'
 ```
 
-- [ ] **Step 4: Replace the stub at the bottom of `src/copy/narrative.ts`**
+- [x] **Step 4: Replace the stub at the bottom of `src/copy/narrative.ts`**
 
 Replace:
 
@@ -4189,12 +4197,12 @@ function homeSentence(s: Snapshot, n: Sentence, city: (code: string) => string):
 }
 ```
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `npx vitest run tests/copy && npx tsc --noEmit`
 Expected: PASS for both narrative files and the other copy tests. `tsc` prints nothing.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/copy/narrative.ts tests/copy/narrativeHome.test.ts
@@ -4213,7 +4221,7 @@ This picks the status icon and color, plus the title, icon and color of the coun
 - Create: `src/copy/visuals.ts`
 - Test: `tests/copy/visuals.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -4301,12 +4309,12 @@ describe('leaveCard', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/copy/visuals.test.ts`
 Expected: FAIL, because `src/copy/visuals.ts` can't be resolved.
 
-- [ ] **Step 3: Write `src/copy/visuals.ts`**
+- [x] **Step 3: Write `src/copy/visuals.ts`**
 
 ```ts
 import type { AirportIndex } from '../data/airports'
@@ -4388,12 +4396,12 @@ export function leaveCard(l: LeaveTarget): CardVisual {
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run tests/copy/visuals.test.ts`
 Expected: PASS (all tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/copy/visuals.ts tests/copy/visuals.test.ts
