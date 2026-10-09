@@ -1,0 +1,143 @@
+import { calendarDay, DAY, MINUTE } from '../time/zoned'
+import { lastHomeArrival, leaveTarget, nextTripFlight, nextTripHomecoming, type LeaveTarget } from './home'
+import { isDuty, isHomecomingMove, isMove, type DriveLeg, type DutyLeg, type Leg, type MoveLeg } from './legs'
+import { resolveStatus, type Status } from './status'
+import { arrivalTarget, type ArrivalTarget } from './targets'
+import type { Pilot, Schedule, Trip } from './types'
+
+export const DELAY_THRESHOLD_MIN = 15
+
+export interface Snapshot {
+  t: number
+  /** First name, or "Your pilot". */
+  name: string
+  hasName: boolean
+  pilot: Pilot
+  status: Status
+  /** 0…1 progress for the icon ring, or null where Crewluve shows none. */
+  ring: number | null
+  /** The relevant flight's departure delay, when it is 15+ minutes off schedule. */
+  delay: { flight: MoveLeg; minutes: number } | null
+  arrival: ArrivalTarget | null
+  fallbackDaysRemaining: number | null
+  leave: LeaveTarget | null
+  /** {HB}: when the next trip brings the pilot home (Home status only). */
+  homecoming: ArrivalTarget | null
+  driveToWork: DriveLeg | null
+  nextFlight: MoveLeg | null
+  nextMove: MoveLeg | null
+  /** The next drive or event arriving home ("heads home to …" at base). */
+  nextHomeTrip: DriveLeg | DutyLeg | null
+  lastTripDays: number | null
+  nextTripDays: number | null
+  midTripAtHome: boolean
+  daysHome: number | null
+  celebrate: boolean
+  empty: boolean
+}
+
+/** Trip length in days: trips.days, else the calendar-day count in `timeZone`. */
+export function tripDays(trip: Trip, timeZone: string): number {
+  return trip.days ?? calendarDay(trip.end, timeZone) - calendarDay(trip.start, timeZone) + 1
+}
+
+/** Everything the screen needs at time t. `legs` must come from buildLegs(schedule). */
+export function makeSnapshot(schedule: Schedule, legs: Leg[], t: number, baseTz: string): Snapshot {
+  const { pilot } = schedule
+  const flightless = flightlessTrip(schedule, legs, t)
+  let status = resolveStatus(legs, pilot, t)
+  // On a trip whose flights are all hidden we can't tell where the pilot is: Crewluve's "On duty".
+  if (flightless && status.kind === 'home' && !status.current) status = { ...status, kind: 'unknown', airport: null }
+
+  const atHome = status.kind === 'home'
+  const midTripAtHome = atHome && status.current?.kind === 'home'
+  const nextFlight = nextTripFlight(legs, t)
+  const nextTrip = nextFlight ? schedule.trips.find((tr) => tr.id === nextFlight.tripId) ?? null : null
+  const lastTrip = schedule.trips.reduce<Trip | null>((best, tr) => (tr.end <= t && (!best || tr.end > best.end) ? tr : best), null)
+  const arrival = atHome ? null : arrivalTarget(legs, pilot, status, t)
+  const nextMove = (legs.find((l) => isMove(l) && l.start > t) as MoveLeg | undefined) ?? null
+  // The same homecoming rule as the countdown: a drive home, or a drive-titled event, arriving home.
+  const nextHomeTrip = pilot.effHome == null ? null
+    : ((legs.find((l) => l.start > t && (l.kind === 'drive' || l.kind === 'event') && isHomecomingMove(l, pilot.effHome)) as DriveLeg | DutyLeg | undefined) ?? null)
+
+  return {
+    t,
+    name: pilot.firstName ?? 'Your pilot',
+    hasName: pilot.firstName != null,
+    pilot,
+    status,
+    ring: ringProgress(status, t),
+    delay: relevantDelay(status, nextFlight, nextMove),
+    arrival,
+    fallbackDaysRemaining: !atHome && !arrival && flightless ? daysRemaining(flightless, t, baseTz) : null,
+    leave: atHome ? leaveTarget(legs, pilot, t) : null,
+    homecoming: atHome ? nextTripHomecoming(legs, pilot, t) : null,
+    driveToWork: atHome ? pendingDriveToWork(legs, t, nextFlight) : null,
+    nextFlight,
+    nextMove,
+    nextHomeTrip,
+    lastTripDays: atHome && lastTrip && !midTripAtHome ? tripDays(lastTrip, baseTz) : null,
+    nextTripDays: nextTrip ? tripDays(nextTrip, baseTz) : null,
+    midTripAtHome,
+    daysHome: atHome && !midTripAtHome ? daysSince(lastHomeArrival(legs, pilot, t), t) : null,
+    celebrate: arrival != null && status.kind !== 'base' && arrival.time - t > 0 && arrival.time - t <= DAY,
+    empty: schedule.empty,
+  }
+}
+
+/** makeSnapshot that can never take the page down: an engine error shows "On duty" (spec §8). */
+export function safeSnapshot(schedule: Schedule, legs: Leg[], t: number, baseTz: string): Snapshot {
+  try {
+    return makeSnapshot(schedule, legs, t, baseTz)
+  } catch (err) {
+    console.error('Status engine failed; showing "On duty"', err)
+    return {
+      t,
+      name: schedule.pilot.firstName ?? 'Your pilot',
+      hasName: schedule.pilot.firstName != null,
+      pilot: schedule.pilot,
+      status: { kind: 'unknown', airport: null, current: null, previous: null, next: null },
+      ring: null, delay: null, arrival: null, fallbackDaysRemaining: null, leave: null, homecoming: null,
+      driveToWork: null, nextFlight: null, nextMove: null, nextHomeTrip: null, lastTripDays: null,
+      nextTripDays: null, midTripAtHome: false, daysHome: null, celebrate: false, empty: schedule.empty,
+    }
+  }
+}
+
+function ringProgress(status: Status, t: number): number | null {
+  const c = status.current
+  if (!c) return null
+  const placeRing = (status.kind === 'layover' || status.kind === 'base') && (c.kind === 'layover' || c.kind === 'base' || c.kind === 'report')
+  if (!isMove(c) && !isDuty(c) && !placeRing) return null
+  return Math.min(1, Math.max(0, (t - c.start) / (c.end - c.start)))
+}
+
+function relevantDelay(status: Status, nextFlight: MoveLeg | null, nextMove: MoveLeg | null): Snapshot['delay'] {
+  const c = status.current
+  const flight =
+    c && isMove(c) ? c
+      : status.kind === 'home' ? nextFlight
+        : status.kind === 'turn' || status.kind === 'layover' || status.kind === 'base' || status.kind === 'off' ? nextMove
+          : null
+  if (!flight) return null
+  const minutes = Math.round((flight.start - flight.schedStart) / MINUTE)
+  return Math.abs(minutes) >= DELAY_THRESHOLD_MIN ? { flight, minutes } : null
+}
+
+function flightlessTrip(schedule: Schedule, legs: Leg[], t: number): Trip | null {
+  const trip = schedule.trips.find((tr) => tr.start <= t && t < tr.end)
+  return trip && !legs.some((l) => l.tripId === trip.id && isMove(l)) ? trip : null
+}
+
+/** EstimatedReturnCardView: max(total days − day number, 0), counting days in the base's zone. */
+function daysRemaining(trip: Trip, t: number, timeZone: string): number {
+  const total = tripDays(trip, timeZone)
+  const dayNumber = Math.min(calendarDay(t, timeZone) - calendarDay(trip.start, timeZone) + 1, total)
+  return Math.max(total - dayNumber, 0)
+}
+
+function pendingDriveToWork(legs: Leg[], t: number, nextFlight: MoveLeg | null): DriveLeg | null {
+  return (legs.find((l) => l.kind === 'drive' && !l.toHome && l.start > t && (!nextFlight || l.start < nextFlight.start)) as DriveLeg | undefined) ?? null
+}
+
+const daysSince = (arrival: number | null, t: number) => (arrival == null ? null : Math.floor((t - arrival) / DAY))
