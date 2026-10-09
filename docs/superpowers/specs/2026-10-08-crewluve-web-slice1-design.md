@@ -630,6 +630,8 @@ All of these come from the 2026-07-02 Crewluve leave/return-home audit, C1–C30
 - Vitest, with `@testing-library/preact` and `happy-dom` for component tests.
 - Plain CSS with custom properties for light and dark. No UI kit.
 - **Browser floor:** the ES2020 build target (Safari 14, Chrome 87, Firefox 78). App code avoids newer built-ins such as `structuredClone`.
+  - The CSS uses flex `gap` and `inset`, which need Safari 14.1, so on iPhones the real floor is iOS 14.5. Devices still on iOS 14.0–14.4 can update.
+  - Newer CSS such as container-query units (`cqi`, Safari 16+) always comes after a plain fallback declaration, so older browsers still get sensible sizes.
 - Phosphor icon SVGs inlined as Preact components (only the icons used).
 
 ### 7.2 Layout

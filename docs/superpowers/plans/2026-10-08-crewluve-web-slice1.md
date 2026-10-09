@@ -176,7 +176,14 @@ Tasks 1–21 are done on branch `slice1` and passed both reviews. Review fixes c
 - **Hidden rows** are filtered in the query (`not.is.true`).
 - **The plan's Tasks 29 and 31** were updated for these: an `alive` ref in useSchedule, and the LiveApp/loadLive code in Root.tsx.
 
-**Full suite after Batch F:** 741 tests in 32 files. Steps that run a single test file are unaffected. A full-suite run just has more tests than a task's own count.
+**From Batch G (Tasks 22–24):**
+
+- **CSS fallbacks.** `cards.css` puts a plain `font-size: min(52px, 12.5vw)` (and `min(32px, 7.5vw)` for units) before each `cqi` size. Browsers without container units keep a sensible size.
+- **`100dvh`.** Each `min-height: 100vh` is followed by `min-height: 100dvh` (body and `.signin`).
+- **`ProgressRing`** clamps its value to 0–1 and draws only the track at 0 (no stray dot).
+- **`tests/styles/styles.test.ts`** (new) pins the §4.1 color table (light and dark), the reduced-motion rule, tabular digits, and fallback-before-`cqi`. If Task 32 changes tokens, update it there. It deliberately leaves the countdown size and roll-in duration unpinned, for Task 32.
+
+**Full suite after Batch F:** 741 tests in 32 files; after Batch G's fixes, 824 in 39. Steps that run a single test file are unaffected. A full-suite run just has more tests than a task's own count.
 
 ---
 
@@ -5060,7 +5067,7 @@ This builds the favicon, the home-screen icon, and the sign-in heart from the Cr
 - Create: `scripts/make-icons.py`, `public/icons/apple-touch-icon.png`, `public/icons/icon-192.png`, `public/icons/favicon-32.png`, `public/icons/heart-256.png`
 - Modify: `index.html`
 
-- [ ] **Step 1: Write `scripts/make-icons.py`**
+- [x] **Step 1: Write `scripts/make-icons.py`**
 
 ```python
 #!/usr/bin/env python3
@@ -5105,17 +5112,17 @@ if __name__ == '__main__':
     main()
 ```
 
-- [ ] **Step 2: Generate the icons**
+- [x] **Step 2: Generate the icons**
 
 Run: `python3 -I scripts/make-icons.py`
 Expected: `wrote icons to …/public/icons`. Four PNGs exist.
 
-- [ ] **Step 3: Look at the result**
+- [x] **Step 3: Look at the result**
 
 Open `public/icons/apple-touch-icon.png` with the Read tool.
 Expected: the pink-to-blue heart on a blue-to-pink background, like the Crewluve app icon without the airplane.
 
-- [ ] **Step 4: Link the icons in `index.html`**
+- [x] **Step 4: Link the icons in `index.html`**
 
 Replace:
 
@@ -5133,12 +5140,12 @@ with:
     <title>CrewLuve</title>
 ```
 
-- [ ] **Step 5: Build**
+- [x] **Step 5: Build**
 
 Run: `npm run build`
 Expected: success. `dist/icons/` contains the four PNGs, because Vite copies `public/` verbatim.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add scripts/make-icons.py public/icons index.html
@@ -5157,7 +5164,7 @@ These are the iOS look on the web (§4.1): system colors in light and dark, fros
 - Create: `src/styles/tokens.css`, `src/styles/base.css`, `src/styles/cards.css`
 - Modify: `src/main.tsx`
 
-- [ ] **Step 1: Write `src/styles/tokens.css`**
+- [x] **Step 1: Write `src/styles/tokens.css`**
 
 ```css
 :root {
@@ -5199,7 +5206,7 @@ These are the iOS look on the web (§4.1): system colors in light and dark, fros
 }
 ```
 
-- [ ] **Step 2: Write `src/styles/base.css`**
+- [x] **Step 2: Write `src/styles/base.css`**
 
 ```css
 *,
@@ -5261,7 +5268,7 @@ button {
 }
 ```
 
-- [ ] **Step 3: Write `src/styles/cards.css`**
+- [x] **Step 3: Write `src/styles/cards.css`**
 
 ```css
 /* Liquid Glass stand-in (spec §4.1); tuned by eye in Task 32. */
@@ -5566,7 +5573,7 @@ button {
 }
 ```
 
-- [ ] **Step 4: Import the styles from `src/main.tsx`** (it still renders the placeholder until Task 31)
+- [x] **Step 4: Import the styles from `src/main.tsx`** (it still renders the placeholder until Task 31)
 
 ```tsx
 import { render } from 'preact'
@@ -5577,12 +5584,12 @@ import './styles/cards.css'
 render(<p>CrewLuve</p>, document.getElementById('app')!)
 ```
 
-- [ ] **Step 5: Build**
+- [x] **Step 5: Build**
 
 Run: `npm run build`
 Expected: success, with a CSS asset in `dist/assets/`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/styles src/main.tsx
@@ -5599,7 +5606,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/ui/colors.ts`, `src/ui/Icon.tsx`, `src/ui/Title.tsx`, `src/ui/ProgressRing.tsx`, `src/ui/NarrativeCard.tsx`
 - Test: `tests/ui/basics.test.tsx`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 // @vitest-environment happy-dom
@@ -5673,12 +5680,12 @@ describe('NarrativeCard', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/ui/basics.test.tsx`
 Expected: FAIL, because `src/ui/colors.ts` can't be resolved.
 
-- [ ] **Step 3: Write `src/ui/colors.ts`**
+- [x] **Step 3: Write `src/ui/colors.ts`**
 
 ```ts
 import type { ColorToken } from '../copy/colors'
@@ -5690,7 +5697,7 @@ export function cssColor(token: ColorToken): string {
 }
 ```
 
-- [ ] **Step 4: Write `src/ui/Icon.tsx`**
+- [x] **Step 4: Write `src/ui/Icon.tsx`**
 
 ```tsx
 import { ICON_PATHS, type IconName } from '../icons/iconPaths'
@@ -5725,7 +5732,7 @@ export function Icon({ name, size = 28, color, label }: IconProps) {
 }
 ```
 
-- [ ] **Step 5: Write `src/ui/Title.tsx`**
+- [x] **Step 5: Write `src/ui/Title.tsx`**
 
 ```tsx
 export function titleFor(name: string | null): string {
@@ -5737,7 +5744,7 @@ export function Title({ text }: { text: string }) {
 }
 ```
 
-- [ ] **Step 6: Write `src/ui/ProgressRing.tsx`**
+- [x] **Step 6: Write `src/ui/ProgressRing.tsx`**
 
 ```tsx
 const RADIUS = 20.5 // 44 px box with a 3 px stroke
@@ -5761,7 +5768,7 @@ export function ProgressRing({ value, color }: { value: number; color: string })
 }
 ```
 
-- [ ] **Step 7: Write `src/ui/NarrativeCard.tsx`**
+- [x] **Step 7: Write `src/ui/NarrativeCard.tsx`**
 
 ```tsx
 import type { Span } from '../copy/narrative'
@@ -5796,12 +5803,12 @@ export function NarrativeCard({ spans, visual, ring }: { spans: Span[]; visual: 
 }
 ```
 
-- [ ] **Step 8: Run the test to verify it passes**
+- [x] **Step 8: Run the test to verify it passes**
 
 Run: `npx vitest run tests/ui/basics.test.tsx && npx tsc --noEmit`
 Expected: PASS, and `tsc` prints nothing.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add src/ui/colors.ts src/ui/Icon.tsx src/ui/Title.tsx src/ui/ProgressRing.tsx src/ui/NarrativeCard.tsx tests/ui/basics.test.tsx
@@ -7482,6 +7489,10 @@ Open the three reference screenshots with the Read tool and compare them side by
 - **Footer:** small gray rows centered between two round buttons.
 
 Make one change at a time and re-screenshot. Don't touch layout files beyond `tokens.css` and `cards.css`.
+
+Two questions from the Batch G review to settle side by side:
+- **Countdown size.** `15.5cqi` gives 48 px at 390 px wide; the app shows 52 pt. The widest common value fits a 310 px card at 52 px, so a coefficient near `18.5cqi` may match the app better. Keep the plain fallback line before it.
+- **Increase Contrast.** In light mode, green and orange text sit around 2:1 on the card, as in the app. iOS darkens its system colors when "Increase Contrast" is on. Try matching that with `@media (prefers-contrast: more)` overrides in `tokens.css` (darker greens, blues and so on, and stronger secondary text). Show the user before keeping it.
 
 - [ ] **Step 4: Check dark mode, the desktop width, and the sign-in screen**
 
