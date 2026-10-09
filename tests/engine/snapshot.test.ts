@@ -361,3 +361,54 @@ describe('safeSnapshot', () => {
     expect(error).toHaveBeenCalledTimes(10)
   })
 })
+
+describe('the commute ahead is bounded to the next trip (audit C7, C11, C22)', () => {
+  /** The next trip leaves Louisville for Anchorage four days out, on Tuesday the 13th at 5:30am. */
+  const tripAhead = (b: RawBuilder) =>
+    b.trip('t1', { dutyPeriods: [{ start: 5700, end: 6100, flights: [{ dep: 'SDF', arr: 'ANC', out: 5760, in: 6000 }] }] })
+  const alexAtHome = () => new RawBuilder(A).pilot('Alex', 'SDF', 'LEX')
+  const patAtHome = () => new RawBuilder(A).pilot('Pat', 'SDF', 'MCO')
+
+  it('ignores the drive to work for a reserve day before the trip (C7)', () => {
+    const b = alexAtHome()
+      .commute('work-rsv', 'LEX', 'SDF', 'toWork', 1300, 1390)
+      .manualEvent('rsv', 'RSVA', 1440, 2880, 'SDF')
+      .commute('home-rsv', 'SDF', 'LEX', 'toHome', 2900, 2990)
+    expect(snapOf(tripAhead(b), 0).driveToWork).toBeNull()
+  })
+
+  it('ignores the drive to work for a training day before the trip (C7)', () => {
+    const b = alexAtHome()
+      .commute('work-tr', 'LEX', 'SDF', 'toWork', 1300, 1390)
+      .training('tr', 'RECURRENT', 1440, 1900, 'SDF')
+      .commute('home-tr', 'SDF', 'LEX', 'toHome', 1950, 2040)
+    expect(snapOf(tripAhead(b), 0).driveToWork).toBeNull()
+  })
+
+  it('ignores the drive of a trip whose flights are all hidden (C22)', () => {
+    const b = alexAtHome()
+      .trip('t0', { dutyPeriods: [{ start: 1440, end: 1800, flights: [{ dep: 'SDF', arr: 'MIA', out: 1500, in: 1700, hidden: true }] }] })
+      .commute('w0', 'LEX', 'SDF', 'toWork', 1300, 1390, 't0')
+    expect(snapOf(tripAhead(b), 0).driveToWork).toBeNull()
+  })
+
+  it('ignores a stray drive to work days before the trip (C11)', () => {
+    expect(snapOf(tripAhead(alexAtHome().commute('stale', 'LEX', 'SDF', 'toWork', 300, 390)), 0).driveToWork).toBeNull()
+  })
+
+  it('keeps the trip’s own drive to work', () => {
+    expect(snapOf(tripAhead(alexAtHome().commute('w1', 'LEX', 'SDF', 'toWork', 5600, 5690, 't1')), 0).driveToWork?.id).toBe('w1')
+  })
+
+  it('ignores an air commuter’s training-day jumpseat before the trip (C7)', () => {
+    const b = patAtHome()
+      .jumpseat('js-train', 'MCO', 'SDF', 1300, 1420)
+      .training('tr', 'RECURRENT', 1500, 1900, 'SDF')
+      .jumpseat('js-home', 'SDF', 'MCO', 2000, 2120)
+    expect(snapOf(tripAhead(b), 0).nextCommute).toBeNull()
+  })
+
+  it('keeps the jumpseat that takes the commuter to the trip', () => {
+    expect(snapOf(tripAhead(patAtHome().jumpseat('js1', 'MCO', 'SDF', 5400, 5520)), 0).nextCommute?.id).toBe('js1')
+  })
+})

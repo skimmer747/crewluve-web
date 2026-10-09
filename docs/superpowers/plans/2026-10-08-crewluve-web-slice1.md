@@ -178,7 +178,7 @@ Tasks 1–21 are done on branch `slice1` and passed both reviews. Review fixes c
 
 **From Batch G (Tasks 22–24):**
 
-- **CSS fallbacks.** `cards.css` puts a plain `font-size: min(52px, 12.5vw)` (and `min(32px, 7.5vw)` for units) before each `cqi` size. Browsers without container units keep a sensible size.
+- **CSS fallbacks.** `cards.css` puts a plain `calc()` size before each `cqi` size, so browsers without container units keep a sensible size. Task 32 later set them to `min(52px, calc(18vw - 14.4px))` then `min(52px, 18cqi)`, and `min(32px, calc(11.1vw - 8.88px))` then `min(32px, 11.1cqi)` for units.
 - **`100dvh`.** Each `min-height: 100vh` is followed by `min-height: 100dvh` (body and `.signin`).
 - **`ProgressRing`** clamps its value to 0–1 and draws only the track at 0 (no stray dot).
 - **`tests/styles/styles.test.ts`** (new) pins the §4.1 color table (light and dark), the reduced-motion rule, tabular digits, and fallback-before-`cqi`. If Task 32 changes tokens, update it there. It deliberately leaves the countdown size and roll-in duration unpinned, for Task 32.
@@ -195,7 +195,22 @@ Tasks 1–21 are done on branch `slice1` and passed both reviews. Review fixes c
 - **`useAirports(retryMs = 3000, slowMs = 300)`** shows codes after `slowMs` while the list is still loading. `index.html` preloads `/data/airports.json`.
 - **Tests.** New `tests/ui/Root.test.tsx` (session, client, fetch and airports all mocked) and `tests/indexHtml.test.ts`, plus more cases in the hooks, SignIn and ScheduleScreen tests.
 
-**Full suite after Batch F:** 741 tests in 32 files; after Batch G's fixes, 824 in 39; after Batch I's fixes, 955 in 44. Steps that run a single test file are unaffected. A full-suite run just has more tests than a task's own count.
+**From Task 32, the polish batch and the final review:**
+
+- **Task 32 (visual check).** Countdown at `18cqi` (52 px on 375+ px iPhones). Production CSP without `'unsafe-inline'`. A `crewluve-preview` launch entry on port 5181. The user signed off on the side-by-side screenshots. The real-data sign-in (Step 7) is the user's to do.
+- **Polish (`9fbb98e`):**
+  - Spoken countdowns: `spokenDuration()`, the timer's `aria-label`, and `.sr-only` phrases in the sentence.
+  - `readOnlyFetch` allows only the project host and the nine `COLUMNS` tables.
+  - `nextCommute` is home-only.
+- **Final review (`fce953a` and after):**
+  - `signOut` always removes the stored session, and Root clears the cache before the sign-out request.
+  - The workflow's Pages permissions live on the deploy job only.
+  - DEPLOY.md sets the custom domain before DNS.
+  - The drive to work and the jumpseat commute are bounded to the next trip (C7, C11, C22).
+  - `tests/setup/noNetwork.ts` blocks every network call in the suite.
+  - `scripts/make-icons.py` reads `../Crewluv` (or `CREWLUVE_ICON_ART`) instead of an absolute path.
+
+**Full suite:** 741 tests in 32 files after Batch F; 824 in 39 after Batch G's fixes; 955 in 44 after Batch I's fixes; 1003 in 45 at the end. Steps that run a single test file are unaffected. A full-suite run just has more tests than a task's own count.
 
 ---
 
@@ -5845,7 +5860,7 @@ The motion math is pure and unit-tested. The component only paints frames.
 - Create: `src/ui/celebrationMath.ts`, `src/ui/Celebration.tsx`
 - Test: `tests/ui/celebrationMath.test.ts`, `tests/ui/Celebration.test.tsx`
 
-- [ ] **Step 1: Write the failing math test `tests/ui/celebrationMath.test.ts`**
+- [x] **Step 1: Write the failing math test `tests/ui/celebrationMath.test.ts`**
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -5895,12 +5910,12 @@ describe('figureGeometry', () => {
 })
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 Run: `npx vitest run tests/ui/celebrationMath.test.ts`
 Expected: FAIL, because `src/ui/celebrationMath.ts` can't be resolved.
 
-- [ ] **Step 3: Write `src/ui/celebrationMath.ts`**
+- [x] **Step 3: Write `src/ui/celebrationMath.ts`**
 
 ```ts
 /** Pure motion math for Crewluve's CelebrationFigureView (spec §4.4). */
@@ -6009,12 +6024,12 @@ export function figureGeometry(armRaise: number): {
 }
 ```
 
-- [ ] **Step 4: Run the math test to verify it passes**
+- [x] **Step 4: Run the math test to verify it passes**
 
 Run: `npx vitest run tests/ui/celebrationMath.test.ts`
 Expected: PASS (6 tests).
 
-- [ ] **Step 5: Write the failing component test `tests/ui/Celebration.test.tsx`**
+- [x] **Step 5: Write the failing component test `tests/ui/Celebration.test.tsx`**
 
 ```tsx
 // @vitest-environment happy-dom
@@ -6042,7 +6057,7 @@ describe('Celebration', () => {
 })
 ```
 
-- [ ] **Step 6: Write `src/ui/Celebration.tsx`**
+- [x] **Step 6: Write `src/ui/Celebration.tsx`**
 
 ```tsx
 import { useEffect, useState } from 'preact/hooks'
@@ -6105,12 +6120,12 @@ export function Celebration({ playKey }: { playKey: number }) {
 
 Preact core sets SVG attributes exactly as written, so camelCase attribute names such as `strokeWidth` would be ignored by the browser. That's why every stroke and stop color goes through `style`, where camelCase CSS properties work.
 
-- [ ] **Step 7: Run both celebration tests and the type check**
+- [x] **Step 7: Run both celebration tests and the type check**
 
 Run: `npx vitest run tests/ui/celebrationMath.test.ts tests/ui/Celebration.test.tsx && npx tsc --noEmit`
 Expected: PASS, and `tsc` prints nothing.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/ui/celebrationMath.ts src/ui/Celebration.tsx tests/ui/celebrationMath.test.ts tests/ui/Celebration.test.tsx
@@ -6127,7 +6142,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/ui/CountdownCard.tsx`, `src/ui/FallbackCard.tsx`, `src/ui/DaysHomePill.tsx`
 - Test: `tests/ui/cards.test.tsx`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 // @vitest-environment happy-dom
@@ -6187,12 +6202,12 @@ describe('DaysHomePill', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/ui/cards.test.tsx`
 Expected: FAIL, because `src/ui/CountdownCard.tsx` can't be resolved.
 
-- [ ] **Step 3: Write `src/ui/CountdownCard.tsx`**
+- [x] **Step 3: Write `src/ui/CountdownCard.tsx`**
 
 ```tsx
 import { Fragment } from 'preact'
@@ -6244,7 +6259,7 @@ export function CountdownCard({ title, icon, color, target, now, subtitle, celeb
 }
 ```
 
-- [ ] **Step 4: Write `src/ui/FallbackCard.tsx`**
+- [x] **Step 4: Write `src/ui/FallbackCard.tsx`**
 
 ```tsx
 import { Icon } from './Icon'
@@ -6270,7 +6285,7 @@ export function FallbackCard({ daysRemaining }: { daysRemaining: number }) {
 }
 ```
 
-- [ ] **Step 5: Write `src/ui/DaysHomePill.tsx`**
+- [x] **Step 5: Write `src/ui/DaysHomePill.tsx`**
 
 ```tsx
 import { Icon } from './Icon'
@@ -6285,12 +6300,12 @@ export function DaysHomePill({ name, days }: { name: string; days: number }) {
 }
 ```
 
-- [ ] **Step 6: Run the test to verify it passes**
+- [x] **Step 6: Run the test to verify it passes**
 
 Run: `npx vitest run tests/ui/cards.test.tsx`
 Expected: PASS (7 tests).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/ui/CountdownCard.tsx src/ui/FallbackCard.tsx src/ui/DaysHomePill.tsx tests/ui/cards.test.tsx
@@ -6307,7 +6322,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/ui/problem.ts`, `src/ui/Footer.tsx`
 - Test: `tests/ui/Footer.test.tsx`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 // @vitest-environment happy-dom
@@ -6368,19 +6383,19 @@ describe('freshnessColor', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/ui/Footer.test.tsx`
 Expected: FAIL, because `src/ui/Footer.tsx` can't be resolved.
 
-- [ ] **Step 3: Write `src/ui/problem.ts`**
+- [x] **Step 3: Write `src/ui/problem.ts`**
 
 ```ts
 /** Why the footer shows a warning instead of the freshness rows. */
 export type Problem = { kind: 'offline' } | { kind: 'unreachable' } | null
 ```
 
-- [ ] **Step 4: Write `src/ui/Footer.tsx`**
+- [x] **Step 4: Write `src/ui/Footer.tsx`**
 
 ```tsx
 import { agoText, clockText } from '../copy/format'
@@ -6454,12 +6469,12 @@ function problemText(p: FooterProps): string {
 }
 ```
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [x] **Step 5: Run the test to verify it passes**
 
 Run: `npx vitest run tests/ui/Footer.test.tsx`
 Expected: PASS (all tests).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/ui/problem.ts src/ui/Footer.tsx tests/ui/Footer.test.tsx
@@ -6483,7 +6498,7 @@ The screen in Crewluve's card order (§4.4):
 - Create: `src/ui/EmptyState.tsx`, `src/ui/DemoBanner.tsx`, `src/ui/StatusScreen.tsx`
 - Test: `tests/ui/StatusScreen.test.tsx`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 // @vitest-environment happy-dom
@@ -6554,12 +6569,12 @@ describe('EmptyState', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/ui/StatusScreen.test.tsx`
 Expected: FAIL, because `src/ui/EmptyState.tsx` can't be resolved.
 
-- [ ] **Step 3: Write `src/ui/EmptyState.tsx`**
+- [x] **Step 3: Write `src/ui/EmptyState.tsx`**
 
 ```tsx
 export function EmptyState() {
@@ -6572,7 +6587,7 @@ export function EmptyState() {
 }
 ```
 
-- [ ] **Step 4: Write `src/ui/DemoBanner.tsx`**
+- [x] **Step 4: Write `src/ui/DemoBanner.tsx`**
 
 ```tsx
 export function DemoBanner() {
@@ -6580,7 +6595,7 @@ export function DemoBanner() {
 }
 ```
 
-- [ ] **Step 5: Write `src/ui/StatusScreen.tsx`**
+- [x] **Step 5: Write `src/ui/StatusScreen.tsx`**
 
 ```tsx
 import { arrivalWhenText, leaveWhenText, tripDepartsText } from '../copy/format'
@@ -6665,12 +6680,12 @@ function AwayCard({ snap, now, homeTz, h24, airports, celebrateKey }: StatusScre
 }
 ```
 
-- [ ] **Step 6: Run the test to verify it passes**
+- [x] **Step 6: Run the test to verify it passes**
 
 Run: `npx vitest run tests/ui/StatusScreen.test.tsx && npx tsc --noEmit`
 Expected: PASS, and `tsc` prints nothing.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/ui/EmptyState.tsx src/ui/DemoBanner.tsx src/ui/StatusScreen.tsx tests/ui/StatusScreen.test.tsx
@@ -6687,7 +6702,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/ui/hooks/useNow.ts`, `src/ui/hooks/useVisibilityCount.ts`, `src/ui/hooks/useAirports.ts`, `src/ui/hooks/useSchedule.ts`
 - Test: `tests/ui/hooks.test.tsx`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 // @vitest-environment happy-dom
@@ -6845,12 +6860,12 @@ describe('useAirports', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/ui/hooks.test.tsx`
 Expected: FAIL, because `src/ui/hooks/useAirports.ts` can't be resolved.
 
-- [ ] **Step 3: Write `src/ui/hooks/useNow.ts`**
+- [x] **Step 3: Write `src/ui/hooks/useNow.ts`**
 
 ```ts
 import { useEffect, useState } from 'preact/hooks'
@@ -6866,7 +6881,7 @@ export function useNow(intervalMs = 1000): number {
 }
 ```
 
-- [ ] **Step 4: Write `src/ui/hooks/useVisibilityCount.ts`**
+- [x] **Step 4: Write `src/ui/hooks/useVisibilityCount.ts`**
 
 ```ts
 import { useEffect, useState } from 'preact/hooks'
@@ -6885,7 +6900,7 @@ export function useVisibilityCount(): number {
 }
 ```
 
-- [ ] **Step 5: Write `src/ui/hooks/useAirports.ts`**
+- [x] **Step 5: Write `src/ui/hooks/useAirports.ts`**
 
 ```ts
 import { useEffect, useState } from 'preact/hooks'
@@ -6918,7 +6933,7 @@ export function useAirports(retryMs = 3000): AirportIndex | null {
 }
 ```
 
-- [ ] **Step 6: Write `src/ui/hooks/useSchedule.ts`**
+- [x] **Step 6: Write `src/ui/hooks/useSchedule.ts`**
 
 ```ts
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks'
@@ -7003,12 +7018,12 @@ export function useSchedule({ load, cache, intervalMs = REFRESH_MS, onAuthError,
 }
 ```
 
-- [ ] **Step 7: Run the test to verify it passes**
+- [x] **Step 7: Run the test to verify it passes**
 
 Run: `npx vitest run tests/ui/hooks.test.tsx && npx tsc --noEmit`
 Expected: PASS (11 tests), and `tsc` prints nothing.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/ui/hooks tests/ui/hooks.test.tsx
@@ -7025,7 +7040,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/ui/SignIn.tsx`
 - Test: `tests/ui/SignIn.test.tsx`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 // @vitest-environment happy-dom
@@ -7069,12 +7084,12 @@ describe('SignIn', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/ui/SignIn.test.tsx`
 Expected: FAIL, because `src/ui/SignIn.tsx` can't be resolved.
 
-- [ ] **Step 3: Write `src/ui/SignIn.tsx`**
+- [x] **Step 3: Write `src/ui/SignIn.tsx`**
 
 ```tsx
 import { useState } from 'preact/hooks'
@@ -7152,12 +7167,12 @@ export function SignIn({ onSignedIn, signIn = signInWithCrewLuCloud }: SignInPro
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run tests/ui/SignIn.test.tsx && npx tsc --noEmit`
 Expected: PASS (3 tests), and `tsc` prints nothing.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/ui/SignIn.tsx tests/ui/SignIn.test.tsx
@@ -7177,7 +7192,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/main.tsx`
 - Test: `tests/ui/ScheduleScreen.test.tsx`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 // @vitest-environment happy-dom
@@ -7228,12 +7243,12 @@ describe('ScheduleScreen', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/ui/ScheduleScreen.test.tsx`
 Expected: FAIL, because `src/ui/ScheduleScreen.tsx` can't be resolved.
 
-- [ ] **Step 3: Write `src/ui/ScheduleScreen.tsx`**
+- [x] **Step 3: Write `src/ui/ScheduleScreen.tsx`**
 
 ```tsx
 import { useMemo } from 'preact/hooks'
@@ -7308,12 +7323,12 @@ export function ScheduleScreen({ schedule, airports, demo, onSignOut }: Schedule
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run tests/ui/ScheduleScreen.test.tsx`
 Expected: PASS (3 tests).
 
-- [ ] **Step 5: Write `src/ui/Root.tsx`**
+- [x] **Step 5: Write `src/ui/Root.tsx`**
 
 ```tsx
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
@@ -7413,7 +7428,7 @@ function LiveSchedule({ onSignedOut: finish }: { onSignedOut: () => void }) {
 }
 ```
 
-- [ ] **Step 6: Replace `src/main.tsx`**
+- [x] **Step 6: Replace `src/main.tsx`**
 
 ```tsx
 import { render } from 'preact'
@@ -7425,7 +7440,7 @@ import { Root } from './ui/Root'
 render(<Root />, document.getElementById('app')!)
 ```
 
-- [ ] **Step 7: Run every gate**
+- [x] **Step 7: Run every gate**
 
 Run: `npx vitest run && npx tsc --noEmit && npm run build`
 Expected: all tests pass, `tsc` prints nothing, and the build succeeds.
@@ -7433,7 +7448,7 @@ Expected: all tests pass, `tsc` prints nothing, and the build succeeds.
 Run: `grep -c 'Content-Security-Policy' dist/index.html`
 Expected: `1`. The CSP meta is injected only in the production build.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/ui/ScheduleScreen.tsx src/ui/Root.tsx src/main.tsx tests/ui/ScheduleScreen.test.tsx
@@ -7462,12 +7477,12 @@ The screenshots are slightly older than the current app, so these spec details w
 - Modify: `src/styles/tokens.css`, `src/styles/cards.css` (tuning only)
 - Modify: `.claude/launch.json` (adds the production preview), `vite.config.ts` (preview `strictPort`, and the CSP if Step 5 tightens it), `tests/viteConfig.test.ts` (only if the CSP changes)
 
-- [ ] **Step 1: Open the dev server in the browser pane**
+- [x] **Step 1: Open the dev server in the browser pane**
 
 Use the `preview_start` tool with `name: "crewluve"`. `.claude/launch.json` runs `npm run dev` on port 5180.
 Then use `resize_window` with `width: 390, height: 844`, the iPhone size from the spec.
 
-- [ ] **Step 2: Screenshot every demo scene**
+- [x] **Step 2: Screenshot every demo scene**
 
 For each scene in this list, navigate to `http://localhost:5180/?demo=1&scene=<scene>` and take a screenshot:
 - `flying`, `turn`, `base`, `layover`, `delayed`, `last-leg`
@@ -7480,7 +7495,7 @@ Expected:
 
 The pane may run as a hidden tab, which pauses animation frames, so the celebration figure can look frozen. That's expected.
 
-- [ ] **Step 3: Compare against the app and tune the CSS**
+- [x] **Step 3: Compare against the app and tune the CSS**
 
 Open the three reference screenshots with the Read tool and compare them side by side with `flying`, `layover`, and `home`. Check:
 
@@ -7506,7 +7521,7 @@ Two questions from the Batch G review to settle side by side:
 - **Countdown size.** `15.5cqi` gives 48 px at 390 px wide; the app shows 52 pt. The widest common value fits a 310 px card at 52 px, so a coefficient near `18.5cqi` may match the app better. Keep the plain fallback line before it.
 - **Increase Contrast.** In light mode, green and orange text sit around 2:1 on the card, as in the app. iOS darkens its system colors when "Increase Contrast" is on. Try matching that with `@media (prefers-contrast: more)` overrides in `tokens.css` (darker greens, blues and so on, and stronger secondary text). Show the user before keeping it.
 
-- [ ] **Step 4: Check dark mode, the desktop width, and the sign-in screen**
+- [x] **Step 4: Check dark mode, the desktop width, and the sign-in screen**
 
 - `resize_window` with `colorScheme: "dark"`, then screenshot `flying` and `home`. Expect a black background, light text, the lighter UPS brown (#E09E33), and readable glass.
   - Also check `commuting-home`. Many airline brand colors are dark: Delta is about 1.2:1 against a dark card, and American about 1.4:1, so a jumpseat's icon and bold countdown can be hard to read.
@@ -7515,7 +7530,7 @@ Two questions from the Batch G review to settle side by side:
 - Navigate to `http://localhost:5180/`. The pane has no CrewLu Cloud session, so expect the sign-in screen: heart artwork, "CrewLuve", the form, the read-only note, and the "See a demo" link.
 - Set `colorScheme: "light"` again.
 
-- [ ] **Step 5: Check the production build under its CSP**
+- [x] **Step 5: Check the production build under its CSP**
 
 The dev server runs without the CSP, so check the built site. That's what GitHub Pages will serve.
 
@@ -7543,7 +7558,7 @@ The dev server runs without the CSP, so check the built site. That's what GitHub
 
    If there's any violation, put `'unsafe-inline'` back and say why in the comment above `CSP`.
 
-- [ ] **Step 6: Show the user and take their notes**
+- [x] **Step 6: Show the user and take their notes**
 
 Show the user the `flying`, `layover`, `last-leg`, `home` and sign-in screenshots next to the app screenshots. Ask whether anything looks off. Expect a round or two of nudges (brightness, spacing). Apply each in `tokens.css` or `cards.css`, re-screenshot, and show them again.
 
@@ -7561,13 +7576,13 @@ This is the production build, so it also proves the CSP lets sign-in and the dat
   4. Rebuild, restart the preview, and re-check. The session stays in that origin's storage, so the user stays signed in.
 - Sign out with the footer button afterward if the user wants.
 
-- [ ] **Step 8: Reset the pane and run the gates**
+- [x] **Step 8: Reset the pane and run the gates**
 
 Use `resize_window` with `preset: "desktop"`, and stop the preview server with `preview_stop`.
 Run: `npx vitest run && npx tsc --noEmit && npm run build`
 Expected: all green.
 
-- [ ] **Step 9: Commit the tuning and the preview setup**
+- [x] **Step 9: Commit the tuning and the preview setup**
 
 ```bash
 git add src/styles .claude/launch.json vite.config.ts tests/viteConfig.test.ts docs/superpowers/specs/2026-10-08-crewluve-web-slice1-design.md
@@ -7583,7 +7598,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Files:**
 - Create: `.github/workflows/deploy-pages.yml`, `.nvmrc`, `public/CNAME`, `docs/DEPLOY.md`
 
-- [ ] **Step 1: Write `.github/workflows/deploy-pages.yml`**
+- [x] **Step 1: Write `.github/workflows/deploy-pages.yml`**
 
 This is the globe's workflow with two changes: a test step, and the Node version read from `.nvmrc` (Step 2).
 
@@ -7643,7 +7658,7 @@ jobs:
         uses: actions/deploy-pages@v4
 ```
 
-- [ ] **Step 2: Write `public/CNAME` and `.nvmrc`**
+- [x] **Step 2: Write `public/CNAME` and `.nvmrc`**
 
 `public/CNAME`:
 
@@ -7657,7 +7672,7 @@ crewluve.crewlu.net
 24
 ```
 
-- [ ] **Step 3: Write `docs/DEPLOY.md`**
+- [x] **Step 3: Write `docs/DEPLOY.md`**
 
 ````markdown
 # Deploying crewluve.crewlu.net
@@ -7713,12 +7728,12 @@ Push to `main`. The workflow tests, builds and deploys, retrying the Pages step 
 Linking the site from crewlu.net/crewluve/ is a separate change in the CrewLu-Website repo. Ask first.
 ````
 
-- [ ] **Step 4: Build and check the CNAME ships**
+- [x] **Step 4: Build and check the CNAME ships**
 
 Run: `npm run build && cat dist/CNAME`
 Expected: `crewluve.crewlu.net`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add .github/workflows/deploy-pages.yml .nvmrc public/CNAME docs/DEPLOY.md

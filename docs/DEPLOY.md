@@ -9,7 +9,8 @@ Do these steps once, with the user. **Every step that publishes code or touches 
 
 - `main` must hold the finished work, with `slice1` merged into it, and `main` must be checked out. `gh repo create --push`
   pushes only the current branch, and the workflow deploys only from `main`.
-- The repo will be public. Look through `docs/` for anything that shouldn't be public, such as local file paths.
+- The repo will be public. Look through `docs/` for anything that shouldn't be public. The design spec and plan under
+  `docs/superpowers/` mention local folders (`/Users/…`) as references; scrub them first if you'd rather not publish them.
 
 ## 1. Create the GitHub repo and push
 

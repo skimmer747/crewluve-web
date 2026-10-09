@@ -204,10 +204,11 @@ Everything else from the 2026-10-08 idea board is on the roadmap (§13). The use
 - Notation: `**x**` is bold. `{cd}` is the countdown, colored with the status color unless noted. `{T}` is a time. Missing data drops a clause using the listed fallbacks. Some fallbacks have no final period; that is verbatim.
 - **Home**
   - Commuter with a drive to work pending: "{Name} is home — heads to base, then on to **{City}**, departing in {cd} at **{T}**."
+    - "Pending" means the drive to work for the next trip: it leaves within a day of that trip's first flight, with no drive home in between. An earlier drive belongs to a reserve or training day, another trip, or is stale (§6.11: C7, C11, C22).
   - Last trip and next trip known: "{Name} is home after being gone for **{N} days**! Heading to **{City}** {dep}. {HB}."
     - Without {HB}: "…{dep} — gone for **{M} days**."
     - Commuter: "…! Commuting to **{BaseCity}** then heading to **{City}** {dep}…"
-    - The commuter wording appears only when a standalone jumpseat is logged from home to the trip's first departure airport, after now and before the trip's first leg. {dep} is then that jumpseat's departure. This is Crewluve's `UpcomingTripInfo.swift:67-108`. Without a logged jumpseat, the plain "Heading to" wording is used with the first flight's time. No commute is guessed.
+    - The commuter wording appears only when a standalone jumpseat is logged from home to the trip's first departure airport, after now and before the trip's first leg, and within a day of it with no way home in between (§6.11: C7). {dep} is then that jumpseat's departure. This is Crewluve's `UpcomingTripInfo.swift:67-108`. Without a logged jumpseat, the plain "Heading to" wording is used with the first flight's time. No commute is guessed.
   - Last trip only: "{Name} is home after being gone for **{N} days** and is relaxing."
   - Next trip only: "{Name} is home — heads to **{City}** {dep}. {HB}."
     - Without {HB}: "…{dep} and will be gone for **{M} days**."
@@ -397,6 +398,8 @@ Everything else from the 2026-10-08 idea board is on the roadmap (§13). The use
 9. Ground transport gets its own sentence instead of "In Flight".
 10. The footer's "Schedule updated" icon stays neutral instead of turning red as it ages (§4.5).
 11. The drive home moves with a late last flight (§6.2). Crewlu's stored commute times don't.
+12. The delayed or early departure sentence ("{Name} is delayed in **{Dep}** and will be flying to …") shows whenever the next departure is 15 minutes or more off schedule, however far ahead. The app shows its version only from the scheduled time on.
+13. Screen readers hear countdowns in words ("1 day, 6 hours, 59 minutes"), not "1d 06h 59m" or "49m", which can be read as meters. The countdown card's timer has that as its label, and each sentence countdown has a visually hidden phrase beside it.
 
 ## 5. Behavior summary (what the visitor experiences)
 
@@ -601,7 +604,7 @@ A **homecoming move** is a flight, jumpseat, drive, or drive-titled event that a
 
 ### 6.11 Bugs avoided
 
-All of these come from the 2026-07-02 Crewluve leave/return-home audit, C1–C30. The full list is in the Crewluv session transcript `~/.claude/projects/-Users-you-Dev-Crewluv/73241709-bef2-4d40-aa03-e21fefa6368b.jsonl`, line 262. Each item gets a regression test.
+All of these come from the 2026-07-02 Crewluve leave/return-home audit, C1–C30, which lives in the Crewluv project's notes rather than in this repo. The engine's tests name the IDs they pin: C1, C3, C5, C7, C10, C11, C14, C16, C22, C24, C25 and C26. The other items are design rules covered by the tests of the behavior they describe.
 
 - **C1, C16, C24 — delay-blindness.** Never decide "next" or "started" on scheduled times.
 - **C2, C7, C11, C14, C22 — wrong-trip binding.** Every scan is bounded to the current block or the next trip.
@@ -744,7 +747,8 @@ airports.json ───────────────────┤
 **Read-only**
 - The code never calls `insert`, `update`, `upsert`, `delete`, `rpc`, Edge Functions, or Storage.
 - **Enforced at the network.** The Supabase client's fetch is wrapped (`src/data/readOnlyFetch.ts`). Only these requests can leave the browser:
-  - reads: GET or HEAD under `/rest/v1`, and GET under `/auth/v1`
+  - reads: GET or HEAD of the nine §6.1 tables under `/rest/v1` (no other table, and no RPC), and GET under `/auth/v1`
+  - only to the CrewLu Cloud project's own host
   - sign-in and token refresh: POST `/auth/v1/token`
   - this-device sign-out: POST `/auth/v1/logout?scope=local`
 
@@ -848,9 +852,9 @@ object-src 'none'; base-uri 'self'; form-action 'self'
   - In GitHub, under Settings → Pages, set the custom domain first. Verifying crewlu.net for the account is recommended.
   - Then DNS: one CNAME record, `crewluve` → `skimmer747.github.io`, in the crewlu.net zone. The user adds it; Claude walks them through. crewlu.net's CAA already allows letsencrypt.org.
   - Enable "Enforce HTTPS" once the certificate is issued.
+  - If the certificate never provisions, remove the domain, wait about a minute, and re-add it. This is the globe's 2026-06-22 fix.
   - `public/CNAME` records the domain, though a deploy from GitHub Actions ignores it.
 - **Push from `main`** after `slice1` is merged; the workflow deploys only from `main`.
-  - If the certificate never provisions, remove the domain, wait about a minute, and re-add it. This is the globe's 2026-06-22 fix.
 - **Linking from the website:** a link from crewlu.net/crewluve/ to the new site is a separate CrewLu-Website change, made only when asked.
 
 ## 12. Decisions log (2026-10-08)
@@ -882,6 +886,8 @@ object-src 'none'; base-uri 'self'; form-action 'self'
 | 23 | Visual check: the countdown number uses `18cqi` (52 px on every current iPhone, still fitting "11d 08h 39m" on a 320 px phone), and the production CSP drops `'unsafe-inline'` from `style-src`. | Design (Task 32) |
 | 24 | Batch I review fixes: a sign-in outage keeps the session and cache instead of bouncing the visitor to sign-in; reconnecting refreshes at once and going offline shows at once; `airports.json` is preloaded, with codes shown after 300 ms on slow links; a failed sign-out still clears the device. | Design (Batch I review) |
 | 25 | Final review fixes: sign-out removes the stored session even when auth-js keeps it (offline with an expired token), the device forgets the schedule before the sign-out request, the deploy job alone holds the Pages permissions, and the deploy guide sets the custom domain before DNS and pushes from `main`. | Design (final review) |
+| 26 | Polish: screen readers hear countdowns in words; the read-only guard allows only the project host and the nine §6.1 tables; the commute shown at home is null away from home. | Design (polish) |
+| 27 | The drive to work and the jumpseat commute in the home sentence are bounded to the next trip (within a day of its first flight, no way home between), closing C7, C11 and C22; the test suite blocks every network call. | Design (final review) |
 
 ## 13. Roadmap (after slice 1)
 

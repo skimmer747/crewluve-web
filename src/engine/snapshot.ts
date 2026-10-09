@@ -145,18 +145,33 @@ function daysRemaining(trip: Trip, t: number, timeZone: string): number {
   return Math.max(total - dayNumber, 0)
 }
 
+/**
+ * The drive to work for the next trip. Bounded to that trip (spec §6.11: C7, C11, C22): it must leave within a day of the trip's
+ * first flight, with no drive home in between. An earlier drive belongs to a reserve or training day, another trip, or is stale.
+ */
 function pendingDriveToWork(legs: Leg[], t: number, nextFlight: MoveLeg | null): DriveLeg | null {
-  return (legs.find((l) => l.kind === 'drive' && !l.toHome && l.start > t && (!nextFlight || l.start < nextFlight.start)) as DriveLeg | undefined) ?? null
+  if (!nextFlight) return null
+  const homeBetween = (from: number) => legs.some((m) => m.kind === 'drive' && m.toHome && m.start > from && m.start < nextFlight.start)
+  const drive = legs.find(
+    (l) => l.kind === 'drive' && !l.toHome && l.start > t && l.start < nextFlight.start && nextFlight.start - l.start <= DAY && !homeBetween(l.start),
+  )
+  return (drive as DriveLeg | undefined) ?? null
 }
 
 /**
  * UpcomingTripInfo.swift:67-93: a standalone jumpseat from home to the trip's first airport, leaving after t and before the trip's
  * first flight. The earliest one wins. A trip that leaves from home needs none, and none is guessed when none is logged.
+ * Bounded to the next trip like the drive to work: within a day of its first flight, with no way home in between, so a
+ * training day's jumpseat days earlier isn't told as the trip's commute (spec §6.11: C7).
  */
 function pendingCommute(legs: Leg[], home: Iata | null, t: number, nextFlight: MoveLeg | null): MoveLeg | null {
   if (!nextFlight || nextFlight.dep === home) return null
+  const homeBetween = (from: number) =>
+    legs.some((m) => m.start > from && m.start < nextFlight.start && ((m.kind === 'drive' && m.toHome) || (m.kind === 'jumpseat' && m.arr === home)))
   const commute = legs.find(
-    (l) => l.kind === 'jumpseat' && l.tripId == null && l.dep === home && l.arr === nextFlight.dep && l.start > t && l.start < nextFlight.start,
+    (l) =>
+      l.kind === 'jumpseat' && l.tripId == null && l.dep === home && l.arr === nextFlight.dep && l.start > t && l.start < nextFlight.start &&
+      nextFlight.start - l.start <= DAY && !homeBetween(l.start),
   )
   return (commute as MoveLeg | undefined) ?? null
 }

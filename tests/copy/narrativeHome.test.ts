@@ -141,3 +141,19 @@ describe('home narrative', () => {
     )
   })
 })
+
+describe('the home sentence names the right departure (audit C7)', () => {
+  it('tells an air commuter about the trip, not about tomorrow’s training-day jumpseat', () => {
+    const raw = new RawBuilder(A)
+      .pilot('Pat', 'SDF', 'MCO')
+      .jumpseat('js-train', 'MCO', 'SDF', 1300, 1420)
+      .training('tr', 'RECURRENT', 1500, 1900, 'SDF')
+      .jumpseat('js-home', 'SDF', 'MCO', 2000, 2120)
+      .trip('t1', { dutyPeriods: [{ start: 5700, end: 6100, flights: [{ dep: 'SDF', arr: 'ANC', out: 5760, in: 6000 }] }] })
+      .build()
+    const e = engineFor(raw)
+    const s = makeSnapshot(e.schedule, e.legs, at(0), NY)
+    const text = narrative(s, { now: at(0), viewerTz: NY, h24: false, airports: testAirports }).map((p) => p.text).join('')
+    expect(text).toBe('Pat is home — heads to Anchorage Tuesday the 13th at 5:30am and will be gone for 1 day.')
+  })
+})

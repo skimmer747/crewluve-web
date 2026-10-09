@@ -4,13 +4,17 @@
 Mirrors Crewluv/CrewluveIcon.icon/icon.json: a vertical gradient (blue at the bottom, pink from
 30% below the top upward) with the heart artwork on top. Writes PNGs to public/icons/.
 Run: python3 -I scripts/make-icons.py
+The Crewluv app checkout is expected next to this repo (../Crewluv); set CREWLUVE_ICON_ART to the
+heart artwork's path to read it from elsewhere.
 """
+import os
 from pathlib import Path
 
 from PIL import Image
 
-ART = Path('~/Dev/Crewluv/CrewluveIcon.icon/Assets/Heart icon.png')
-OUT = Path(__file__).resolve().parent.parent / 'public' / 'icons'
+ROOT = Path(__file__).resolve().parent.parent
+ART = Path(os.environ.get('CREWLUVE_ICON_ART') or ROOT.parent / 'Crewluv' / 'CrewluveIcon.icon' / 'Assets' / 'Heart icon.png')
+OUT = ROOT / 'public' / 'icons'
 SIZE = 1024
 BLUE = (106, 191, 255)  # icon.json display-p3 (0.417, 0.749, 1.0), approximated in sRGB
 PINK = (255, 177, 233)  # icon.json display-p3 (1.0, 0.694, 0.916)

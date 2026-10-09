@@ -125,5 +125,6 @@ describe('CountdownCard for screen readers', () => {
   it('says "now" when the countdown has run out', () => {
     render(<CountdownCard title="Back Home In" icon="House" color="green" target={NOW} now={NOW} subtitle={null} />)
     expect(screen.getByRole('timer').getAttribute('aria-label')).toBe('now')
+    expect(screen.getByRole('timer').querySelector('.num')!.getAttribute('aria-hidden')).toBe('true')
   })
 })

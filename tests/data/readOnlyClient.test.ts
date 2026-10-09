@@ -6,7 +6,7 @@ import { COLUMNS } from '../../src/data/rows'
 import { SUPABASE_URL } from '../../src/cloud'
 
 // A real supabase-js client talking to a fake network through readOnlyFetch, the same way src/supabase.ts builds it.
-// The project below is made up and nothing here can reach CrewLu Cloud.
+// The project URL is the real one, but every request goes to a fake network, and tests/setup/noNetwork.ts blocks the real one.
 const BASE = SUPABASE_URL
 const DAY = 86_400_000
 const NOW = Date.UTC(2026, 9, 9, 12)

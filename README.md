@@ -21,10 +21,13 @@ npm run build
 ```bash
 npm run airports           # public/data/airports.json (reads ../crewlu-globe)
 npm run icons              # src/icons/iconPaths.ts
-python3 -I scripts/make-icons.py   # public/icons/*.png
+python3 -I scripts/make-icons.py   # public/icons/*.png (reads ../Crewluv)
 ```
 
 `npm run airports` expects the CrewLu Flight Globe checkout next to this repo (`../crewlu-globe`).
 To read its `airports.json` from somewhere else, set `AIRPORTS_SOURCE=/path/to/airports.json`.
+
+`make-icons.py` expects the Crewluv app checkout next to this repo (`../Crewluv`), for its heart artwork.
+To read the artwork from somewhere else, set `CREWLUVE_ICON_ART=/path/to/Heart icon.png`.
 
 Two zones are swapped for stand-ins that only share today's rules (`SAME_RULES_TODAY` in `scripts/build-airports.mjs`); recheck them every time you regenerate.
