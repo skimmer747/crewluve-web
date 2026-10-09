@@ -1,0 +1,300 @@
+/* Liquid Glass stand-in (spec §4.1); tuned by eye in Task 32. */
+.glass {
+  background: var(--glass-fill);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 0.5px solid var(--glass-edge);
+  box-shadow: inset 0 1px 0 var(--glass-rim), var(--glass-shadow);
+}
+
+.card {
+  border-radius: 20px;
+}
+
+/* Narrative card: 44 px icon column, 14 px gap, 17 px text (NarrativeCardView). */
+.narrative {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+}
+
+.narrative-icon {
+  position: relative;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+}
+
+.narrative-icon .ring {
+  position: absolute;
+  inset: 0;
+}
+
+.narrative-text {
+  margin: 0;
+  font-size: 17px;
+  line-height: 22px;
+}
+
+.b {
+  font-weight: 700;
+}
+
+.digits {
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+  animation: roll-in 0.3s ease-out;
+}
+
+@keyframes roll-in {
+  from {
+    transform: translateY(0.35em);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* Countdown card: 24 px padding, title row left-aligned, number and subtitle centered (CountdownCardView). */
+.countdown {
+  position: relative;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  container-type: inline-size;
+}
+
+.countdown-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.countdown-head h2 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 600;
+}
+
+.countdown-value {
+  text-align: center;
+  white-space: nowrap;
+  font-family: var(--font-rounded);
+  line-height: 1;
+}
+
+/* 52/32 pt like the app; shrinks on narrow cards like minimumScaleFactor(0.5). */
+.countdown-value .num {
+  font-size: min(52px, 15.5cqi);
+  font-weight: 700;
+}
+
+.countdown-value .unit {
+  font-size: min(32px, 9.5cqi);
+  font-weight: 500;
+  color: var(--text);
+}
+
+.countdown-value .gap {
+  white-space: pre;
+  font-family: var(--font);
+  font-size: 17px;
+}
+
+.countdown-sub {
+  margin: 0;
+  text-align: center;
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--text-2);
+}
+
+.pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 16px;
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--text-2);
+}
+
+/* Footer: two round glass buttons around the freshness rows (SyncStatusBarView). */
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0 8px;
+}
+
+.sync {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.sync-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sync-row {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  line-height: 14px;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.sync-problem {
+  color: var(--orange);
+  font-size: 12px;
+}
+
+.round {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--blue);
+  cursor: pointer;
+}
+
+.round:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.demo-banner {
+  align-self: center;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.empty {
+  padding: 20px;
+  text-align: center;
+}
+
+.empty h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  line-height: 25px;
+}
+
+.empty p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--text-2);
+}
+
+/* Celebration: 36×28 figure centered at the card's top-right (right − 24, top + 12). */
+.celebration {
+  position: absolute;
+  right: 6px;
+  top: -2px;
+  width: 36px;
+  height: 28px;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+.celebration-heart {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  line-height: 0;
+}
+
+/* Sign-in (web only). */
+.signin {
+  min-height: 100vh;
+  justify-content: center;
+  text-align: center;
+}
+
+.signin-mark {
+  display: flex;
+  justify-content: center;
+}
+
+.signin-sub {
+  margin: -12px 0 0;
+  font-size: 15px;
+  color: var(--text-2);
+}
+
+.signin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.field {
+  font: inherit;
+  font-size: 17px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 0.5px solid var(--glass-edge);
+  background: var(--glass-fill);
+  color: var(--text);
+}
+
+.primary {
+  font: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  padding: 12px;
+  border: none;
+  border-radius: 12px;
+  background: var(--blue);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.primary:disabled {
+  opacity: 0.6;
+}
+
+.signin-error {
+  margin: 0;
+  font-size: 15px;
+  color: var(--red);
+}
+
+.signin-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.signin-demo {
+  font-size: 15px;
+  color: var(--blue);
+  text-decoration: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .digits {
+    animation: none;
+  }
+}
