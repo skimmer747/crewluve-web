@@ -67,12 +67,20 @@ export function useSchedule({ load, cache, intervalMs = REFRESH_MS, onAuthError,
     const onReturn = () => {
       if (document.visibilityState === 'visible' && Date.now() - lastAttempt.current >= RETURN_MIN_GAP_MS) void refresh()
     }
+    // Back online: try at once, even inside the 30 s gap, so "Offline" clears as soon as it can.
+    const onOnline = () => {
+      if (document.visibilityState !== 'hidden') void refresh()
+    }
+    // Gone offline: say so now rather than at the next refresh (spec §8).
+    const onOffline = () => setState((s) => ({ ...s, problem: { kind: 'offline' } }))
     document.addEventListener('visibilitychange', onReturn)
-    window.addEventListener('online', onReturn)
+    window.addEventListener('online', onOnline)
+    window.addEventListener('offline', onOffline)
     return () => {
       clearInterval(tick)
       document.removeEventListener('visibilitychange', onReturn)
-      window.removeEventListener('online', onReturn)
+      window.removeEventListener('online', onOnline)
+      window.removeEventListener('offline', onOffline)
     }
   }, [refresh, intervalMs])
 

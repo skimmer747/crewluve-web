@@ -183,7 +183,19 @@ Tasks 1–21 are done on branch `slice1` and passed both reviews. Review fixes c
 - **`ProgressRing`** clamps its value to 0–1 and draws only the track at 0 (no stray dot).
 - **`tests/styles/styles.test.ts`** (new) pins the §4.1 color table (light and dark), the reduced-motion rule, tabular digits, and fallback-before-`cqi`. If Task 32 changes tokens, update it there. It deliberately leaves the countdown size and roll-in duration unpinned, for Task 32.
 
-**Full suite after Batch F:** 741 tests in 32 files; after Batch G's fixes, 824 in 39. Steps that run a single test file are unaffected. A full-suite run just has more tests than a task's own count.
+**From Batches H and I (Tasks 25–31), and Task 33:**
+
+- **Who built what.** Auto mode kept blocking new builder launches, so at the user's choice the controller built Tasks 29–31 and Task 33's files directly from the plan blocks. The independent reviewer still checked them.
+- **`Celebration`** anchors its clock to the first animation frame (`start ??= now`), and its fade eases out.
+- **The footer's offline row** names the day when the cached copy isn't from today (`clockWithDayText` in format.ts).
+- **Root:**
+  - An all-empty fetch without a live session signs out only if no session is stored. With a stored session, it's an outage: the session and cache are kept, and it retries.
+  - A failed sign-out is logged once, and the device is cleared anyway.
+- **`useSchedule`:** the `online` event refreshes at once, skipping the 30 s gap, and the `offline` event shows "Offline" at once.
+- **`useAirports(retryMs = 3000, slowMs = 300)`** shows codes after `slowMs` while the list is still loading. `index.html` preloads `/data/airports.json`.
+- **Tests.** New `tests/ui/Root.test.tsx` (session, client, fetch and airports all mocked) and `tests/indexHtml.test.ts`, plus more cases in the hooks, SignIn and ScheduleScreen tests.
+
+**Full suite after Batch F:** 741 tests in 32 files; after Batch G's fixes, 824 in 39; after Batch I's fixes, 955 in 44. Steps that run a single test file are unaffected. A full-suite run just has more tests than a task's own count.
 
 ---
 

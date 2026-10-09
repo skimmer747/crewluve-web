@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
-import { hasLiveSession, hasStoredSession, onSignedOut, signOut } from '../auth/session'
+import { hasLiveSession, hasSession, hasStoredSession, onSignedOut, signOut } from '../auth/session'
 import { localScheduleCache, noScheduleCache } from '../data/cache'
 import { DEFAULT_SCENE, demoRawForScene, isDemoScene, type DemoScene } from '../data/demo'
 import { fetchSchedule, ScheduleFetchError } from '../data/fetchSchedule'
 import type { RawSchedule } from '../data/rows'
+import { reportOnce } from '../reportOnce'
 import { useAirports } from './hooks/useAirports'
 import { useSchedule } from './hooks/useSchedule'
 import { ScheduleScreen } from './ScheduleScreen'
@@ -54,8 +55,11 @@ async function loadLive(): Promise<RawSchedule> {
   const { supabase } = await import('../supabase')
   const raw = await fetchSchedule(supabase, Date.now())
   // Row-level security answers a request without a valid session with empty tables, not an error.
-  // So an all-empty result counts only while the session is live; otherwise it means signed out.
+  // So an all-empty result counts only while the session is live.
   if (raw.pilotInfos.length === 0 && raw.trips.length === 0 && !(await hasLiveSession())) {
+    // The session is still stored but couldn't be refreshed (a CrewLu Cloud outage): keep the cached
+    // schedule and the session, and try again at the next refresh, instead of signing out.
+    if (await hasSession()) throw new Error('Could not confirm the CrewLu Cloud session')
     throw new ScheduleFetchError('Not signed in', 401, 'PGRST301')
   }
   return raw
@@ -67,7 +71,12 @@ function LiveSchedule({ onSignedOut: finish }: { onSignedOut: () => void }) {
   const ended = useRef(false)
   const endSession = async () => {
     ended.current = true
-    await signOut()
+    try {
+      await signOut()
+    } catch (err) {
+      reportOnce('Signing out failed; clearing this device anyway', err)
+    }
+    // Even if signing out failed, this device must not keep the pilot's schedule.
     cache.clear()
     finish()
   }

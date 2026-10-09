@@ -403,10 +403,12 @@ Everything else from the 2026-10-08 idea board is on the roadmap (§13). The use
 - **On load:**
   - Demo → render demo.
   - Signed in → render the cached schedule instantly (if any), then fetch.
+    - "Signed in" means a session is stored, so this works offline too.
+    - `airports.json` is preloaded alongside the app code. If it hasn't arrived after 300 ms, the screen shows airport codes, and the city names appear when it lands, so a slow link never keeps the cached schedule hidden.
   - Not signed in → sign-in screen.
 - **Status and countdowns** are re-resolved every second from the in-memory schedule.
-- **Refetch:** every 5 minutes while the page is visible, on becoming visible again, and on the refresh button.
-- **Offline:** the cached schedule keeps working, and the footer says so.
+- **Refetch:** every 5 minutes while the page is visible, on becoming visible again (at most once per 30 s), on reconnecting (at once), and on the refresh button.
+- **Offline:** the cached schedule keeps working, and the footer says so as soon as the connection drops.
 - **Sign-out** clears the session and the cache.
 
 ## 6. Status engine
@@ -727,6 +729,7 @@ airports.json ───────────────────┤
 |---|---|
 | Wrong email/password | Inline sign-in error (§4.2) |
 | Session expired or revoked | `onAuthStateChange` → clear cache → sign-in screen |
+| Sign-in service outage: the token can't refresh for a network reason, while the data API still answers | Keep the session and the cached schedule; footer "Couldn't reach CrewLu Cloud — will retry"; never sign out for this |
 | Network failure on fetch | Keep the cached/current data; footer "Couldn't reach CrewLu Cloud — will retry"; retry at the next 5-minute tick or refresh |
 | Offline (`navigator.onLine === false`) | Footer "Offline — showing the schedule from {time}" |
 | Partial fetch failure (one table errors) | Keep the previous good RawSchedule; footer error; never mix old and new tables |
@@ -873,6 +876,7 @@ object-src 'none'; base-uri 'self'; form-action 'self'
 | 21 | Batch E review fixes: the home sentence's commuter wording appears only with a logged jumpseat to work, as in the app; Off uses the delayed-departure sentence; every template branch is pinned by tests. | Design (Batch E review) |
 | 22 | Batch F review fixes: sign-out is local-only; read-only is enforced by a fetch wrapper and a source scan; hidden rows are filtered in the query; a stored session renders the cache at once; an all-empty fetch needs a live session; late fetches after sign-out are discarded; the client loads only in live mode. | Design (Batch F review) |
 | 23 | Visual check: the countdown number uses `18cqi` (52 px on every current iPhone, still fitting "11d 08h 39m" on a 320 px phone), and the production CSP drops `'unsafe-inline'` from `style-src`. | Design (Task 32) |
+| 24 | Batch I review fixes: a sign-in outage keeps the session and cache instead of bouncing the visitor to sign-in; reconnecting refreshes at once and going offline shows at once; `airports.json` is preloaded, with codes shown after 300 ms on slow links; a failed sign-out still clears the device. | Design (Batch I review) |
 
 ## 13. Roadmap (after slice 1)
 
