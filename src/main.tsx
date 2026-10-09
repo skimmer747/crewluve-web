@@ -2,5 +2,6 @@ import { render } from 'preact'
 import './styles/tokens.css'
 import './styles/base.css'
 import './styles/cards.css'
+import { Root } from './ui/Root'
 
-render(<p>CrewLuve</p>, document.getElementById('app')!)
+render(<Root />, document.getElementById('app')!)
