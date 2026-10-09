@@ -96,7 +96,7 @@ tests/…                              mirrors src/; tests/fixtures/ holds share
 
 ## Execution notes (read before your batch)
 
-Tasks 1–8 are done on branch `slice1` and passed both reviews. Review fixes changed some of their code from the blocks printed in those tasks. **The repo is the source of truth for files that already exist.** Later tasks depend on these changes.
+Tasks 1–11 are done on branch `slice1` and passed both reviews. Review fixes changed some of their code from the blocks printed in those tasks. **The repo is the source of truth for files that already exist.** Later tasks depend on these changes.
 
 **From Batch A (Tasks 1–4):**
 
@@ -131,7 +131,18 @@ Tasks 1–8 are done on branch `slice1` and passed both reviews. Review fixes ch
   - Code and tests in this plan use the escape too.
   - Copy plan blocks with a script rather than retyping them. Editors and tools can silently turn special characters into plain spaces.
 
-**Full suite after Batch B:** 122 tests in 9 files. Steps that run a single test file are unaffected. A full-suite run just has more tests than a task's own count.
+**From Batch C (Tasks 9–11):**
+
+- **`Trip.base` is gone.** Every "is this the base?" check uses `pilot.base`.
+- **`toIata`** keeps 3 letters/digits, turns `SDFZ`-style codes into their first three letters, and returns null for anything else.
+- **`DRIVE_TITLE`** (whole words: `driv…`, `car`, `truck`) is exported from `src/engine/legs.ts`. Task 17 imports it.
+- **Reserve codes** match whole codes only ("Welcome dinner" isn't reserve).
+- **Drives.** `toHome = to === effHome || direction === 'toHome'`, and `isHomecomingMove` uses `toHome` for drives.
+- **`resolveStatus` rule 5** takes its location from the latest ended leg that has one. With none, the pilot is Home.
+- **Airlines.** `resolveAirline`'s third parameter is `notCompanyFlight`. Commercial deadheads, both jumpseats and trip flights, never become '5X'.
+- **Inverted trips** (end at or before start) are dropped.
+
+**Full suite after Batch C:** 211 tests in 12 files. Steps that run a single test file are unaffected. A full-suite run just has more tests than a task's own count.
 
 ---
 
@@ -1890,7 +1901,7 @@ This task turns database rows into a clean `Schedule`. It covers spec §6.2 and 
 - Create: `src/engine/types.ts`, `src/engine/normalize.ts`
 - Test: `tests/engine/normalize.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -2057,12 +2068,12 @@ describe('buildSchedule', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/engine/normalize.test.ts`
 Expected: FAIL, because `src/engine/normalize.ts` can't be resolved.
 
-- [ ] **Step 3: Write `src/engine/types.ts`**
+- [x] **Step 3: Write `src/engine/types.ts`**
 
 ```ts
 /** 3-letter IATA airport code. */
@@ -2148,7 +2159,7 @@ export interface Schedule {
 }
 ```
 
-- [ ] **Step 4: Write `src/engine/normalize.ts`**
+- [x] **Step 4: Write `src/engine/normalize.ts`**
 
 ```ts
 import type { DutyPeriodRow, FlightRow, PilotInfoRow, RawSchedule } from '../data/rows'
@@ -2381,12 +2392,12 @@ function groupBy<T>(rows: T[], key: (row: T) => string | null): Map<string, T[]>
 }
 ```
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [x] **Step 5: Run the test to verify it passes**
 
 Run: `npx vitest run tests/engine/normalize.test.ts`
 Expected: PASS (all tests).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/engine/types.ts src/engine/normalize.ts tests/engine/normalize.test.ts
@@ -2408,7 +2419,7 @@ Duty's leg builder, run on CrewLu Cloud data (§6.3). The legs, in order:
 - Create: `src/engine/legs.ts`, `tests/fixtures/engine.ts`
 - Test: `tests/engine/legs.test.ts`
 
-- [ ] **Step 1: Write the shared engine fixture `tests/fixtures/engine.ts`**
+- [x] **Step 1: Write the shared engine fixture `tests/fixtures/engine.ts`**
 
 ```ts
 import type { RawSchedule } from '../../src/data/rows'
@@ -2426,7 +2437,7 @@ export function engineFor(raw: RawSchedule) {
 }
 ```
 
-- [ ] **Step 2: Write the failing test `tests/engine/legs.test.ts`**
+- [x] **Step 2: Write the failing test `tests/engine/legs.test.ts`**
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -2518,12 +2529,12 @@ describe('leg helpers', () => {
 })
 ```
 
-- [ ] **Step 3: Run the test to verify it fails**
+- [x] **Step 3: Run the test to verify it fails**
 
 Run: `npx vitest run tests/engine/legs.test.ts`
 Expected: FAIL, because `src/engine/legs.ts` can't be resolved.
 
-- [ ] **Step 4: Write `src/engine/legs.ts`**
+- [x] **Step 4: Write `src/engine/legs.ts`**
 
 ```ts
 import type { DutyEventKind, Iata, Move, Schedule } from './types'
@@ -2662,12 +2673,12 @@ function trimPlacesAtMoves(legs: Leg[]): void {
 }
 ```
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [x] **Step 5: Run the test to verify it passes**
 
 Run: `npx vitest run tests/engine/legs.test.ts`
 Expected: PASS (6 tests).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/engine/legs.ts tests/fixtures/engine.ts tests/engine/legs.test.ts
@@ -2686,7 +2697,7 @@ This is Crewluve's `TripStateResolver` (§6.4), delay-aware and with the off-tri
 - Create: `src/engine/status.ts`, `tests/fixtures/legs.ts`
 - Test: `tests/engine/status.test.ts`
 
-- [ ] **Step 1: Write the hand-built leg fixture `tests/fixtures/legs.ts`**
+- [x] **Step 1: Write the hand-built leg fixture `tests/fixtures/legs.ts`**
 
 ```ts
 import type { DriveLeg, DutyLeg, MoveLeg, PlaceKind, PlaceLeg } from '../../src/engine/legs'
@@ -2733,7 +2744,7 @@ export const sorted = <T extends { start: number; end: number }>(legs: T[]) =>
   [...legs].sort((a, b) => a.start - b.start || a.end - b.end)
 ```
 
-- [ ] **Step 2: Write the failing test `tests/engine/status.test.ts`**
+- [x] **Step 2: Write the failing test `tests/engine/status.test.ts`**
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -2848,12 +2859,12 @@ describe('resolveStatus: between legs (ported from TripStateResolverGapTests.swi
 })
 ```
 
-- [ ] **Step 3: Run the test to verify it fails**
+- [x] **Step 3: Run the test to verify it fails**
 
 Run: `npx vitest run tests/engine/status.test.ts`
 Expected: FAIL, because `src/engine/status.ts` can't be resolved.
 
-- [ ] **Step 4: Write `src/engine/status.ts`**
+- [x] **Step 4: Write `src/engine/status.ts`**
 
 ```ts
 import { arrivalOf, isMove, type Leg } from './legs'
@@ -2926,12 +2937,12 @@ function covering(leg: Leg, pilot: Pilot): Pick<Status, 'kind' | 'airport'> {
 }
 ```
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [x] **Step 5: Run the test to verify it passes**
 
 Run: `npx vitest run tests/engine/status.test.ts`
 Expected: PASS (all tests).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/engine/status.ts tests/fixtures/legs.ts tests/engine/status.test.ts
@@ -3482,7 +3493,7 @@ Expected: FAIL, because `src/engine/snapshot.ts` can't be resolved.
 ```ts
 import { calendarDay, DAY, MINUTE } from '../time/zoned'
 import { lastHomeArrival, leaveTarget, nextTripFlight, nextTripHomecoming, type LeaveTarget } from './home'
-import { arrivalOf, isDuty, isMove, type DriveLeg, type DutyLeg, type Leg, type MoveLeg } from './legs'
+import { isDuty, isHomecomingMove, isMove, type DriveLeg, type DutyLeg, type Leg, type MoveLeg } from './legs'
 import { resolveStatus, type Status } from './status'
 import { arrivalTarget, type ArrivalTarget } from './targets'
 import type { Pilot, Schedule, Trip } from './types'
@@ -3538,8 +3549,9 @@ export function makeSnapshot(schedule: Schedule, legs: Leg[], t: number, baseTz:
   const lastTrip = schedule.trips.reduce<Trip | null>((best, tr) => (tr.end <= t && (!best || tr.end > best.end) ? tr : best), null)
   const arrival = atHome ? null : arrivalTarget(legs, pilot, status, t)
   const nextMove = (legs.find((l) => isMove(l) && l.start > t) as MoveLeg | undefined) ?? null
+  // The same homecoming rule as the countdown: a drive home, or a drive-titled event, arriving home.
   const nextHomeTrip = pilot.effHome == null ? null
-    : ((legs.find((l) => l.start > t && (l.kind === 'drive' || l.kind === 'event') && arrivalOf(l) === pilot.effHome) as DriveLeg | DutyLeg | undefined) ?? null)
+    : ((legs.find((l) => l.start > t && (l.kind === 'drive' || l.kind === 'event') && isHomecomingMove(l, pilot.effHome)) as DriveLeg | DutyLeg | undefined) ?? null)
 
   return {
     t,
@@ -4291,7 +4303,7 @@ Expected: FAIL, because `src/copy/visuals.ts` can't be resolved.
 ```ts
 import type { AirportIndex } from '../data/airports'
 import type { LeaveTarget } from '../engine/home'
-import type { DutyLeg, MoveLeg } from '../engine/legs'
+import { DRIVE_TITLE, type DutyLeg, type MoveLeg } from '../engine/legs'
 import { DELAY_THRESHOLD_MIN, type Snapshot } from '../engine/snapshot'
 import type { ArrivalTarget } from '../engine/targets'
 import type { IconName } from '../icons/iconPaths'
@@ -4306,8 +4318,6 @@ export interface Visual {
 export interface CardVisual extends Visual {
   title: string
 }
-
-const DRIVE_TITLE = /driv|truck|car/i
 
 /** Status icon and color (NarrativeCardView.swift:772-806). */
 export function statusVisual(s: Snapshot): Visual {

@@ -435,7 +435,11 @@ All reads are `select` only. Every query filters `deleted_at is null`. RLS scope
 
 ### 6.2 Normalization
 
-- **Base:** `base = base_raw_value`, with `SDFZ` → `SDF` (in general, the first 3 letters, uppercased).
+- **Airport codes** (every airport field) are trimmed and uppercased:
+  - Three letters or digits stay as they are.
+  - Three letters plus "Z" (the `SDFZ` style) become the first three. Live data has 126 base values and 22 event locations like this.
+  - Anything else counts as no airport. Live data has 1,438 manual-event locations holding four-letter non-airport words, which must not turn into airport codes.
+- **Base:** `base = base_raw_value`, under the airport-code rule. Every "is this the base?" check uses this pilot base, never `trips.base`, which depends on how a trip was imported.
 - **Home:** `home = trim(home_airport_code)` or null.
 - **Effective home:** `effHome = home ?? base`. When home is null, `homeAssumed` is true, but the wording doesn't change (Crewlu does the same).
 - **Effective times:**
@@ -458,6 +462,7 @@ All reads are `select` only. Every query filters `deleted_at is null`. RLS scope
 - trips with no live duty periods
 - jumpseats with a `source_trip_id` (duplicates of trip deadheads)
 - commutes whose `source_trip_id` trip is gone
+- trips whose end is at or before their start
 
 **Leg kinds** (every leg has `start`, `end`, and `tripId` or null)
 
@@ -475,9 +480,9 @@ All reads are `select` only. Every query filters `deleted_at is null`. RLS scope
   - It is a drive home when `to_airport == effHome` (or `direction == toHome`), and a drive to work otherwise.
 - **reserve / hotStandby / event** — each manual event, at `location` (or the base if empty).
   - hotStandby if the title contains "HOT STANDBY".
-  - reserve if the title contains RSVA–RSSD, LCO or RCID, or the category name contains "reserve" (PSG:894-929).
+  - reserve if the title contains one of the codes RSVA–RSSD, LCO or RCID as a whole code, or the category name contains "reserve" (PSG:894-929). A code inside a word doesn't count: "Welcome dinner" is not reserve.
   - event otherwise.
-  - An event whose title matches `driv|car|truck` also counts as a drive for homecomings.
+  - An event whose title has a word starting with "driv", or the word "car" or "truck", also counts as a drive for homecomings. "Daycare" and "Card night" don't.
 - **training** — each training event, at `station`, titled "{event_type} Training".
 
 **Trim:** after building, any home, base, or layover leg that runs into a flight is cut back to that flight's start (`SharedPilotStatus.swift:199-236`).
@@ -489,13 +494,14 @@ All reads are `select` only. Every query filters `deleted_at is null`. RLS scope
 1. **A flight or jumpseat leg covers t → In Flight.**
    - The verb is "riding" for deadheads and jumpseats.
    - A `ground` leg is Ground transport instead.
-2. **A drive covers t →** Driving Home if it arrives at effHome; Driving to Work otherwise.
+2. **A drive covers t →** Driving Home if it is a drive home (§6.3: it arrives at effHome or is labelled `toHome`); Driving to Work otherwise. The same rule decides whether the drive is a homecoming for the countdown.
 3. **A turn, layover, base, home, or report leg covers t →** that status.
    - A report leg resolves as described in §6.3.
 4. **A reserve, hotStandby, training, or event leg covers t →** that status, at the leg's location (or the base).
 5. **No leg covers t.** Let c = the last leg that ended before t, and n = the next leg.
-   - No c → **Home** at effHome.
-   - Otherwise the location is `c.arr` for flights, jumpseats, and drives, and `c.airport` for anything else. Then:
+   - The location comes from the last ended leg that has one: `arr` for flights, jumpseats, and drives, and `airport` for anything else. An event with no location doesn't move the pilot.
+   - No c, or no ended leg with a location → **Home** at effHome.
+   - Otherwise:
      - c and n are in the same trip → **Turn**. A turn through home or base stays Turn.
      - The location is effHome → **Home**. Jumpseating home before the next trip counts as Home.
      - n is a standalone jumpseat to effHome that starts before the next trip's first leg → **Commuting home**. This applies wherever the trip ended, at the base or elsewhere.
@@ -581,7 +587,7 @@ A **homecoming move** is a flight, jumpseat, drive, or drive-titled event that a
 
 **Which airline a flight belongs to**
 - `airline_code` set → that airline.
-- `airline_code` null, not ground transport, and an all-digit flight number → **UPS** (company flight, as Crewlu does).
+- `airline_code` null, not ground transport, not a commercial deadhead, and an all-digit flight number → **UPS** (company flight, as Crewlu does). A commercial ticket is never a UPS flight.
 - No code (null or blank) → a generic airplane icon in blue, named "Commercial".
 - An unrecognized code keeps its own letters as the name, as in the app, with the generic icon in blue.
 
@@ -841,6 +847,7 @@ object-src 'none'; base-uri 'self'; form-action 'self'
 | 16 | If `airports.json` won't load, codes show at once and one retry runs 3 s later. | Design |
 | 17 | One constant holds the CrewLu Cloud URL for both the client and the CSP. CI's Node version comes from `.nvmrc` (24). | Design |
 | 18 | The demo's Anchorage delay appears only from the `delayed` scene on (§4.7). | Design (early browser check) |
+| 19 | Engine fixes from review, each pinned by tests: "base" always means the pilot's base; airport fields accept only 3 characters or the `SDFZ` style; reserve codes and drive words match whole words; one drive-home rule for status, countdown, and the "heads home" sentence; a location-less event doesn't move the pilot; commercial deadheads are never UPS; inverted trips are dropped. | Design (Batch C review) |
 
 ## 13. Roadmap (after slice 1)
 
