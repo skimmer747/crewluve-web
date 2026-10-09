@@ -96,7 +96,7 @@ tests/…                              mirrors src/; tests/fixtures/ holds share
 
 ## Execution notes (read before your batch)
 
-Tasks 1–11 are done on branch `slice1` and passed both reviews. Review fixes changed some of their code from the blocks printed in those tasks. **The repo is the source of truth for files that already exist.** Later tasks depend on these changes.
+Tasks 1–14 are done on branch `slice1` and passed both reviews. Review fixes changed some of their code from the blocks printed in those tasks. **The repo is the source of truth for files that already exist.** Later tasks depend on these changes.
 
 **From Batch A (Tasks 1–4):**
 
@@ -134,7 +134,7 @@ Tasks 1–11 are done on branch `slice1` and passed both reviews. Review fixes c
 **From Batch C (Tasks 9–11):**
 
 - **`Trip.base` is gone.** Every "is this the base?" check uses `pilot.base`.
-- **`toIata`** keeps 3 letters/digits, turns `SDFZ`-style codes into their first three letters, and returns null for anything else.
+- **`toIata`** keeps 3 letters/digits, maps a UPS base plus Z (`SDFZ`) to the base, and returns null for anything else.
 - **`DRIVE_TITLE`** (whole words: `driv…`, `car`, `truck`) is exported from `src/engine/legs.ts`. Task 17 imports it.
 - **Reserve codes** match whole codes only ("Welcome dinner" isn't reserve).
 - **Drives.** `toHome = to === effHome || direction === 'toHome'`, and `isHomecomingMove` uses `toHome` for drives.
@@ -142,7 +142,15 @@ Tasks 1–11 are done on branch `slice1` and passed both reviews. Review fixes c
 - **Airlines.** `resolveAirline`'s third parameter is `notCompanyFlight`. Commercial deadheads, both jumpseats and trip flights, never become '5X'.
 - **Inverted trips** (end at or before start) are dropped.
 
-**Full suite after Batch C:** 211 tests in 12 files. Steps that run a single test file are unaffected. A full-suite run just has more tests than a task's own count.
+**From Batch D (Tasks 12–14):**
+
+- **`currentTripId(legs, status, t)`** now takes the leg list and time, and picks the nearest *trip* legs. An event between trips no longer changes which trip counts.
+- **Hidden-flight trips.** When the "~N days" fallback shows and no leg covers now, the status is `unknown` ("On duty").
+- **`tripDays`** treats `trips.days` of 0 or less as unknown and counts calendar days instead.
+- **`safeSnapshot`** can't throw from its catch block, and logs each distinct failure once (at most 10 per page).
+- **`toIata`** maps only `SDFZ`, `ANCZ`, `ONTZ` and `MIAZ` to their bases; other 4-letter values are null.
+
+**Full suite after Batch D:** 314 tests in 15 files. Steps that run a single test file are unaffected. A full-suite run just has more tests than a task's own count.
 
 ---
 
@@ -2961,7 +2969,7 @@ This decides what the "Back Home In" card counts down to (§6.5). Real cases use
 - Create: `src/engine/targets.ts`
 - Test: `tests/engine/arrival.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -3083,12 +3091,12 @@ describe('currentTripId', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/engine/arrival.test.ts`
 Expected: FAIL, because `src/engine/targets.ts` can't be resolved.
 
-- [ ] **Step 3: Write `src/engine/targets.ts`**
+- [x] **Step 3: Write `src/engine/targets.ts`**
 
 ```ts
 import { DAY, MINUTE } from '../time/zoned'
@@ -3162,12 +3170,12 @@ export function arrivalTarget(legs: Leg[], pilot: Pilot, status: Status, t: numb
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run tests/engine/arrival.test.ts`
 Expected: PASS (all tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/engine/targets.ts tests/engine/arrival.test.ts
@@ -3186,7 +3194,7 @@ These are the Home-status pieces (§6.6, §6.8): the "Leaves Home In" target, th
 - Create: `src/engine/home.ts`
 - Test: `tests/engine/home.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -3256,12 +3264,12 @@ describe('lastHomeArrival', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/engine/home.test.ts`
 Expected: FAIL, because `src/engine/home.ts` can't be resolved.
 
-- [ ] **Step 3: Write `src/engine/home.ts`**
+- [x] **Step 3: Write `src/engine/home.ts`**
 
 ```ts
 import { MINUTE } from '../time/zoned'
@@ -3345,12 +3353,12 @@ export function lastHomeArrival(legs: Leg[], pilot: Pilot, t: number): number | 
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run tests/engine/home.test.ts`
 Expected: PASS (10 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/engine/home.ts tests/engine/home.test.ts
@@ -3374,7 +3382,7 @@ This is one crash-safe call that gives the screen everything it needs at time t:
 - Create: `src/engine/snapshot.ts`
 - Test: `tests/engine/snapshot.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { describe, expect, it, vi } from 'vitest'
@@ -3483,12 +3491,12 @@ describe('makeSnapshot special cases', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/engine/snapshot.test.ts`
 Expected: FAIL, because `src/engine/snapshot.ts` can't be resolved.
 
-- [ ] **Step 3: Write `src/engine/snapshot.ts`**
+- [x] **Step 3: Write `src/engine/snapshot.ts`**
 
 ```ts
 import { calendarDay, DAY, MINUTE } from '../time/zoned'
@@ -3636,17 +3644,17 @@ function pendingDriveToWork(legs: Leg[], t: number, nextFlight: MoveLeg | null):
 const daysSince = (arrival: number | null, t: number) => (arrival == null ? null : Math.floor((t - arrival) / DAY))
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run tests/engine/snapshot.test.ts`
 Expected: PASS (9 tests).
 
-- [ ] **Step 5: Run the whole suite and the type check**
+- [x] **Step 5: Run the whole suite and the type check**
 
 Run: `npx vitest run && npx tsc --noEmit`
 Expected: all tests pass and `tsc` prints nothing.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/engine/snapshot.ts tests/engine/snapshot.test.ts

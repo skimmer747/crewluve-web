@@ -214,7 +214,7 @@ Everything else from the 2026-10-08 idea board is on the roadmap (§13). The use
   - Neither: "{Name} is home and relaxing."
   - Delay suffix: " The flight to **{City}** is delayed **{delay}**."
   - {HB}, meaning the next trip's homecoming: "Back home in {cd, green} on **{Weekday} {Month} {Day}{ordinal} at {T}**".
-  - {N} and {M} are trip lengths in days from `trips.days`, falling back to whole days between start and end. They pluralize: "1 day", "N days".
+  - {N} and {M} are trip lengths in days from `trips.days` when it is above 0, falling back to the inclusive count of calendar days in the base's zone, as in §4.4. They pluralize: "1 day", "N days".
 - **Commuting home** (off-trip, and the next leg is a standalone jumpseat to home)
   - "{Name} has one more leg home from **{A}** to **{B}**! It leaves in {cd} at **{T}** and lands at **{T2}**."
   - Fallback: "{Name} is heading home"
@@ -437,7 +437,7 @@ All reads are `select` only. Every query filters `deleted_at is null`. RLS scope
 
 - **Airport codes** (every airport field) are trimmed and uppercased:
   - Three letters or digits stay as they are.
-  - Three letters plus "Z" (the `SDFZ` style) become the first three. Live data has 126 base values and 22 event locations like this.
+  - A UPS base plus "Z" (`SDFZ`, `ANCZ`, `ONTZ`, `MIAZ`) becomes the base. Live data has 126 base values and 22 event locations like this, all `SDFZ`. Other words ending in Z, such as "DIAZ", are not airports.
   - Anything else counts as no airport. Live data has 1,438 manual-event locations holding four-letter non-airport words, which must not turn into airport codes.
 - **Base:** `base = base_raw_value`, under the airport-code rule. Every "is this the base?" check uses this pilot base, never `trips.base`, which depends on how a trip was imported.
 - **Home:** `home = trim(home_airport_code)` or null.
@@ -516,8 +516,9 @@ A **homecoming move** is a flight, jumpseat, drive, or drive-titled event that a
 2. **Already riding home:** the current leg is a standalone homecoming move (a drive home, or a jumpseat home) → **"Back Home In"**, counting to its end.
 3. **Pick the current trip T** — the first rule that applies:
    - the current leg's trip
-   - otherwise, the previous leg's trip, if it ended ≤24 h ago
-   - otherwise, the next leg's trip, if it starts ≤24 h from now (the pilot is driving or positioned for it)
+   - otherwise, the trip of the latest ended **trip** leg, if it ended ≤24 h ago
+   - otherwise, the trip of the next **trip** leg, if it starts ≤24 h from now (the pilot is driving or positioned for it)
+   - Standalone legs such as events, drives and jumpseats are skipped here. A meeting at base between the drive to work and the report doesn't change which trip counts.
    - otherwise, none
 4. **With a T:**
    1. **Final arrival home:** the trip's homecoming move that ends after t, with no other leg of T starting at or after its end. If there is one → **"Back Home In"**, counting to its end.
@@ -847,7 +848,8 @@ object-src 'none'; base-uri 'self'; form-action 'self'
 | 16 | If `airports.json` won't load, codes show at once and one retry runs 3 s later. | Design |
 | 17 | One constant holds the CrewLu Cloud URL for both the client and the CSP. CI's Node version comes from `.nvmrc` (24). | Design |
 | 18 | The demo's Anchorage delay appears only from the `delayed` scene on (§4.7). | Design (early browser check) |
-| 19 | Engine fixes from review, each pinned by tests: "base" always means the pilot's base; airport fields accept only 3 characters or the `SDFZ` style; reserve codes and drive words match whole words; one drive-home rule for status, countdown, and the "heads home" sentence; a location-less event doesn't move the pilot; commercial deadheads are never UPS; inverted trips are dropped. | Design (Batch C review) |
+| 19 | Engine fixes from review, each pinned by tests: "base" always means the pilot's base; airport fields accept only 3 characters or a UPS base plus "Z"; reserve codes and drive words match whole words; one drive-home rule for status, countdown, and the "heads home" sentence; a location-less event doesn't move the pilot; commercial deadheads are never UPS; inverted trips are dropped. | Design (Batch C review) |
+| 20 | Batch D review fixes: the sentence shows "On duty" whenever the "~N days" card shows; the current trip comes from the nearest trip legs, not neighboring events; `trips.days` of 0 falls back to the calendar count. Celebrating during "Released In" matches Crewluve, which celebrates any arrival under 24 h while not at home or base. | Design (Batch D review) |
 
 ## 13. Roadmap (after slice 1)
 
