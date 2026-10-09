@@ -113,3 +113,17 @@ describe('DaysHomePill', () => {
     expect(icon.style.color).toBe('var(--green)')
   })
 })
+
+describe('CountdownCard for screen readers', () => {
+  it('names the timer in words and hides the digits and unit letters', () => {
+    render(<CountdownCard title="Back Home In" icon="House" color="green" target={NOW + (11 * 1440 + 8 * 60 + 39) * MIN} now={NOW} subtitle={null} />)
+    const timer = screen.getByRole('timer')
+    expect(timer.getAttribute('aria-label')).toBe('11 days, 8 hours, 39 minutes')
+    expect([...timer.children].every((child) => child.getAttribute('aria-hidden') === 'true')).toBe(true)
+  })
+
+  it('says "now" when the countdown has run out', () => {
+    render(<CountdownCard title="Back Home In" icon="House" color="green" target={NOW} now={NOW} subtitle={null} />)
+    expect(screen.getByRole('timer').getAttribute('aria-label')).toBe('now')
+  })
+})

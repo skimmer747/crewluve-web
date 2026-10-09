@@ -3,7 +3,7 @@ import { arrivalOf, type DriveLeg, type DutyLeg, type MoveLeg } from '../engine/
 import { DELAY_THRESHOLD_MIN, type Snapshot } from '../engine/snapshot'
 import { reportOnce } from '../reportOnce'
 import { flightPhrase } from './airlines'
-import { daysText, delayText, departureText, longDateTimeText, narrativeCountdown, timeWithZone } from './format'
+import { daysText, delayText, departureText, longDateTimeText, narrativeCountdown, spokenDuration, timeWithZone } from './format'
 
 export type SpanColor = 'status' | 'green' | 'red'
 
@@ -14,6 +14,8 @@ export interface Span {
   color?: SpanColor
   /** Countdown digits: tabular figures and a roll-in when they change. */
   digits?: boolean
+  /** The countdown in words, read by screen readers in place of the digits. */
+  spoken?: string
 }
 
 export interface NarrativeCtx {
@@ -39,7 +41,8 @@ export class Sentence {
   }
 
   cd(target: number, color: SpanColor = 'status'): this {
-    this.spans.push({ text: narrativeCountdown(target - this.ctx.now), bold: true, color, digits: true })
+    const left = target - this.ctx.now
+    this.spans.push({ text: narrativeCountdown(left), bold: true, color, digits: true, spoken: spokenDuration(left) })
     return this
   }
 
@@ -58,7 +61,10 @@ export function narrative(s: Snapshot, ctx: NarrativeCtx): Span[] {
   const delay = s.delay
   const early = delay != null && delay.minutes < 0
   const changed: SpanColor = early ? 'green' : 'red'
-  /** Waiting out a delayed or early departure, at base or somewhere else: the app's in-flight sentence, shown from the scheduled time on. */
+  /**
+   * Waiting out a delayed or early departure, at base or somewhere else. The site shows this whenever the next departure is
+   * 15 minutes or more off schedule, however far ahead it is; the app shows its version only from the scheduled time on.
+   */
   const departing = (m: MoveLeg) =>
     n.t(`${name} ${early ? 'is pushing early' : 'is delayed'} in `).b(city(m.dep))
       .t(` and will be ${m.deadhead ? 'riding' : 'flying'} to `).b(city(m.arr))

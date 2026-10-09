@@ -262,3 +262,11 @@ describe('safeNarrative logging', () => {
     expect(error).toHaveBeenCalledTimes(2)
   })
 })
+
+describe('countdowns for screen readers', () => {
+  it('gives each countdown its words, so "50m" is never read as meters', () => {
+    const spans = sentenceAt(engineFor(demoRaw('driver', A)), 100)
+    expect(spans.filter((s) => s.digits).map((s) => s.spoken)).toEqual(['50 minutes'])
+    expect(spans.filter((s) => !s.digits).every((s) => s.spoken === undefined)).toBe(true)
+  })
+})

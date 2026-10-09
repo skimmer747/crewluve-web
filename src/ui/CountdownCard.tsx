@@ -1,6 +1,6 @@
 import { Fragment } from 'preact'
 import type { ColorToken } from '../copy/colors'
-import { cardCountdown } from '../copy/format'
+import { cardCountdown, spokenDuration } from '../copy/format'
 import type { IconName } from '../icons/iconPaths'
 import { Celebration } from './Celebration'
 import { cssColor } from './colors'
@@ -27,15 +27,16 @@ export function CountdownCard({ title, icon, color, target, now, subtitle, celeb
         <Icon name={icon} size={28} color={css} />
         <h2>{title}</h2>
       </div>
-      <div class="countdown-value" role="timer">
+      {/* Screen readers hear the label in words ("11 days, 8 hours, 39 minutes") instead of the digits and unit letters. */}
+      <div class="countdown-value" role="timer" aria-label={spokenDuration(target - now)}>
         {parts == null ? (
-          <span class="num" style={{ color: css }}>Now!</span>
+          <span class="num" aria-hidden="true" style={{ color: css }}>Now!</span>
         ) : (
           parts.map((part, i) => (
             <Fragment key={part.unit}>
-              {i > 0 && <span class="gap">{'  '}</span>}
-              <span class="num" style={{ color: css }}>{part.value}</span>
-              <span class="unit">{part.unit}</span>
+              {i > 0 && <span class="gap" aria-hidden="true">{'  '}</span>}
+              <span class="num" aria-hidden="true" style={{ color: css }}>{part.value}</span>
+              <span class="unit" aria-hidden="true">{part.unit}</span>
             </Fragment>
           ))
         )}

@@ -77,7 +77,7 @@ export function makeSnapshot(schedule: Schedule, legs: Leg[], t: number, baseTz:
     leave: atHome ? leaveTarget(legs, pilot, t) : null,
     homecoming: atHome ? nextTripHomecoming(legs, pilot, t) : null,
     driveToWork: atHome ? pendingDriveToWork(legs, t, nextFlight) : null,
-    nextCommute: pendingCommute(legs, pilot.effHome, t, nextFlight),
+    nextCommute: atHome ? pendingCommute(legs, pilot.effHome, t, nextFlight) : null,
     nextFlight,
     nextMove,
     nextHomeTrip,

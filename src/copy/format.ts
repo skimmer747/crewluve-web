@@ -31,6 +31,21 @@ export function narrativeCountdown(ms: number): string {
   return '<1m'
 }
 
+/**
+ * A countdown in words for screen readers, so "49m" isn't read as "49 meters": "1 day, 6 hours, 59 minutes".
+ * Whole minutes, rounded down like the visible countdowns; zero parts are left out.
+ */
+export function spokenDuration(ms: number): string {
+  if (!Number.isFinite(ms) || ms <= 0) return 'now'
+  const minutes = Math.floor(ms / 60_000)
+  if (minutes < 1) return 'less than a minute'
+  const part = (n: number, unit: string) => `${n} ${unit}${n === 1 ? '' : 's'}`
+  const d = Math.floor(minutes / 1440)
+  const h = Math.floor((minutes % 1440) / 60)
+  const m = minutes % 60
+  return [d && part(d, 'day'), h && part(h, 'hour'), m && part(m, 'minute')].filter(Boolean).join(', ')
+}
+
 export interface CountdownPart {
   value: string
   unit: 'd' | 'h' | 'm' | 's'

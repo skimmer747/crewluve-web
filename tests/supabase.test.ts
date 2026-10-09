@@ -51,9 +51,9 @@ describe('the CrewLu Cloud client (src/supabase.ts)', () => {
       const real = vi.fn(async () => new Response('{}'))
       vi.stubGlobal('fetch', real)
       const guarded = options().global.fetch
-      await expect(guarded('https://x.supabase.co/rest/v1/trips', { method: 'PATCH', body: '{}' })).rejects.toThrow(/read-only/)
-      await expect(guarded('https://x.supabase.co/auth/v1/user', { method: 'PUT', body: '{}' })).rejects.toThrow(/read-only/)
-      await expect(guarded('https://x.supabase.co/auth/v1/logout?scope=global', { method: 'POST' })).rejects.toThrow(/read-only/)
+      await expect(guarded(SUPABASE_URL + '/rest/v1/trips', { method: 'PATCH', body: '{}' })).rejects.toThrow(/read-only/)
+      await expect(guarded(SUPABASE_URL + '/auth/v1/user', { method: 'PUT', body: '{}' })).rejects.toThrow(/read-only/)
+      await expect(guarded(SUPABASE_URL + '/auth/v1/logout?scope=global', { method: 'POST' })).rejects.toThrow(/read-only/)
       expect(real).not.toHaveBeenCalled()
     })
 
@@ -61,11 +61,11 @@ describe('the CrewLu Cloud client (src/supabase.ts)', () => {
       const guarded = options().global.fetch // taken before the page's fetch is replaced below
       const real = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => new Response('[]'))
       vi.stubGlobal('fetch', real)
-      await guarded('https://x.supabase.co/rest/v1/trips?select=id')
-      await guarded('https://x.supabase.co/auth/v1/token?grant_type=password', { method: 'POST', body: '{}' })
+      await guarded(SUPABASE_URL + '/rest/v1/trips?select=id')
+      await guarded(SUPABASE_URL + '/auth/v1/token?grant_type=password', { method: 'POST', body: '{}' })
       expect(real.mock.calls.map(([url]) => url)).toEqual([
-        'https://x.supabase.co/rest/v1/trips?select=id',
-        'https://x.supabase.co/auth/v1/token?grant_type=password',
+        SUPABASE_URL + '/rest/v1/trips?select=id',
+        SUPABASE_URL + '/auth/v1/token?grant_type=password',
       ])
       expect(real.mock.calls[1][1]).toEqual({ method: 'POST', body: '{}' })
     })

@@ -1,12 +1,15 @@
+import { SUPABASE_URL } from '../cloud'
+import { COLUMNS } from './rows'
+
 /**
  * The read-only guarantee (spec §9), enforced where no calling code can get around it. src/supabase.ts gives the
  * CrewLu Cloud client this wrapper as its fetch, so every request the client sends (database, auth, edge functions,
  * storage) passes through it, however the calling code is written. A stray `.update()`, a `functions.invoke()` or a
  * password change is refused here, before it leaves the page.
  *
- * What goes through:
- * - GET and HEAD under /rest/v1/: the select queries the schedule is read with. (For a GET, PostgREST runs only
- *   STABLE and IMMUTABLE functions, which cannot change data.)
+ * Only the CrewLu Cloud project's own host is reachable, and what goes through there is:
+ * - GET and HEAD of the nine tables the schedule is read from (spec §6.1, the keys of COLUMNS), under /rest/v1/.
+ *   Every other table, and every RPC, is refused, so "never read" holds at runtime too.
  * - GET under /auth/v1/: who is signed in.
  * - POST /auth/v1/token: password sign-in, and refreshing the session.
  * - POST /auth/v1/logout?scope=local: signing out of this browser.
@@ -18,6 +21,9 @@
  * revokes every session of the account: signing out here would sign the pilot's Crewlu app out on their iPhone.
  * supabase-js sends scope=global from signOut() unless told otherwise, so this is the backstop for that mistake.
  */
+const ORIGIN = new URL(SUPABASE_URL).origin
+const TABLES: ReadonlySet<string> = new Set(Object.keys(COLUMNS))
+
 export class ReadOnlyError extends Error {
   constructor(message: string) {
     super(message)
@@ -47,8 +53,12 @@ function requested(input: RequestInfo | URL, init: RequestInit | undefined): Req
 }
 
 function allowed(method: string, url: URL): boolean {
+  if (url.origin !== ORIGIN) return false
   const path = url.pathname
-  if (path.startsWith('/rest/v1/')) return method === 'GET' || method === 'HEAD'
+  if (path.startsWith('/rest/v1/')) {
+    const table = path.slice('/rest/v1/'.length).split('/')[0]
+    return (method === 'GET' || method === 'HEAD') && TABLES.has(table)
+  }
   if (!path.startsWith('/auth/v1/')) return false
   if (method === 'GET') return true
   if (method !== 'POST') return false
@@ -59,7 +69,8 @@ function allowed(method: string, url: URL): boolean {
 function refusal(method: string, url: URL | null): string {
   if (!url) return `This site is read-only: blocked ${method} (unreadable URL)`
   const scope = url.pathname === '/auth/v1/logout' ? ` (scope ${url.searchParams.get('scope') || 'missing'}; only a local sign-out is allowed)` : ''
-  return `This site is read-only: blocked ${method} ${url.pathname}${scope}`
+  const where = url.origin === ORIGIN ? url.pathname : `${url.origin}${url.pathname}`
+  return `This site is read-only: blocked ${method} ${where}${scope}`
 }
 
 /** Wraps a fetch so that only the requests listed above get through; anything else rejects with a ReadOnlyError and is never sent. */

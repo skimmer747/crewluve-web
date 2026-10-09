@@ -1,7 +1,21 @@
 import { describe, expect, it } from 'vitest'
 import {
-  agoText, ageText, arrivalWhenText, cardCountdown, clockText, clockWithDayText, daysText, delayText, departureText,
-  leaveWhenText, longDateTimeText, narrativeCountdown, ordinalSuffix, timeWithZone, tripDepartsText,
+  ageText,
+  agoText,
+  arrivalWhenText,
+  cardCountdown,
+  clockText,
+  clockWithDayText,
+  daysText,
+  delayText,
+  departureText,
+  leaveWhenText,
+  longDateTimeText,
+  narrativeCountdown,
+  ordinalSuffix,
+  spokenDuration,
+  timeWithZone,
+  tripDepartsText,
 } from '../../src/copy/format'
 
 const NY = 'America/New_York'
@@ -151,5 +165,23 @@ describe('long dates', () => {
   it('takes the ordinal from the same zone as the date (C5)', () => {
     // 02:00Z on Oct 2 is still Thu Oct 1 in New York: the zone says "1st", UTC says "2nd".
     expect(leaveWhenText(Date.UTC(2026, 9, 2, 2, 0), NY, false)).toBe('Departs Thursday October 1st at 10:00pm')
+  })
+})
+
+describe('spokenDuration', () => {
+  it.each([
+    [0, 'now'],
+    [-5 * MIN, 'now'],
+    [Number.NaN, 'now'],
+    [30_000, 'less than a minute'],
+    [MIN, '1 minute'],
+    [49 * MIN + 59_000, '49 minutes'],
+    [2 * H, '2 hours'],
+    [H + MIN, '1 hour, 1 minute'],
+    [D + 6 * H + 59 * MIN, '1 day, 6 hours, 59 minutes'],
+    [2 * D + 5 * MIN, '2 days, 5 minutes'],
+    [11 * D + 8 * H + 39 * MIN, '11 days, 8 hours, 39 minutes'],
+  ])('%s ms reads as "%s"', (ms, words) => {
+    expect(spokenDuration(ms)).toBe(words)
   })
 })

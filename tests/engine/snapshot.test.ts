@@ -254,6 +254,15 @@ describe('the logged commute to the next trip', () => {
     b.trip('t1', { dutyPeriods: [{ start: 1440, end: 1800, flights: [{ dep: 'SDF', arr: 'ANC', out: 1500, in: 1700 }] }] })
   const commuteAt = (b: RawBuilder, minutes = 0) => snapOf(withTrip(b), minutes).nextCommute
 
+  it('is only looked for at home, like the other home-only extras', () => {
+    const away = pat()
+      .trip('t0', { dutyPeriods: [{ start: -120, end: 300, flights: [{ dep: 'SDF', arr: 'ANC', out: -60, in: 200 }] }] })
+      .jumpseat('j1', 'MCO', 'SDF', 900, 1020)
+    const sn = snapOf(withTrip(away), 0)
+    expect(sn.status.kind).not.toBe('home')
+    expect(sn.nextCommute).toBeNull()
+  })
+
   it('is the standalone jumpseat from home to the trip’s first airport', () => {
     const sn = snapOf(withTrip(pat().jumpseat('j1', 'MCO', 'SDF', 900, 1020)), 0)
     expect(sn.status.kind).toBe('home')

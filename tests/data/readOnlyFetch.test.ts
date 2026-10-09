@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ReadOnlyError, readOnlyFetch } from '../../src/data/readOnlyFetch'
+import { SUPABASE_URL } from '../../src/cloud'
+import { COLUMNS } from '../../src/data/rows'
 
-const HOST = 'https://example.supabase.co'
+const HOST = SUPABASE_URL
 
 function guard() {
   const response = new Response('{}', { status: 200 })
@@ -169,5 +171,34 @@ describe('readOnlyFetch', () => {
     const down = new TypeError('Failed to fetch')
     const guarded = readOnlyFetch((async () => { throw down }) as unknown as typeof fetch)
     await expect(guarded(`${HOST}/rest/v1/trips`)).rejects.toBe(down)
+  })
+})
+
+describe('readOnlyFetch: only the schedule tables, only on CrewLu Cloud', () => {
+  it.each(Object.keys(COLUMNS))('lets a read of %s through', async (table) => {
+    const { base, guarded } = guard()
+    await guarded(`${HOST}/rest/v1/${table}?select=id`)
+    expect(base).toHaveBeenCalledTimes(1)
+  })
+
+  it.each(['hotels', 'crew_members', 'pilot_personal_infos', 'catering_photos', 'profiles'])('refuses a read of %s, which the site never needs', async (table) => {
+    const { base, guarded } = guard()
+    await expect(guarded(`${HOST}/rest/v1/${table}?select=*`)).rejects.toThrow(ReadOnlyError)
+    expect(base).not.toHaveBeenCalled()
+  })
+
+  it('refuses database functions, even read-only ones', async () => {
+    const { base, guarded } = guard()
+    await expect(guarded(`${HOST}/rest/v1/rpc/anything?x=1`)).rejects.toThrow(ReadOnlyError)
+    expect(base).not.toHaveBeenCalled()
+  })
+
+  it('refuses every other host, and names it in the reason', async () => {
+    const { base, guarded } = guard()
+    await expect(guarded('https://elsewhere.example.com/rest/v1/trips?select=id')).rejects.toThrow(
+      'This site is read-only: blocked GET https://elsewhere.example.com/rest/v1/trips',
+    )
+    await expect(guarded(`${HOST.replace('https:', 'http:')}/rest/v1/trips`)).rejects.toThrow(ReadOnlyError)
+    expect(base).not.toHaveBeenCalled()
   })
 })

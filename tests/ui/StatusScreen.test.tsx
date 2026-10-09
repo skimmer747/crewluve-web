@@ -11,6 +11,13 @@ import { testAirports } from '../fixtures/airports'
 import { A, at, engineFor } from '../fixtures/engine'
 import { stubAnimationFrames } from '../fixtures/ui'
 
+/** The text a sighted visitor sees: everything except the screen-reader-only words. */
+function visibleText(el: Element): string {
+  const copy = el.cloneNode(true) as Element
+  copy.querySelectorAll('.sr-only').forEach((node) => node.remove())
+  return copy.textContent ?? ''
+}
+
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
@@ -38,9 +45,12 @@ describe('StatusScreen', () => {
   it('away: title, sentence, and the Back Home In card with date and city', () => {
     const { container } = renderAt(100)
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe("Where's Alex?")
-    expect(container.querySelector('.narrative-text')!.textContent).toBe(
+    expect(visibleText(container.querySelector('.narrative-text')!)).toBe(
       'Alex is flying to Rockford on UPS flight 2961 from Louisville — landing in 50m which is 8:00am EDT.',
     )
+    // Screen readers hear the countdown in words, not "50m".
+    expect(container.querySelector('.narrative-text .sr-only')!.textContent).toBe('50 minutes')
+    expect(screen.getByRole('timer').getAttribute('aria-label')).toBe('1 day, 7 hours, 40 minutes')
     expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('Back Home In')
     expect(container.querySelector('.countdown-value')!.textContent).toBe('1d  07h  40m')
     expect(container.querySelector('.countdown-sub')!.textContent).toBe('Sat, Oct 10 at 2:50\u202FPM · Lexington')

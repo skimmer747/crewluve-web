@@ -170,3 +170,30 @@ describe('NarrativeCard', () => {
     })
   })
 })
+
+describe('NarrativeCard for screen readers', () => {
+  const card = (text: string, spoken: string) => (
+    <NarrativeCard
+      spans={[{ text: 'Landing in ' }, { text, bold: true, color: 'status', digits: true, spoken }]}
+      visual={{ icon: 'Package', color: 'ups' }}
+      ring={null}
+    />
+  )
+
+  it('reads the countdown in words and hides the digits from screen readers', () => {
+    const { container } = render(card('50m', '50 minutes'))
+    const digits = container.querySelector('.digits')!
+    expect(digits.textContent).toBe('50m')
+    expect(digits.getAttribute('aria-hidden')).toBe('true')
+    expect(container.querySelector('.narrative-text .sr-only')!.textContent).toBe('50 minutes')
+  })
+
+  it('still replays the roll-in when a new minute arrives', () => {
+    const { container, rerender } = render(card('50m', '50 minutes'))
+    const first = container.querySelector('.digits')
+    rerender(card('49m', '49 minutes'))
+    expect(container.querySelector('.digits')).not.toBe(first)
+    expect(container.querySelectorAll('.narrative-text .sr-only')).toHaveLength(1)
+    expect(container.querySelector('.narrative-text .sr-only')!.textContent).toBe('49 minutes')
+  })
+})

@@ -3,10 +3,11 @@ import { describe, expect, it } from 'vitest'
 import { fetchSchedule, ScheduleFetchError } from '../../src/data/fetchSchedule'
 import { readOnlyFetch } from '../../src/data/readOnlyFetch'
 import { COLUMNS } from '../../src/data/rows'
+import { SUPABASE_URL } from '../../src/cloud'
 
 // A real supabase-js client talking to a fake network through readOnlyFetch, the same way src/supabase.ts builds it.
 // The project below is made up and nothing here can reach CrewLu Cloud.
-const BASE = 'https://example.supabase.co'
+const BASE = SUPABASE_URL
 const DAY = 86_400_000
 const NOW = Date.UTC(2026, 9, 9, 12)
 const iso = (ms: number) => new Date(ms).toISOString()
