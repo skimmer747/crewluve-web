@@ -607,7 +607,8 @@ All of these come from the 2026-07-02 Crewluve leave/return-home audit, C1–C30
 
 ### 7.1 Stack
 
-- Vite 5, TypeScript 5 (strict), and Vitest 2 — the same majors as crewlu-globe — plus **Preact** for TSX components.
+- Vite 5 and TypeScript 5 (strict), the same majors as crewlu-globe, plus **Preact** for TSX components.
+- Vitest 3. The globe uses Vitest 2; Vitest 3 clears dev-tool security advisories and still runs on Vite 5 (§12 #13).
 - **Licenses:**
   - Phosphor icon paths are MIT. `@phosphor-icons/core` is installed on demand by `npm run icons`, and the paths are copied into a committed file.
   - `geo-tz` is MIT, with timezone-boundary-builder data under ODbL. It's installed on demand by `npm run airports`.
@@ -619,6 +620,8 @@ All of these come from the 2026-07-02 Crewluve leave/return-home audit, C1–C30
 - Phosphor icon SVGs inlined as Preact components (only the icons used).
 
 ### 7.2 Layout
+
+This is the design-time sketch. Where file names differ, the implementation plan's file structure wins.
 
 ```
 index.html                      CSP meta (prod), app root
@@ -679,7 +682,12 @@ airports.json ───────────────────┤
 - `scripts/build-airports.mjs` reads the globe's generated list, `~/Dev/crewlu-globe/public/data/airports.json` (9,056 unique entries `{iata, lat, lng, city, country}`). That list's city names already come from Crewlu's airport data, which wins over OurAirports. Verified: SDF Louisville, CGN Cologne, BLR Bangalore.
 - It adds an IANA zone per airport from lat/lng using **`geo-tz`** (MIT; boundaries from timezone-boundary-builder, ODbL).
   - geo-tz is accurate near zone borders, where `tz-lookup` isn't.
+  - It uses geo-tz's **full dataset** (`geo-tz/all`). The default dataset merges zones that have shared rules since 1970. For example, it puts Papeete in Pacific/Honolulu ("HST") and La Paz in America/Puerto_Rico ("AST").
   - It's about 74 MB, so `npm run airports` installs it on demand with `--no-save` and it never enters package.json or CI.
+- **Zones newer than some browsers' time-zone data** are written under names those browsers know:
+  - Three older aliases of the same zone: America/Nuuk → America/Godthab, Europe/Kyiv → Europe/Kiev, Pacific/Kanton → Pacific/Enderbury.
+  - Two stand-ins that are different zones sharing today's rules: America/Ciudad_Juarez → America/Denver (since Nov 2022) and America/Coyhaique → America/Punta_Arenas (since 2025). These must be rechecked every time the data is regenerated.
+- At runtime, the airport index's `tz()` returns null for an unknown airport, and for a zone the browser's `Intl` rejects. The caller then uses the viewer's zone (§8).
 - It writes a compact `public/data/airports.json` (`[iata, city, country, lat, lng, tz]` tuples), which is committed. CI never regenerates it.
 - A test checks each pinned airport's zone gives the right October 2026 abbreviation. (Zone *names* can legitimately vary, for example America/Kentucky/Louisville vs America/New_York, so the test pins abbreviations instead.)
 
@@ -695,6 +703,8 @@ airports.json ───────────────────┤
 | CGN | GMT+2 |
 | HKG | GMT+8 |
 | BLR | GMT+5:30 |
+| PPT | GMT-10 |
+| LPB | GMT-4 |
 
 ## 8. Error handling
 
@@ -708,6 +718,7 @@ airports.json ───────────────────┤
 | No CrewLu Cloud data | Empty state (§4.6) |
 | Garbage rows | Dropped or repaired silently by §6.2 guards; never crash the render |
 | Unknown airport code | Use the IATA code as the city name and the viewer's zone as the time zone |
+| `airports.json` won't load | Treat every airport as unknown (above) right away; try once more 3 s later, and swap in city names if that works |
 | Engine exception | Caught at the snapshot boundary; render the "Unknown" status ("On duty") with no countdown, and log to the console |
 
 ## 9. Privacy and security
@@ -735,8 +746,11 @@ airports.json ───────────────────┤
 default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';
 img-src 'self' data:; font-src 'self';
 connect-src 'self' https://corxvurxpnrzekbxdgye.supabase.co;
-base-uri 'self'; form-action 'self'
+object-src 'none'; base-uri 'self'; form-action 'self'
 ```
+- The build fails if `index.html` loses its CSP placeholder, so production never ships without a policy.
+- `connect-src` reads the project URL from the same constant the Supabase client uses (`src/cloud.ts`).
+- The visual check (plan Task 32) tries dropping `'unsafe-inline'` from `style-src` under the production preview.
 
 **No analytics, cookies, or third-party scripts.**
 
@@ -793,6 +807,7 @@ base-uri 'self'; form-action 'self'
 
 - **Repo:** `skimmer747/crewluve-web`, public, branch `main`. Repo creation and pushes happen only when the user asks.
 - **Workflow:** `.github/workflows/deploy-pages.yml`, copied from crewlu-globe. It runs `npm ci`, `npx vitest run`, `npm run build`, `upload-pages-artifact`, and `deploy-pages`, with up to 3 attempts (Pages often fails the first one).
+- **Node version:** CI reads it from `.nvmrc` (24, the current LTS). supabase-js 2.117 needs Node 22 or later.
 - **No CI secrets.** The publishable key is public by design.
 - **Custom domain**
   - `public/CNAME` contains `crewluve.crewlu.net`.
@@ -817,6 +832,11 @@ base-uri 'self'; form-action 'self'
 | 10 | The report window shows "at base". | Design (storyboard approved) |
 | 11 | Phosphor fill icons stand in for SF Symbols; system fonts (SF on Apple devices). | Design |
 | 12 | No analytics; public repo. | Design |
+| 13 | Test tooling is Vitest 3.2.7 and happy-dom 20.14.5, for security fixes. The remaining dev-only advisories need Vite 6+ and Vitest 4, which is a later upgrade. | Design (Batch A review) |
+| 14 | Airport zones come from geo-tz's full dataset. Zones some browsers don't know become an older alias or a same-rules stand-in (§7.4). `tz()` returns null for any zone the browser rejects. | Design (Batch A review) |
+| 15 | The CSP adds `object-src 'none'`, and the build fails without the CSP placeholder. | Design (Batch A review) |
+| 16 | If `airports.json` won't load, codes show at once and one retry runs 3 s later. | Design |
+| 17 | One constant holds the CrewLu Cloud URL for both the client and the CSP. CI's Node version comes from `.nvmrc` (24). | Design |
 
 ## 13. Roadmap (after slice 1)
 

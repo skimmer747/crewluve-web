@@ -15,7 +15,7 @@
 
 **Tech Stack:**
 - Vite 5.4.21, TypeScript 5.9.3, Preact 10.29.8 (+ @preact/preset-vite 2.10.6), @supabase/supabase-js 2.117.3
-- Tests: Vitest 2.1.9 with happy-dom 15.11.7 and @testing-library/preact 3.2.4
+- Tests: Vitest 3.2.7 with happy-dom 20.14.5 and @testing-library/preact 3.2.4 (upgraded from Vitest 2.1.9 and happy-dom 15.11.7 during Batch A, for security advisories)
 - Build-time only, installed on demand and never saved: geo-tz 8.1.9 (airport time zones) and @phosphor-icons/core 2.1.1 (icon paths)
 - Python 3 + Pillow, already on this Mac, for the favicons
 
@@ -58,6 +58,7 @@ scripts/build-airports.mjs           globe airport list + geo-tz → [iata, city
 scripts/build-icons.mjs              Phosphor "fill" SVGs → src/icons/iconPaths.ts
 scripts/make-icons.py                Crewluve heart art → favicons
 src/main.tsx                         imports CSS, renders <Root/>
+src/cloud.ts                         CrewLu Cloud URL + publishable key, shared by the client and the CSP
 src/supabase.ts                      CrewLu Cloud client (publishable key)
 src/time/zoned.ts                    wall-clock parts, zone abbreviations, 12/24-hour preference
 src/icons/iconPaths.ts               GENERATED icon path data + IconName type
@@ -88,7 +89,35 @@ src/ui/Icon.tsx, Title.tsx, ProgressRing.tsx, NarrativeCard.tsx, CountdownCard.t
 src/ui/hooks/useNow.ts, useVisibilityCount.ts, useAirports.ts, useSchedule.ts
 src/styles/tokens.css, base.css, cards.css
 tests/…                              mirrors src/; tests/fixtures/ holds shared helpers
+.nvmrc                               Node version for CI (Task 33)
 ```
+
+---
+
+## Execution notes (read before your batch)
+
+Tasks 1–4 are done on branch `slice1` and passed both reviews. Review fixes changed some of their code from the blocks printed in Tasks 1–4. **The repo is the source of truth for those files.** Later tasks depend on these changes:
+
+- **Test tooling.** Vitest 3.2.7 and happy-dom 20.14.5. The UI test patterns in this plan work unchanged.
+- **TypeScript library.** `tsconfig.json` uses `lib: ["ES2020", "DOM", "DOM.Iterable"]` (matching the ES2020 build target) and `noEmit`.
+  - Don't use ES2021+ library APIs: `String#replaceAll`, `Array#at`, `Object.hasOwn`, `Promise.any`.
+  - Syntax is fine; esbuild lowers it.
+  - The plan's remaining code already follows this.
+- **`src/time/zoned.ts`** adds two exports:
+  - `isKnownZone(tz)`: a memoized check that this runtime's `Intl` can format times in the zone.
+  - `viewerTimeZone(resolve?)`: returns "UTC" when the browser reports no usable zone. App code calls it with no arguments.
+- **`src/data/airports.ts`:**
+  - Codes are trimmed and uppercased. Blank-code rows are skipped.
+  - `city()` falls back to the code when the city name is blank.
+  - `tz()` returns null for unknown airports and for zones the runtime rejects. Callers fall back to the viewer's zone.
+  - `get(code).tz` is the raw value from the file. Do time math with `tz()`.
+- **`scripts/build-airports.mjs`:**
+  - Uses `geo-tz/all`.
+  - Writes three new zone names as their older aliases (`OLDER_NAMES`) and two as same-rules stand-ins (`SAME_RULES_TODAY`).
+  - `AIRPORTS_SOURCE` overrides the source path.
+- **`vite.config.ts`.** The CSP adds `object-src 'none'`. The build throws if `index.html` loses `<!--csp-->`. `tests/viteConfig.test.ts` tests the plugin.
+- **`package.json`** has `"engines": { "node": ">=22" }`.
+- **Full suite after Batch A:** 44 tests in 5 files. Steps that run a single test file are unaffected. A full-suite run just has more tests than a task's own count.
 
 ---
 
@@ -97,7 +126,7 @@ tests/…                              mirrors src/; tests/fixtures/ holds share
 **Files:**
 - Create: `package.json`, `tsconfig.json`, `vite.config.ts`, `vitest.config.ts`, `index.html`, `src/main.tsx`, `tests/smoke.test.ts`, `.claude/launch.json`, `README.md`
 
-- [ ] **Step 1: Write `package.json`**
+- [x] **Step 1: Write `package.json`**
 
 ```json
 {
@@ -130,7 +159,7 @@ tests/…                              mirrors src/; tests/fixtures/ holds share
 }
 ```
 
-- [ ] **Step 2: Write `tsconfig.json`**
+- [x] **Step 2: Write `tsconfig.json`**
 
 ```json
 {
@@ -153,7 +182,7 @@ tests/…                              mirrors src/; tests/fixtures/ holds share
 }
 ```
 
-- [ ] **Step 3: Write `vite.config.ts`**
+- [x] **Step 3: Write `vite.config.ts`**
 
 ```ts
 import { defineConfig } from 'vite'
@@ -188,7 +217,7 @@ export default defineConfig({
 })
 ```
 
-- [ ] **Step 4: Write `vitest.config.ts`**
+- [x] **Step 4: Write `vitest.config.ts`**
 
 ```ts
 import { defineConfig } from 'vitest/config'
@@ -199,7 +228,7 @@ export default defineConfig({
 })
 ```
 
-- [ ] **Step 5: Write `index.html`**
+- [x] **Step 5: Write `index.html`**
 
 ```html
 <!doctype html>
@@ -221,7 +250,7 @@ export default defineConfig({
 </html>
 ```
 
-- [ ] **Step 6: Write a placeholder `src/main.tsx`** (replaced in Task 30)
+- [x] **Step 6: Write a placeholder `src/main.tsx`** (replaced in Task 30)
 
 ```tsx
 import { render } from 'preact'
@@ -229,7 +258,7 @@ import { render } from 'preact'
 render(<p>CrewLuve</p>, document.getElementById('app')!)
 ```
 
-- [ ] **Step 7: Write the smoke test `tests/smoke.test.ts`**
+- [x] **Step 7: Write the smoke test `tests/smoke.test.ts`**
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -241,7 +270,7 @@ describe('toolchain', () => {
 })
 ```
 
-- [ ] **Step 8: Write `.claude/launch.json`** (lets the desktop app's browser pane start the dev server)
+- [x] **Step 8: Write `.claude/launch.json`** (lets the desktop app's browser pane start the dev server)
 
 ```json
 {
@@ -252,7 +281,7 @@ describe('toolchain', () => {
 }
 ```
 
-- [ ] **Step 9: Write `README.md`**
+- [x] **Step 9: Write `README.md`**
 
 ````markdown
 # Crewluve Web
@@ -282,7 +311,7 @@ python3 -I scripts/make-icons.py   # public/icons/*.png
 ```
 ````
 
-- [ ] **Step 10: Install and verify**
+- [x] **Step 10: Install and verify**
 
 Run: `npm install`
 Expected: it finishes without errors and creates `package-lock.json`.
@@ -293,7 +322,7 @@ Expected: `1 passed`.
 Run: `npm run build`
 Expected: `tsc` reports nothing, and Vite prints `dist/index.html` plus a JS asset.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add package.json package-lock.json tsconfig.json vite.config.ts vitest.config.ts index.html src/main.tsx tests/smoke.test.ts .claude/launch.json README.md
@@ -310,7 +339,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/time/zoned.ts`
 - Test: `tests/time/zoned.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -352,12 +381,12 @@ describe('prefers24Hour', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/time/zoned.test.ts`
 Expected: FAIL, because `src/time/zoned.ts` can't be resolved.
 
-- [ ] **Step 3: Write `src/time/zoned.ts`**
+- [x] **Step 3: Write `src/time/zoned.ts`**
 
 ```ts
 export const MINUTE = 60_000
@@ -438,12 +467,12 @@ export function prefers24Hour(locale?: string): boolean {
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run tests/time/zoned.test.ts`
 Expected: PASS (5 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/time/zoned.ts tests/time/zoned.test.ts
@@ -462,7 +491,7 @@ SF Symbols can't ship on a website (§4.1), so each symbol becomes a Phosphor "f
 - Create: `scripts/build-icons.mjs`, `src/icons/iconPaths.ts` (generated), `THIRD_PARTY_NOTICES.md`
 - Test: `tests/icons/iconPaths.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -488,12 +517,12 @@ describe('ICON_PATHS', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/icons/iconPaths.test.ts`
 Expected: FAIL, because `src/icons/iconPaths.ts` can't be resolved.
 
-- [ ] **Step 3: Write `scripts/build-icons.mjs`**
+- [x] **Step 3: Write `scripts/build-icons.mjs`**
 
 ```js
 // Copies the Phosphor "fill" path data this site uses into src/icons/iconPaths.ts.
@@ -547,17 +576,17 @@ export type IconName = keyof typeof ICON_PATHS
 console.log(`wrote ${lines.length} icons to ${outFile}`)
 ```
 
-- [ ] **Step 4: Generate the icon file**
+- [x] **Step 4: Generate the icon file**
 
 Run: `npm run icons`
 Expected: it ends with `wrote 41 icons to …/src/icons/iconPaths.ts`.
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [x] **Step 5: Run the test to verify it passes**
 
 Run: `npx vitest run tests/icons/iconPaths.test.ts`
 Expected: PASS (2 tests).
 
-- [ ] **Step 6: Start `THIRD_PARTY_NOTICES.md` with Phosphor's license**
+- [x] **Step 6: Start `THIRD_PARTY_NOTICES.md` with Phosphor's license**
 
 Run:
 
@@ -567,7 +596,7 @@ Run:
 
 Expected: the file starts `# Third-party notices`, and the license block contains `Copyright (c) 2023 Phosphor Icons`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add scripts/build-icons.mjs src/icons/iconPaths.ts tests/icons/iconPaths.test.ts THIRD_PARTY_NOTICES.md package.json package-lock.json
@@ -587,7 +616,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `THIRD_PARTY_NOTICES.md` (append)
 - Test: `tests/data/airports.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { readFileSync } from 'node:fs'
@@ -635,12 +664,12 @@ describe('generated public/data/airports.json', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/data/airports.test.ts`
 Expected: FAIL, because `src/data/airports.ts` can't be resolved.
 
-- [ ] **Step 3: Write `src/data/airports.ts`**
+- [x] **Step 3: Write `src/data/airports.ts`**
 
 ```ts
 /** One airport in public/data/airports.json. */
@@ -685,7 +714,7 @@ export async function loadAirports(url = '/data/airports.json'): Promise<Airport
 }
 ```
 
-- [ ] **Step 4: Write `scripts/build-airports.mjs`**
+- [x] **Step 4: Write `scripts/build-airports.mjs`**
 
 ```js
 // Builds public/data/airports.json as [iata, city, country, lat, lng, tz] tuples.
@@ -721,12 +750,12 @@ writeFileSync(outFile, JSON.stringify(out))
 console.log(`wrote ${out.length} airports to ${outFile}`)
 ```
 
-- [ ] **Step 5: Generate the airport file**
+- [x] **Step 5: Generate the airport file**
 
 Run: `npm run airports`
 Expected: it ends with `wrote 90xx airports to …/public/data/airports.json`. The count is a little under 9,056.
 
-- [ ] **Step 6: Write the shared test fixture `tests/fixtures/airports.ts`** (used by later copy and UI tests)
+- [x] **Step 6: Write the shared test fixture `tests/fixtures/airports.ts`** (used by later copy and UI tests)
 
 ```ts
 import { buildAirportIndex } from '../../src/data/airports'
@@ -745,14 +774,14 @@ export const testAirports = buildAirportIndex([
 ])
 ```
 
-- [ ] **Step 7: Run the test to verify it passes**
+- [x] **Step 7: Run the test to verify it passes**
 
 Run: `npx vitest run tests/data/airports.test.ts`
 Expected: PASS (14 tests).
 
 If an abbreviation pin fails, check that airport's coordinates in the globe list against its real location before changing anything. Don't loosen the test.
 
-- [ ] **Step 8: Append the geo-tz and airport-data credits to `THIRD_PARTY_NOTICES.md`**
+- [x] **Step 8: Append the geo-tz and airport-data credits to `THIRD_PARTY_NOTICES.md`**
 
 Run:
 
@@ -762,7 +791,7 @@ Run:
 
 Expected: `THIRD_PARTY_NOTICES.md` now has three sections.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add src/data/airports.ts scripts/build-airports.mjs public/data/airports.json tests/fixtures/airports.ts tests/data/airports.test.ts THIRD_PARTY_NOTICES.md
@@ -4346,7 +4375,8 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ### Task 18: Supabase client, fetchSchedule, and the read-only guard
 
 **Files:**
-- Create: `src/supabase.ts`, `src/data/fetchSchedule.ts`
+- Create: `src/cloud.ts`, `src/supabase.ts`, `src/data/fetchSchedule.ts`
+- Modify: `vite.config.ts` (the CSP reads the Supabase URL from `src/cloud.ts`), `tests/viteConfig.test.ts`
 - Test: `tests/data/fetchSchedule.test.ts`, `tests/data/readOnly.test.ts`
 
 - [ ] **Step 1: Write the failing fetch test `tests/data/fetchSchedule.test.ts`**
@@ -4441,7 +4471,8 @@ describe('fetchSchedule', () => {
 
 ```ts
 import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 function sourceFiles(dir: string): string[] {
@@ -4452,7 +4483,8 @@ function sourceFiles(dir: string): string[] {
   })
 }
 
-const files = sourceFiles('src')
+// Resolved from this file, so the guard scans src/ whatever directory the tests run from.
+const files = sourceFiles(fileURLToPath(new URL('../../src', import.meta.url)))
 
 describe('read-only guarantee (spec §9)', () => {
   it.each(files)('%s never writes to CrewLu Cloud or injects HTML', (file) => {
@@ -4464,7 +4496,7 @@ describe('read-only guarantee (spec §9)', () => {
 
   it('keeps all database access in fetchSchedule.ts', () => {
     const callers = files.filter((f) => /\b(client|supabase)\.from\(/.test(readFileSync(f, 'utf8')))
-    expect(callers.map((f) => f.split('/').pop())).toEqual(['fetchSchedule.ts'])
+    expect(callers.map((f) => basename(f))).toEqual(['fetchSchedule.ts'])
   })
 })
 ```
@@ -4474,19 +4506,49 @@ describe('read-only guarantee (spec §9)', () => {
 Run: `npx vitest run tests/data/fetchSchedule.test.ts tests/data/readOnly.test.ts`
 Expected: FAIL. `fetchSchedule.ts` can't be resolved, and the guard's "keeps all database access" test finds no caller yet.
 
-- [ ] **Step 4: Write `src/supabase.ts`**
+- [ ] **Step 4: Write `src/cloud.ts` and `src/supabase.ts`, and point the CSP at the same URL**
+
+The project URL lives in one place. The production CSP's `connect-src` reads it too, so the client can never call a host the CSP blocks. That mismatch would only show up on the live site, because the dev server has no CSP.
+
+`src/cloud.ts`:
+
+```ts
+// The CrewLu Cloud project: the same URL and publishable key as the Flight Globe (crewlu-globe/src/supabase.ts).
+// The publishable key is safe in a browser: row-level security limits every query to the signed-in pilot.
+// vite.config.ts reads SUPABASE_URL for the CSP's connect-src, so the client and the CSP can't drift apart.
+export const SUPABASE_URL = 'https://corxvurxpnrzekbxdgye.supabase.co'
+export const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_1wBeBjIIvEmMygoM9vWA2A_ptocrFGM'
+```
+
+`src/supabase.ts`:
 
 ```ts
 import { createClient } from '@supabase/supabase-js'
-
-// The same CrewLu Cloud project and publishable key as the Flight Globe (crewlu-globe/src/supabase.ts).
-// The publishable key is safe in a browser: row-level security limits every query to the signed-in pilot.
-export const SUPABASE_URL = 'https://corxvurxpnrzekbxdgye.supabase.co'
-const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_1wBeBjIIvEmMygoM9vWA2A_ptocrFGM'
+import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from './cloud'
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, storageKey: 'crewluve-auth' },
 })
+```
+
+In `vite.config.ts`, change only two lines:
+- Add the import `import { SUPABASE_URL } from './src/cloud'` below the preact import.
+- Make the connect-src entry of `CSP` a template string:
+
+```ts
+  `connect-src 'self' ${SUPABASE_URL}`,
+```
+
+Everything else in `vite.config.ts` stays as it is in the repo.
+
+In `tests/viteConfig.test.ts`:
+- Add `import { SUPABASE_URL } from '../src/cloud'` to the imports.
+- Add this test inside the `describe` block:
+
+```ts
+  it('lets the app reach the CrewLu Cloud project the client uses', () => {
+    expect(injectCsp('<!--csp-->')).toContain(`connect-src 'self' ${SUPABASE_URL};`)
+  })
 ```
 
 - [ ] **Step 5: Write `src/data/fetchSchedule.ts`**
@@ -4562,15 +4624,15 @@ export async function fetchSchedule(client: SelectClient, now: number): Promise<
 
 The `eslint-disable` comments are only documentation, since the project doesn't run ESLint. The `any` is deliberate and limited to the builder chain.
 
-- [ ] **Step 6: Run both tests to verify they pass**
+- [ ] **Step 6: Run the tests to verify they pass**
 
-Run: `npx vitest run tests/data/fetchSchedule.test.ts tests/data/readOnly.test.ts && npx tsc --noEmit`
-Expected: PASS, and `tsc` prints nothing.
+Run: `npx vitest run tests/data/fetchSchedule.test.ts tests/data/readOnly.test.ts tests/viteConfig.test.ts && npx tsc --noEmit && npm run build`
+Expected: PASS, `tsc` prints nothing, and the build succeeds. The build bundles `src/cloud.ts` into the Vite config.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add src/supabase.ts src/data/fetchSchedule.ts tests/data/fetchSchedule.test.ts tests/data/readOnly.test.ts
+git add src/cloud.ts src/supabase.ts src/data/fetchSchedule.ts vite.config.ts tests/data/fetchSchedule.test.ts tests/data/readOnly.test.ts tests/viteConfig.test.ts
 git commit -m "Add read-only CrewLu Cloud fetch with paging and a write guard
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
@@ -6656,21 +6718,38 @@ describe('useVisibilityCount', () => {
 })
 
 describe('useAirports', () => {
+  // retryMs 0, so the second try runs at once instead of after 3 seconds.
   function Cities() {
-    const airports = useAirports()
+    const airports = useAirports(0)
     return <span data-testid="city">{airports ? airports.city('SDF') : 'loading'}</span>
   }
 
+  const listed = { ok: true, json: async () => [['SDF', 'Louisville', 'USA', 38.17, -85.74, 'America/Kentucky/Louisville']] }
+  const missing = { ok: false, status: 404 }
+
   it('loads the airport list', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => [['SDF', 'Louisville', 'USA', 38.17, -85.74, 'America/Kentucky/Louisville']] })))
+    vi.stubGlobal('fetch', vi.fn(async () => listed))
     render(<Cities />)
     await waitFor(() => expect(screen.getByTestId('city').textContent).toBe('Louisville'))
   })
 
-  it('falls back to airport codes when the list will not load', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 404 })))
+  it('shows airport codes when the list will not load, after exactly one more try', async () => {
+    const fetchMock = vi.fn(async () => missing)
+    vi.stubGlobal('fetch', fetchMock)
     render(<Cities />)
     await waitFor(() => expect(screen.getByTestId('city').textContent).toBe('SDF'))
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+    await new Promise((r) => setTimeout(r, 20))
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(screen.getByTestId('city').textContent).toBe('SDF')
+  })
+
+  it('swaps in city names when the second try works', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(missing).mockResolvedValueOnce(listed)
+    vi.stubGlobal('fetch', fetchMock)
+    render(<Cities />)
+    await waitFor(() => expect(screen.getByTestId('city').textContent).toBe('Louisville'))
+    expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 })
 ```
@@ -6721,18 +6800,29 @@ export function useVisibilityCount(): number {
 import { useEffect, useState } from 'preact/hooks'
 import { buildAirportIndex, loadAirports, type AirportIndex } from '../../data/airports'
 
-/** The airport list. If it won't load, an empty index, so cities fall back to their codes (spec §8). */
-export function useAirports(): AirportIndex | null {
+/**
+ * The airport list. If it won't load, an empty index at once, so the screen shows airport codes instead
+ * of city names (spec §8). Then one more try after `retryMs`, which swaps in the city names if it works.
+ */
+export function useAirports(retryMs = 3000): AirportIndex | null {
   const [index, setIndex] = useState<AirportIndex | null>(null)
   useEffect(() => {
     let alive = true
+    let retry: ReturnType<typeof setTimeout> | undefined
+    const show = (airports: AirportIndex) => {
+      if (alive) setIndex(airports)
+    }
     loadAirports()
-      .then((airports) => alive && setIndex(airports))
-      .catch(() => alive && setIndex(buildAirportIndex([])))
+      .then(show)
+      .catch(() => {
+        show(buildAirportIndex([]))
+        if (alive) retry = setTimeout(() => void loadAirports().then(show).catch(() => {}), retryMs)
+      })
     return () => {
       alive = false
+      clearTimeout(retry)
     }
-  }, [])
+  }, [retryMs])
   return index
 }
 ```
@@ -7258,6 +7348,7 @@ The screenshots are slightly older than the current app, so these spec details w
 
 **Files:**
 - Modify: `src/styles/tokens.css`, `src/styles/cards.css` (tuning only)
+- Modify: `.claude/launch.json` (adds the production preview), `vite.config.ts` (preview `strictPort`, and the CSP if Step 5 tightens it), `tests/viteConfig.test.ts` (only if the CSP changes)
 
 - [ ] **Step 1: Open the dev server in the browser pane**
 
@@ -7306,32 +7397,63 @@ Make one change at a time and re-screenshot. Don't touch layout files beyond `to
 - Navigate to `http://localhost:5180/`. The pane has no CrewLu Cloud session, so expect the sign-in screen: heart artwork, "CrewLuve", the form, the read-only note, and the "See a demo" link.
 - Set `colorScheme: "light"` again.
 
-- [ ] **Step 5: Show the user and take their notes**
+- [ ] **Step 5: Check the production build under its CSP**
+
+The dev server runs without the CSP, so check the built site. That's what GitHub Pages will serve.
+
+1. Add a second configuration to `.claude/launch.json`:
+
+   ```json
+   { "name": "crewluve-preview", "runtimeExecutable": "npm", "runtimeArgs": ["run", "preview"], "port": 5181 }
+   ```
+
+   In `vite.config.ts`, change `preview` to `{ port: 5181, strictPort: true }` so the preview never drifts to another port.
+2. Run `npm run build`, then `preview_start` with `name: "crewluve-preview"`.
+3. Visit these pages. After each one, run `read_console_messages` with `onlyErrors: true`. Expect no "Content Security Policy" or "Refused to" errors.
+   - `http://localhost:5181/?demo=1&scene=flying`
+   - a scene with the celebration hearts (a countdown under 24 hours, such as `last-leg`)
+   - `http://localhost:5181/` (sign-in)
+4. Try a stricter policy:
+   - Remove `'unsafe-inline'` from `style-src` in `vite.config.ts` and rebuild.
+   - Restart the preview (`preview_stop`, then `preview_start`) and repeat step 3.
+   - Also look at the progress ring and the hearts, whose colors come from `style` props. Preact sets those through the DOM style object, which the CSP allows, so this should work.
+
+   If there are no violations and nothing looks different, keep the stricter policy:
+   - Add a test to `tests/viteConfig.test.ts` that the policy contains no `'unsafe-inline'`.
+   - Update the CSP block in spec §9.
+   - Add a row to the spec's §12 decisions log.
+
+   If there's any violation, put `'unsafe-inline'` back and say why in the comment above `CSP`.
+
+- [ ] **Step 6: Show the user and take their notes**
 
 Show the user the `flying`, `layover`, `last-leg`, `home` and sign-in screenshots next to the app screenshots. Ask whether anything looks off. Expect a round or two of nudges (brightness, spacing). Apply each in `tokens.css` or `cards.css`, re-screenshot, and show them again.
 
-- [ ] **Step 6: Real data, with the user**
+- [ ] **Step 7: Real data, with the user**
 
-Ask the user to sign in at `http://localhost:5180/` in the browser pane, typing their own CrewLu Cloud email and password. **Never type credentials for them.**
+Ask the user to sign in at `http://localhost:5181/` in the browser pane, typing their own CrewLu Cloud email and password. **Never type credentials for them.**
+
+This is the production build, so it also proves the CSP lets sign-in and the data fetch through.
 - Confirm that the sentence, countdown and footer match where they are now and when they're next home.
+- Run `read_console_messages` with `onlyErrors: true` and check for CSP or network errors.
 - If anything is wrong:
   1. Write down the moment (status, time, what was expected).
   2. Add a failing engine test that reproduces it with `RawBuilder`.
   3. Fix it test-first.
-  4. Re-check.
+  4. Rebuild, restart the preview, and re-check. The session stays in that origin's storage, so the user stays signed in.
 - Sign out with the footer button afterward if the user wants.
 
-- [ ] **Step 7: Reset the pane and run the gates**
+- [ ] **Step 8: Reset the pane and run the gates**
 
-Use `resize_window` with `preset: "desktop"`.
+Use `resize_window` with `preset: "desktop"`, and stop the preview server with `preview_stop`.
 Run: `npx vitest run && npx tsc --noEmit && npm run build`
 Expected: all green.
 
-- [ ] **Step 8: Commit the tuning**
+- [ ] **Step 9: Commit the tuning and the preview setup**
 
 ```bash
-git add src/styles
-git commit -m "Tune glass, spacing, and type to match the Crewluve app
+git add src/styles .claude/launch.json vite.config.ts tests/viteConfig.test.ts docs/superpowers/specs/2026-10-08-crewluve-web-slice1-design.md
+git commit -m "Tune the look to match the Crewluve app and check the production build
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
@@ -7341,11 +7463,11 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ### Task 33: Deploy pipeline (ask before publishing anything)
 
 **Files:**
-- Create: `.github/workflows/deploy-pages.yml`, `public/CNAME`, `docs/DEPLOY.md`
+- Create: `.github/workflows/deploy-pages.yml`, `.nvmrc`, `public/CNAME`, `docs/DEPLOY.md`
 
 - [ ] **Step 1: Write `.github/workflows/deploy-pages.yml`**
 
-This is the globe's workflow with two changes: a test step, and Node 22, which supabase-js 2.117 requires.
+This is the globe's workflow with two changes: a test step, and the Node version read from `.nvmrc` (Step 2).
 
 ```yaml
 name: Deploy to GitHub Pages
@@ -7374,7 +7496,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npm test
@@ -7403,10 +7525,18 @@ jobs:
         uses: actions/deploy-pages@v4
 ```
 
-- [ ] **Step 2: Write `public/CNAME`**
+- [ ] **Step 2: Write `public/CNAME` and `.nvmrc`**
+
+`public/CNAME`:
 
 ```
 crewluve.crewlu.net
+```
+
+`.nvmrc` holds one line. Node 24 is the current LTS, supported until April 2028. supabase-js 2.117 needs Node 22 or later, which `engines` in package.json also says.
+
+```
+24
 ```
 
 - [ ] **Step 3: Write `docs/DEPLOY.md`**
@@ -7473,7 +7603,7 @@ Expected: `crewluve.crewlu.net`.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add .github/workflows/deploy-pages.yml public/CNAME docs/DEPLOY.md
+git add .github/workflows/deploy-pages.yml .nvmrc public/CNAME docs/DEPLOY.md
 git commit -m "Add GitHub Pages deploy workflow and deployment guide
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
