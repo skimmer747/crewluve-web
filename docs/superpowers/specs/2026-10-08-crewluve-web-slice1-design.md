@@ -773,14 +773,14 @@ airports.json ───────────────────┤
 
 **Content Security Policy** (production build; a `<meta>` tag, because GitHub Pages can't set headers)
 ```
-default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';
+default-src 'self'; script-src 'self'; style-src 'self';
 img-src 'self' data:; font-src 'self';
 connect-src 'self' https://corxvurxpnrzekbxdgye.supabase.co;
 object-src 'none'; base-uri 'self'; form-action 'self'
 ```
 - The build fails if `index.html` loses its CSP placeholder, so production never ships without a policy.
 - `connect-src` reads the project URL from the same constant the Supabase client uses (`src/cloud.ts`).
-- The visual check (plan Task 32) tries dropping `'unsafe-inline'` from `style-src` under the production preview.
+- No `'unsafe-inline'` anywhere. The visual check (plan Task 32) confirmed under the production preview that nothing needs it: Preact sets styles through the DOM's style object, which a CSP allows. A test keeps it out.
 
 **No analytics, cookies, or third-party scripts.**
 
@@ -872,6 +872,7 @@ object-src 'none'; base-uri 'self'; form-action 'self'
 | 20 | Batch D review fixes: the sentence shows "On duty" whenever the "~N days" card shows; the current trip comes from the nearest trip legs, not neighboring events; `trips.days` of 0 falls back to the calendar count. Celebrating during "Released In" matches Crewluve, which celebrates any arrival under 24 h while not at home or base. | Design (Batch D review) |
 | 21 | Batch E review fixes: the home sentence's commuter wording appears only with a logged jumpseat to work, as in the app; Off uses the delayed-departure sentence; every template branch is pinned by tests. | Design (Batch E review) |
 | 22 | Batch F review fixes: sign-out is local-only; read-only is enforced by a fetch wrapper and a source scan; hidden rows are filtered in the query; a stored session renders the cache at once; an all-empty fetch needs a live session; late fetches after sign-out are discarded; the client loads only in live mode. | Design (Batch F review) |
+| 23 | Visual check: the countdown number uses `18cqi` (52 px on every current iPhone, still fitting "11d 08h 39m" on a 320 px phone), and the production CSP drops `'unsafe-inline'` from `style-src`. | Design (Task 32) |
 
 ## 13. Roadmap (after slice 1)
 

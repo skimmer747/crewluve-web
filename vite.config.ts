@@ -7,7 +7,7 @@ import { SUPABASE_URL } from './src/cloud'
 const CSP = [
   "default-src 'self'",
   "script-src 'self'",
-  "style-src 'self' 'unsafe-inline'",
+  "style-src 'self'",
   "img-src 'self' data:",
   "font-src 'self'",
   `connect-src 'self' ${SUPABASE_URL}`,
@@ -30,6 +30,6 @@ export default defineConfig({
     },
   ],
   server: { port: 5180, strictPort: true },
-  preview: { port: 5181 },
+  preview: { port: 5181, strictPort: true },
   build: { target: 'es2020' },
 })

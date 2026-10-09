@@ -35,6 +35,12 @@ describe('production CSP plugin', () => {
     expect(() => injectCsp('<head></head>')).toThrow('index.html lost its <!--csp--> placeholder')
   })
 
+  it('allows no inline styles or scripts', () => {
+    const csp = injectCsp('<!--csp-->')
+    expect(csp).toContain("style-src 'self';")
+    expect(csp).not.toContain("'unsafe-inline'")
+  })
+
   it('lets the app reach the CrewLu Cloud project the client uses', () => {
     expect(injectCsp('<!--csp-->')).toContain(`connect-src 'self' ${SUPABASE_URL};`)
   })

@@ -91,16 +91,19 @@
 }
 
 /* 52/32 pt like the app; shrinks on narrow cards like minimumScaleFactor(0.5).
-   The vw line comes first for browsers without container units (cqi): they drop the second line and keep it. */
+   18cqi reaches the full 52 px on every current iPhone (375 px and wider) and still fits the widest
+   common value, "11d 08h 39m", on a 320 px phone with a few pixels to spare (19.7cqi is the hard limit).
+   The calc line comes first for browsers without container units (cqi): they drop the second line and keep it.
+   It approximates the card's content box as 100vw - 80px (16 px margins and 24 px padding per side). */
 .countdown-value .num {
-  font-size: min(52px, 12.5vw);
-  font-size: min(52px, 15.5cqi);
+  font-size: min(52px, calc(18vw - 14.4px));
+  font-size: min(52px, 18cqi);
   font-weight: 700;
 }
 
 .countdown-value .unit {
-  font-size: min(32px, 7.5vw);
-  font-size: min(32px, 9.5cqi);
+  font-size: min(32px, calc(11.1vw - 8.88px));
+  font-size: min(32px, 11.1cqi);
   font-weight: 500;
   color: var(--text);
 }
