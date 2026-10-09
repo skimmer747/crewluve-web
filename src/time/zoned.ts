@@ -20,6 +20,8 @@ export interface ZonedParts {
 
 const SHORT_WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const formatters = new Map<string, Intl.DateTimeFormat>()
+const abbrFormatters = new Map<string, Intl.DateTimeFormat>()
+const knownZones = new Map<string, boolean>()
 
 function formatterFor(timeZone: string): Intl.DateTimeFormat {
   let f = formatters.get(timeZone)
@@ -35,6 +37,15 @@ function formatterFor(timeZone: string): Intl.DateTimeFormat {
       weekday: 'short',
     })
     formatters.set(timeZone, f)
+  }
+  return f
+}
+
+function abbrFormatterFor(timeZone: string): Intl.DateTimeFormat {
+  let f = abbrFormatters.get(timeZone)
+  if (!f) {
+    f = new Intl.DateTimeFormat('en-US', { timeZone, timeZoneName: 'short' })
+    abbrFormatters.set(timeZone, f)
   }
   return f
 }
@@ -60,17 +71,40 @@ export function calendarDay(ms: number, timeZone: string): number {
 
 /** Zone abbreviation the way iOS prints it: "EDT", "HST", or "GMT+2" outside the US. */
 export function zoneAbbr(ms: number, timeZone: string): string {
-  const parts = new Intl.DateTimeFormat('en-US', { timeZone, timeZoneName: 'short' }).formatToParts(ms)
+  const parts = abbrFormatterFor(timeZone).formatToParts(ms)
   return parts.find((p) => p.type === 'timeZoneName')?.value ?? ''
 }
 
-export function viewerTimeZone(): string {
-  return Intl.DateTimeFormat().resolvedOptions().timeZone
+/**
+ * Whether this runtime's Intl accepts the IANA zone. Older tz data rejects newer zones (for example
+ * America/Coyhaique before tzdata 2025b), and formatting a time in one throws. Checked once per zone.
+ */
+export function isKnownZone(timeZone: string): boolean {
+  let known = knownZones.get(timeZone)
+  if (known === undefined) {
+    try {
+      new Intl.DateTimeFormat('en-US', { timeZone })
+      known = true
+    } catch {
+      known = false
+    }
+    knownZones.set(timeZone, known)
+  }
+  return known
+}
+
+/** The viewer's IANA zone, or "UTC" when the browser reports none, or one it cannot format times in. */
+export function viewerTimeZone(resolve = () => Intl.DateTimeFormat().resolvedOptions().timeZone): string {
+  const zone = resolve()
+  return typeof zone === 'string' && zone !== '' && isKnownZone(zone) ? zone : 'UTC'
 }
 
 /** True when the locale uses a 24-hour clock (Crewluve follows the device's 12/24-hour setting). */
 export function prefers24Hour(locale?: string): boolean {
-  const options = new Intl.DateTimeFormat(locale, { hour: 'numeric' }).resolvedOptions()
+  // lib.es2020 leaves hourCycle off the resolved options, although every browser reports it.
+  const options = new Intl.DateTimeFormat(locale, { hour: 'numeric' }).resolvedOptions() as Intl.ResolvedDateTimeFormatOptions & {
+    hourCycle?: string
+  }
   if (options.hourCycle) return options.hourCycle === 'h23' || options.hourCycle === 'h24'
   return options.hour12 === false
 }

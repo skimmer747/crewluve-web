@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calendarDay, prefers24Hour, zoneAbbr, zonedParts } from '../../src/time/zoned'
+import { calendarDay, isKnownZone, prefers24Hour, viewerTimeZone, zoneAbbr, zonedParts } from '../../src/time/zoned'
 
 const T = Date.UTC(2026, 9, 9, 3, 30) // 2026-10-09T03:30Z
 
@@ -33,5 +33,29 @@ describe('prefers24Hour', () => {
   it('follows the locale', () => {
     expect(prefers24Hour('en-US')).toBe(false)
     expect(prefers24Hour('en-GB')).toBe(true)
+  })
+})
+
+describe('isKnownZone', () => {
+  it('accepts a zone the runtime knows', () => {
+    expect(isKnownZone('America/New_York')).toBe(true)
+  })
+
+  it('rejects a zone the runtime does not know', () => {
+    expect(isKnownZone('Not/AZone')).toBe(false)
+  })
+})
+
+describe('viewerTimeZone', () => {
+  it('returns the resolved zone when the runtime can format it', () => {
+    expect(viewerTimeZone(() => 'Asia/Tokyo')).toBe('Asia/Tokyo')
+  })
+
+  it('falls back to UTC when the resolved zone is unknown', () => {
+    expect(viewerTimeZone(() => 'Etc/Unknown')).toBe('UTC')
+  })
+
+  it('falls back to UTC when the runtime reports no zone', () => {
+    expect(viewerTimeZone(() => undefined as unknown as string)).toBe('UTC')
   })
 })

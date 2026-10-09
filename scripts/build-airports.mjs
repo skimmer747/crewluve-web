@@ -12,7 +12,8 @@ const require = createRequire(import.meta.url)
 const { find } = require('geo-tz/all')
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const source = process.env.AIRPORTS_SOURCE ?? '~/Dev/crewlu-globe/public/data/airports.json'
+// The Flight Globe checkout is expected next to this repo; set AIRPORTS_SOURCE to read it from elsewhere.
+const source = process.env.AIRPORTS_SOURCE ?? resolve(root, '../crewlu-globe/public/data/airports.json')
 const outFile = resolve(root, 'public/data/airports.json')
 
 // Zones created or renamed in recent years, mapped to names that older browsers know. Modern
@@ -26,14 +27,30 @@ const OLDER_NAMES = new Map([
 ])
 const remapped = new Map()
 
+const skipped = { 'bad code': 0, duplicate: 0, 'bad coordinates': 0, 'no zone': 0 }
+const inRange = (n, limit) => Number.isFinite(n) && Math.abs(n) <= limit
+
 const seen = new Set()
 const out = []
 for (const r of JSON.parse(readFileSync(source, 'utf8'))) {
   const iata = String(r.iata ?? '').trim().toUpperCase()
-  if (!/^[A-Z0-9]{3}$/.test(iata) || seen.has(iata)) continue
-  if (typeof r.lat !== 'number' || typeof r.lng !== 'number') continue
+  if (!/^[A-Z0-9]{3}$/.test(iata)) {
+    skipped['bad code']++
+    continue
+  }
+  if (seen.has(iata)) {
+    skipped.duplicate++
+    continue
+  }
+  if (!inRange(r.lat, 90) || !inRange(r.lng, 180)) {
+    skipped['bad coordinates']++
+    continue
+  }
   const found = find(r.lat, r.lng)[0]
-  if (!found) continue
+  if (!found) {
+    skipped['no zone']++
+    continue
+  }
   const tz = OLDER_NAMES.get(found) ?? found
   if (tz !== found) remapped.set(found, (remapped.get(found) ?? 0) + 1)
   seen.add(iata)
@@ -44,6 +61,7 @@ out.sort((a, b) => (a[0] < b[0] ? -1 : 1))
 mkdirSync(dirname(outFile), { recursive: true })
 writeFileSync(outFile, JSON.stringify(out))
 console.log(`wrote ${out.length} airports to ${outFile}`)
+console.log(`skipped: ${Object.entries(skipped).map(([reason, n]) => `${n} ${reason}`).join(', ')}`)
 if (remapped.size > 0) {
   const list = [...remapped].map(([from, n]) => `${from} -> ${OLDER_NAMES.get(from)} (${n})`)
   console.log(`remapped to older zone names: ${list.join(', ')}`)

@@ -30,7 +30,7 @@ SOFTWARE.
 
 ## geo-tz and timezone-boundary-builder
 
-Time zones in `public/data/airports.json` were computed with geo-tz 8.1.9, whose boundary data comes from timezone-boundary-builder (Open Database License, ODbL).
+Time zones in `public/data/airports.json` were computed with geo-tz 8.1.9, whose boundary data comes from [timezone-boundary-builder](https://github.com/evansiroky/timezone-boundary-builder) ([Open Database License, ODbL](https://opendatacommons.org/licenses/odbl/1-0/)).
 
 ```
 The MIT License (MIT)

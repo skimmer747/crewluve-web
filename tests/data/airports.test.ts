@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
-import { describe, expect, it } from 'vitest'
-import { buildAirportIndex, type AirportTuple } from '../../src/data/airports'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { buildAirportIndex, loadAirports, type AirportTuple } from '../../src/data/airports'
 import { zoneAbbr } from '../../src/time/zoned'
 
 describe('buildAirportIndex', () => {
@@ -29,10 +29,34 @@ describe('buildAirportIndex', () => {
     expect(odd.tz('BBA')).toBeNull()
     expect(odd.city('BBA')).toBe('Balmaceda')
   })
+
+  it('trims and uppercases the codes it is built from', () => {
+    const padded = buildAirportIndex([[' sdf ', 'Louisville', 'USA', 38.17, -85.74, 'America/Kentucky/Louisville']])
+    expect(padded.city('SDF')).toBe('Louisville')
+    expect(padded.get('sdf')?.iata).toBe('SDF')
+  })
+})
+
+describe('loadAirports', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+  })
+
+  it('fetches the list from under the site base path', async () => {
+    vi.stubEnv('BASE_URL', '/crewluve/')
+    const fetchMock = vi.fn(async () =>
+      Response.json([['SDF', 'Louisville', 'USA', 38.17, -85.74, 'America/Kentucky/Louisville']]),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const idx = await loadAirports()
+    expect(fetchMock).toHaveBeenCalledWith('/crewluve/data/airports.json')
+    expect(idx.city('SDF')).toBe('Louisville')
+  })
 })
 
 describe('generated public/data/airports.json', () => {
-  const rows = JSON.parse(readFileSync('public/data/airports.json', 'utf8')) as AirportTuple[]
+  const rows = JSON.parse(readFileSync(new URL('../../public/data/airports.json', import.meta.url), 'utf8')) as AirportTuple[]
   const idx = buildAirportIndex(rows)
   const october = Date.UTC(2026, 9, 9, 12)
 
