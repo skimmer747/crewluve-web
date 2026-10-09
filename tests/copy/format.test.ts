@@ -1,0 +1,116 @@
+import { describe, expect, it } from 'vitest'
+import {
+  agoText, ageText, arrivalWhenText, cardCountdown, clockText, daysText, delayText, departureText,
+  leaveWhenText, longDateTimeText, narrativeCountdown, ordinalSuffix, timeWithZone, tripDepartsText,
+} from '../../src/copy/format'
+
+const NY = 'America/New_York'
+const MIN = 60_000
+const H = 60 * MIN
+const D = 24 * H
+
+describe('ordinalSuffix', () => {
+  it.each([[1, 'st'], [2, 'nd'], [3, 'rd'], [4, 'th'], [11, 'th'], [12, 'th'], [13, 'th'], [21, 'st'], [22, 'nd'], [23, 'rd'], [31, 'st']])(
+    '%i → %s', (day, suffix) => expect(ordinalSuffix(day)).toBe(suffix),
+  )
+})
+
+describe('daysText', () => {
+  it('pluralizes', () => {
+    expect(daysText(1)).toBe('1 day')
+    expect(daysText(4)).toBe('4 days')
+  })
+})
+
+describe('narrativeCountdown', () => {
+  it.each([
+    [0, 'now!'], [-5000, 'now!'], [30_000, '<1m'], [59_999, '<1m'], [8 * MIN, '8m'],
+    [8 * H + 8 * MIN, '8h 8m'], [D + 5 * MIN, '1d 0h 5m'], [2 * D + 8 * H + 8 * MIN, '2d 8h 8m'],
+  ])('%i ms → %s', (ms, text) => expect(narrativeCountdown(ms)).toBe(text))
+})
+
+describe('cardCountdown', () => {
+  it('pads every unit after the first and switches to seconds under an hour', () => {
+    expect(cardCountdown(2 * D + 8 * H + 8 * MIN)).toEqual([
+      { value: '2', unit: 'd' }, { value: '08', unit: 'h' }, { value: '08', unit: 'm' },
+    ])
+    expect(cardCountdown(8 * H + 5 * MIN)).toEqual([{ value: '8', unit: 'h' }, { value: '05', unit: 'm' }])
+    expect(cardCountdown(7 * MIN + 5000)).toEqual([{ value: '7', unit: 'm' }, { value: '05', unit: 's' }])
+    expect(cardCountdown(42_000)).toEqual([{ value: '0', unit: 'm' }, { value: '42', unit: 's' }])
+  })
+
+  it('returns null at zero, meaning "Now!"', () => expect(cardCountdown(0)).toBeNull())
+})
+
+describe('ageText and agoText', () => {
+  it.each([[3000, null], [42_000, '42s'], [187_000, '3m 07s'], [7_500_000, '2h 05m'], [25 * H, '>1 day']])(
+    '%i ms → %s', (ms, text) => expect(ageText(ms)).toBe(text),
+  )
+
+  it('says "just now" under five seconds', () => {
+    expect(agoText('Checked', 2000)).toBe('Checked just now')
+    expect(agoText('Checked', 42_000)).toBe('Checked 42s ago')
+  })
+})
+
+describe('delayText', () => {
+  it.each([[150, '2 hours 30 minutes'], [60, '1 hour'], [45, '45 minutes'], [61, '1 hour 1 minute'], [1, '1 minute'], [-40, '40 minutes']])(
+    '%i → %s', (minutes, text) => expect(delayText(minutes)).toBe(text),
+  )
+})
+
+describe('clock times', () => {
+  const afternoon = Date.UTC(2026, 9, 9, 17, 10) // 1:10pm EDT
+
+  it('prints 12-hour lowercase or 24-hour', () => {
+    expect(clockText(afternoon, NY, false)).toBe('1:10pm')
+    expect(clockText(afternoon, NY, true)).toBe('13:10')
+    expect(clockText(Date.UTC(2026, 9, 9, 4, 5), NY, false)).toBe('12:05am')
+    expect(clockText(Date.UTC(2026, 9, 9, 4, 5), NY, true)).toBe('00:05')
+    expect(clockText(Date.UTC(2026, 9, 9, 16, 0), NY, false)).toBe('12:00pm')
+  })
+
+  it('adds the zone for {T}', () => {
+    expect(timeWithZone(afternoon, NY, false)).toBe('1:10pm EDT')
+    expect(timeWithZone(afternoon, 'Europe/Berlin', true)).toBe('19:10 GMT+2')
+  })
+})
+
+describe('departureText', () => {
+  const now = Date.UTC(2026, 9, 8, 13, 30) // Thu 8 Oct, 9:30am EDT
+
+  it('says today, tomorrow, or the weekday and date', () => {
+    expect(departureText(Date.UTC(2026, 9, 8, 22, 0), now, NY, false)).toBe('today at 6:00pm')
+    expect(departureText(Date.UTC(2026, 9, 9, 10, 30), now, NY, false)).toBe('tomorrow at 6:30am')
+    expect(departureText(Date.UTC(2026, 9, 9, 10, 30), now, NY, true)).toBe('tomorrow at 06:30')
+    expect(departureText(Date.UTC(2026, 9, 11, 10, 30), now, NY, false)).toBe('Sunday the 11th at 6:30am')
+  })
+
+  it('compares calendar days in the viewer’s zone', () => {
+    const lateNight = Date.UTC(2026, 9, 8, 3, 30) // Wed 7 Oct, 11:30pm EDT
+    expect(departureText(Date.UTC(2026, 9, 8, 10, 30), lateNight, NY, false)).toBe('tomorrow at 6:30am')
+  })
+})
+
+describe('long dates', () => {
+  it('formats the homecoming date for {HB}', () => {
+    expect(longDateTimeText(Date.UTC(2026, 9, 13, 0, 2), NY, false)).toBe('Monday October 12th at 8:02pm EDT')
+  })
+
+  it('formats the arrival card subtitle like iOS', () => {
+    expect(arrivalWhenText(Date.UTC(2026, 9, 10, 18, 50), NY, false)).toBe('Sat, Oct 10 at 2:50 PM')
+    expect(arrivalWhenText(Date.UTC(2026, 9, 10, 18, 50), NY, true)).toBe('Sat, Oct 10 at 14:50')
+  })
+
+  it('formats the leave card subtitle, with no "17:57pm" on 24-hour clocks', () => {
+    expect(leaveWhenText(Date.UTC(2026, 9, 9, 8, 0), NY, false)).toBe('Departs Friday October 9th at 4:00am')
+    expect(leaveWhenText(Date.UTC(2026, 9, 9, 8, 0), NY, true)).toBe('Departs Friday October 9th at 04:00')
+    expect(tripDepartsText('Louisville', Date.UTC(2026, 9, 9, 8, 0), NY, false)).toBe(
+      'Trip departs Louisville Friday October 9th at 4:00am',
+    )
+  })
+
+  it('takes the ordinal from the same zone as the date (C5)', () => {
+    expect(leaveWhenText(Date.UTC(2026, 9, 10, 2, 0), NY, false)).toBe('Departs Friday October 9th at 10:00pm')
+  })
+})
