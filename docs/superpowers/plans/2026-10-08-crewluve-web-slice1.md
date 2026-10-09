@@ -210,7 +210,7 @@ Tasks 1–21 are done on branch `slice1` and passed both reviews. Review fixes c
   - `tests/setup/noNetwork.ts` blocks every network call in the suite.
   - `scripts/make-icons.py` reads `../Crewluv` (or `CREWLUVE_ICON_ART`) instead of an absolute path.
 
-**Full suite:** 741 tests in 32 files after Batch F; 824 in 39 after Batch G's fixes; 955 in 44 after Batch I's fixes; 1003 in 45 at the end. Steps that run a single test file are unaffected. A full-suite run just has more tests than a task's own count.
+**Full suite:** 741 tests in 32 files after Batch F; 824 in 39 after Batch G's fixes; 955 in 44 after Batch I's fixes; 1006 in 45 at the end. Steps that run a single test file are unaffected. A full-suite run just has more tests than a task's own count.
 
 ---
 

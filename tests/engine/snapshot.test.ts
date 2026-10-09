@@ -396,6 +396,14 @@ describe('the commute ahead is bounded to the next trip (audit C7, C11, C22)', (
     expect(snapOf(tripAhead(alexAtHome().commute('stale', 'LEX', 'SDF', 'toWork', 300, 390)), 0).driveToWork).toBeNull()
   })
 
+  it('ignores the drive to Monday’s training, within a day of the trip, once a drive home follows it (C7)', () => {
+    const b = alexAtHome()
+      .commute('work-tr', 'LEX', 'SDF', 'toWork', 4400, 4490)
+      .training('tr', 'RECURRENT', 4560, 4860, 'SDF')
+      .commute('home-tr', 'SDF', 'LEX', 'toHome', 4900, 4990)
+    expect(snapOf(tripAhead(b), 0).driveToWork).toBeNull()
+  })
+
   it('keeps the trip’s own drive to work', () => {
     expect(snapOf(tripAhead(alexAtHome().commute('w1', 'LEX', 'SDF', 'toWork', 5600, 5690, 't1')), 0).driveToWork?.id).toBe('w1')
   })
@@ -406,6 +414,18 @@ describe('the commute ahead is bounded to the next trip (audit C7, C11, C22)', (
       .training('tr', 'RECURRENT', 1500, 1900, 'SDF')
       .jumpseat('js-home', 'SDF', 'MCO', 2000, 2120)
     expect(snapOf(tripAhead(b), 0).nextCommute).toBeNull()
+  })
+
+  it('ignores the jumpseat to Monday’s training, within a day of the trip, once a jumpseat home follows it (C7)', () => {
+    const b = patAtHome()
+      .jumpseat('js-train', 'MCO', 'SDF', 4400, 4520)
+      .training('tr', 'RECURRENT', 4560, 4860, 'SDF')
+      .jumpseat('js-home', 'SDF', 'MCO', 4900, 5020)
+    expect(snapOf(tripAhead(b), 0).nextCommute).toBeNull()
+  })
+
+  it('ignores a stray jumpseat to base days before the trip (C11)', () => {
+    expect(snapOf(tripAhead(patAtHome().jumpseat('stale', 'MCO', 'SDF', 300, 420)), 0).nextCommute).toBeNull()
   })
 
   it('keeps the jumpseat that takes the commuter to the trip', () => {
