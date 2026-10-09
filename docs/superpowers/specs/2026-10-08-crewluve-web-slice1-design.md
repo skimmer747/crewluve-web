@@ -737,15 +737,30 @@ airports.json ───────────────────┤
 ## 9. Privacy and security
 
 **Read-only**
-- The code never calls `insert`, `update`, `upsert`, `delete`, `rpc`, or Storage.
-- A unit test scans `src/` for those calls and fails if any appear.
+- The code never calls `insert`, `update`, `upsert`, `delete`, `rpc`, Edge Functions, or Storage.
+- **Enforced at the network.** The Supabase client's fetch is wrapped (`src/data/readOnlyFetch.ts`). Only these requests can leave the browser:
+  - reads: GET or HEAD under `/rest/v1`, and GET under `/auth/v1`
+  - sign-in and token refresh: POST `/auth/v1/token`
+  - this-device sign-out: POST `/auth/v1/logout?scope=local`
+
+  Everything else is refused before it reaches the network.
+- **Checked in the source.** A test parses `src/` and fails if any of these appear:
+  - another `@supabase` import
+  - a second client, or the client imported by anything but the session module and the app root
+  - a raw non-GET fetch
+  - write-like calls in files that touch the client
 
 **What is read**
 - Only the tables and columns in §6.1. Crew names, hotels, confirmation codes/PNRs, the pilot directory, and the pilot's notes on other pilots are never requested.
-- Rows the pilot marked hidden in Crewlu are dropped.
+- Rows the pilot marked hidden in Crewlu are filtered out in the query (`hidden_from_timeline` not true), so they never reach the device. Normalization drops them again as a second line of defense.
 
 **Session and cache**
-- Supabase keeps the session in this origin's localStorage. Sign-out runs `supabase.auth.signOut()`, removes `crewluve.schedule.v1`, and returns to the sign-in screen.
+- Supabase keeps the session in this origin's localStorage. Sign-out runs `supabase.auth.signOut({ scope: 'local' })`, removes `crewluve.schedule.v1`, and returns to the sign-in screen.
+  - **Local scope is essential.** The default, global, revokes every session on the account. Visitors use the pilot's login, so it would sign the pilot's Crewlu app out on every device. Duty hit this on 2026-07-14.
+- **A stored session counts as signed in.** A return visit shows the cached schedule at once, even offline with an expired token. A dead session ends through the fetch's auth error or Supabase's SIGNED_OUT event.
+- **Empty results.** Row-level security answers a request without a valid session with empty tables, not an error. So an all-empty fetch is believed only while the session is live; otherwise it signs out.
+- **No stale writes.** A fetch that finishes after sign-out is discarded, never written back to the device.
+- **Demo mode makes no network calls.** The client code loads only on the live path, through a dynamic import, so demo mode never creates it.
 
 **Credentials**
 - The visitor holds the pilot's CrewLu Cloud password. That password grants full account access in Crewlu, so the pilot should share it only with people they trust.
@@ -854,6 +869,7 @@ object-src 'none'; base-uri 'self'; form-action 'self'
 | 19 | Engine fixes from review, each pinned by tests: "base" always means the pilot's base; airport fields accept only 3 characters or a UPS base plus "Z"; reserve codes and drive words match whole words; one drive-home rule for status, countdown, and the "heads home" sentence; a location-less event doesn't move the pilot; commercial deadheads are never UPS; inverted trips are dropped. | Design (Batch C review) |
 | 20 | Batch D review fixes: the sentence shows "On duty" whenever the "~N days" card shows; the current trip comes from the nearest trip legs, not neighboring events; `trips.days` of 0 falls back to the calendar count. Celebrating during "Released In" matches Crewluve, which celebrates any arrival under 24 h while not at home or base. | Design (Batch D review) |
 | 21 | Batch E review fixes: the home sentence's commuter wording appears only with a logged jumpseat to work, as in the app; Off uses the delayed-departure sentence; every template branch is pinned by tests. | Design (Batch E review) |
+| 22 | Batch F review fixes: sign-out is local-only; read-only is enforced by a fetch wrapper and a source scan; hidden rows are filtered in the query; a stored session renders the cache at once; an all-empty fetch needs a live session; late fetches after sign-out are discarded; the client loads only in live mode. | Design (Batch F review) |
 
 ## 13. Roadmap (after slice 1)
 

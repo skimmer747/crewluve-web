@@ -96,7 +96,7 @@ tests/…                              mirrors src/; tests/fixtures/ holds share
 
 ## Execution notes (read before your batch)
 
-Tasks 1–17 are done on branch `slice1` and passed both reviews. Review fixes changed some of their code from the blocks printed in those tasks. **The repo is the source of truth for files that already exist.** Later tasks depend on these changes.
+Tasks 1–21 are done on branch `slice1` and passed both reviews. Review fixes changed some of their code from the blocks printed in those tasks. **The repo is the source of truth for files that already exist.** Later tasks depend on these changes.
 
 **From Batch A (Tasks 1–4):**
 
@@ -158,7 +158,25 @@ Tasks 1–17 are done on branch `slice1` and passed both reviews. Review fixes c
 - **`statusVisual`** tolerates a missing in-flight leg.
 - **`tests/fixtures/departures.ts`** (new) holds shared departure scenes for the copy tests.
 
-**Full suite after Batch E:** 422 tests in 19 files. Steps that run a single test file are unaffected. A full-suite run just has more tests than a task's own count.
+**From Batch F (Tasks 18–21):**
+
+- **`src/auth/session.ts`** loads the client lazily (`await import('../supabase')`) and exports:
+  - `hasStoredSession(storage?)`: synchronous
+  - `hasSession()`
+  - `hasLiveSession()`: strict
+  - `signIn`
+  - `onSignedOut`
+  - `signOut()`: local scope
+- **`AUTH_STORAGE_KEY`** lives in `src/cloud.ts`.
+- **`src/data/readOnlyFetch.ts`** is the client's global fetch. Only reads, sign-in/refresh and local sign-out can leave the browser.
+- **`tests/data/readOnlyScan.test.ts`** (AST-based, with `tests/fixtures/sourceScan.ts`) replaces the regex-only approach in the plan's `readOnly.test.ts` text; the repo's tests are the source of truth. Its rules for later code:
+  - Only `src/auth/session.ts` and `src/ui/Root.tsx` may import `src/supabase.ts`, and only dynamically.
+  - Raw `fetch` must be a plain GET.
+  - A file that touches the client (Root.tsx counts) must not call `.insert`, `.update`, `.upsert` or `.delete` on anything, even a Set or Map.
+- **Hidden rows** are filtered in the query (`not.is.true`).
+- **The plan's Tasks 29 and 31** were updated for these: an `alive` ref in useSchedule, and the LiveApp/loadLive code in Root.tsx.
+
+**Full suite after Batch F:** 741 tests in 32 files. Steps that run a single test file are unaffected. A full-suite run just has more tests than a task's own count.
 
 ---
 
@@ -4419,7 +4437,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `vite.config.ts` (the CSP reads the Supabase URL from `src/cloud.ts`), `tests/viteConfig.test.ts`
 - Test: `tests/data/fetchSchedule.test.ts`, `tests/data/readOnly.test.ts`
 
-- [ ] **Step 1: Write the failing fetch test `tests/data/fetchSchedule.test.ts`**
+- [x] **Step 1: Write the failing fetch test `tests/data/fetchSchedule.test.ts`**
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -4507,7 +4525,7 @@ describe('fetchSchedule', () => {
 })
 ```
 
-- [ ] **Step 2: Write the read-only guard `tests/data/readOnly.test.ts`**
+- [x] **Step 2: Write the read-only guard `tests/data/readOnly.test.ts`**
 
 ```ts
 import { readdirSync, readFileSync, statSync } from 'node:fs'
@@ -4541,12 +4559,12 @@ describe('read-only guarantee (spec §9)', () => {
 })
 ```
 
-- [ ] **Step 3: Run both tests to verify they fail**
+- [x] **Step 3: Run both tests to verify they fail**
 
 Run: `npx vitest run tests/data/fetchSchedule.test.ts tests/data/readOnly.test.ts`
 Expected: FAIL. `fetchSchedule.ts` can't be resolved, and the guard's "keeps all database access" test finds no caller yet.
 
-- [ ] **Step 4: Write `src/cloud.ts` and `src/supabase.ts`, and point the CSP at the same URL**
+- [x] **Step 4: Write `src/cloud.ts` and `src/supabase.ts`, and point the CSP at the same URL**
 
 The project URL lives in one place. The production CSP's `connect-src` reads it too, so the client can never call a host the CSP blocks. That mismatch would only show up on the live site, because the dev server has no CSP.
 
@@ -4591,7 +4609,7 @@ In `tests/viteConfig.test.ts`:
   })
 ```
 
-- [ ] **Step 5: Write `src/data/fetchSchedule.ts`**
+- [x] **Step 5: Write `src/data/fetchSchedule.ts`**
 
 ```ts
 import { DAY } from '../time/zoned'
@@ -4664,12 +4682,12 @@ export async function fetchSchedule(client: SelectClient, now: number): Promise<
 
 The `eslint-disable` comments are only documentation, since the project doesn't run ESLint. The `any` is deliberate and limited to the builder chain.
 
-- [ ] **Step 6: Run the tests to verify they pass**
+- [x] **Step 6: Run the tests to verify they pass**
 
 Run: `npx vitest run tests/data/fetchSchedule.test.ts tests/data/readOnly.test.ts tests/viteConfig.test.ts && npx tsc --noEmit && npm run build`
 Expected: PASS, `tsc` prints nothing, and the build succeeds. The build bundles `src/cloud.ts` into the Vite config.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/cloud.ts src/supabase.ts src/data/fetchSchedule.ts vite.config.ts tests/data/fetchSchedule.test.ts tests/data/readOnly.test.ts tests/viteConfig.test.ts
@@ -4686,7 +4704,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/data/cache.ts`
 - Test: `tests/data/cache.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -4748,12 +4766,12 @@ describe('localScheduleCache', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/data/cache.test.ts`
 Expected: FAIL, because `src/data/cache.ts` can't be resolved.
 
-- [ ] **Step 3: Write `src/data/cache.ts`**
+- [x] **Step 3: Write `src/data/cache.ts`**
 
 ```ts
 import type { RawSchedule } from './rows'
@@ -4821,14 +4839,14 @@ export const noScheduleCache: ScheduleCache = {
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run tests/data/cache.test.ts`
 Expected: PASS (5 tests).
 
 The read-only guard doesn't scan tests. The test's `delete data[key]` is the JavaScript `delete` operator, not a `.delete(` call.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/data/cache.ts tests/data/cache.test.ts
@@ -4845,7 +4863,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/auth/signInErrors.ts`, `src/auth/session.ts`
 - Test: `tests/auth/signInErrors.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -4871,12 +4889,12 @@ describe('SIGN_IN_MESSAGES', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/auth/signInErrors.test.ts`
 Expected: FAIL, because `src/auth/signInErrors.ts` can't be resolved.
 
-- [ ] **Step 3: Write `src/auth/signInErrors.ts`**
+- [x] **Step 3: Write `src/auth/signInErrors.ts`**
 
 ```ts
 export type SignInError = 'credentials' | 'network' | 'other'
@@ -4898,7 +4916,7 @@ export function classifySignInError(err: { status?: number; name?: string; messa
 }
 ```
 
-- [ ] **Step 4: Write `src/auth/session.ts`** (thin wrappers around the Supabase client; the UI tests inject fakes instead)
+- [x] **Step 4: Write `src/auth/session.ts`** (thin wrappers around the Supabase client; the UI tests inject fakes instead)
 
 ```ts
 import { supabase } from '../supabase'
@@ -4932,12 +4950,12 @@ export async function signOut(): Promise<void> {
 }
 ```
 
-- [ ] **Step 5: Run the test and the type check**
+- [x] **Step 5: Run the test and the type check**
 
 Run: `npx vitest run tests/auth/signInErrors.test.ts && npx tsc --noEmit`
 Expected: PASS, and `tsc` prints nothing.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/auth/signInErrors.ts src/auth/session.ts tests/auth/signInErrors.test.ts
@@ -4955,7 +4973,7 @@ This locks in the contract that every `?demo=1&scene=…` shows the moment it is
 **Files:**
 - Test: `tests/data/demoScenes.test.ts`
 
-- [ ] **Step 1: Write the test**
+- [x] **Step 1: Write the test**
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -5018,12 +5036,12 @@ describe('demo scenes', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test**
+- [x] **Step 2: Run the test**
 
 Run: `npx vitest run tests/data/demoScenes.test.ts`
 Expected: PASS (15 tests).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add tests/data/demoScenes.test.ts
@@ -6723,6 +6741,16 @@ describe('useSchedule', () => {
     await waitFor(() => expect(onAuthError).toHaveBeenCalledTimes(1))
   })
 
+  it('never writes the cache after it unmounts, as on sign-out', async () => {
+    const cache = memoryCache()
+    let resolve!: (r: RawSchedule) => void
+    const { unmount } = render(<Probe load={() => new Promise<RawSchedule>((r) => { resolve = r })} cache={cache} />)
+    unmount()
+    resolve(raw(2))
+    await new Promise((r) => setTimeout(r, 0))
+    expect(cache.saved).toEqual([])
+  })
+
   it('refreshes on its interval', async () => {
     let n = 0
     render(<Probe load={async () => raw(++n)} cache={memoryCache()} intervalMs={30} />)
@@ -6910,6 +6938,11 @@ export function useSchedule({ load, cache, intervalMs = REFRESH_MS, onAuthError,
   latest.current = { load, cache, onAuthError, isOnline }
   const busy = useRef(false)
   const lastAttempt = useRef(0)
+  // False once unmounted (for example after sign-out): a fetch that finishes later must never write the cache back.
+  const alive = useRef(true)
+  useEffect(() => () => {
+    alive.current = false
+  }, [])
 
   const refresh = useCallback(async () => {
     if (busy.current) return
@@ -6918,9 +6951,11 @@ export function useSchedule({ load, cache, intervalMs = REFRESH_MS, onAuthError,
     setState((s) => ({ ...s, refreshing: true }))
     try {
       const raw = await latest.current.load()
+      if (!alive.current) return
       latest.current.cache.save(raw)
       setState({ raw, lastSuccessAt: raw.fetchedAt, problem: null, refreshing: false })
     } catch (err) {
+      if (!alive.current) return
       setState((s) => ({ ...s, refreshing: false, problem: latest.current.isOnline() ? { kind: 'unreachable' } : { kind: 'offline' } }))
       if (err instanceof ScheduleFetchError && err.isAuth) latest.current.onAuthError?.()
     } finally {
@@ -6952,7 +6987,7 @@ export function useSchedule({ load, cache, intervalMs = REFRESH_MS, onAuthError,
 - [ ] **Step 7: Run the test to verify it passes**
 
 Run: `npx vitest run tests/ui/hooks.test.tsx && npx tsc --noEmit`
-Expected: PASS (10 tests), and `tsc` prints nothing.
+Expected: PASS (11 tests), and `tsc` prints nothing.
 
 - [ ] **Step 8: Commit**
 
@@ -7262,12 +7297,12 @@ Expected: PASS (3 tests).
 - [ ] **Step 5: Write `src/ui/Root.tsx`**
 
 ```tsx
-import { useEffect, useMemo, useState } from 'preact/hooks'
-import { hasSession, onSignedOut, signOut } from '../auth/session'
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
+import { hasLiveSession, hasStoredSession, onSignedOut, signOut } from '../auth/session'
 import { localScheduleCache, noScheduleCache } from '../data/cache'
 import { DEFAULT_SCENE, demoRawForScene, isDemoScene, type DemoScene } from '../data/demo'
-import { fetchSchedule } from '../data/fetchSchedule'
-import { supabase } from '../supabase'
+import { fetchSchedule, ScheduleFetchError } from '../data/fetchSchedule'
+import type { RawSchedule } from '../data/rows'
 import { useAirports } from './hooks/useAirports'
 import { useSchedule } from './hooks/useSchedule'
 import { ScheduleScreen } from './ScheduleScreen'
@@ -7298,36 +7333,50 @@ function DemoApp({ scene }: { scene: DemoScene }) {
 }
 
 function LiveApp() {
-  const [phase, setPhase] = useState<'checking' | 'signedOut' | 'signedIn'>('checking')
-  useEffect(() => {
-    let alive = true
-    void hasSession().then((ok) => {
-      if (alive) setPhase(ok ? 'signedIn' : 'signedOut')
-    })
-    const unsubscribe = onSignedOut(() => {
-      localScheduleCache().clear()
-      setPhase('signedOut')
-    })
-    return () => {
-      alive = false
-      unsubscribe()
-    }
-  }, [])
-  if (phase === 'checking') return null
+  // A stored session shows the cached schedule at once, even offline. If the session turns out to be dead,
+  // the fetch's auth error or Supabase's SIGNED_OUT event returns to sign-in.
+  const [phase, setPhase] = useState<'signedOut' | 'signedIn'>(() => (hasStoredSession() ? 'signedIn' : 'signedOut'))
+  useEffect(
+    () =>
+      onSignedOut(() => {
+        localScheduleCache().clear()
+        setPhase('signedOut')
+      }),
+    [],
+  )
   if (phase === 'signedOut') return <SignIn onSignedIn={() => setPhase('signedIn')} />
   return <LiveSchedule onSignedOut={() => setPhase('signedOut')} />
+}
+
+/** The signed-in pilot's CrewLu Cloud data. The client loads only here, so demo mode makes no network calls. */
+async function loadLive(): Promise<RawSchedule> {
+  const { supabase } = await import('../supabase')
+  const raw = await fetchSchedule(supabase, Date.now())
+  // Row-level security answers a request without a valid session with empty tables, not an error.
+  // So an all-empty result counts only while the session is live; otherwise it means signed out.
+  if (raw.pilotInfos.length === 0 && raw.trips.length === 0 && !(await hasLiveSession())) {
+    throw new ScheduleFetchError('Not signed in', 401, 'PGRST301')
+  }
+  return raw
 }
 
 function LiveSchedule({ onSignedOut: finish }: { onSignedOut: () => void }) {
   const airports = useAirports()
   const cache = useMemo(() => localScheduleCache(), [])
+  const ended = useRef(false)
   const endSession = async () => {
+    ended.current = true
     await signOut()
     cache.clear()
     finish()
   }
   const schedule = useSchedule({
-    load: () => fetchSchedule(supabase, Date.now()),
+    load: async () => {
+      const raw = await loadLive()
+      // Signed out while this fetch was in flight: never write the pilot's schedule back to the device.
+      if (ended.current) throw new Error('Signed out')
+      return raw
+    },
     cache,
     onAuthError: () => void endSession(),
   })
