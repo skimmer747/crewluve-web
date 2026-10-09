@@ -41,7 +41,6 @@ export interface Trip {
   start: number
   end: number
   days: number | null
-  base: Iata | null
   dutyPeriods: DutyPeriod[]
 }
 

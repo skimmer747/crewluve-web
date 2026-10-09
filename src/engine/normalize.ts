@@ -7,13 +7,21 @@ const MAX_AHEAD = 2 * 365 * DAY
 /** A scheduled-vs-actual gap beyond this is bad data, not a delay (the Flight Globe's guard). */
 const MAX_CRED_DELTA = 6 * HOUR
 const MAX_BLOCK = 26 * HOUR
-const RESERVE_CODES = ['RSVA', 'RSVB', 'RSVC', 'RSVD', 'RSCA', 'RSCP', 'RSSA', 'RSSB', 'RSSC', 'RSSD', 'LCO', 'RCID']
 
-/** 3-letter IATA code, uppercased; a 4-letter base such as "SDFZ" becomes "SDF". */
+/**
+ * A reserve code as a whole code in an uppercased title, so "Welcome dinner" (LCO) and "Falcons game" don't match.
+ * Written without a lookbehind, which Safari before 16.4 can't parse.
+ */
+const RESERVE_TITLE = /(?:^|[^A-Z])(RSV[A-D]|RSC[AP]|RSS[A-D]|LCO|RCID)(?![A-Z])/
+
+/**
+ * 3-letter IATA code, uppercased. CrewLu also writes some bases as 3 letters + "Z" ("SDFZ"), which becomes "SDF".
+ * Any other 4-letter value is a word or an ICAO code, not an airport, and gives null.
+ */
 export function toIata(code: string | null | undefined): Iata | null {
   const s = (code ?? '').trim().toUpperCase()
   if (/^[A-Z0-9]{3}$/.test(s)) return s
-  if (/^[A-Z]{4}$/.test(s)) return s.slice(0, 3)
+  if (/^[A-Z]{3}Z$/.test(s)) return s.slice(0, 3)
   return null
 }
 
@@ -32,11 +40,14 @@ export function normalizeFlightNumber(raw: string | null | undefined): string | 
   return s.replace(/^0+(?=\d)/, '')
 }
 
-/** The airline code, or '5X' (UPS) for a company flight: no code, not ground transport, all-digit number. */
-export function resolveAirline(airlineCode: string | null | undefined, rawNumber: string | null | undefined, ground: boolean): string | null {
+/**
+ * The airline code, or '5X' (UPS) for a company flight: no code and an all-digit number.
+ * Pass `notCompanyFlight` for rows that are never UPS flights: ground transport and commercial tickets.
+ */
+export function resolveAirline(airlineCode: string | null | undefined, rawNumber: string | null | undefined, notCompanyFlight: boolean): string | null {
   const code = (airlineCode ?? '').trim().toUpperCase()
   if (code) return code
-  if (!ground && /^\d+$/.test((rawNumber ?? '').trim())) return '5X' // PartnerStatusGenerator.swift:321-325
+  if (!notCompanyFlight && /^\d+$/.test((rawNumber ?? '').trim())) return '5X' // PartnerStatusGenerator.swift:321-325
   return null
 }
 
@@ -77,7 +88,7 @@ export function classifyManualEvent(title: string | null, categoryName: string |
   const text = (title ?? '').trim()
   const upper = text.toUpperCase()
   if (upper.includes('HOT STANDBY')) return { kind: 'hotStandby', title: 'Hot Standby' }
-  const code = RESERVE_CODES.find((c) => upper.includes(c))
+  const code = RESERVE_TITLE.exec(upper)?.[1]
   if (code) return { kind: 'reserve', title: code.length >= 4 ? `${code.slice(0, 3)}-${code.slice(-1)}` : code }
   if ((categoryName ?? '').toLowerCase().includes('reserve')) return { kind: 'reserve', title: text || 'Manual Event' }
   return { kind: 'event', title: text || 'Manual Event' }
@@ -100,13 +111,13 @@ export function buildSchedule(raw: RawSchedule, now: number): Schedule {
   for (const row of raw.trips) {
     const start = parseInstant(row.start_date, now)
     const end = parseInstant(row.end_date, now)
-    if (start == null || end == null) continue
+    if (start == null || end == null || end <= start) continue
     const dutyPeriods = (dutyPeriodsByTrip.get(row.id) ?? [])
       .map((dp) => toDutyPeriod(dp, row.id, flightsByDutyPeriod.get(dp.id) ?? [], now))
       .filter((dp): dp is DutyPeriod => dp != null)
       .sort((a, b) => a.start - b.start)
     if (dutyPeriods.length === 0) continue // trips with no live duty periods are dropped
-    trips.push({ id: row.id, start, end, days: row.days ?? null, base: toIata(row.base) ?? pilot.base, dutyPeriods })
+    trips.push({ id: row.id, start, end, days: row.days ?? null, dutyPeriods })
   }
   trips.sort((a, b) => a.start - b.start)
   const tripById = new Map(trips.map((t) => [t.id, t]))
@@ -120,7 +131,7 @@ export function buildSchedule(raw: RawSchedule, now: number): Schedule {
     if (!from || !to || start == null || end == null || end <= start) continue
     const sourceTrip = c.source_trip_id ? tripById.get(c.source_trip_id) : undefined
     if (c.source_trip_id && !sourceTrip) continue // its trip is gone (CommuteCleanupService.swift:46)
-    const toHome = c.direction === 'toHome' || (c.direction !== 'toWork' && to === pilot.effHome)
+    const toHome = to === pilot.effHome || c.direction === 'toHome' // spec §6.3; one rule for the status and for homecomings
     // Crewlu writes commute times once, so move the drive home with a late (or early) last flight.
     const shift = toHome && sourceTrip ? lastFlightDelay(sourceTrip) : 0
     commutes.push({ id: c.id, from, to, toHome, start: start + shift, end: end + shift, schedEnd: end, sourceTripId: c.source_trip_id })
@@ -135,7 +146,7 @@ export function buildSchedule(raw: RawSchedule, now: number): Schedule {
     if (!dep || !arr || !times) continue
     jumpseats.push({
       id: j.id, tripId: null, dep, arr, ...times,
-      airline: resolveAirline(j.airline_code, j.flight_number, false),
+      airline: resolveAirline(j.airline_code, j.flight_number, j.is_commercial_deadhead === true), // a ticket is never a UPS flight
       number: normalizeFlightNumber(j.flight_number),
       deadhead: true,
       ground: false,

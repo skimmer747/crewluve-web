@@ -107,4 +107,44 @@ describe('resolveStatus: between legs (ported from TripStateResolverGapTests.swi
     expect(status.previous?.id).toBe(legs[0].id)
     expect(status.next?.id).toBe(legs[1].id)
   })
+
+  it('an event with no airport does not move the pilot to the base afterwards', () => {
+    const e = engineFor(
+      new RawBuilder(A).pilot('Alex', 'SDF', 'LEX')
+        .trip('t1', { dutyPeriods: [{ start: 0, end: 300, flights: [{ dep: 'SDF', arr: 'LEX', out: 60, in: 120 }] }] })
+        .manualEvent('vac', 'Vacation', 1440, 7200, null)
+        .build(),
+    )
+    expect(resolveStatus(e.legs, e.schedule.pilot, at(720))).toMatchObject({ kind: 'home', airport: 'LEX' })
+    expect(resolveStatus(e.legs, e.schedule.pilot, at(3000))).toMatchObject({ kind: 'event', airport: 'SDF' }) // during it: "at its location or the base"
+    expect(resolveStatus(e.legs, e.schedule.pilot, at(8640))).toMatchObject({ kind: 'home', airport: 'LEX' })
+  })
+
+  it('is home when the only leg that ever ended has no airport', () => {
+    expect(resolveStatus([duty('event', 'Vacation', null, 0, 5)], commuter, 10 * H)).toMatchObject({ kind: 'home', airport: 'LEX' })
+    expect(resolveStatus([duty('event', 'Vacation', null, 0, 5)], local, 10 * H)).toMatchObject({ kind: 'home', airport: 'SDF' })
+  })
+})
+
+describe('resolveStatus: delays move the status (spec §6.11: C1, C16, C24)', () => {
+  const e = engineFor(
+    new RawBuilder(A).pilot('Alex', 'SDF', 'LEX').trip('t1', {
+      dutyPeriods: [{
+        start: 0,
+        end: 600,
+        flights: [
+          { dep: 'SDF', arr: 'RFD', out: 60, in: 150 },
+          { dep: 'RFD', arr: 'ANC', out: 225, in: 555, actualOut: 265, actualIn: 595 }, // 40 minutes late both ways
+        ],
+      }],
+    }).build(),
+  )
+
+  it('is still on the ground past the scheduled departure of a delayed flight', () => {
+    expect(resolveStatus(e.legs, e.schedule.pilot, at(240)).kind).toBe('turn')
+  })
+
+  it('is still flying past the scheduled arrival of a delayed flight', () => {
+    expect(resolveStatus(e.legs, e.schedule.pilot, at(570)).kind).toBe('inFlight')
+  })
 })

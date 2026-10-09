@@ -60,10 +60,14 @@ export function departureOf(l: Leg): Iata | null {
   return l.airport
 }
 
-/** A flight, jumpseat, drive, or drive-titled event that arrives at the pilot's home. */
+/**
+ * A flight, jumpseat, drive, or drive-titled event that arrives at the pilot's home.
+ * A drive uses its own `toHome` flag, the same rule the status uses, so the two can't disagree.
+ */
 export function isHomecomingMove(l: Leg, effHome: Iata | null): boolean {
   if (!effHome) return false
-  const moving = isMove(l) || l.kind === 'drive' || (l.kind === 'event' && l.driveLike)
+  if (l.kind === 'drive') return l.toHome
+  const moving = isMove(l) || (l.kind === 'event' && l.driveLike)
   return moving && arrivalOf(l) === effHome
 }
 
@@ -72,15 +76,15 @@ export function schedEndOf(l: Leg): number {
   return isMove(l) || l.kind === 'drive' ? l.schedEnd : l.end
 }
 
-const DRIVE_TITLE = /driv|truck|car/i
+/** Whole words only: "Drive home" and "Truck to SDF" are drives, "Daycare pickup" and "Card night" are not. */
+export const DRIVE_TITLE = /\b(driv\w*|truck|car)\b/i
 
 /** Duty's leg builder (PartnerStatusGenerator.swift:707-1065) on CrewLu Cloud data, sorted by start. */
 export function buildLegs(s: Schedule): Leg[] {
   const legs: Leg[] = []
-  const { effHome } = s.pilot
+  const { base, effHome } = s.pilot // the pilot's own base, not the trips table's
 
   for (const trip of s.trips) {
-    const base = trip.base ?? s.pilot.base
     const flown = trip.dutyPeriods.filter((dp) => dp.flights.length > 0)
     flown.forEach((dp, i) => {
       const flights = dp.flights

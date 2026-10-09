@@ -10,7 +10,11 @@ const M = 60_000
 const H = 60 * M
 
 describe('toIata', () => {
-  it.each([['sdf', 'SDF'], [' anc ', 'ANC'], ['SDFZ', 'SDF'], ['', null], ['AB', null], [null, null], ['K SDF', null]])(
+  it.each([
+    ['sdf', 'SDF'], [' anc ', 'ANC'], ['SDFZ', 'SDF'], ['', null], ['AB', null], [null, null], ['K SDF', null],
+    // Only 3 letters + Z is a CrewLu base ("SDFZ"). Any other 4-letter value is a word or an ICAO code, not an airport.
+    ['ABCD', null], ['KSDF', null], ['Home', null],
+  ])(
     '%s → %s', (input, out) => expect(toIata(input)).toBe(out),
   )
 })
@@ -49,6 +53,25 @@ describe('effectiveTimes', () => {
 
   it('ignores actuals more than 6 hours off', () => {
     expect(effectiveTimes(s0, s1, s0 + 7 * H, s1)).toEqual({ start: s0, end: s1, schedStart: s0, schedEnd: s1 })
+  })
+
+  // The three guards below each have a case that only that guard can catch.
+  it('ignores actuals more than 6 hours off even when the actual block looks fine', () => {
+    expect(effectiveTimes(s0, s1, s0 + 7 * H, s1 + 7 * H)).toEqual({ start: s0, end: s1, schedStart: s0, schedEnd: s1 })
+  })
+
+  it('falls back to the schedule when the actual block is longer than 26 hours', () => {
+    // Each actual is within 6 hours of its scheduled time, but together they make a 27 hour block.
+    expect(effectiveTimes(s0, s0 + 24 * H, s0 - H, s0 + 26 * H))
+      .toEqual({ start: s0, end: s0 + 24 * H, schedStart: s0, schedEnd: s0 + 24 * H })
+  })
+
+  it('falls back to the schedule when the actual block has no length', () => {
+    expect(effectiveTimes(s0, s1, s0 + 30 * M, s0 + 30 * M)).toEqual({ start: s0, end: s1, schedStart: s0, schedEnd: s1 })
+  })
+
+  it('rejects a scheduled block longer than 26 hours', () => {
+    expect(effectiveTimes(s0, s0 + 27 * H, null, null)).toBeNull()
   })
 
   it('falls back to the schedule when the actual block is impossible', () => {
@@ -92,6 +115,16 @@ describe('event titles', () => {
     expect(classifyManualEvent('Sim prep', 'Reserve days')).toEqual({ kind: 'reserve', title: 'Sim prep' })
     expect(classifyManualEvent('Recurrent CQ', 'Training')).toEqual({ kind: 'event', title: 'Recurrent CQ' })
     expect(classifyManualEvent('  ', null)).toEqual({ kind: 'event', title: 'Manual Event' })
+  })
+
+  it('matches reserve codes as whole codes, not inside other words', () => {
+    expect(classifyManualEvent('RSVA 0800', null)).toEqual({ kind: 'reserve', title: 'RSV-A' })
+    expect(classifyManualEvent('lco', null)).toEqual({ kind: 'reserve', title: 'LCO' })
+    expect(classifyManualEvent('Day 2 - RSCP', null)).toEqual({ kind: 'reserve', title: 'RSC-P' })
+    expect(classifyManualEvent('0600RSSD', null)).toEqual({ kind: 'reserve', title: 'RSS-D' })
+    for (const title of ['Welcome dinner', 'Falcons game', 'Alcohol CBT', 'Daycare pickup', 'Card night', 'RSVAB', 'XRSVA']) {
+      expect(classifyManualEvent(title, null)).toEqual({ kind: 'event', title })
+    }
   })
 
   it('titles training like TrainingEvent.displayTitle', () => {
@@ -158,5 +191,69 @@ describe('buildSchedule', () => {
     expect(s2.trips).toEqual([])
     expect(s2.empty).toBe(false)
     expect(buildSchedule(new RawBuilder(A).build(), A).empty).toBe(true)
+  })
+
+  it('drops everything the pilot hid in Crewlu, in every table (spec §9)', () => {
+    const hid = buildSchedule(
+      new RawBuilder(A)
+        .pilot('Alex', 'SDF', 'LEX')
+        .trip('t1', {
+          dutyPeriods: [{
+            start: 0,
+            end: 300,
+            flights: [
+              { dep: 'SDF', arr: 'RFD', out: 60, in: 150 },
+              { dep: 'RFD', arr: 'SDF', out: 200, in: 290, hidden: true },
+            ],
+          }],
+        })
+        .commute('c-shown', 'SDF', 'LEX', 'toHome', 340, 410)
+        .commute('c-hidden', 'SDF', 'LEX', 'toHome', 500, 570, null, true)
+        .jumpseat('j-shown', 'MCO', 'SDF', 700, 800)
+        .jumpseat('j-hidden', 'MCO', 'SDF', 900, 1000, { hidden: true })
+        .manualEvent('m-shown', 'Dentist', 1100, 1200, 'LEX')
+        .manualEvent('m-hidden', 'Secret', 1300, 1400, 'LEX', { hidden: true })
+        .training('te-shown', 'PC', 1500, 1600, 'SDF')
+        .training('te-hidden', 'CQ', 1700, 1800, 'SDF', true)
+        .build(),
+      A,
+    )
+    expect(hid.trips[0].dutyPeriods[0].flights.map((f) => f.arr)).toEqual(['RFD'])
+    expect(hid.commutes.map((c) => c.id)).toEqual(['c-shown'])
+    expect(hid.jumpseats.map((j) => j.id)).toEqual(['j-shown'])
+    expect(hid.events.map((e) => e.id)).toEqual(['m-shown', 'te-shown'])
+  })
+
+  it('treats a visible flight numbered GND as ground transport', () => {
+    const g = buildSchedule(
+      new RawBuilder(A).pilot('Alex', 'SDF', 'LEX')
+        .trip('t1', { dutyPeriods: [{ start: 0, end: 300, flights: [{ dep: 'SDF', arr: 'LEX', out: 60, in: 150, number: 'GND' }] }] })
+        .build(),
+      A,
+    )
+    expect(g.trips[0].dutyPeriods[0].flights[0]).toMatchObject({ ground: true, number: null })
+  })
+
+  it('drops trips that end before they start, or at the moment they start', () => {
+    const raw2 = new RawBuilder(A).pilot('Alex', 'SDF', 'LEX')
+      .trip('ok', { dutyPeriods: [{ start: 0, end: 300, flights: [{ dep: 'SDF', arr: 'RFD', out: 60, in: 150 }] }] })
+      .trip('backwards', { dutyPeriods: [{ start: 1000, end: 1300, flights: [{ dep: 'SDF', arr: 'RFD', out: 1060, in: 1150 }] }] })
+      .trip('instant', { dutyPeriods: [{ start: 2000, end: 2300, flights: [{ dep: 'SDF', arr: 'RFD', out: 2060, in: 2150 }] }] })
+      .build()
+    raw2.trips[1].end_date = new Date(A + 900 * M).toISOString() // before its 1000-minute start
+    raw2.trips[2].end_date = raw2.trips[2].start_date
+    expect(buildSchedule(raw2, A).trips.map((t) => t.id)).toEqual(['ok'])
+  })
+
+  it('never takes a commercial ticket for a UPS jumpseat', () => {
+    const raw3 = new RawBuilder(A).pilot('Alex', 'SDF', 'LEX')
+      .jumpseat('ticket', 'MCO', 'SDF', 700, 800, { airline: null, number: '1234' })
+      .jumpseat('ups', 'MCO', 'SDF', 900, 1000, { airline: null, number: '1234' })
+      .build()
+    raw3.jumpseats[0].is_commercial_deadhead = true // RawBuilder has no option for this flag
+    expect(buildSchedule(raw3, A).jumpseats.map((j) => [j.id, j.airline, j.number])).toEqual([
+      ['ticket', null, '1234'],
+      ['ups', '5X', '1234'],
+    ])
   })
 })

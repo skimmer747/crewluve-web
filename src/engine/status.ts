@@ -7,7 +7,7 @@ export type StatusKind =
 
 export interface Status {
   kind: StatusKind
-  /** Where the pilot is: the departure airport while moving, the arrival of the last leg in a gap. */
+  /** Where the pilot is: the departure airport while moving, the arrival of the last leg that has one in a gap. */
   airport: Iata | null
   /** The leg covering now, if any. */
   current: Leg | null
@@ -27,21 +27,24 @@ const RANK: Record<Leg['kind'], number> = {
 export function resolveStatus(legs: Leg[], pilot: Pilot, t: number): Status {
   let current: Leg | null = null
   let previous: Leg | null = null
+  /** The last ended leg that says where the pilot is. An event with no airport doesn't move them anywhere (§6.4 rule 5). */
+  let located: Leg | null = null
   let next: Leg | null = null
   for (const leg of legs) {
     if (leg.start <= t && t < leg.end) {
       if (!current || RANK[leg.kind] < RANK[current.kind]) current = leg
     } else if (leg.end <= t) {
       if (!previous || leg.end >= previous.end) previous = leg
+      if (arrivalOf(leg) != null && (!located || leg.end >= located.end)) located = leg
     } else if (!next) {
       next = leg
     }
   }
 
   if (current) return { ...covering(current, pilot), current, previous, next }
-  if (!previous) return { kind: 'home', airport: pilot.effHome, current, previous, next }
+  if (!previous || !located) return { kind: 'home', airport: pilot.effHome, current, previous, next }
 
-  const loc = arrivalOf(previous) ?? pilot.base
+  const loc = arrivalOf(located)
   const result = (kind: StatusKind): Status => ({ kind, airport: loc, current, previous, next })
   if (previous.tripId && next?.tripId === previous.tripId) return result('turn')
   if (loc != null && loc === pilot.effHome) return result('home')
