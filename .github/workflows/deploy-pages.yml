@@ -1,0 +1,53 @@
+name: Deploy to GitHub Pages
+
+# Tests and builds on every push to main, then publishes dist/ to Pages
+# (custom domain crewluve.crewlu.net). Same pattern as crewlu-globe.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never cancel an in-progress production deploy.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+    # GitHub Pages often fails the first deploy with "Deployment failed, try again later"
+    # and succeeds on a retry (seen on crewlu-globe), so try up to 3 times.
+    steps:
+      - id: a1
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - id: a2
+        if: steps.a1.outcome != 'success'
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - id: a3
+        if: steps.a1.outcome != 'success' && steps.a2.outcome != 'success'
+        uses: actions/deploy-pages@v4
