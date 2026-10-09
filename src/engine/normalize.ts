@@ -14,15 +14,17 @@ const MAX_BLOCK = 26 * HOUR
  */
 const RESERVE_TITLE = /(?:^|[^A-Z])(RSV[A-D]|RSC[AP]|RSS[A-D]|LCO|RCID)(?![A-Z])/
 
+/** A UPS base written as its airport code plus a Z. Live data only has "SDFZ"; the other UPS bases are listed in case they appear. */
+const UPS_BASE_WITH_Z = /^(SDF|ANC|ONT|MIA)Z$/
+
 /**
- * 3-letter IATA code, uppercased. CrewLu also writes some bases as 3 letters + "Z" ("SDFZ"), which becomes "SDF".
- * Any other 4-letter value is a word or an ICAO code, not an airport, and gives null.
+ * 3-letter IATA code, uppercased. A UPS base written with a trailing Z ("SDFZ") becomes its code ("SDF").
+ * Any other 4-letter value is a word or an ICAO code, not an airport ("DIAZ", "CRUZ"), and gives null.
  */
 export function toIata(code: string | null | undefined): Iata | null {
   const s = (code ?? '').trim().toUpperCase()
   if (/^[A-Z0-9]{3}$/.test(s)) return s
-  if (/^[A-Z]{3}Z$/.test(s)) return s.slice(0, 3)
-  return null
+  return UPS_BASE_WITH_Z.exec(s)?.[1] ?? null
 }
 
 /** Epoch ms, or null for missing, unparseable, pre-2000, or more-than-2-years-ahead values. */

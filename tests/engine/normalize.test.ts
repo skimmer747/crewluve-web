@@ -11,9 +11,11 @@ const H = 60 * M
 
 describe('toIata', () => {
   it.each([
-    ['sdf', 'SDF'], [' anc ', 'ANC'], ['SDFZ', 'SDF'], ['', null], ['AB', null], [null, null], ['K SDF', null],
-    // Only 3 letters + Z is a CrewLu base ("SDFZ"). Any other 4-letter value is a word or an ICAO code, not an airport.
-    ['ABCD', null], ['KSDF', null], ['Home', null],
+    ['sdf', 'SDF'], [' anc ', 'ANC'], ['', null], ['AB', null], [null, null], ['K SDF', null],
+    // A UPS base with a trailing Z: "SDFZ" is the one in live data, and the other UPS bases are accepted too.
+    ['SDFZ', 'SDF'], [' sdfz ', 'SDF'], ['ANCZ', 'ANC'], ['ONTZ', 'ONT'], ['MIAZ', 'MIA'],
+    // Any other 4-letter value is a word or an ICAO code, not an airport. Location words such as DIAZ and CRUZ end in Z too.
+    ['ABCD', null], ['KSDF', null], ['Home', null], ['DIAZ', null], ['CRUZ', null], ['SDFZZ', null], ['XSDFZ', null],
   ])(
     '%s → %s', (input, out) => expect(toIata(input)).toBe(out),
   )
@@ -255,6 +257,26 @@ describe('buildSchedule', () => {
       ['ticket', null, '1234'],
       ['ups', '5X', '1234'],
     ])
+  })
+
+  it('never takes ground transport with a flight number for a UPS flight', () => {
+    const flights = buildSchedule(
+      new RawBuilder(A).pilot('Alex', 'SDF', 'LEX')
+        .trip('t1', {
+          dutyPeriods: [{
+            start: 0,
+            end: 300,
+            flights: [
+              { dep: 'SDF', arr: 'LEX', out: 60, in: 150, number: '1234', airline: null, ground: true },
+              { dep: 'LEX', arr: 'SDF', out: 200, in: 290, number: '1235', airline: null }, // a company flight is still UPS
+            ],
+          }],
+        })
+        .build(),
+      A,
+    ).trips[0].dutyPeriods[0].flights
+    expect(flights[0]).toMatchObject({ airline: null, ground: true, number: '1234' })
+    expect(flights[1]).toMatchObject({ airline: '5X', ground: false, number: '1235' })
   })
 
   it('never takes a commercial deadhead flight in a trip for a UPS flight', () => {
