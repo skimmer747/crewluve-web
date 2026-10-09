@@ -10,6 +10,7 @@ const CSP = [
   "img-src 'self' data:",
   "font-src 'self'",
   "connect-src 'self' https://corxvurxpnrzekbxdgye.supabase.co",
+  "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
 ].join('; ')
@@ -20,8 +21,11 @@ export default defineConfig({
     {
       name: 'crewluve-csp',
       apply: 'build',
-      transformIndexHtml: (html) =>
-        html.replace('<!--csp-->', `<meta http-equiv="Content-Security-Policy" content="${CSP}" />`),
+      transformIndexHtml: (html) => {
+        // Fail the build rather than ship a production page with no CSP.
+        if (!html.includes('<!--csp-->')) throw new Error('index.html lost its <!--csp--> placeholder')
+        return html.replace('<!--csp-->', `<meta http-equiv="Content-Security-Policy" content="${CSP}" />`)
+      },
     },
   ],
   server: { port: 5180, strictPort: true },

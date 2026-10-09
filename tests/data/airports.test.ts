@@ -43,8 +43,16 @@ describe('generated public/data/airports.json', () => {
   it.each([
     ['SDF', 'EDT'], ['LEX', 'EDT'], ['MCO', 'EDT'], ['ANC', 'AKDT'], ['HNL', 'HST'],
     ['ONT', 'PDT'], ['PHX', 'MST'], ['CGN', 'GMT+2'], ['HKG', 'GMT+8'], ['BLR', 'GMT+5:30'],
+    ['PPT', 'GMT-10'], ['LPB', 'GMT-4'],
   ])('%s keeps %s in October 2026', (code, abbr) => {
     expect(zoneAbbr(october, idx.tz(code)!)).toBe(abbr)
+  })
+
+  it.each([
+    ['GOH', 'America/Godthab'], ['KBP', 'Europe/Kiev'], ['CIS', 'Pacific/Enderbury'],
+    ['CJS', 'America/Denver'], ['BBA', 'America/Punta_Arenas'],
+  ])('%s uses %s, the older name browsers know', (code, zone) => {
+    expect(idx.tz(code)).toBe(zone)
   })
 
   it('keeps Crewlu city names', () => {
