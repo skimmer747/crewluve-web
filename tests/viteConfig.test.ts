@@ -1,5 +1,6 @@
 import type { Plugin, PluginOption } from 'vite'
 import { describe, expect, it } from 'vitest'
+import { SUPABASE_URL } from '../src/cloud'
 import config from '../vite.config'
 
 /** Vite's plugin list can nest arrays (preact() returns several plugins), so search it recursively. */
@@ -32,5 +33,9 @@ describe('production CSP plugin', () => {
 
   it('throws when index.html loses the placeholder, so production never ships without a CSP', () => {
     expect(() => injectCsp('<head></head>')).toThrow('index.html lost its <!--csp--> placeholder')
+  })
+
+  it('lets the app reach the CrewLu Cloud project the client uses', () => {
+    expect(injectCsp('<!--csp-->')).toContain(`connect-src 'self' ${SUPABASE_URL};`)
   })
 })

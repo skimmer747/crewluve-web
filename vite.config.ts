@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import preact from '@preact/preset-vite'
+import { SUPABASE_URL } from './src/cloud'
 
 // Production Content-Security-Policy (spec §9). Injected only into the built HTML, because the
 // Vite dev server needs inline scripts and a websocket for hot reload.
@@ -9,7 +10,7 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self'",
-  "connect-src 'self' https://corxvurxpnrzekbxdgye.supabase.co",
+  `connect-src 'self' ${SUPABASE_URL}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
