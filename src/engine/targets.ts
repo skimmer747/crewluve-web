@@ -22,12 +22,18 @@ function toTarget(label: ArrivalLabel, leg: Leg, airport: Iata | null): ArrivalT
   return { label, time: leg.end, schedTime, airport, delayMin: Math.round((leg.end - schedTime) / MINUTE) }
 }
 
-/** The trip being flown, else one that ended ≤24 h ago, else one starting ≤24 h from now (spec §6.5 step 3). */
-export function currentTripId(status: Status, t: number): string | null {
+/**
+ * The trip being flown, else the latest trip leg that ended ≤24 h ago, else the next trip leg starting ≤24 h from now
+ * (spec §6.5 step 3). Standalone legs (events, drives, jumpseats) belong to no trip, so they are skipped:
+ * a meeting at base can't change which trip counts. `legs` must be sorted by start.
+ */
+export function currentTripId(legs: Leg[], status: Status, t: number): string | null {
   if (status.current?.tripId) return status.current.tripId
-  if (status.previous?.tripId && t - status.previous.end <= DAY) return status.previous.tripId
-  if (status.next?.tripId && status.next.start - t <= DAY) return status.next.tripId
-  return null
+  let previous: Leg | null = null
+  for (const l of legs) if (l.tripId && l.end <= t && (!previous || l.end >= previous.end)) previous = l
+  if (previous && t - previous.end <= DAY) return previous.tripId
+  const next = legs.find((l) => l.tripId && l.start > t)
+  return next && next.start - t <= DAY ? next.tripId : null
 }
 
 /** What the away countdown counts to (spec §6.5), or null for no countdown. Never call it while the status is Home. */
@@ -40,7 +46,7 @@ export function arrivalTarget(legs: Leg[], pilot: Pilot, status: Status, t: numb
   if (!home) return null
   if (current && !current.tripId && isHomecomingMove(current, home)) return toTarget('home', current, home)
 
-  const trip = currentTripId(status, t)
+  const trip = currentTripId(legs, status, t)
   const nextTripStart = legs.reduce(
     (min, l) => (l.tripId && l.tripId !== trip && l.start > t ? Math.min(min, l.start) : min),
     Infinity,

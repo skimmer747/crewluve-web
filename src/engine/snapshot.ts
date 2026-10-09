@@ -36,9 +36,9 @@ export interface Snapshot {
   empty: boolean
 }
 
-/** Trip length in days: trips.days, else the calendar-day count in `timeZone`. */
+/** Trip length in days: trips.days when it is above 0 (Duty writes 0 for a trip under 24 hours), else the inclusive calendar-day count in `timeZone`. */
 export function tripDays(trip: Trip, timeZone: string): number {
-  return trip.days ?? calendarDay(trip.end, timeZone) - calendarDay(trip.start, timeZone) + 1
+  return trip.days != null && trip.days > 0 ? trip.days : calendarDay(trip.end, timeZone) - calendarDay(trip.start, timeZone) + 1
 }
 
 /** Everything the screen needs at time t. `legs` must come from buildLegs(schedule). */
@@ -46,8 +46,9 @@ export function makeSnapshot(schedule: Schedule, legs: Leg[], t: number, baseTz:
   const { pilot } = schedule
   const flightless = flightlessTrip(schedule, legs, t)
   let status = resolveStatus(legs, pilot, t)
-  // On a trip whose flights are all hidden we can't tell where the pilot is: Crewluve's "On duty".
-  if (flightless && status.kind === 'home' && !status.current) status = { ...status, kind: 'unknown', airport: null }
+  // On a trip whose flights are all hidden we can't tell where the pilot is: Crewluve's "On duty" (spec §4.4).
+  // Only a standalone leg under way (a drive, an event) says anything, so it keeps its own status.
+  if (flightless && !status.current) status = { ...status, kind: 'unknown', airport: null }
 
   const atHome = status.kind === 'home'
   const midTripAtHome = atHome && status.current?.kind === 'home'
@@ -85,21 +86,36 @@ export function makeSnapshot(schedule: Schedule, legs: Leg[], t: number, baseTz:
   }
 }
 
+const NO_PILOT: Pilot = { firstName: null, base: null, home: null, effHome: null }
+
+/** Failures already logged. The screen asks for a snapshot every second, so a failure that persists is logged once, not 60 times a minute. */
+const reported = new Set<string>()
+const MAX_REPORTED = 10
+
+function reportOnce(err: unknown): void {
+  const key = err instanceof Error ? `${err.name}: ${err.message}` : `thrown ${typeof err}`
+  if (reported.has(key) || reported.size >= MAX_REPORTED) return
+  reported.add(key)
+  console.error('Status engine failed; showing "On duty"', err)
+}
+
 /** makeSnapshot that can never take the page down: an engine error shows "On duty" (spec §8). */
 export function safeSnapshot(schedule: Schedule, legs: Leg[], t: number, baseTz: string): Snapshot {
   try {
     return makeSnapshot(schedule, legs, t, baseTz)
   } catch (err) {
-    console.error('Status engine failed; showing "On duty"', err)
+    reportOnce(err)
+    // The schedule itself may be what is broken, so read it defensively: nothing in here may throw.
+    const pilot = schedule?.pilot ?? NO_PILOT
     return {
       t,
-      name: schedule.pilot.firstName ?? 'Your pilot',
-      hasName: schedule.pilot.firstName != null,
-      pilot: schedule.pilot,
+      name: pilot.firstName ?? 'Your pilot',
+      hasName: pilot.firstName != null,
+      pilot,
       status: { kind: 'unknown', airport: null, current: null, previous: null, next: null },
       ring: null, delay: null, arrival: null, fallbackDaysRemaining: null, leave: null, homecoming: null,
       driveToWork: null, nextFlight: null, nextMove: null, nextHomeTrip: null, lastTripDays: null,
-      nextTripDays: null, midTripAtHome: false, daysHome: null, celebrate: false, empty: schedule.empty,
+      nextTripDays: null, midTripAtHome: false, daysHome: null, celebrate: false, empty: schedule?.empty ?? false,
     }
   }
 }
