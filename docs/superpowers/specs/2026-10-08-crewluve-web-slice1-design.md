@@ -376,6 +376,7 @@ Everything else from the 2026-10-08 idea board is on the roadmap (§13). The use
   - `home`, `driving-to-work`, `base`, `flying` (the default), `turn`, `layover`, `delayed`
   - `last-leg`, `driving-home`, `reserve`, `training`
   - `commuting-home` — this one uses a jumpseat-commuter variant of Alex (home MCO, Delta jumpseats instead of drives)
+- The return flight from Anchorage runs 40 minutes late. Scenes from `delayed` on include that delay, the way CrewLu Cloud would learn of it. Earlier scenes show the flight on time, so the default scene's countdown isn't red a day early.
 - A capsule banner reads "Demo — sample pilot", like Crewluve's demo banner.
 - The sign-in screen links to demo mode.
 - Demo mode is the visual test bed.
@@ -581,7 +582,8 @@ A **homecoming move** is a flight, jumpseat, drive, or drive-titled event that a
 **Which airline a flight belongs to**
 - `airline_code` set → that airline.
 - `airline_code` null, not ground transport, and an all-digit flight number → **UPS** (company flight, as Crewlu does).
-- Unknown or empty → a generic airplane icon in blue, named "Commercial".
+- No code (null or blank) → a generic airplane icon in blue, named "Commercial".
+- An unrecognized code keeps its own letters as the name, as in the app, with the generic icon in blue.
 
 **{FL} text:** " on {Airline name} flight {n}" — only when the flight number is all digits. Placeholders such as `XXXX`, `CML`, `GND`, `DUTY`, `HOT-…` omit {FL}.
 
@@ -617,6 +619,7 @@ All of these come from the 2026-07-02 Crewluve leave/return-home audit, C1–C30
 - `@supabase/supabase-js` 2.x, using the same project URL and publishable key as `crewlu-globe/src/supabase.ts`, with `persistSession: true` and `autoRefreshToken: true`.
 - Vitest, with `@testing-library/preact` and `happy-dom` for component tests.
 - Plain CSS with custom properties for light and dark. No UI kit.
+- **Browser floor:** the ES2020 build target (Safari 14, Chrome 87, Firefox 78). App code avoids newer built-ins such as `structuredClone`.
 - Phosphor icon SVGs inlined as Preact components (only the icons used).
 
 ### 7.2 Layout
@@ -837,6 +840,7 @@ object-src 'none'; base-uri 'self'; form-action 'self'
 | 15 | The CSP adds `object-src 'none'`, and the build fails without the CSP placeholder. | Design (Batch A review) |
 | 16 | If `airports.json` won't load, codes show at once and one retry runs 3 s later. | Design |
 | 17 | One constant holds the CrewLu Cloud URL for both the client and the CSP. CI's Node version comes from `.nvmrc` (24). | Design |
+| 18 | The demo's Anchorage delay appears only from the `delayed` scene on (§4.7). | Design (early browser check) |
 
 ## 13. Roadmap (after slice 1)
 

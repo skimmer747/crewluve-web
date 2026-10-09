@@ -96,7 +96,9 @@ tests/…                              mirrors src/; tests/fixtures/ holds share
 
 ## Execution notes (read before your batch)
 
-Tasks 1–4 are done on branch `slice1` and passed both reviews. Review fixes changed some of their code from the blocks printed in Tasks 1–4. **The repo is the source of truth for those files.** Later tasks depend on these changes:
+Tasks 1–8 are done on branch `slice1` and passed both reviews. Review fixes changed some of their code from the blocks printed in those tasks. **The repo is the source of truth for files that already exist.** Later tasks depend on these changes.
+
+**From Batch A (Tasks 1–4):**
 
 - **Test tooling.** Vitest 3.2.7 and happy-dom 20.14.5. The UI test patterns in this plan work unchanged.
 - **TypeScript library.** `tsconfig.json` uses `lib: ["ES2020", "DOM", "DOM.Iterable"]` (matching the ES2020 build target) and `noEmit`.
@@ -117,7 +119,19 @@ Tasks 1–4 are done on branch `slice1` and passed both reviews. Review fixes ch
   - `AIRPORTS_SOURCE` overrides the source path.
 - **`vite.config.ts`.** The CSP adds `object-src 'none'`. The build throws if `index.html` loses `<!--csp-->`. `tests/viteConfig.test.ts` tests the plugin.
 - **`package.json`** has `"engines": { "node": ">=22" }`.
-- **Full suite after Batch A:** 44 tests in 5 files. Steps that run a single test file are unaffected. A full-suite run just has more tests than a task's own count.
+
+**From Batch B (Tasks 5–8):**
+
+- **Demo delay timing.** `src/data/demo.ts` exports `DELAY_KNOWN_AT = 1300`, and `demoRaw(variant, anchor, delayKnown = true)` has a third parameter.
+  - `demoRawForScene` passes `offset >= DELAY_KNOWN_AT`, so scenes before `delayed` show the ANC→SDF flight on time. Before this, the default `flying` scene showed a red, late homecoming a day early.
+  - `demoRaw(variant, anchor)` still includes the 40-minute delay, so engine tests that use the full timeline are unchanged.
+- **`flightPhrase`** returns '' unless the flight number is all digits. Blank airline codes count as none ("Commercial").
+- **`RawBuilder.build()`** copies rows with JSON instead of `structuredClone`, so demo mode runs on Safari 14.
+- **Invisible characters.** `format.ts` writes the narrow no-break space (U+202F) as the escape `\u202F`.
+  - Code and tests in this plan use the escape too.
+  - Copy plan blocks with a script rather than retyping them. Editors and tools can silently turn special characters into plain spaces.
+
+**Full suite after Batch B:** 122 tests in 9 files. Steps that run a single test file are unaffected. A full-suite run just has more tests than a task's own count.
 
 ---
 
@@ -810,7 +824,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/data/rows.ts`, `src/data/rowBuilder.ts`
 - Test: `tests/data/rows.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -873,12 +887,12 @@ describe('newestUpdatedAt', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/data/rows.test.ts`
 Expected: FAIL, because `src/data/rowBuilder.ts` can't be resolved.
 
-- [ ] **Step 3: Write `src/data/rows.ts`**
+- [x] **Step 3: Write `src/data/rows.ts`**
 
 ```ts
 // Row shapes of the CrewLu Cloud tables this site reads (spec §6.1). Timestamps are ISO-8601 UTC strings.
@@ -1035,7 +1049,7 @@ export function newestUpdatedAt(rows: ScheduleRows): number | null {
 }
 ```
 
-- [ ] **Step 4: Write `src/data/rowBuilder.ts`**
+- [x] **Step 4: Write `src/data/rowBuilder.ts`**
 
 ```ts
 import { newestUpdatedAt, type PilotInfoRow, type RawSchedule, type ScheduleRows } from './rows'
@@ -1201,12 +1215,12 @@ export class RawBuilder {
 }
 ```
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [x] **Step 5: Run the test to verify it passes**
 
 Run: `npx vitest run tests/data/rows.test.ts`
 Expected: PASS (13 tests).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/data/rows.ts src/data/rowBuilder.ts tests/data/rows.test.ts
@@ -1232,7 +1246,7 @@ Timeline, in minutes from the main trip's report time (A = Fri 9 Oct 2026 05:30 
 | 150–225 | Turn at RFD |
 | 225–555 | UPS 2963, RFD→ANC |
 | 555 … | Layover in Anchorage |
-| 1560→1860 sched, 1600→1900 actual | UPS 2962, ANC→SDF, 40 minutes late |
+| 1560→1860 sched, 1600→1900 actual | UPS 2962, ANC→SDF, 40 minutes late. `demoRawForScene` includes the delay only from the `delayed` scene on (`DELAY_KNOWN_AT`, added in review). |
 | 1890→1960 | Drive home as stored. The engine shifts it +40, to 1930→2000. |
 | 4320–5040 | Reserve "RSVA" at SDF |
 | 5760–6240 | "CQ" training at SDF |
@@ -1247,7 +1261,7 @@ In the jumpseater variant (home MCO), the five drives become three Delta jumpsea
 - Create: `src/data/demo.ts`
 - Test: `tests/data/demo.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -1296,12 +1310,12 @@ describe('demoRawForScene', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/data/demo.test.ts`
 Expected: FAIL, because `src/data/demo.ts` can't be resolved.
 
-- [ ] **Step 3: Write `src/data/demo.ts`**
+- [x] **Step 3: Write `src/data/demo.ts`**
 
 ```ts
 import { RawBuilder } from './rowBuilder'
@@ -1404,12 +1418,12 @@ export function demoRawForScene(scene: DemoScene, now: number): RawSchedule {
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run tests/data/demo.test.ts`
 Expected: PASS (5 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/data/demo.ts tests/data/demo.test.ts
@@ -1428,7 +1442,7 @@ Every format here is ported from Crewluve. Each function's comment names its sou
 - Create: `src/copy/format.ts`
 - Test: `tests/copy/format.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -1531,7 +1545,7 @@ describe('long dates', () => {
   })
 
   it('formats the arrival card subtitle like iOS', () => {
-    expect(arrivalWhenText(Date.UTC(2026, 9, 10, 18, 50), NY, false)).toBe('Sat, Oct 10 at 2:50 PM')
+    expect(arrivalWhenText(Date.UTC(2026, 9, 10, 18, 50), NY, false)).toBe('Sat, Oct 10 at 2:50\u202FPM')
     expect(arrivalWhenText(Date.UTC(2026, 9, 10, 18, 50), NY, true)).toBe('Sat, Oct 10 at 14:50')
   })
 
@@ -1549,12 +1563,12 @@ describe('long dates', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/copy/format.test.ts`
 Expected: FAIL, because `src/copy/format.ts` can't be resolved.
 
-- [ ] **Step 3: Write `src/copy/format.ts`**
+- [x] **Step 3: Write `src/copy/format.ts`**
 
 ```ts
 import { calendarDay, MONTHS, WEEKDAYS, zoneAbbr, zonedParts } from '../time/zoned'
@@ -1672,7 +1686,7 @@ export function arrivalWhenText(ms: number, timeZone: string, h24: boolean): str
   const p = zonedParts(ms, timeZone)
   const time = h24
     ? `${pad2(p.hour)}:${pad2(p.minute)}`
-    : `${p.hour % 12 === 0 ? 12 : p.hour % 12}:${pad2(p.minute)} ${p.hour < 12 ? 'AM' : 'PM'}`
+    : `${p.hour % 12 === 0 ? 12 : p.hour % 12}:${pad2(p.minute)}\u202F${p.hour < 12 ? 'AM' : 'PM'}`
   return `${WEEKDAYS[p.weekday].slice(0, 3)}, ${MONTHS[p.month - 1].slice(0, 3)} ${p.day} at ${time}`
 }
 
@@ -1687,12 +1701,12 @@ export function tripDepartsText(city: string, ms: number, timeZone: string, h24:
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run tests/copy/format.test.ts`
 Expected: PASS (all tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/copy/format.ts tests/copy/format.test.ts
@@ -1709,7 +1723,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/copy/colors.ts`, `src/copy/airlines.ts`
 - Test: `tests/copy/airlines.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -1747,19 +1761,19 @@ describe('flightPhrase', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/copy/airlines.test.ts`
 Expected: FAIL, because `src/copy/airlines.ts` can't be resolved.
 
-- [ ] **Step 3: Write `src/copy/colors.ts`**
+- [x] **Step 3: Write `src/copy/colors.ts`**
 
 ```ts
 /** Semantic color names (resolved to CSS variables by src/ui/colors.ts) or a literal airline brand hex. */
 export type ColorToken = 'green' | 'blue' | 'red' | 'orange' | 'purple' | 'gray' | 'secondary' | 'ups' | `#${string}`
 ```
 
-- [ ] **Step 4: Write `src/copy/airlines.ts`** (a port of Crewluve `Utils/AirlineBranding.swift`; the colors are its RGB fractions, converted at runtime)
+- [x] **Step 4: Write `src/copy/airlines.ts`** (a port of Crewluve `Utils/AirlineBranding.swift`; the colors are its RGB fractions, converted at runtime)
 
 ```ts
 import type { IconName } from '../icons/iconPaths'
@@ -1852,12 +1866,12 @@ export function flightPhrase(airline: string | null, number: string | null): str
 }
 ```
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [x] **Step 5: Run the test to verify it passes**
 
 Run: `npx vitest run tests/copy/airlines.test.ts`
 Expected: PASS (all tests).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/copy/colors.ts src/copy/airlines.ts tests/copy/airlines.test.ts
@@ -4966,6 +4980,10 @@ describe('demo scenes', () => {
     expect(snap.arrival).toMatchObject({ label: 'home', delayMin: 40 })
   })
 
+  it('flying, a day before the delay is known, counts down on time', () => {
+    expect(sceneSnapshot('flying').arrival).toMatchObject({ label: 'home', delayMin: 0 })
+  })
+
   it('home has a drive-to-work countdown and the been-home line', () => {
     const snap = sceneSnapshot('home')
     expect(snap.leave?.viaDrive).toBe(true)
@@ -4977,7 +4995,7 @@ describe('demo scenes', () => {
 - [ ] **Step 2: Run the test**
 
 Run: `npx vitest run tests/data/demoScenes.test.ts`
-Expected: PASS (14 tests).
+Expected: PASS (15 tests).
 
 - [ ] **Step 3: Commit**
 
@@ -6442,7 +6460,7 @@ describe('StatusScreen', () => {
     )
     expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('Back Home In')
     expect(container.querySelector('.countdown-value')!.textContent).toBe('1d  07h  40m')
-    expect(container.querySelector('.countdown-sub')!.textContent).toBe('Sat, Oct 10 at 2:50 PM · Lexington')
+    expect(container.querySelector('.countdown-sub')!.textContent).toBe('Sat, Oct 10 at 2:50\u202FPM · Lexington')
   })
 
   it('home: Leaves Home In with its departure line, then the been-home pill', () => {
@@ -7393,6 +7411,8 @@ Make one change at a time and re-screenshot. Don't touch layout files beyond `to
 - [ ] **Step 4: Check dark mode, the desktop width, and the sign-in screen**
 
 - `resize_window` with `colorScheme: "dark"`, then screenshot `flying` and `home`. Expect a black background, light text, the lighter UPS brown (#E09E33), and readable glass.
+  - Also check `commuting-home`. Many airline brand colors are dark: Delta is about 1.2:1 against a dark card, and American about 1.4:1, so a jumpseat's icon and bold countdown can be hard to read.
+  - The app has the same problem, because only UPS changes in dark mode. Show the user and ask before changing anything (decision #2 is to copy the app).
 - `resize_window` with `preset: "desktop"`, then screenshot `flying`. Expect one centered column no wider than 480 px.
 - Navigate to `http://localhost:5180/`. The pane has no CrewLu Cloud session, so expect the sign-in screen: heart artwork, "CrewLuve", the form, the read-only note, and the "See a demo" link.
 - Set `colorScheme: "light"` again.
