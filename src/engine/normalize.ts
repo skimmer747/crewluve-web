@@ -211,7 +211,7 @@ function toMove(row: FlightRow, tripId: string, now: number): Move | null {
     dep,
     arr,
     ...times,
-    airline: resolveAirline(row.airline_code, row.flight_number, ground),
+    airline: resolveAirline(row.airline_code, row.flight_number, ground || row.is_commercial_deadhead === true), // a ticket is never a UPS flight
     number: normalizeFlightNumber(row.flight_number),
     deadhead: row.is_dh === true || row.is_commercial_deadhead === true || rawNumber === 'CML',
     ground,

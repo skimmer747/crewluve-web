@@ -256,4 +256,24 @@ describe('buildSchedule', () => {
       ['ups', '5X', '1234'],
     ])
   })
+
+  it('never takes a commercial deadhead flight in a trip for a UPS flight', () => {
+    const flights = buildSchedule(
+      new RawBuilder(A).pilot('Alex', 'SDF', 'LEX')
+        .trip('t1', {
+          dutyPeriods: [{
+            start: 0,
+            end: 300,
+            flights: [
+              { dep: 'MCO', arr: 'SDF', out: 60, in: 150, number: '1234', airline: null, commercialDh: true },
+              { dep: 'SDF', arr: 'RFD', out: 200, in: 290, number: '1235', airline: null }, // a company flight is still UPS
+            ],
+          }],
+        })
+        .build(),
+      A,
+    ).trips[0].dutyPeriods[0].flights
+    expect(flights[0]).toMatchObject({ airline: null, deadhead: true, number: '1234' })
+    expect(flights[1]).toMatchObject({ airline: '5X', deadhead: false, number: '1235' })
+  })
 })
