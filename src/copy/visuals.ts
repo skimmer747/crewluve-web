@@ -31,8 +31,8 @@ export function statusVisual(s: Snapshot): Visual {
     case 'ground':
       return { icon: 'Car', color: 'blue' }
     case 'inFlight': {
-      const f = s.status.current as MoveLeg
-      return { icon: airlineIcon(f.airline), color: early ? 'green' : late ? 'orange' : airlineColor(f.airline) }
+      const airline = (s.status.current as MoveLeg | null)?.airline ?? null
+      return { icon: airlineIcon(airline), color: early ? 'green' : late ? 'orange' : airlineColor(airline) }
     }
     case 'turn':
       return { icon: 'ArrowsClockwise', color: early ? 'green' : 'orange' }

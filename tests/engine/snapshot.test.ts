@@ -247,6 +247,50 @@ describe('the legs around Home', () => {
   })
 })
 
+describe('the logged commute to the next trip', () => {
+  /** Pat lives in Orlando and flies out of Louisville. The next trip leaves Louisville at minute 1500. */
+  const pat = () => new RawBuilder(A).pilot('Pat', 'SDF', 'MCO')
+  const withTrip = (b: RawBuilder) =>
+    b.trip('t1', { dutyPeriods: [{ start: 1440, end: 1800, flights: [{ dep: 'SDF', arr: 'ANC', out: 1500, in: 1700 }] }] })
+  const commuteAt = (b: RawBuilder, minutes = 0) => snapOf(withTrip(b), minutes).nextCommute
+
+  it('is the standalone jumpseat from home to the trip’s first airport', () => {
+    const sn = snapOf(withTrip(pat().jumpseat('j1', 'MCO', 'SDF', 900, 1020)), 0)
+    expect(sn.status.kind).toBe('home')
+    expect(sn.nextCommute).toMatchObject({ id: 'j1', kind: 'jumpseat', dep: 'MCO', arr: 'SDF', start: at(900) })
+  })
+
+  it('is the earliest one when several are logged', () => {
+    expect(commuteAt(pat().jumpseat('later', 'MCO', 'SDF', 1100, 1200).jumpseat('sooner', 'MCO', 'SDF', 700, 800))?.id).toBe('sooner')
+  })
+
+  it.each([
+    ['goes to some other city', (b: RawBuilder) => b.jumpseat('j', 'MCO', 'ATL', 900, 1020), 0],
+    ['leaves from somewhere other than home', (b: RawBuilder) => b.jumpseat('j', 'ATL', 'SDF', 900, 1020), 0],
+    ['leaves after the trip does', (b: RawBuilder) => b.jumpseat('j', 'MCO', 'SDF', 1600, 1700), 0],
+    ['leaves the very minute the trip does', (b: RawBuilder) => b.jumpseat('j', 'MCO', 'SDF', 1500, 1600), 0],
+    ['has already left', (b: RawBuilder) => b.jumpseat('j', 'MCO', 'SDF', 900, 1020), 1000],
+    ['leaves this very minute', (b: RawBuilder) => b.jumpseat('j', 'MCO', 'SDF', 900, 1020), 900],
+  ])('is null when the jumpseat %s', (_why, add, minutes) => {
+    expect(commuteAt(add(pat()), minutes)).toBeNull()
+  })
+
+  it('is null when the trip leaves from home itself, even with a stray home-to-home jumpseat', () => {
+    const sam = new RawBuilder(A).pilot('Sam', 'SDF', null)
+    expect(snapOf(withTrip(sam.jumpseat('j', 'SDF', 'SDF', 900, 1020)), 0).nextCommute).toBeNull()
+  })
+
+  it('is null with no trip ahead', () => {
+    expect(snapOf(pat().jumpseat('j', 'MCO', 'SDF', 900, 1020), 0).nextCommute).toBeNull()
+  })
+
+  it('ignores a jumpseat that belongs to a trip', () => {
+    const s = buildSchedule(withTrip(pat().jumpseat('j', 'MCO', 'SDF', 900, 1020)).build(), A)
+    const legs = buildLegs(s).map((l) => (l.kind === 'jumpseat' ? { ...l, tripId: 't1' } : l))
+    expect(makeSnapshot(s, legs, A, NY).nextCommute).toBeNull()
+  })
+})
+
 describe('safeSnapshot', () => {
   afterEach(() => {
     vi.restoreAllMocks()
@@ -265,6 +309,7 @@ describe('safeSnapshot', () => {
     const sn = safeSnapshot(e.schedule, null as unknown as Leg[], A, NY)
     expect(sn.status.kind).toBe('unknown')
     expect(sn.arrival).toBeNull()
+    expect(sn.nextCommute).toBeNull()
     expect(error).toHaveBeenCalledWith(expect.stringContaining('Status engine failed'), expect.any(Error))
   })
 

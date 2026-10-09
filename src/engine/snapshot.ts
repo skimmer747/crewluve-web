@@ -1,9 +1,10 @@
+import { reportOnce } from '../reportOnce'
 import { calendarDay, DAY, MINUTE } from '../time/zoned'
 import { lastHomeArrival, leaveTarget, nextTripFlight, nextTripHomecoming, type LeaveTarget } from './home'
 import { isDuty, isHomecomingMove, isMove, type DriveLeg, type DutyLeg, type Leg, type MoveLeg } from './legs'
 import { resolveStatus, type Status } from './status'
 import { arrivalTarget, type ArrivalTarget } from './targets'
-import type { Pilot, Schedule, Trip } from './types'
+import type { Iata, Pilot, Schedule, Trip } from './types'
 
 export const DELAY_THRESHOLD_MIN = 15
 
@@ -24,6 +25,8 @@ export interface Snapshot {
   /** {HB}: when the next trip brings the pilot home (Home status only). */
   homecoming: ArrivalTarget | null
   driveToWork: DriveLeg | null
+  /** The jumpseat the pilot logged from home to the next trip's first airport, if it leaves before that trip does: the Home sentence's "Commuting to …". */
+  nextCommute: MoveLeg | null
   nextFlight: MoveLeg | null
   nextMove: MoveLeg | null
   /** The next drive or event arriving home ("heads home to …" at base). */
@@ -74,6 +77,7 @@ export function makeSnapshot(schedule: Schedule, legs: Leg[], t: number, baseTz:
     leave: atHome ? leaveTarget(legs, pilot, t) : null,
     homecoming: atHome ? nextTripHomecoming(legs, pilot, t) : null,
     driveToWork: atHome ? pendingDriveToWork(legs, t, nextFlight) : null,
+    nextCommute: pendingCommute(legs, pilot.effHome, t, nextFlight),
     nextFlight,
     nextMove,
     nextHomeTrip,
@@ -88,23 +92,12 @@ export function makeSnapshot(schedule: Schedule, legs: Leg[], t: number, baseTz:
 
 const NO_PILOT: Pilot = { firstName: null, base: null, home: null, effHome: null }
 
-/** Failures already logged. The screen asks for a snapshot every second, so a failure that persists is logged once, not 60 times a minute. */
-const reported = new Set<string>()
-const MAX_REPORTED = 10
-
-function reportOnce(err: unknown): void {
-  const key = err instanceof Error ? `${err.name}: ${err.message}` : `thrown ${typeof err}`
-  if (reported.has(key) || reported.size >= MAX_REPORTED) return
-  reported.add(key)
-  console.error('Status engine failed; showing "On duty"', err)
-}
-
 /** makeSnapshot that can never take the page down: an engine error shows "On duty" (spec §8). */
 export function safeSnapshot(schedule: Schedule, legs: Leg[], t: number, baseTz: string): Snapshot {
   try {
     return makeSnapshot(schedule, legs, t, baseTz)
   } catch (err) {
-    reportOnce(err)
+    reportOnce('Status engine failed; showing "On duty"', err)
     // The schedule itself may be what is broken, so read it defensively: nothing in here may throw.
     const pilot = schedule?.pilot ?? NO_PILOT
     return {
@@ -114,7 +107,7 @@ export function safeSnapshot(schedule: Schedule, legs: Leg[], t: number, baseTz:
       pilot,
       status: { kind: 'unknown', airport: null, current: null, previous: null, next: null },
       ring: null, delay: null, arrival: null, fallbackDaysRemaining: null, leave: null, homecoming: null,
-      driveToWork: null, nextFlight: null, nextMove: null, nextHomeTrip: null, lastTripDays: null,
+      driveToWork: null, nextCommute: null, nextFlight: null, nextMove: null, nextHomeTrip: null, lastTripDays: null,
       nextTripDays: null, midTripAtHome: false, daysHome: null, celebrate: false, empty: schedule?.empty ?? false,
     }
   }
@@ -154,6 +147,18 @@ function daysRemaining(trip: Trip, t: number, timeZone: string): number {
 
 function pendingDriveToWork(legs: Leg[], t: number, nextFlight: MoveLeg | null): DriveLeg | null {
   return (legs.find((l) => l.kind === 'drive' && !l.toHome && l.start > t && (!nextFlight || l.start < nextFlight.start)) as DriveLeg | undefined) ?? null
+}
+
+/**
+ * UpcomingTripInfo.swift:67-93: a standalone jumpseat from home to the trip's first airport, leaving after t and before the trip's
+ * first flight. The earliest one wins. A trip that leaves from home needs none, and none is guessed when none is logged.
+ */
+function pendingCommute(legs: Leg[], home: Iata | null, t: number, nextFlight: MoveLeg | null): MoveLeg | null {
+  if (!nextFlight || nextFlight.dep === home) return null
+  const commute = legs.find(
+    (l) => l.kind === 'jumpseat' && l.tripId == null && l.dep === home && l.arr === nextFlight.dep && l.start > t && l.start < nextFlight.start,
+  )
+  return (commute as MoveLeg | undefined) ?? null
 }
 
 const daysSince = (arrival: number | null, t: number) => (arrival == null ? null : Math.floor((t - arrival) / DAY))

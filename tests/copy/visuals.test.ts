@@ -4,6 +4,7 @@ import { demoRaw } from '../../src/data/demo'
 import { RawBuilder } from '../../src/data/rowBuilder'
 import { makeSnapshot, type Snapshot } from '../../src/engine/snapshot'
 import { testAirports } from '../fixtures/airports'
+import { alex, firstFlight, overnight, twoFlights } from '../fixtures/departures'
 import { A, at, engineFor } from '../fixtures/engine'
 
 const NY = 'America/New_York'
@@ -79,5 +80,63 @@ describe('leaveCard', () => {
     expect(leaveCard({ ...base, label: 'leavesHome', delayMin: 30 })).toEqual({ title: 'Leaves Home In', icon: 'AirplaneTakeoff', color: 'orange' })
     expect(leaveCard({ ...base, label: 'leavesHome', delayMin: -20 }).color).toBe('green')
     expect(leaveCard({ ...base, label: 'leaves', commuterUnlogged: true })).toEqual({ title: 'Leaves In', icon: 'AirplaneTakeoff', color: 'blue' })
+  })
+})
+
+describe('statusVisual in the less common states', () => {
+  it.each([
+    { name: 'in the air, left early', engine: twoFlights(-40), minutes: 400, visual: { icon: 'Package', color: 'green' } },
+    { name: 'turn, early flight', engine: twoFlights(-40), minutes: 200, visual: { icon: 'ArrowsClockwise', color: 'green' } },
+    { name: 'layover, early flight', engine: overnight(-60), minutes: 800, visual: { icon: 'Bed', color: 'green' } },
+    {
+      name: 'hot standby',
+      engine: engineFor(alex().manualEvent('h', 'HOT STANDBY', 0, 300, 'SDF').build()), minutes: 60,
+      visual: { icon: 'Lightning', color: 'orange' },
+    },
+    {
+      name: 'ground transport',
+      engine: firstFlight(0, { arr: 'LEX', number: 'GND', ground: true }), minutes: 100,
+      visual: { icon: 'Car', color: 'blue' },
+    },
+    {
+      name: 'an event titled like a drive',
+      engine: engineFor(alex().manualEvent('d', 'Drive the car home', 0, 300, 'SDF').build()), minutes: 60,
+      visual: { icon: 'Car', color: 'purple' },
+    },
+  ])('$name', ({ engine, minutes, visual }) => {
+    expect(statusVisual(snapAt(minutes, engine))).toEqual(visual)
+  })
+})
+
+describe('card colors at the 15-minute line', () => {
+  const s = snapAt(0)
+  const homecoming = (delayMin: number) => arrivalCard(s, { label: 'home', time: 0, schedTime: 0, airport: 'SDF', delayMin }, testAirports)
+  const leave = { time: 0, schedTime: 0, viaDrive: false, commuterUnlogged: false, airport: 'SDF', label: 'leavesHome' } as const
+
+  it.each([[-20, 'green'], [0, 'green'], [14, 'green'], [15, 'red'], [45, 'red']] as const)(
+    'a homecoming %i minutes off schedule is %s',
+    (delayMin, color) => expect(homecoming(delayMin).color).toBe(color),
+  )
+
+  it.each([[-30, 'green'], [-15, 'green'], [-14, 'blue'], [0, 'blue'], [14, 'blue'], [15, 'orange'], [30, 'orange']] as const)(
+    'a first flight %i minutes off schedule is %s',
+    (delayMin, color) => expect(leaveCard({ ...leave, delayMin }).color).toBe(color),
+  )
+})
+
+describe('a malformed snapshot', () => {
+  /** In flight with no flight under way: nothing the visuals read from the leg exists. */
+  const inFlightWithoutALeg: Snapshot = {
+    ...snapAt(100),
+    status: { kind: 'inFlight', airport: 'SDF', current: null, previous: null, next: null },
+  }
+
+  it('gets the plain airplane instead of throwing', () => {
+    expect(statusVisual(inFlightWithoutALeg)).toEqual({ icon: 'Airplane', color: 'blue' })
+  })
+
+  it('the Released In card borrows that visual without throwing', () => {
+    const released = { label: 'released', time: 0, schedTime: 0, airport: null, delayMin: 0 } as const
+    expect(arrivalCard(inFlightWithoutALeg, released, testAirports)).toEqual({ title: 'Released In', icon: 'Airplane', color: 'blue' })
   })
 })
