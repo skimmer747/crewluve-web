@@ -58,6 +58,11 @@ describe('buildAirportIndex', () => {
     expect(idx.get('SDF')?.state).toBe('KY')
     expect(idx.get('CGN')?.state).toBeNull()
   })
+
+  it('reads an empty seventh field as no state', () => {
+    const idx = buildAirportIndex([['SDF', 'Louisville', 'USA', 38.17, -85.74, 'America/Kentucky/Louisville', '']])
+    expect(idx.get('SDF')?.state).toBeNull()
+  })
 })
 
 describe('loadAirports', () => {
@@ -128,7 +133,11 @@ describe('generated public/data/airports.json', () => {
     expect(idx.get('ANC')?.state).toBe('AK')
     expect(idx.get('ABE')?.state).toBe('PA')
     expect(idx.get('CGN')?.state).toBeNull()
-    for (const row of rows) if (row.length === 7) expect(row[2]).toBe('USA')
+    for (const row of rows) {
+      if (row.length !== 7) continue
+      expect(row[2]).toBe('USA')
+      expect(row[6]).toMatch(/^[A-Z]{2}$/)
+    }
     expect(rows.filter((r) => r.length === 7).length).toBeGreaterThan(1500)
   })
 

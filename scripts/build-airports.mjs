@@ -40,8 +40,8 @@ const SAME_RULES_TODAY = new Map([
 ])
 const remapped = new Map()
 
-/** RFC 4180 CSV: a quoted field may hold commas, doubled quotes and line breaks. */
-function parseCsv(text) {
+/** RFC 4180 CSV: a quoted field may hold commas, doubled quotes and line breaks. `label` names the file in errors. */
+function parseCsv(text, label) {
   const rows = []
   let row = []
   let field = ''
@@ -65,6 +65,7 @@ function parseCsv(text) {
       field = ''
     } else if (c !== '\r') field += c
   }
+  if (quoted) throw new Error(`${label}: a quoted field is never closed, so the file looks cut off or damaged`)
   if (field !== '' || row.length > 0) {
     row.push(field)
     rows.push(row)
@@ -72,9 +73,10 @@ function parseCsv(text) {
   return rows
 }
 
-/** iata_code -> iso_region ("US-KY") from OurAirports' airports.csv. Closed airports are skipped; the first open one wins. */
+/** iata_code -> { region: iso_region ("US-KY"), country: iso_country ("US") } from OurAirports' airports.csv. Closed airports are skipped; the first open one wins. */
 function regionsByIata(text) {
-  const [header, ...rows] = parseCsv(text)
+  const [header, ...rows] = parseCsv(text, regionsSource)
+  if (!header) throw new Error(`${regionsSource} has no header row`)
   const column = (name) => {
     const i = header.indexOf(name)
     if (i < 0) throw new Error(`${regionsSource} has no ${name} column`)
@@ -82,16 +84,34 @@ function regionsByIata(text) {
   }
   const iataAt = column('iata_code')
   const regionAt = column('iso_region')
+  const countryAt = column('iso_country')
   const typeAt = column('type')
   const regions = new Map()
-  for (const row of rows) {
+  for (const [i, row] of rows.entries()) {
+    if (row.length !== header.length) {
+      // The header is record 1, so the first airport is record 2.
+      throw new Error(`${regionsSource}: record ${i + 2} has ${row.length} fields but the header has ${header.length} (the header is record 1)`)
+    }
     const iata = String(row[iataAt] ?? '').trim().toUpperCase()
     if (!iata || row[typeAt] === 'closed' || regions.has(iata)) continue
-    regions.set(iata, String(row[regionAt] ?? ''))
+    regions.set(iata, { region: String(row[regionAt] ?? ''), country: String(row[countryAt] ?? '') })
   }
   return regions
 }
-const regions = regionsByIata(readFileSync(regionsSource, 'utf8'))
+
+/** OurAirports' airports.csv as text, or an error that says what the file should be and how to point at another one. */
+function readRegionsSource() {
+  try {
+    return readFileSync(regionsSource, 'utf8')
+  } catch (error) {
+    throw new Error(
+      `can't read ${regionsSource} (${error.code ?? error.message}). It should be a copy of OurAirports' ` +
+        `https://davidmegginson.github.io/ourairports-data/airports.csv; the Flight Globe keeps one at ` +
+        `scripts/ourairports.csv. Set AIRPORTS_REGIONS_SOURCE to read it from elsewhere.`,
+    )
+  }
+}
+const regions = regionsByIata(readRegionsSource())
 
 const longRegionNames = new Intl.DisplayNames(['en'], { type: 'region' })
 const shortRegionNames = new Intl.DisplayNames(['en'], { type: 'region', style: 'short' })
@@ -139,12 +159,12 @@ const APP_STATE = new Map([
 /** The app's state for the few airports in APP_STATE, else "KY" for a US airport whose OurAirports region is "US-KY"; null for anything else. */
 function usState(iata, country) {
   if (country !== 'USA') return null
-  return APP_STATE.get(iata) ?? /^US-([A-Z]{2})$/.exec(regions.get(iata) ?? '')?.[1] ?? null
+  return APP_STATE.get(iata) ?? /^US-([A-Z]{2})$/.exec(regions.get(iata)?.region ?? '')?.[1] ?? null
 }
 
 const skipped = { 'bad code': 0, duplicate: 0, 'bad coordinates': 0, 'no zone': 0 }
 const inRange = (n, limit) => Number.isFinite(n) && Math.abs(n) <= limit
-let withoutState = 0
+const withoutState = []
 
 const seen = new Set()
 const out = []
@@ -173,17 +193,34 @@ for (const r of JSON.parse(readFileSync(source, 'utf8'))) {
   const round = (n) => Math.round(n * 1e4) / 1e4
   const country = countryName(r.country)
   const state = usState(iata, country)
-  if (country === 'USA' && !state) withoutState++
+  if (country === 'USA' && !state) withoutState.push(iata)
   const row = [iata, String(r.city || iata), country, round(r.lat), round(r.lng), tz]
   if (state) row.push(state)
   out.push(row)
 }
 out.sort((a, b) => (a[0] < b[0] ? -1 : 1))
+
+// One country must not read two ways. OurAirports' iso_country says which airports share a country, so this catches a
+// spelling that APP_SPELLING doesn't cover yet. The check is per code: "China" for both CN and HK is fine.
+const namesByCode = new Map()
+for (const [iata, , country] of out) {
+  const code = regions.get(iata)?.country
+  if (!code) continue
+  if (!namesByCode.has(code)) namesByCode.set(code, new Set())
+  namesByCode.get(code).add(country)
+}
+const split = [...namesByCode].filter(([, names]) => names.size > 1)
+if (split.length > 0) {
+  const list = split.map(([code, names]) => `${code} ${[...names].join(' / ')}`).join('; ')
+  throw new Error(`a country would read two ways: ${list}. Add the Crewluve app's spelling to APP_SPELLING in scripts/build-airports.mjs.`)
+}
+
 mkdirSync(dirname(outFile), { recursive: true })
 writeFileSync(outFile, JSON.stringify(out))
 console.log(`wrote ${out.length} airports to ${outFile}`)
 console.log(`skipped: ${Object.entries(skipped).map(([reason, n]) => `${n} ${reason}`).join(', ')}`)
-console.log(`US airports without a state: ${withoutState}`)
+console.log(`ICU ${process.versions.icu}`)
+console.log(`US airports without a state: ${withoutState.length}${withoutState.length > 0 ? ` [${withoutState.join(', ')}]` : ''}`)
 const summarize = (names) =>
   [...remapped]
     .filter(([from]) => names.has(from))

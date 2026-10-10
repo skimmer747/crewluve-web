@@ -26,6 +26,7 @@ python3 -I scripts/make-icons.py   # public/icons/*.png (reads ../Crewluv)
 
 `npm run airports` expects the CrewLu Flight Globe checkout next to this repo (`../crewlu-globe`).
 To read its `airports.json` from somewhere else, set `AIRPORTS_SOURCE=/path/to/airports.json`.
+It also reads OurAirports' `airports.csv` (for US state codes and to check country names) from `../crewlu-globe/scripts/ourairports.csv`, which the globe downloads, or from `AIRPORTS_REGIONS_SOURCE=/path/to/airports.csv`.
 
 `make-icons.py` expects the Crewluv app checkout next to this repo (`../Crewluv`), for its heart artwork.
 To read the artwork from somewhere else, set `CREWLUVE_ICON_ART=/path/to/Heart icon.png`.

@@ -29,7 +29,7 @@ export function buildAirportIndex(rows: AirportTuple[]): AirportIndex {
   for (const [iata, city, country, lat, lng, tz, state] of rows) {
     const code = clean(iata)
     if (!code) continue
-    map.set(code, { iata: code, city, country, state: state ?? null, lat, lng, tz })
+    map.set(code, { iata: code, city, country, state: state || null, lat, lng, tz })
   }
   return {
     get: (code) => map.get(clean(code)),
