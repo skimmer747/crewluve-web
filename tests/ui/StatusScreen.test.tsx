@@ -51,7 +51,7 @@ describe('StatusScreen', () => {
     // Screen readers hear the countdown in words, not "50m".
     expect(container.querySelector('.narrative-text .sr-only')!.textContent).toBe('50 minutes')
     expect(screen.getByRole('timer').getAttribute('aria-label')).toBe('1 day, 7 hours, 40 minutes')
-    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('Back Home In')
+    expect(screen.getByRole('heading', { level: 2, name: 'Back Home In' })).toBeTruthy()
     expect(container.querySelector('.countdown-value')!.textContent).toBe('1d  07h  40m')
     expect(container.querySelector('.countdown-sub')!.textContent).toBe('Sat, Oct 10 at 2:50\u202FPM · Lexington')
   })
@@ -94,7 +94,7 @@ describe('StatusScreen pieces', () => {
 
   it('falls back to the ~N days card when no arrival can be worked out, and to nothing without a fallback', () => {
     const { container, rerender } = renderAt(100, { ...away(), arrival: null, fallbackDaysRemaining: 2 })
-    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('Back Home In')
+    expect(screen.getByRole('heading', { level: 2, name: 'Back Home In' })).toBeTruthy()
     expect(container.querySelector('.countdown-value')!.textContent).toBe('~2 days')
     rerender(screenAt(100, { ...away(), arrival: null, fallbackDaysRemaining: null }))
     expect(container.querySelector('.countdown')).toBeNull()
@@ -150,5 +150,34 @@ describe('EmptyState', () => {
     render(<EmptyState />)
     expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('No schedule in CrewLu Cloud yet')
     expect(screen.getByText('Ask your pilot to turn on CrewLu Cloud in the Crewlu app and sync once, then refresh this page.')).toBeTruthy()
+  })
+})
+
+describe('StatusScreen trip cards (slice 2A)', () => {
+  it('home: the upcoming trip card sits after the been-home pill, before the footer', () => {
+    const { container } = renderAt(-1440)
+    const card = container.querySelector('.trip-card')!
+    expect(screen.getByText('Departs tomorrow at 6:30am')).toBeTruthy()
+    expect(container.querySelector('.pill')!.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(card.compareDocumentPosition(container.querySelector('.footer')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.queryByText(/^Day \d+ of \d+$/)).toBeNull()
+  })
+
+  it('away: Day N of M with the cities ahead, and no upcoming trip card', () => {
+    const { container } = renderAt(100)
+    expect(screen.getByRole('heading', { level: 2, name: 'Day 1 of 2' })).toBeTruthy()
+    expect([...container.querySelectorAll('.city-name')].map((n) => n.textContent)).toEqual(['Anchorage', 'Louisville'])
+    expect(screen.queryByText('Line Trip')).toBeNull()
+  })
+
+  it('base: the countdown and the upcoming trip together', () => {
+    const { container } = renderAt(30)
+    expect(container.querySelector('.countdown')).not.toBeNull()
+    expect(screen.getByText('Line Trip')).toBeTruthy()
+  })
+
+  it('shows neither card when the snapshot has none', () => {
+    const { container } = renderAt(1950)
+    expect(container.querySelector('.trip-card')).toBeNull()
   })
 })

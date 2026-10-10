@@ -30,7 +30,7 @@ describe('ScheduleScreen', () => {
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe("Where's Alex?")
     expect(screen.getByText('Demo — sample pilot')).toBeTruthy()
     expect(screen.getByText(/was delayed in/)).toBeTruthy()
-    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('Back Home In')
+    expect(screen.getByRole('heading', { level: 2, name: 'Back Home In' })).toBeTruthy()
     expect(screen.getByText('Checked just now')).toBeTruthy()
   })
 

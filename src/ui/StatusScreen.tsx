@@ -10,6 +10,8 @@ import { FallbackCard } from './FallbackCard'
 import { Footer, type FooterProps } from './Footer'
 import { NarrativeCard } from './NarrativeCard'
 import { Title, titleFor } from './Title'
+import { TripProgressCard } from './TripProgressCard'
+import { UpcomingTripCard } from './UpcomingTripCard'
 
 export interface StatusScreenProps {
   snap: Snapshot
@@ -24,7 +26,7 @@ export interface StatusScreenProps {
   footer: FooterProps
 }
 
-/** The top of Crewluve's main screen, in its card order (spec §4.4). */
+/** The top of Crewluve's main screen, in its card order (spec §4.4; the trip cards, slice 2A §3). */
 export function StatusScreen(p: StatusScreenProps) {
   const { snap } = p
   const spans = safeNarrative(snap, { now: p.now, viewerTz: p.viewerTz, h24: p.h24, airports: p.airports })
@@ -34,6 +36,10 @@ export function StatusScreen(p: StatusScreenProps) {
       {p.demo && <DemoBanner />}
       <NarrativeCard spans={spans} visual={statusVisual(snap)} ring={snap.ring} />
       {snap.status.kind === 'home' ? <HomeCards {...p} /> : <AwayCard {...p} />}
+      {snap.upcomingTrip && (
+        <UpcomingTripCard trip={snap.upcomingTrip} now={p.now} timeZone={p.homeTz} h24={p.h24} airports={p.airports} />
+      )}
+      {snap.tripProgress && <TripProgressCard progress={snap.tripProgress} airports={p.airports} />}
       <Footer {...p.footer} />
     </main>
   )
