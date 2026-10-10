@@ -7562,7 +7562,9 @@ The dev server runs without the CSP, so check the built site. That's what GitHub
 
 Show the user the `flying`, `layover`, `last-leg`, `home` and sign-in screenshots next to the app screenshots. Ask whether anything looks off. Expect a round or two of nudges (brightness, spacing). Apply each in `tokens.css` or `cards.css`, re-screenshot, and show them again.
 
-- [ ] **Step 7: Real data, with the user**
+- [x] **Step 7: Real data, with the user**
+
+Done 2026-10-09: the user signed in themselves and confirmed the sentence, countdown and footer match their schedule. The console had no errors, only Chrome's hint that the `airports.json` preload sat unused while the sign-in screen was up. The only requests to CrewLu Cloud were the sign-in and reads of the nine tables.
 
 Ask the user to sign in at `http://localhost:5181/` in the browser pane, typing their own CrewLu Cloud email and password. **Never type credentials for them.**
 
