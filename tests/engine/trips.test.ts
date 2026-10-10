@@ -238,6 +238,17 @@ describe('tripProgress', () => {
     expect(tripProgress(schedule, legs, at(3500), NY)).toBeNull()
   })
 
+  it('stays on while a late last flight is still in the air after the stored release time', () => {
+    const { schedule, legs } = engineOf(
+      alex().trip('t1', {
+        days: 1,
+        dutyPeriods: [{ start: 0, end: 330, flights: [{ dep: 'SDF', arr: 'ANC', out: 60, in: 300, actualOut: 120, actualIn: 360 }] }],
+      }),
+    )
+    expect(tripProgress(schedule, legs, at(345), NY)).not.toBeNull()
+    expect(tripProgress(schedule, legs, at(360), NY)).toBeNull()
+  })
+
   it('counts the length in calendar days when trips.days is 0', () => {
     const b = alex().trip('t1', {
       days: 0,

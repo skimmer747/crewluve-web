@@ -72,12 +72,20 @@ export interface TripProgress {
   upcoming: Iata[]
 }
 
+/** trips.end_date, or later while the trip's last visible flight runs late: Duty keeps the release time when flights move (slice 2A §3). */
+function tripEnd(trip: Trip): number {
+  let end = trip.end
+  for (const dp of trip.dutyPeriods) for (const f of dp.flights) if (f.end > end) end = f.end
+  return end
+}
+
 /**
  * calculateTripOverview on CrewLu Cloud data: the trip covering t, its day number and length, and the airports its
- * remaining flights land at. Covering means start ≤ t < end, the same test slice 1 uses for an all-hidden trip.
+ * remaining flights land at. Covering means start ≤ t < end, where end is trips.end_date or, when later, the last
+ * flight's landing.
  */
 export function tripProgress(schedule: Schedule, legs: Leg[], t: number, baseTz: string): TripProgress | null {
-  const trip = schedule.trips.find((tr) => tr.start <= t && t < tr.end)
+  const trip = schedule.trips.find((tr) => tr.start <= t && t < tripEnd(tr))
   if (!trip) return null
   const upcoming: Iata[] = []
   for (const l of legs) {
