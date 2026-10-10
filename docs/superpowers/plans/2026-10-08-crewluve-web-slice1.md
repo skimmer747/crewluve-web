@@ -198,11 +198,11 @@ Tasks 1–21 are done on branch `slice1` and passed both reviews. Review fixes c
 **From Task 32, the polish batch and the final review:**
 
 - **Task 32 (visual check).** Countdown at `18cqi` (52 px on 375+ px iPhones). Production CSP without `'unsafe-inline'`. A `crewluve-preview` launch entry on port 5181. The user signed off on the side-by-side screenshots. The real-data sign-in (Step 7) is the user's to do.
-- **Polish (`9fbb98e`):**
+- **Polish (`53d904f`):**
   - Spoken countdowns: `spokenDuration()`, the timer's `aria-label`, and `.sr-only` phrases in the sentence.
   - `readOnlyFetch` allows only the project host and the nine `COLUMNS` tables.
   - `nextCommute` is home-only.
-- **Final review (`fce953a` and after):**
+- **Final review (`3342cdc` and after):**
   - `signOut` always removes the stored session, and Root clears the cache before the sign-out request.
   - The workflow's Pages permissions live on the deploy job only.
   - DEPLOY.md sets the custom domain before DNS.
@@ -822,7 +822,7 @@ const require = createRequire(import.meta.url)
 const { find } = require('geo-tz')
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const source = process.env.AIRPORTS_SOURCE ?? '~/Dev/crewlu-globe/public/data/airports.json'
+const source = process.env.AIRPORTS_SOURCE ?? resolve(root, '../crewlu-globe/public/data/airports.json')
 const outFile = resolve(root, 'public/data/airports.json')
 
 const seen = new Set()
@@ -5108,7 +5108,7 @@ from pathlib import Path
 
 from PIL import Image
 
-ART = Path('~/Dev/Crewluv/CrewluveIcon.icon/Assets/Heart icon.png')
+ART = Path(__file__).resolve().parents[2] / 'Crewluv' / 'CrewluveIcon.icon' / 'Assets' / 'Heart icon.png'  # the Crewluv checkout next to this repo
 OUT = Path(__file__).resolve().parent.parent / 'public' / 'icons'
 SIZE = 1024
 BLUE = (106, 191, 255)  # icon.json display-p3 (0.417, 0.749, 1.0), approximated in sRGB

@@ -699,7 +699,7 @@ airports.json ───────────────────┤
 
 ### 7.4 Airport dataset
 
-- `scripts/build-airports.mjs` reads the globe's generated list, `~/Dev/crewlu-globe/public/data/airports.json` (9,056 unique entries `{iata, lat, lng, city, country}`). That list's city names already come from Crewlu's airport data, which wins over OurAirports. Verified: SDF Louisville, CGN Cologne, BLR Bangalore.
+- `scripts/build-airports.mjs` reads the globe's generated list from the crewlu-globe checkout next to this repo, `../crewlu-globe/public/data/airports.json` (9,056 unique entries `{iata, lat, lng, city, country}`). That list's city names already come from Crewlu's airport data, which wins over OurAirports. Verified: SDF Louisville, CGN Cologne, BLR Bangalore.
 - It adds an IANA zone per airport from lat/lng using **`geo-tz`** (MIT; boundaries from timezone-boundary-builder, ODbL).
   - geo-tz is accurate near zone borders, where `tz-lookup` isn't.
   - It uses geo-tz's **full dataset** (`geo-tz/all`). The default dataset merges zones that have shared rules since 1970. For example, it puts Papeete in Pacific/Honolulu ("HST") and La Paz in America/Puerto_Rico ("AST").
