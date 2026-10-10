@@ -32,10 +32,23 @@ describe('upcomingCityPills', () => {
     const odd = buildAirportIndex([['ZZV', 'Zanesville', 'USA', 39.94, -81.89, 'America/New_York']])
     expect(upcomingCityPills(['ZZV'], odd)).toEqual([{ city: 'Zanesville', subtitle: 'USA' }])
   })
+
+  it('keeps the order the flights land in', () => {
+    expect(upcomingCityPills(['SDF', 'ANC'], testAirports).map((p) => p.city)).toEqual(['Louisville', 'Anchorage'])
+  })
+
+  it('has no subtitle for an airport with neither state nor country', () => {
+    const blank = buildAirportIndex([['ZZZ', 'Nowhere', '', 0, 0, 'UTC']])
+    expect(upcomingCityPills(['ZZZ'], blank)).toEqual([{ city: 'Nowhere', subtitle: null }])
+  })
 })
 
 describe('routeLabel', () => {
   it('reads the route as city names, and codes for unknown airports', () => {
     expect(routeLabel(['SDF', 'RFD', 'XYZ'], testAirports)).toBe('Route: Louisville, Rockford, XYZ')
+  })
+
+  it('keeps the route in flight order', () => {
+    expect(routeLabel(['SDF', 'ANC', 'RFD'], testAirports)).toBe('Route: Louisville, Anchorage, Rockford')
   })
 })
