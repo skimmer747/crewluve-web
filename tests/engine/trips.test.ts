@@ -14,6 +14,17 @@ function engineOf(b: RawBuilder) {
 }
 const alex = () => new RawBuilder(A).pilot('Alex', 'SDF', 'LEX')
 const pat = () => new RawBuilder(A).pilot('Pat', 'SDF', 'MCO')
+/** Sat 10 Oct: SDF→RFD→SDF; Sun 11 Oct: SDF→ANC. Two days, with the pilot back at SDF overnight in between. */
+const twoDayTrip = () =>
+  engineOf(
+    alex().trip('t1', {
+      days: 2,
+      dutyPeriods: [
+        { start: 1440, end: 2000, flights: [{ dep: 'SDF', arr: 'RFD', out: 1500, in: 1590 }, { dep: 'RFD', arr: 'SDF', out: 1650, in: 1740 }] },
+        { start: 3000, end: 3500, flights: [{ dep: 'SDF', arr: 'ANC', out: 3060, in: 3360 }] },
+      ],
+    }),
+  )
 
 describe('tripDayNumber', () => {
   /** Fri 9 Oct 5:30am to Mon 12 Oct 10:00pm EDT: four calendar days in New York. */
@@ -102,6 +113,11 @@ describe('upcomingTrip', () => {
     expect(upcomingTrip(schedule, legs, at(0), NY, none)?.route).toEqual(['SDF', 'RFD', 'ANC', 'ONT', 'HNL', 'MIA'])
   })
 
+  it('leaves out flights already flown, as when home or at base overnight mid-trip', () => {
+    const { schedule, legs } = twoDayTrip()
+    expect(upcomingTrip(schedule, legs, at(2400), NY, none)?.route).toEqual(['SDF', 'ANC'])
+  })
+
   it('starts from home, and leaves when the commute jumpseat does, when one was logged', () => {
     const { schedule, legs } = engineOf(withTrip(pat()).jumpseat('js1', 'MCO', 'SDF', 1300, 1420))
     const commute = legs.find((l) => l.id === 'js1') as MoveLeg
@@ -188,6 +204,14 @@ describe('tripProgress', () => {
     const { schedule, legs } = threeDayTrip()
     expect(tripProgress(schedule, legs, at(1000), NY)).toBeNull()
     expect(tripProgress(schedule, legs, at(3600), NY)).toBeNull()
+  })
+
+  it('covers the trip from its first minute up to, but not including, its end', () => {
+    const { schedule, legs } = twoDayTrip()
+    expect(tripProgress(schedule, legs, at(1439), NY)).toBeNull()
+    expect(tripProgress(schedule, legs, at(1440), NY)).not.toBeNull()
+    expect(tripProgress(schedule, legs, at(3499), NY)).not.toBeNull()
+    expect(tripProgress(schedule, legs, at(3500), NY)).toBeNull()
   })
 
   it('counts the length in calendar days when trips.days is 0', () => {
