@@ -1,9 +1,10 @@
 import { reportOnce } from '../reportOnce'
-import { calendarDay, DAY, MINUTE } from '../time/zoned'
+import { DAY, MINUTE } from '../time/zoned'
 import { lastHomeArrival, leaveTarget, nextTripFlight, nextTripHomecoming, type LeaveTarget } from './home'
 import { isDuty, isHomecomingMove, isMove, type DriveLeg, type DutyLeg, type Leg, type MoveLeg } from './legs'
 import { resolveStatus, type Status } from './status'
 import { arrivalTarget, type ArrivalTarget } from './targets'
+import { tripDayNumber, tripDays } from './trips'
 import type { Iata, Pilot, Schedule, Trip } from './types'
 
 export const DELAY_THRESHOLD_MIN = 15
@@ -39,10 +40,8 @@ export interface Snapshot {
   empty: boolean
 }
 
-/** Trip length in days: trips.days when it is above 0 (Duty writes 0 for a trip under 24 hours), else the inclusive calendar-day count in `timeZone`. */
-export function tripDays(trip: Trip, timeZone: string): number {
-  return trip.days != null && trip.days > 0 ? trip.days : calendarDay(trip.end, timeZone) - calendarDay(trip.start, timeZone) + 1
-}
+// Kept here too, so existing imports of tripDays from the snapshot module keep working.
+export { tripDays }
 
 /** Everything the screen needs at time t. `legs` must come from buildLegs(schedule). */
 export function makeSnapshot(schedule: Schedule, legs: Leg[], t: number, baseTz: string): Snapshot {
@@ -140,9 +139,7 @@ function flightlessTrip(schedule: Schedule, legs: Leg[], t: number): Trip | null
 
 /** EstimatedReturnCardView: max(total days − day number, 0), counting days in the base's zone. */
 function daysRemaining(trip: Trip, t: number, timeZone: string): number {
-  const total = tripDays(trip, timeZone)
-  const dayNumber = Math.min(calendarDay(t, timeZone) - calendarDay(trip.start, timeZone) + 1, total)
-  return Math.max(total - dayNumber, 0)
+  return Math.max(tripDays(trip, timeZone) - tripDayNumber(trip, t, timeZone), 0)
 }
 
 /**
