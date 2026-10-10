@@ -5,6 +5,7 @@ import { DEMO_SCENES, demoRawForScene, type DemoScene } from '../../src/data/dem
 import { buildLegs } from '../../src/engine/legs'
 import { buildSchedule } from '../../src/engine/normalize'
 import { makeSnapshot } from '../../src/engine/snapshot'
+import type { TripProgress, UpcomingTrip } from '../../src/engine/trips'
 import type { StatusKind } from '../../src/engine/status'
 import { testAirports } from '../fixtures/airports'
 
@@ -54,5 +55,33 @@ describe('demo scenes', () => {
     const snap = sceneSnapshot('home')
     expect(snap.leave?.viaDrive).toBe(true)
     expect(snap.daysHome).toBe(3)
+  })
+})
+
+describe('demo trip cards (slice 2A)', () => {
+  const MIN = 60_000
+  const route = ['SDF', 'RFD', 'ANC']
+  const CARDS: Record<DemoScene, { upcoming?: Partial<UpcomingTrip>; progress?: Partial<TripProgress> }> = {
+    home: { upcoming: { route, days: 2, departs: NOW + 1500 * MIN } },
+    'driving-to-work': {},
+    base: { upcoming: { route, days: 2, departs: NOW + 30 * MIN } },
+    flying: { progress: { day: 1, days: 2, upcoming: ['ANC', 'SDF'] } },
+    turn: { progress: { day: 1, days: 2, upcoming: ['ANC', 'SDF'] } },
+    layover: { progress: { day: 2, days: 2, upcoming: ['SDF'] } },
+    delayed: { progress: { day: 2, days: 2, upcoming: ['SDF'] } },
+    'last-leg': { progress: { day: 2, days: 2, upcoming: [] } },
+    'driving-home': {},
+    'commuting-home': {},
+    reserve: {},
+    training: {},
+  }
+
+  it.each(Object.keys(CARDS) as DemoScene[])('%s shows the right trip card', (scene) => {
+    const snap = sceneSnapshot(scene)
+    const want = CARDS[scene]
+    if (want.upcoming) expect(snap.upcomingTrip).toMatchObject(want.upcoming)
+    else expect(snap.upcomingTrip).toBeNull()
+    if (want.progress) expect(snap.tripProgress).toMatchObject(want.progress)
+    else expect(snap.tripProgress).toBeNull()
   })
 })
