@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 // These read the stylesheets as text. They pin what the spec fixes (the §4.1 colors) and the lines that keep
@@ -10,6 +10,9 @@ interface Block {
   /** The raw text between the braces. */
   body: string
 }
+
+/** Every stylesheet in src/styles, by name without ".css", so a new file is checked without editing these tests. */
+const STYLESHEETS = readdirSync(new URL('../../src/styles/', import.meta.url)).filter((f) => f.endsWith('.css')).map((f) => f.slice(0, -4))
 
 /** A stylesheet's text, comments removed. */
 const css = (name: string) => readFileSync(new URL(`../../src/styles/${name}.css`, import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
@@ -123,7 +126,7 @@ describe('cards.css', () => {
 
   it('puts a plain font-size before each container-unit font-size in the same rule, for browsers without cqi', () => {
     const CONTAINER_UNIT = /\dcq(?:w|h|i|b|min|max)\b/
-    const sized = rulesIn(css('cards')).filter((r) => declarations(r.body).some(([prop, value]) => prop === 'font-size' && CONTAINER_UNIT.test(value)))
+    const sized = STYLESHEETS.flatMap((name) => rulesIn(css(name))).filter((r) => declarations(r.body).some(([prop, value]) => prop === 'font-size' && CONTAINER_UNIT.test(value)))
     expect(sized.map((r) => r.head)).toEqual(expect.arrayContaining(['.countdown-value .num', '.countdown-value .unit']))
     for (const r of sized) {
       const sizes = declarations(r.body)
@@ -139,7 +142,7 @@ describe('cards.css', () => {
 describe('full-height blocks', () => {
   it('follow each min-height: 100vh with min-height: 100dvh, so the iOS toolbar does not push content off screen', () => {
     let pairs = 0
-    for (const name of ['tokens', 'base', 'cards', 'trips']) {
+    for (const name of STYLESHEETS) {
       for (const r of rulesIn(css(name))) {
         const lines = declarations(r.body).map(([prop, value]) => `${prop}: ${value}`)
         lines.forEach((line, i) => {
@@ -152,5 +155,13 @@ describe('full-height blocks', () => {
       }
     }
     expect(pairs).toBeGreaterThanOrEqual(2) // the page body (base.css) and the sign-in screen (cards.css)
+  })
+})
+
+describe('main.tsx', () => {
+  it('imports every stylesheet in src/styles, so none can ship missing', () => {
+    const main = readFileSync(new URL('../../src/main.tsx', import.meta.url), 'utf8')
+    expect(STYLESHEETS.length).toBeGreaterThanOrEqual(4)
+    for (const name of STYLESHEETS) expect(main, `${name}.css is not imported by src/main.tsx`).toContain(`import './styles/${name}.css'`)
   })
 })

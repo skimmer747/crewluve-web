@@ -81,7 +81,7 @@ export interface BadgeVisual extends Visual {
 }
 
 /** The upcoming trip card's type badge. CrewLu Cloud data only ever makes a line trip (UpcomingTripCard.typeBadge; slice 2A §4). */
-export const LINE_TRIP_BADGE: BadgeVisual = { label: 'Line Trip', icon: 'Airplane', color: 'blue' }
+export const LINE_TRIP_BADGE: Readonly<BadgeVisual> = { label: 'Line Trip', icon: 'Airplane', color: 'blue' }
 
 /** The upcoming trip card's delay badge: "Delayed" in orange, or "Early" in green (UpcomingTripCard.delayBadge). */
 export function delayBadge(minutes: number): BadgeVisual {
