@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 import { cleanup, render, screen } from '@testing-library/preact'
 import { afterEach, describe, expect, it } from 'vitest'
-import type { UpcomingTrip } from '../../src/engine/trips'
+import type { TripProgress, UpcomingTrip } from '../../src/engine/trips'
+import { TripProgressCard } from '../../src/ui/TripProgressCard'
 import { UpcomingTripCard } from '../../src/ui/UpcomingTripCard'
 import { testAirports } from '../fixtures/airports'
 
@@ -52,5 +53,41 @@ describe('UpcomingTripCard', () => {
     render(card(trip({ days: 1 }), true))
     expect(screen.getByText('1 day')).toBeTruthy()
     expect(screen.getByText('Departs tomorrow at 06:30')).toBeTruthy()
+  })
+})
+
+describe('TripProgressCard', () => {
+  const progress = (over: Partial<TripProgress> = {}): TripProgress => ({
+    tripId: 't1',
+    day: 1,
+    days: 2,
+    upcoming: ['ANC', 'CGN', 'SDF', 'MIA'],
+    ...over,
+  })
+
+  it('heads the card with Day N of M, and fills the bar to match', () => {
+    const { container } = render(<TripProgressCard progress={progress()} airports={testAirports} />)
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('Day 1 of 2')
+    expect((container.querySelector('.trip-bar-fill') as HTMLElement).style.width).toBe('50%')
+    expect(container.querySelector('.trip-bar')!.getAttribute('aria-hidden')).toBe('true')
+  })
+
+  it('lists up to three upcoming cities as pills, cycling the color blends', () => {
+    const { container } = render(<TripProgressCard progress={progress()} airports={testAirports} />)
+    expect(screen.getByText('Upcoming Cities')).toBeTruthy()
+    const pills = [...container.querySelectorAll('.city-pills > li')]
+    expect(pills.map((li) => [li.querySelector('.city-name')!.textContent, li.querySelector('.city-sub')?.textContent ?? null])).toEqual([
+      ['Anchorage', 'AK'],
+      ['Cologne', 'Germany'],
+      ['Louisville', 'KY'],
+    ])
+    expect(pills.map((li) => li.className)).toEqual(['city-pill blend-0', 'city-pill blend-1', 'city-pill blend-2'])
+  })
+
+  it('leaves out the cities when no flights remain', () => {
+    const { container } = render(<TripProgressCard progress={progress({ day: 2, upcoming: [] })} airports={testAirports} />)
+    expect(screen.queryByText('Upcoming Cities')).toBeNull()
+    expect(container.querySelector('.city-pills')).toBeNull()
+    expect((container.querySelector('.trip-bar-fill') as HTMLElement).style.width).toBe('100%')
   })
 })
