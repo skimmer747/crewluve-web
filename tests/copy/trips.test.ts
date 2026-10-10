@@ -35,6 +35,17 @@ describe('upcomingCityPills', () => {
     ])
   })
 
+  it('keeps different cities in the same state apart', () => {
+    expect(upcomingCityPills(['SDF', 'LEX'], testAirports)).toEqual([
+      { city: 'Louisville', subtitle: 'KY' },
+      { city: 'Lexington', subtitle: 'KY' },
+    ])
+  })
+
+  it('keeps two different unknown airports apart', () => {
+    expect(upcomingCityPills(['XYZ', 'ABC'], testAirports).map((p) => p.city)).toEqual(['XYZ', 'ABC'])
+  })
+
   it('shows an unknown airport as its code, with no subtitle', () => {
     expect(upcomingCityPills(['XYZ'], testAirports)).toEqual([{ city: 'XYZ', subtitle: null }])
   })
