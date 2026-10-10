@@ -24,6 +24,17 @@ describe('upcomingCityPills', () => {
     expect(upcomingCityPills(['JFK', 'LGA'], nyc)).toEqual([{ city: 'New York', subtitle: 'NY' }])
   })
 
+  it('keeps two different cities that share a name apart', () => {
+    const portlands = buildAirportIndex([
+      ['PDX', 'Portland', 'USA', 45.59, -122.6, 'America/Los_Angeles', 'OR'],
+      ['PWM', 'Portland', 'USA', 43.65, -70.31, 'America/New_York', 'ME'],
+    ])
+    expect(upcomingCityPills(['PDX', 'PWM'], portlands)).toEqual([
+      { city: 'Portland', subtitle: 'OR' },
+      { city: 'Portland', subtitle: 'ME' },
+    ])
+  })
+
   it('shows an unknown airport as its code, with no subtitle', () => {
     expect(upcomingCityPills(['XYZ'], testAirports)).toEqual([{ city: 'XYZ', subtitle: null }])
   })

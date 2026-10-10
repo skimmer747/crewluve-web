@@ -23,7 +23,7 @@ export function TripProgressCard({ progress, airports }: { progress: TripProgres
           <p class="cities-label">Upcoming Cities</p>
           <ul class="city-pills">
             {pills.map((pill, i) => (
-              <li key={pill.city} class={`city-pill blend-${i % PILL_BLENDS}`}>
+              <li key={`${pill.city}|${pill.subtitle ?? ''}`} class={`city-pill blend-${i % PILL_BLENDS}`}>
                 <span class="city-name">{pill.city}</span>
                 {pill.subtitle && <span class="city-sub">{pill.subtitle}</span>}
               </li>

@@ -196,6 +196,11 @@ describe('tripCardDepartsText', () => {
     expect(tripCardDepartsText(Date.UTC(2026, 9, 13, 15, 32), now, NY, false)).toBe('Departs Tue Oct 13 at 11:32am')
   })
 
+  it('keeps the date on a past day, and writes a single-digit day without padding', () => {
+    expect(tripCardDepartsText(Date.UTC(2026, 9, 7, 15, 0), now, NY, false)).toBe('Departs Wed Oct 7 at 11:00am') // a past day keeps its date, as the app does
+    expect(tripCardDepartsText(Date.UTC(2026, 10, 3, 15, 0), now, NY, false)).toBe('Departs Tue Nov 3 at 10:00am') // single-digit day, next month, after DST ends
+  })
+
   it('dates a later departure in the given zone, not UTC', () => {
     expect(tripCardDepartsText(Date.UTC(2026, 9, 14, 1, 30), now, NY, false)).toBe('Departs Tue Oct 13 at 9:30pm')
     // 9:30pm Tue 13 Oct in Honolulu is already Wed 14 Oct in both UTC and New York.
