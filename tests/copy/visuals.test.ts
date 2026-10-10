@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { arrivalCard, leaveCard, statusVisual } from '../../src/copy/visuals'
+import { arrivalCard, delayBadge, LINE_TRIP_BADGE, leaveCard, statusVisual } from '../../src/copy/visuals'
 import { demoRaw } from '../../src/data/demo'
 import { RawBuilder } from '../../src/data/rowBuilder'
 import { makeSnapshot, type Snapshot } from '../../src/engine/snapshot'
@@ -138,5 +138,16 @@ describe('a malformed snapshot', () => {
   it('the Released In card borrows that visual without throwing', () => {
     const released = { label: 'released', time: 0, schedTime: 0, airport: null, delayMin: 0 } as const
     expect(arrivalCard(inFlightWithoutALeg, released, testAirports)).toEqual({ title: 'Released In', icon: 'Airplane', color: 'blue' })
+  })
+})
+
+describe('trip card badges (slice 2A)', () => {
+  it('Line Trip is a blue airplane badge', () => {
+    expect(LINE_TRIP_BADGE).toEqual({ label: 'Line Trip', icon: 'Airplane', color: 'blue' })
+  })
+
+  it('a late departure reads Delayed in orange, an early one Early in green', () => {
+    expect(delayBadge(40)).toEqual({ label: 'Delayed', icon: 'ClockCountdown', color: 'orange' })
+    expect(delayBadge(-20)).toEqual({ label: 'Early', icon: 'Clock', color: 'green' })
   })
 })

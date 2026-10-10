@@ -1,8 +1,10 @@
 import { Fragment } from 'preact'
 import { daysText, tripCardDepartsText } from '../copy/format'
 import { routeLabel } from '../copy/trips'
+import { delayBadge, LINE_TRIP_BADGE, type BadgeVisual } from '../copy/visuals'
 import type { AirportIndex } from '../data/airports'
 import type { UpcomingTrip } from '../engine/trips'
+import { cssColor } from './colors'
 import { Icon } from './Icon'
 
 interface UpcomingTripCardProps {
@@ -16,25 +18,18 @@ interface UpcomingTripCardProps {
 
 /** UpcomingTripCard: the type badge, departure and length, a delay badge when late or early, then the route dots. */
 export function UpcomingTripCard({ trip, now, timeZone, h24, airports }: UpcomingTripCardProps) {
-  const early = trip.delayMinutes != null && trip.delayMinutes < 0
   const last = trip.route.length - 1
   return (
     <section class="card glass trip-card">
+      {/* The app's card has no title; screen-reader users jumping between headings still land here. */}
+      <h2 class="sr-only">Upcoming trip</h2>
       <div class="trip-head">
-        <span class="badge" style={{ background: 'var(--blue)' }}>
-          <Icon name="Airplane" size={11} />
-          Line Trip
-        </span>
+        <Badge badge={LINE_TRIP_BADGE} />
         <div class="trip-when">
           <p class="trip-departs">{tripCardDepartsText(trip.departs, now, timeZone, h24)}</p>
           <p class="trip-days">{daysText(trip.days)}</p>
         </div>
-        {trip.delayMinutes != null && (
-          <span class="badge" style={{ background: early ? 'var(--green)' : 'var(--orange)' }}>
-            <Icon name={early ? 'Clock' : 'ClockCountdown'} size={11} />
-            {early ? 'Early' : 'Delayed'}
-          </span>
-        )}
+        {trip.delayMinutes != null && <Badge badge={delayBadge(trip.delayMinutes)} />}
       </div>
       {trip.route.length > 0 && (
         <div class="route">
@@ -53,5 +48,15 @@ export function UpcomingTripCard({ trip, now, timeZone, h24, airports }: Upcomin
         </div>
       )}
     </section>
+  )
+}
+
+/** A capsule badge: white text and icon on the badge's color. */
+function Badge({ badge }: { badge: BadgeVisual }) {
+  return (
+    <span class="badge" style={{ background: cssColor(badge.color) }}>
+      <Icon name={badge.icon} size={11} />
+      {badge.label}
+    </span>
   )
 }

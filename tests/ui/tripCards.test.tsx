@@ -49,6 +49,11 @@ describe('UpcomingTripCard', () => {
     expect(screen.queryByText('Early')).toBeNull()
   })
 
+  it('has a heading for screen readers only', () => {
+    render(card(trip()))
+    expect(screen.getByRole('heading', { level: 2, name: 'Upcoming trip' }).classList.contains('sr-only')).toBe(true)
+  })
+
   it('colors the badges: blue Line Trip, orange Delayed, green Early', () => {
     const { rerender } = render(card(trip({ delayMinutes: 40 })))
     expect((screen.getByText('Line Trip') as HTMLElement).style.background).toBe('var(--blue)')
@@ -100,7 +105,10 @@ describe('TripProgressCard', () => {
 
   it('announces the pills as a list', () => {
     render(<TripProgressCard progress={progress({ upcoming: ['ANC', 'SDF'] })} airports={testAirports} />)
-    expect(screen.getByRole('list').children).toHaveLength(2)
+    // An explicit role, because Safari drops the list role from a list styled without bullets.
+    const list = screen.getByRole('list', { name: 'Upcoming Cities' })
+    expect(list.getAttribute('role')).toBe('list')
+    expect(list.children).toHaveLength(2)
     expect(screen.getAllByRole('listitem')).toHaveLength(2)
   })
 

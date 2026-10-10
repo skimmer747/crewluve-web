@@ -58,7 +58,7 @@ describe('StatusScreen', () => {
 
   it('home: Leaves Home In with its departure line, then the been-home pill', () => {
     const { container } = renderAt(-1440)
-    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('Leaves Home In')
+    expect(screen.getByRole('heading', { level: 2, name: 'Leaves Home In' })).toBeTruthy()
     expect(container.querySelector('.countdown-value')!.textContent).toBe('22h  30m')
     expect(container.querySelector('.countdown-sub')!.textContent).toBe('Departs Friday October 9th at 4:00am')
     expect(screen.getByText("Alex's been home for 3 days")).toBeTruthy()

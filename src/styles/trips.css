@@ -1,0 +1,198 @@
+/* The trip cards (slice 2A): the upcoming trip card and the Day N of M card, copied from the Crewluve app. */
+
+/* Trip cards: 16 px padding and 16 px between rows (UpcomingTripCard, TripProgressView). */
+.trip-card {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* On the narrowest phones the delay badge drops to a second row instead of squeezing the departure line to a word per line. */
+.trip-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.trip-when {
+  flex: 1 1 6rem;
+  min-width: 0;
+}
+
+.trip-departs {
+  margin: 0;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 500;
+}
+
+.trip-days {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-2);
+}
+
+/* Capsule badges: white 12 px semibold text on a system color, 10 × 6 px padding. */
+.badge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Route: 10 px dots over 11 px bold monospaced codes, joined by 24 × 2 px lines, blue at both ends. */
+.route {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.route-stops {
+  display: flex;
+  align-items: flex-start;
+  width: max-content;
+  padding: 0 4px;
+}
+
+.route-stop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-2);
+}
+
+.route-stop.end {
+  color: var(--blue);
+}
+
+.route-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.route-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 13px;
+  font-weight: 700;
+}
+
+.route-line {
+  width: 24px;
+  height: 2px;
+  margin-top: 4px;
+  background: var(--text-2);
+  opacity: 0.3;
+}
+
+.trip-progress-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trip-progress-head h2 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 25px;
+  font-weight: 600;
+}
+
+/* Progress bar: 10 px, the --gray token (#8e8e93) at 20% for the track, as Color.gray.opacity(0.2), the same in both modes; blue fill. */
+.trip-bar {
+  height: 10px;
+  border-radius: 5px;
+  background: rgba(142, 142, 147, 0.2);
+  overflow: hidden;
+}
+
+.trip-bar-fill {
+  height: 100%;
+  border-radius: 5px;
+  background: var(--blue);
+}
+
+.cities {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cities-label {
+  margin: 0;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+/* Gradient pills: a 12 px bold city over a 9 px subtitle, 14 × 6 px padding, a soft shadow; the row scrolls sideways. */
+.city-pills {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  /* 14 px from the label like the app: the 10 px gap plus 4 px of top padding, which with the bottom padding keeps the shadows unclipped. */
+  padding: 4px 4px 6px;
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.city-pill {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: 999px;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.city-name {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.city-sub {
+  font-size: 9px;
+  line-height: 11px;
+  font-weight: 500;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+.blend-0 {
+  background: linear-gradient(to right, var(--blue), var(--cyan));
+}
+
+.blend-1 {
+  background: linear-gradient(to right, var(--purple), var(--pink));
+}
+
+.blend-2 {
+  background: linear-gradient(to right, var(--orange), var(--yellow));
+}
+
+/* Blends 3 and 4 mirror the app's five gradients, but with at most three pills they never show. */
+.blend-3 {
+  background: linear-gradient(to right, var(--teal), var(--green));
+}
+
+.blend-4 {
+  background: linear-gradient(to right, var(--indigo), var(--purple));
+}

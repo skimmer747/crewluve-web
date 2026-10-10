@@ -139,7 +139,7 @@ describe('cards.css', () => {
 describe('full-height blocks', () => {
   it('follow each min-height: 100vh with min-height: 100dvh, so the iOS toolbar does not push content off screen', () => {
     let pairs = 0
-    for (const name of ['tokens', 'base', 'cards']) {
+    for (const name of ['tokens', 'base', 'cards', 'trips']) {
       for (const r of rulesIn(css(name))) {
         const lines = declarations(r.body).map(([prop, value]) => `${prop}: ${value}`)
         lines.forEach((line, i) => {

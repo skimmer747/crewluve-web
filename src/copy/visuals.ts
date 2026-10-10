@@ -75,3 +75,15 @@ export function leaveCard(l: LeaveTarget): CardVisual {
           : 'blue'
   return { title: l.label === 'leavesHome' ? 'Leaves Home In' : 'Leaves In', icon: l.viaDrive ? 'Car' : 'AirplaneTakeoff', color }
 }
+
+export interface BadgeVisual extends Visual {
+  label: string
+}
+
+/** The upcoming trip card's type badge. CrewLu Cloud data only ever makes a line trip (UpcomingTripCard.typeBadge; slice 2A §4). */
+export const LINE_TRIP_BADGE: BadgeVisual = { label: 'Line Trip', icon: 'Airplane', color: 'blue' }
+
+/** The upcoming trip card's delay badge: "Delayed" in orange, or "Early" in green (UpcomingTripCard.delayBadge). */
+export function delayBadge(minutes: number): BadgeVisual {
+  return minutes < 0 ? { label: 'Early', icon: 'Clock', color: 'green' } : { label: 'Delayed', icon: 'ClockCountdown', color: 'orange' }
+}
