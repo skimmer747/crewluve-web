@@ -72,7 +72,7 @@ Copies `TripProgressView` with its default "gradient pills" style. The data rule
 
 ## 6. Data: country names and US state codes
 
-The pill subtitles need two things the airport list doesn't have yet. Today `public/data/airports.json` labels countries two ways: about 180 airports from Crewlu's own tables use names ("USA", "Germany"), and the other ~8,900 use two-letter codes ("US", "DE"). So `scripts/build-airports.mjs` gains two steps.
+The pill subtitles need two things the airport list doesn't have yet. Today `public/data/airports.json` labels countries two ways: about 390 airports from Crewlu's own tables use names ("USA", "Germany"), and the other ~8,700 use two-letter codes ("US", "DE"). So `scripts/build-airports.mjs` gains two steps.
 
 - **Country names.** Every row gets a name, spelled one way.
   - US rows, whether `US`, `USA` or "United States", become "USA", as the app writes it.

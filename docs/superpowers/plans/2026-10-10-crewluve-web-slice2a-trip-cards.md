@@ -2059,3 +2059,9 @@ Update the project memory with the new tip and what's next: Part B, the location
 ## Execution notes
 
 (Add notes here as the build goes: where the code had to differ from a printed block, and why.)
+
+- **Batch A (2026-10-10), Task 2:** the script differs from the printed block.
+  - **Why:** after Task 2, a check found six countries still spelled two ways. ICU's names differed from Crewlu's own (Türkiye/Turkey, Czechia/Czech Republic and others), and ICU reads the source code "UK" as "United Kingdom".
+  - **What changed:** `f7cea8c` adds a `CREWLU_SPELLING` map, applied in `countryName`, so Crewlu's spelling wins. It has seven entries, including Hong Kong → China, because HKG already reads "China" in Crewlu's tables. It also adds one more generated-file test.
+  - **Where it's recorded:** spec §6 and decision 8 (`320046b`).
+  - **One gap:** DJT (West Palm Beach, from the globe's uncommitted working copy) is the one US airport without a state, so its pill subtitle falls back to "USA".

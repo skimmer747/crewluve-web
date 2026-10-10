@@ -1,7 +1,8 @@
 // Builds public/data/airports.json as [iata, city, country, lat, lng, tz] tuples, plus a seventh field, the state code,
 // for US airports.
 // Source: the Flight Globe's merged list (Crewlu's own airport tables win over OurAirports there).
-// Countries: one spelling each, "USA" for the US (as the Crewluve app writes it) and short English names elsewhere.
+// Countries: one spelling each, "USA" for the US (as the Crewluve app writes it) and short English names elsewhere,
+// in Crewlu's own spelling where the two differ.
 // States: iso_region from the OurAirports list the globe keeps beside its own ("US-KY" -> "KY").
 // Time zones: geo-tz, installed on demand by `npm run airports` and never saved as a dependency.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
