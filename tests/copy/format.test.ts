@@ -15,6 +15,7 @@ import {
   ordinalSuffix,
   spokenDuration,
   timeWithZone,
+  tripCardDepartsText,
   tripDepartsText,
 } from '../../src/copy/format'
 
@@ -183,5 +184,24 @@ describe('spokenDuration', () => {
     [11 * D + 8 * H + 39 * MIN, '11 days, 8 hours, 39 minutes'],
   ])('%s ms reads as "%s"', (ms, words) => {
     expect(spokenDuration(ms)).toBe(words)
+  })
+})
+
+describe('tripCardDepartsText', () => {
+  const now = Date.UTC(2026, 9, 8, 13, 30) // Thu 8 Oct, 9:30am EDT
+
+  it('says today, tomorrow, or the short weekday and date', () => {
+    expect(tripCardDepartsText(Date.UTC(2026, 9, 8, 22, 0), now, NY, false)).toBe('Departs today at 6:00pm')
+    expect(tripCardDepartsText(Date.UTC(2026, 9, 9, 10, 30), now, NY, false)).toBe('Departs tomorrow at 6:30am')
+    expect(tripCardDepartsText(Date.UTC(2026, 9, 13, 15, 32), now, NY, false)).toBe('Departs Tue Oct 13 at 11:32am')
+  })
+
+  it('uses 24-hour time when the viewer does', () => {
+    expect(tripCardDepartsText(Date.UTC(2026, 9, 13, 15, 32), now, NY, true)).toBe('Departs Tue Oct 13 at 11:32')
+  })
+
+  it('compares calendar days in the given zone', () => {
+    const lateNight = Date.UTC(2026, 9, 8, 3, 30) // Wed 7 Oct, 11:30pm EDT
+    expect(tripCardDepartsText(Date.UTC(2026, 9, 8, 10, 30), lateNight, NY, false)).toBe('Departs tomorrow at 6:30am')
   })
 })

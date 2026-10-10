@@ -127,6 +127,16 @@ export function departureText(ms: number, now: number, timeZone: string, h24: bo
   return `${WEEKDAYS[p.weekday]} the ${p.day}${ordinalSuffix(p.day)} at ${time}`
 }
 
+/** Upcoming trip card: "Departs today at 6:00am", "Departs tomorrow at 6:00am", or "Departs Tue Oct 13 at 6:00am" (UpcomingTripCard.formattedDeparture, with 24-hour times respected). */
+export function tripCardDepartsText(ms: number, now: number, timeZone: string, h24: boolean): string {
+  const time = clockText(ms, timeZone, h24)
+  const diff = calendarDay(ms, timeZone) - calendarDay(now, timeZone)
+  if (diff === 0) return `Departs today at ${time}`
+  if (diff === 1) return `Departs tomorrow at ${time}`
+  const p = zonedParts(ms, timeZone)
+  return `Departs ${WEEKDAYS[p.weekday].slice(0, 3)} ${MONTHS[p.month - 1].slice(0, 3)} ${p.day} at ${time}`
+}
+
 function longDate(ms: number, timeZone: string): string {
   const p = zonedParts(ms, timeZone)
   return `${WEEKDAYS[p.weekday]} ${MONTHS[p.month - 1]} ${p.day}${ordinalSuffix(p.day)}`
