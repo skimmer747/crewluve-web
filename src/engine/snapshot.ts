@@ -4,7 +4,7 @@ import { lastHomeArrival, leaveTarget, nextTripFlight, nextTripHomecoming, type 
 import { isDuty, isHomecomingMove, isMove, type DriveLeg, type DutyLeg, type Leg, type MoveLeg } from './legs'
 import { resolveStatus, type Status } from './status'
 import { arrivalTarget, type ArrivalTarget } from './targets'
-import { tripDayNumber, tripDays } from './trips'
+import { tripDayNumber, tripDays, tripProgress, upcomingTrip, type TripProgress, type UpcomingTrip } from './trips'
 import type { Iata, Pilot, Schedule, Trip } from './types'
 
 export const DELAY_THRESHOLD_MIN = 15
@@ -36,6 +36,10 @@ export interface Snapshot {
   nextTripDays: number | null
   midTripAtHome: boolean
   daysHome: number | null
+  /** The next trip, for the upcoming trip card: shown at home or base, Crewluve's isSettled (slice 2A §3). */
+  upcomingTrip: UpcomingTrip | null
+  /** Day N of M and the cities still ahead, for the trip progress card: shown during a trip, away from home and base. */
+  tripProgress: TripProgress | null
   celebrate: boolean
   empty: boolean
 }
@@ -62,6 +66,10 @@ export function makeSnapshot(schedule: Schedule, legs: Leg[], t: number, baseTz:
   // The same homecoming rule as the countdown: a drive home, or a drive-titled event, arriving home.
   const nextHomeTrip = pilot.effHome == null ? null
     : ((legs.find((l) => l.start > t && (l.kind === 'drive' || l.kind === 'event') && isHomecomingMove(l, pilot.effHome)) as DriveLeg | DutyLeg | undefined) ?? null)
+  const delay = relevantDelay(status, nextFlight, nextMove)
+  const nextCommute = atHome ? pendingCommute(legs, pilot.effHome, t, nextFlight) : null
+  // Crewluve's isSettled: the upcoming trip shows at home or base, the trip's progress everywhere else (slice 2A §3).
+  const settled = status.kind === 'home' || status.kind === 'base'
 
   return {
     t,
@@ -70,13 +78,13 @@ export function makeSnapshot(schedule: Schedule, legs: Leg[], t: number, baseTz:
     pilot,
     status,
     ring: ringProgress(status, t),
-    delay: relevantDelay(status, nextFlight, nextMove),
+    delay,
     arrival,
     fallbackDaysRemaining: !atHome && !arrival && flightless ? daysRemaining(flightless, t, baseTz) : null,
     leave: atHome ? leaveTarget(legs, pilot, t) : null,
     homecoming: atHome ? nextTripHomecoming(legs, pilot, t) : null,
     driveToWork: atHome ? pendingDriveToWork(legs, t, nextFlight) : null,
-    nextCommute: atHome ? pendingCommute(legs, pilot.effHome, t, nextFlight) : null,
+    nextCommute,
     nextFlight,
     nextMove,
     nextHomeTrip,
@@ -84,6 +92,8 @@ export function makeSnapshot(schedule: Schedule, legs: Leg[], t: number, baseTz:
     nextTripDays: nextTrip ? tripDays(nextTrip, baseTz) : null,
     midTripAtHome,
     daysHome: atHome && !midTripAtHome ? daysSince(lastHomeArrival(legs, pilot, t), t) : null,
+    upcomingTrip: settled ? upcomingTrip(schedule, legs, t, baseTz, { commute: nextCommute, delay }) : null,
+    tripProgress: settled ? null : tripProgress(schedule, legs, t, baseTz),
     celebrate: arrival != null && status.kind !== 'base' && arrival.time - t > 0 && arrival.time - t <= DAY,
     empty: schedule.empty,
   }
@@ -107,7 +117,7 @@ export function safeSnapshot(schedule: Schedule, legs: Leg[], t: number, baseTz:
       status: { kind: 'unknown', airport: null, current: null, previous: null, next: null },
       ring: null, delay: null, arrival: null, fallbackDaysRemaining: null, leave: null, homecoming: null,
       driveToWork: null, nextCommute: null, nextFlight: null, nextMove: null, nextHomeTrip: null, lastTripDays: null,
-      nextTripDays: null, midTripAtHome: false, daysHome: null, celebrate: false, empty: schedule?.empty ?? false,
+      nextTripDays: null, midTripAtHome: false, daysHome: null, upcomingTrip: null, tripProgress: null, celebrate: false, empty: schedule?.empty ?? false,
     }
   }
 }

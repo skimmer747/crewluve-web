@@ -360,6 +360,12 @@ describe('safeSnapshot', () => {
     for (let i = 0; i < 30; i++) failWith(`failure ${i}`)
     expect(error).toHaveBeenCalledTimes(10)
   })
+
+  it('has no trip cards when it falls back', async () => {
+    quiet()
+    const { safeSnapshot } = await freshSnapshotModule()
+    expect(safeSnapshot(null as unknown as Schedule, [], A, NY)).toMatchObject({ upcomingTrip: null, tripProgress: null })
+  })
 })
 
 describe('the commute ahead is bounded to the next trip (audit C7, C11, C22)', () => {
@@ -430,5 +436,40 @@ describe('the commute ahead is bounded to the next trip (audit C7, C11, C22)', (
 
   it('keeps the jumpseat that takes the commuter to the trip', () => {
     expect(snapOf(tripAhead(patAtHome().jumpseat('js1', 'MCO', 'SDF', 5400, 5520)), 0).nextCommute?.id).toBe('js1')
+  })
+})
+
+describe('the trip cards (slice 2A)', () => {
+  it('at home: the upcoming trip, and no progress', () => {
+    const sn = snap(-1440)
+    expect(sn.upcomingTrip).toEqual({ tripId: 'demo-t1', departs: at(60), days: 2, route: ['SDF', 'RFD', 'ANC'], delayMinutes: null })
+    expect(sn.tripProgress).toBeNull()
+  })
+
+  it('at base: the upcoming trip too, as Crewluve shows it while settled', () => {
+    expect(snap(30)).toMatchObject({ status: { kind: 'base' }, upcomingTrip: { tripId: 'demo-t1', departs: at(60) }, tripProgress: null })
+  })
+
+  it('away on a trip: Day N of M with the cities ahead, and no upcoming trip', () => {
+    expect(snap(100)).toMatchObject({ upcomingTrip: null, tripProgress: { tripId: 'demo-t1', day: 1, days: 2, upcoming: ['ANC', 'SDF'] } })
+  })
+
+  it('driving home after the trip has ended: neither card', () => {
+    expect(snap(1950)).toMatchObject({ upcomingTrip: null, tripProgress: null })
+  })
+
+  it('a commuter at home: the route starts at home, and the trip leaves with the logged jumpseat', () => {
+    const j = engineFor(demoRaw('jumpseater', A))
+    expect(makeSnapshot(j.schedule, j.legs, at(-1440), NY).upcomingTrip).toMatchObject({
+      departs: at(-300),
+      route: ['MCO', 'SDF', 'RFD', 'ANC'],
+    })
+  })
+
+  it('a late first flight puts its delay on the upcoming trip', () => {
+    const b = new RawBuilder(A).pilot('Alex', 'SDF', 'LEX').trip('t1', {
+      dutyPeriods: [{ start: 1440, end: 2000, flights: [{ dep: 'SDF', arr: 'ANC', out: 1500, in: 1900, actualOut: 1540, actualIn: 1940 }] }],
+    })
+    expect(snapOf(b, 0).upcomingTrip).toMatchObject({ departs: at(1540), delayMinutes: 40 })
   })
 })
