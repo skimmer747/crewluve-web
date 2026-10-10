@@ -150,7 +150,7 @@ describe('generated public/data/airports.json', () => {
     expect(idx.get('STT')?.country).toBe('US Virgin Islands')
     expect(idx.get('PLS')?.country).toBe('Turks and Caicos')
     expect(idx.get('HKG')?.country).toBe('China')
-    expect(idx.get('HHP')?.country).toBe('China') // ICU's name for the code HK is "Hong Kong"; Crewlu's tables file HKG under China
+    expect(idx.get('HHP')?.country).toBe('China') // ICU's name for the code HK is "Hong Kong"; the Crewluve app's table files HKG under China
     const icuOnly = ['Türkiye', 'Czechia', 'United Kingdom', 'Trinidad & Tobago', 'U.S. Virgin Islands', 'Turks & Caicos Islands', 'Hong Kong', 'United Arab Emirates']
     expect(rows.some((r) => icuOnly.includes(r[2]))).toBe(false)
   })

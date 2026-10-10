@@ -88,6 +88,8 @@ function regionsByIata(text) {
   const typeAt = column('type')
   const regions = new Map()
   for (const [i, row] of rows.entries()) {
+    // A blank line parses as one empty field. Skip it, as Python's csv module does; it still counts in the record numbers.
+    if (row.length === 1 && row[0] === '') continue
     if (row.length !== header.length) {
       // The header is record 1, so the first airport is record 2.
       throw new Error(`${regionsSource}: record ${i + 2} has ${row.length} fields but the header has ${header.length} (the header is record 1)`)
@@ -137,7 +139,7 @@ const APP_SPELLING = new Map([
   ['U.S. Virgin Islands', 'US Virgin Islands'],
   ['United Kingdom', 'UK'],
   ['United Arab Emirates', 'UAE'],
-  ['Hong Kong', 'China'], // not a spelling: Crewlu's tables file HKG under China, while ICU names the code HK "Hong Kong"
+  ['Hong Kong', 'China'], // not a spelling: the Crewluve app's table files HKG under China, while ICU names the code HK "Hong Kong"
 ])
 
 /** One spelling per country: "USA" for the US (as the Crewluve app writes it), else the short English name, in the app's spelling where it differs. */
@@ -199,6 +201,19 @@ for (const r of JSON.parse(readFileSync(source, 'utf8'))) {
   out.push(row)
 }
 out.sort((a, b) => (a[0] < b[0] ? -1 : 1))
+console.log(`ICU ${process.versions.icu}`)
+
+// The expected number of US airports without a state is 0. More than a handful means the OurAirports CSV is cut off or
+// damaged. A few can be real, such as an airport too new for OurAirports; they are let through and logged below.
+const MAX_WITHOUT_STATE = 10
+withoutState.sort()
+if (withoutState.length > MAX_WITHOUT_STATE) {
+  const first = withoutState.slice(0, 20)
+  throw new Error(
+    `${withoutState.length} US airports have no state (the expected number is 0, and more than ${MAX_WITHOUT_STATE} points to a ` +
+      `cut-off or damaged ${regionsSource}). ${withoutState.length > first.length ? 'First 20' : 'They are'}: ${first.join(', ')}`,
+  )
+}
 
 // One country must not read two ways. OurAirports' iso_country says which airports share a country, so this catches a
 // spelling that APP_SPELLING doesn't cover yet. The check is per code: "China" for both CN and HK is fine.
@@ -212,14 +227,16 @@ for (const [iata, , country] of out) {
 const split = [...namesByCode].filter(([, names]) => names.size > 1)
 if (split.length > 0) {
   const list = split.map(([code, names]) => `${code} ${[...names].join(' / ')}`).join('; ')
-  throw new Error(`a country would read two ways: ${list}. Add the Crewluve app's spelling to APP_SPELLING in scripts/build-airports.mjs.`)
+  throw new Error(
+    `with ICU ${process.versions.icu}, a country would read two ways: ${list}. If this follows a Node or ICU update, the ` +
+      `runtime may have renamed a country; otherwise add the Crewluve app's spelling to APP_SPELLING in scripts/build-airports.mjs.`,
+  )
 }
 
 mkdirSync(dirname(outFile), { recursive: true })
 writeFileSync(outFile, JSON.stringify(out))
 console.log(`wrote ${out.length} airports to ${outFile}`)
 console.log(`skipped: ${Object.entries(skipped).map(([reason, n]) => `${n} ${reason}`).join(', ')}`)
-console.log(`ICU ${process.versions.icu}`)
 console.log(`US airports without a state: ${withoutState.length}${withoutState.length > 0 ? ` [${withoutState.join(', ')}]` : ''}`)
 const summarize = (names) =>
   [...remapped]
