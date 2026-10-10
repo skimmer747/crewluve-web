@@ -213,6 +213,7 @@ The demo is anchored to the moment the page loads, so N and the words "today" or
 
 ## 13. Roadmap after Part A
 
+0. **Follow-up, right after Part A's release:** high-contrast colors. When a phone has Increase Contrast on (`prefers-contrast: more`), the site switches to Apple's high-contrast system colors, as the app does. The default look doesn't change. White text on the yellow pill and the orange and green badges is well below 4.5:1 today (Batch D review; user decision, 2026-10-10).
 1. Part B: location card (weather via a keyless service, local time, time difference, sun dial and popup).
 2. Part C: in-flight map.
 3. Slice 3: the Schedule page (calendar and timeline), with the View Schedule button and the trip card's tap-through.

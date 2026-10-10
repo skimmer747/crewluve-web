@@ -57,7 +57,7 @@
 - Modify: `tests/fixtures/airports.ts`
 - Test: `tests/data/airports.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add this test inside `describe('buildAirportIndex', …)` in `tests/data/airports.test.ts`, after the last existing `it(…)` in that block:
 
@@ -72,12 +72,12 @@ Add this test inside `describe('buildAirportIndex', …)` in `tests/data/airport
   })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/data/airports.test.ts`
 Expected: FAIL in "keeps a US airport’s state…" with `expected undefined to be 'KY'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/data/airports.ts`, replace the `AirportTuple` type and the `Airport` interface with:
 
@@ -107,12 +107,12 @@ In `buildAirportIndex`, replace the loop with:
   }
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/data/airports.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Give the shared test airports their states, and add Cologne**
+- [x] **Step 5: Give the shared test airports their states, and add Cologne**
 
 Replace the whole of `tests/fixtures/airports.ts` with:
 
@@ -134,12 +134,12 @@ export const testAirports = buildAirportIndex([
 ])
 ```
 
-- [ ] **Step 6: Run the gates**
+- [x] **Step 6: Run the gates**
 
 Run: `npx vitest run` and `npx tsc --noEmit`
 Expected: everything passes, and tsc prints nothing.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/data/airports.ts tests/data/airports.test.ts tests/fixtures/airports.ts
@@ -157,7 +157,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Regenerate: `public/data/airports.json`
 - Test: `tests/data/airports.test.ts` (the `describe('generated public/data/airports.json', …)` block)
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add these two tests at the end of `describe('generated public/data/airports.json', …)` in `tests/data/airports.test.ts`. That block already defines `rows` and `idx`.
 
@@ -182,12 +182,12 @@ Add these two tests at the end of `describe('generated public/data/airports.json
   })
 ```
 
-- [ ] **Step 2: Run them and watch them fail**
+- [x] **Step 2: Run them and watch them fail**
 
 Run: `npx vitest run tests/data/airports.test.ts`
 Expected: both new tests FAIL. For example, `expected 'US' to be 'USA'` for ABE, and `expected null to be 'KY'` for SDF.
 
-- [ ] **Step 3: Replace the build script**
+- [x] **Step 3: Replace the build script**
 
 Replace the whole of `scripts/build-airports.mjs` with:
 
@@ -376,7 +376,7 @@ const rejected = [...new Set(out.map((row) => row[5]))].filter((zone) => {
 if (rejected.length > 0) console.warn(`warning: this Node's Intl does not know ${rejected.join(', ')}`)
 ```
 
-- [ ] **Step 4: Rebuild the list**
+- [x] **Step 4: Rebuild the list**
 
 Run: `npm run airports`
 
@@ -384,7 +384,7 @@ This reads the globe's working copy, the same source slice 1 used. It includes D
 
 Expected: the output includes `wrote 9056 airports to …public/data/airports.json` and `US airports without a state: N`, where N is small (under 100).
 
-- [ ] **Step 5: Check that only the country and state fields changed**
+- [x] **Step 5: Check that only the country and state fields changed**
 
 Run:
 
@@ -405,12 +405,12 @@ Expected: `rows 9056 -> 9056; code, city, position or zone changed: 0 lost, 0 ne
 
 If anything was lost or new, **stop and report** to the controller. The globe's list has changed since slice 1, and taking that along isn't this task's change to make.
 
-- [ ] **Step 6: Run the tests**
+- [x] **Step 6: Run the tests**
 
 Run: `npx vitest run tests/data/airports.test.ts`, then `npx vitest run`
 Expected: everything passes.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git status --short   # package-lock.json must not be listed; if it is: git checkout -- package-lock.json
@@ -432,7 +432,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Regenerate: `src/icons/iconPaths.ts`
 - Test: `tests/icons/iconPaths.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add this test inside `describe('ICON_PATHS', …)` in `tests/icons/iconPaths.test.ts`:
 
@@ -442,12 +442,12 @@ Add this test inside `describe('ICON_PATHS', …)` in `tests/icons/iconPaths.tes
   })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/icons/iconPaths.test.ts`
 Expected: FAIL with `expected { …(59) } to have property "CalendarBlank"` (the count may differ).
 
-- [ ] **Step 3: Add the icons to the build script**
+- [x] **Step 3: Add the icons to the build script**
 
 In `scripts/build-icons.mjs`, change the comment above `ICONS` and the end of its first block so they read:
 
@@ -464,17 +464,17 @@ const ICONS = {
 
 Leave the second block (`Triangle: 'triangle', …`) and the rest of the file as they are.
 
-- [ ] **Step 4: Regenerate the icon paths**
+- [x] **Step 4: Regenerate the icon paths**
 
 Run: `npm run icons`
 Expected: it finishes without an error. `git diff --stat` then lists `src/icons/iconPaths.ts`, with the two new entries added and nothing else changed.
 
-- [ ] **Step 5: Run the test and watch it pass**
+- [x] **Step 5: Run the test and watch it pass**
 
 Run: `npx vitest run tests/icons/iconPaths.test.ts`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git status --short   # package-lock.json must not be listed; if it is: git checkout -- package-lock.json
@@ -492,7 +492,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/styles/tokens.css`
 - Test: `tests/styles/styles.test.ts` (the `SPEC_COLORS` table)
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 In `tests/styles/styles.test.ts`, add these rows at the end of the `SPEC_COLORS` array, after `['--ups', '#663300', '#E09E33'],`:
 
@@ -505,12 +505,12 @@ In `tests/styles/styles.test.ts`, add these rows at the end of the `SPEC_COLORS`
   ['--indigo', '#6155F5', '#6D7CFF'],
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/styles/styles.test.ts`
 Expected: 10 failing tests, the five new colors in light and in dark mode.
 
-- [ ] **Step 3: Add the tokens**
+- [x] **Step 3: Add the tokens**
 
 In `src/styles/tokens.css`, add these lines after `--purple: #cb30e0;` in the light `:root`:
 
@@ -532,12 +532,12 @@ Add these lines after `--purple: #db34f2;` in the dark `:root` inside `@media (p
     --indigo: #6d7cff;
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/styles/styles.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/styles/tokens.css tests/styles/styles.test.ts
@@ -555,7 +555,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/engine/snapshot.ts` (imports, the `tripDays` function, `daysRemaining`)
 - Test: `tests/engine/trips.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/engine/trips.test.ts`:
 
@@ -620,12 +620,12 @@ describe('tripDayNumber', () => {
 })
 ```
 
-- [ ] **Step 2: Run them and watch them fail**
+- [x] **Step 2: Run them and watch them fail**
 
 Run: `npx vitest run tests/engine/trips.test.ts`
 Expected: FAIL, because `../../src/engine/trips` doesn't exist yet. Vite reports that it couldn't resolve the import.
 
-- [ ] **Step 3: Create the module**
+- [x] **Step 3: Create the module**
 
 Create `src/engine/trips.ts`:
 
@@ -648,7 +648,7 @@ export function tripDayNumber(trip: Trip, t: number, timeZone: string): number {
 }
 ```
 
-- [ ] **Step 4: Point the snapshot module at it**
+- [x] **Step 4: Point the snapshot module at it**
 
 In `src/engine/snapshot.ts`:
 
@@ -670,12 +670,12 @@ function daysRemaining(trip: Trip, t: number, timeZone: string): number {
 }
 ```
 
-- [ ] **Step 5: Run the engine tests**
+- [x] **Step 5: Run the engine tests**
 
 Run: `npx vitest run tests/engine`
 Expected: PASS, including the existing `tripDays` and fallback-card tests in `snapshot.test.ts`.
 
-- [ ] **Step 6: Run the gates and commit**
+- [x] **Step 6: Run the gates and commit**
 
 Run: `npx vitest run` and `npx tsc --noEmit`. Expected: both clean.
 
@@ -694,7 +694,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/engine/trips.ts`
 - Test: `tests/engine/trips.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/engine/trips.test.ts`, change two import lines to:
 
@@ -798,12 +798,12 @@ describe('upcomingTrip', () => {
 })
 ```
 
-- [ ] **Step 2: Run them and watch them fail**
+- [x] **Step 2: Run them and watch them fail**
 
 Run: `npx vitest run tests/engine/trips.test.ts`
 Expected: the `upcomingTrip` tests FAIL with `upcomingTrip is not a function`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace the import lines at the top of `src/engine/trips.ts` with:
 
@@ -864,12 +864,12 @@ export function upcomingTrip(schedule: Schedule, legs: Leg[], t: number, baseTz:
 }
 ```
 
-- [ ] **Step 4: Run them and watch them pass**
+- [x] **Step 4: Run them and watch them pass**
 
 Run: `npx vitest run tests/engine/trips.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run` and `npx tsc --noEmit`. Expected: both clean.
 
@@ -888,7 +888,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/engine/trips.ts`
 - Test: `tests/engine/trips.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/engine/trips.test.ts`, change the trips import to:
 
@@ -960,12 +960,12 @@ describe('tripProgress', () => {
 })
 ```
 
-- [ ] **Step 2: Run them and watch them fail**
+- [x] **Step 2: Run them and watch them fail**
 
 Run: `npx vitest run tests/engine/trips.test.ts`
 Expected: the `tripProgress` tests FAIL with `tripProgress is not a function`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Append to `src/engine/trips.ts`:
 
@@ -994,12 +994,12 @@ export function tripProgress(schedule: Schedule, legs: Leg[], t: number, baseTz:
 }
 ```
 
-- [ ] **Step 4: Run them and watch them pass**
+- [x] **Step 4: Run them and watch them pass**
 
 Run: `npx vitest run tests/engine/trips.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run` and `npx tsc --noEmit`. Expected: both clean.
 
@@ -1018,7 +1018,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/engine/snapshot.ts` (imports, the `Snapshot` interface, `makeSnapshot`, `safeSnapshot`)
 - Test: `tests/engine/snapshot.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add this test inside `describe('safeSnapshot', …)` in `tests/engine/snapshot.test.ts`:
 
@@ -1069,12 +1069,12 @@ describe('the trip cards (slice 2A)', () => {
 })
 ```
 
-- [ ] **Step 2: Run them and watch them fail**
+- [x] **Step 2: Run them and watch them fail**
 
 Run: `npx vitest run tests/engine/snapshot.test.ts`
 Expected: the new tests FAIL. For example, `expected undefined to deeply equal { tripId: 'demo-t1', … }`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/engine/snapshot.ts`:
 
@@ -1115,12 +1115,12 @@ import { tripDayNumber, tripDays, tripProgress, upcomingTrip, type TripProgress,
       nextTripDays: null, midTripAtHome: false, daysHome: null, upcomingTrip: null, tripProgress: null, celebrate: false,
 ```
 
-- [ ] **Step 4: Run them and watch them pass**
+- [x] **Step 4: Run them and watch them pass**
 
 Run: `npx vitest run tests/engine`
 Expected: PASS.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run` and `npx tsc --noEmit`. Expected: both clean. Some screen tests that look for a single level-2 heading still pass for now, because no card renders the new fields yet.
 
@@ -1139,7 +1139,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/copy/format.ts`
 - Test: `tests/copy/format.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/copy/format.test.ts`, add `tripCardDepartsText,` to the import list from `'../../src/copy/format'`, right after `timeWithZone,`. Then add at the end of the file:
 
@@ -1164,12 +1164,12 @@ describe('tripCardDepartsText', () => {
 })
 ```
 
-- [ ] **Step 2: Run them and watch them fail**
+- [x] **Step 2: Run them and watch them fail**
 
 Run: `npx vitest run tests/copy/format.test.ts`
 Expected: FAIL with `tripCardDepartsText is not a function`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/copy/format.ts`, add right after `departureText`:
 
@@ -1185,12 +1185,12 @@ export function tripCardDepartsText(ms: number, now: number, timeZone: string, h
 }
 ```
 
-- [ ] **Step 4: Run them and watch them pass**
+- [x] **Step 4: Run them and watch them pass**
 
 Run: `npx vitest run tests/copy/format.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/copy/format.ts tests/copy/format.test.ts
@@ -1207,7 +1207,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/copy/trips.ts`
 - Test: `tests/copy/trips.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/copy/trips.test.ts`:
 
@@ -1255,12 +1255,12 @@ describe('routeLabel', () => {
 })
 ```
 
-- [ ] **Step 2: Run them and watch them fail**
+- [x] **Step 2: Run them and watch them fail**
 
 Run: `npx vitest run tests/copy/trips.test.ts`
 Expected: FAIL, because `../../src/copy/trips` doesn't exist yet.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/copy/trips.ts`:
 
@@ -1295,12 +1295,12 @@ export function routeLabel(codes: string[], airports: AirportIndex): string {
 }
 ```
 
-- [ ] **Step 4: Run them and watch them pass**
+- [x] **Step 4: Run them and watch them pass**
 
 Run: `npx vitest run tests/copy/trips.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run` and `npx tsc --noEmit`. Expected: both clean.
 
@@ -1320,7 +1320,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/styles/cards.css` (append)
 - Test: `tests/ui/tripCards.test.tsx`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/ui/tripCards.test.tsx`:
 
@@ -1383,12 +1383,12 @@ describe('UpcomingTripCard', () => {
 })
 ```
 
-- [ ] **Step 2: Run them and watch them fail**
+- [x] **Step 2: Run them and watch them fail**
 
 Run: `npx vitest run tests/ui/tripCards.test.tsx`
 Expected: FAIL, because `../../src/ui/UpcomingTripCard` doesn't exist yet.
 
-- [ ] **Step 3: Implement the card**
+- [x] **Step 3: Implement the card**
 
 Create `src/ui/UpcomingTripCard.tsx`:
 
@@ -1452,7 +1452,7 @@ export function UpcomingTripCard({ trip, now, timeZone, h24, airports }: Upcomin
 }
 ```
 
-- [ ] **Step 4: Add its styles**
+- [x] **Step 4: Add its styles**
 
 Append to `src/styles/cards.css`:
 
@@ -1553,12 +1553,12 @@ Append to `src/styles/cards.css`:
 }
 ```
 
-- [ ] **Step 5: Run them and watch them pass**
+- [x] **Step 5: Run them and watch them pass**
 
 Run: `npx vitest run tests/ui/tripCards.test.tsx tests/styles/styles.test.ts`
 Expected: PASS.
 
-- [ ] **Step 6: Run the gates and commit**
+- [x] **Step 6: Run the gates and commit**
 
 Run: `npx vitest run` and `npx tsc --noEmit`. Expected: both clean.
 
@@ -1578,7 +1578,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/styles/cards.css` (append)
 - Test: `tests/ui/tripCards.test.tsx`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/ui/tripCards.test.tsx`, replace the two engine/UI import lines with:
 
@@ -1628,12 +1628,12 @@ describe('TripProgressCard', () => {
 })
 ```
 
-- [ ] **Step 2: Run them and watch them fail**
+- [x] **Step 2: Run them and watch them fail**
 
 Run: `npx vitest run tests/ui/tripCards.test.tsx`
 Expected: FAIL, because `../../src/ui/TripProgressCard` doesn't exist yet.
 
-- [ ] **Step 3: Implement the card**
+- [x] **Step 3: Implement the card**
 
 Create `src/ui/TripProgressCard.tsx`:
 
@@ -1676,7 +1676,7 @@ export function TripProgressCard({ progress, airports }: { progress: TripProgres
 }
 ```
 
-- [ ] **Step 4: Add its styles**
+- [x] **Step 4: Add its styles**
 
 Append to `src/styles/cards.css`:
 
@@ -1780,12 +1780,12 @@ Append to `src/styles/cards.css`:
 }
 ```
 
-- [ ] **Step 5: Run them and watch them pass**
+- [x] **Step 5: Run them and watch them pass**
 
 Run: `npx vitest run tests/ui/tripCards.test.tsx tests/styles/styles.test.ts`
 Expected: PASS.
 
-- [ ] **Step 6: Run the gates and commit**
+- [x] **Step 6: Run the gates and commit**
 
 Run: `npx vitest run` and `npx tsc --noEmit`. Expected: both clean.
 
@@ -1804,7 +1804,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/ui/StatusScreen.tsx`
 - Test: `tests/ui/StatusScreen.test.tsx`, `tests/ui/ScheduleScreen.test.tsx`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add at the end of `tests/ui/StatusScreen.test.tsx`:
 
@@ -1839,12 +1839,12 @@ describe('StatusScreen trip cards (slice 2A)', () => {
 })
 ```
 
-- [ ] **Step 2: Run them and watch them fail**
+- [x] **Step 2: Run them and watch them fail**
 
 Run: `npx vitest run tests/ui/StatusScreen.test.tsx`
 Expected: the new tests FAIL. For example, `Unable to find an element with the text: Departs tomorrow at 6:30am`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/ui/StatusScreen.tsx`, add the two imports in alphabetical order with the other `./` imports:
 
@@ -1870,7 +1870,7 @@ In `StatusScreen`'s JSX, insert the two cards between the home/away line and the
       <Footer {...p.footer} />
 ```
 
-- [ ] **Step 4: Run the screen tests**
+- [x] **Step 4: Run the screen tests**
 
 Run: `npx vitest run tests/ui`
 Expected: the new tests PASS. Three existing tests now FAIL with `Found multiple elements with the role "heading" and level 2`, because the Day N card adds a second level-2 heading:
@@ -1878,7 +1878,7 @@ Expected: the new tests PASS. Three existing tests now FAIL with `Found multiple
 - `StatusScreen.test.tsx`: "falls back to the ~N days card…"
 - `ScheduleScreen.test.tsx`: "renders the demo pilot on the late last leg"
 
-- [ ] **Step 5: Point those three tests at the heading by name**
+- [x] **Step 5: Point those three tests at the heading by name**
 
 In `tests/ui/StatusScreen.test.tsx`, both places that read:
 
@@ -1894,12 +1894,12 @@ become:
 
 Make the same change at that line in `tests/ui/ScheduleScreen.test.tsx`. Leave the `'Leaves Home In'` and `'No schedule in CrewLu Cloud yet'` assertions alone; those screens still have one level-2 heading.
 
-- [ ] **Step 6: Run the gates**
+- [x] **Step 6: Run the gates**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`
 Expected: all clean.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/ui/StatusScreen.tsx tests/ui/StatusScreen.test.tsx tests/ui/ScheduleScreen.test.tsx
@@ -1915,7 +1915,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Files:**
 - Test: `tests/data/demoScenes.test.ts`
 
-- [ ] **Step 1: Write the tests**
+- [x] **Step 1: Write the tests**
 
 In `tests/data/demoScenes.test.ts`, add this import after the `makeSnapshot` import:
 
@@ -1955,14 +1955,14 @@ describe('demo trip cards (slice 2A)', () => {
 })
 ```
 
-- [ ] **Step 2: Run them**
+- [x] **Step 2: Run them**
 
 Run: `npx vitest run tests/data/demoScenes.test.ts`
 Expected: PASS. These pin what Tasks 5–8 built. `NOW` here is noon Eastern on Tue 20 Oct, so each scene's day number is fixed.
 
 If any row fails, don't edit the row to match. Work out whether the engine or the table is wrong against spec §3 and §9, and report it in the execution notes.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add tests/data/demoScenes.test.ts
@@ -1978,23 +1978,23 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Files:**
 - Modify (only if nudges are needed): `src/styles/cards.css`
 
-- [ ] **Step 1: Build and open the preview**
+- [x] **Step 1: Build and open the preview**
 
 Run `npm run build`, then start or reuse the `crewluve-preview` server from `.claude/launch.json` (port 5181) in the browser pane.
 
-- [ ] **Step 2: Screenshot the demo scenes**
+- [x] **Step 2: Screenshot the demo scenes**
 
 At the mobile preset (375 × 812), in light and dark, open `/?demo=1&scene=` with `home`, `base`, `flying`, `layover` and `last-leg`.
 
-- [ ] **Step 3: Compare with the app**
+- [x] **Step 3: Compare with the app**
 
 Compare each screenshot with the app's Swift: `UpcomingTripCard.swift`, and `TripProgressView` in `PilotStatusView.swift`. Check the text sizes and weights, the 16 px padding and gaps, the badge capsules, the dot colors, the bar, the pill blends and shadow. Fix any differences in `cards.css`, then take the screenshots again.
 
-- [ ] **Step 4: Check a 320 px phone**
+- [x] **Step 4: Check a 320 px phone**
 
 At 320 px wide, check that a six-stop route and three long city names scroll inside their card instead of spilling past it.
 
-- [ ] **Step 5: Ask the user to sign off**
+- [x] **Step 5: Ask the user to sign off**
 
 Show the user the screenshots and ask one question: "Looks right (Recommended)" or "Change something". Apply their notes, then show them again.
 
@@ -2002,7 +2002,7 @@ Show the user the screenshots and ask one question: "Looks right (Recommended)" 
 
 If the user is still signed in on the preview, look at their real screen, then run `read_console_messages` with `onlyErrors: true`. Never type the user's credentials.
 
-- [ ] **Step 7: Run the gates and commit any nudges**
+- [x] **Step 7: Run the gates and commit any nudges**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. Then commit any style changes:
 
@@ -2083,3 +2083,11 @@ Update the project memory with the new tip and what's next: Part B, the location
   - `3b9445a`: city pills match on city and subtitle, so Portland OR and ME stay apart (spec §5, §10 item 10, decision 11). The pill key in TripProgressCard follows suit. The subtitle uses `state || country`.
   - `1f56ebb`: tests for different cities in one state, and for two unknown airports.
 - **Batch A re-check minors:** `d8d0059` skips blank CSV lines, shows the ICU version on a spelling split, and stops when more than 10 US airports lack a state, which points to a cut-off list.
+- **Batch D review fixes:** `28498f3`.
+  - The pills get `role="list"` with their label.
+  - The upcoming card gets a screen-reader-only heading.
+  - Badge label, icon and color come from `copy/visuals`.
+  - The narrow-screen header lets the delay badge wrap, and pill shadows aren't clipped.
+  - The trip styles moved to `src/styles/trips.css`.
+- **Task 15 (2026-10-10):** the user signed off on the look ("Looks right") from the demo screenshots: home, flying, base and last-leg, in light and dark, plus a 320 px check. Step 6 waits until after release, because the user wasn't signed in on the preview.
+- **Contrast:** the Batch D review measured white text on the yellow pill and the orange and green badges well below 4.5:1, as in the app. The user chose "Yes, as a follow-up": after this release, add Apple's high-contrast colors under `prefers-contrast: more`. The default look stays the same.
