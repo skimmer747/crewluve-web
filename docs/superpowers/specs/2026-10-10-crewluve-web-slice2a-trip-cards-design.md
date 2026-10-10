@@ -72,7 +72,7 @@ Copies `TripProgressView` with its default "gradient pills" style. The data rule
 - **Day N:** calendar days since the trip started, plus one, counted in the **base time zone** and kept between 1 and M. Duty counts in UTC, which late in a US evening can read "Day 5 of 4" and overfill the bar.
 - **M:** the same `tripDays` as the upcoming trip card.
 - **Progress bar:** 10 px tall, rounded, gray track, blue fill N/M wide.
-- **Upcoming Cities:** a small gray label, then up to **three** pills. They name the different cities, in order, that the trip's remaining flights land in. A flight counts as remaining while its start is after now. Cities are matched by name, as Duty does, so two airports in one city make one pill. The section is left out when no flights remain (for example, on the last leg).
+- **Upcoming Cities:** a small gray label, then up to **three** pills. They name the different cities, in order, that the trip's remaining flights land in. A flight counts as remaining while its start is after now. Cities are matched by name and subtitle together, so two airports in one city make one pill (JFK and LGA are both New York, NY). Same-named cities in different states or countries stay apart (Portland, OR and Portland, ME). Duty matches by name alone (§10 item 10). The section is left out when no flights remain (for example, on the last leg).
 - **Pills:** white bold city name over a small subtitle. The subtitle is the US state code for US airports, otherwise the country name (the app's `subtitleSuffix`: `state ?? country`). An airport missing from the site's list shows its code with no subtitle. The pill colors cycle through the app's five two-tone blends: blue→cyan, purple→pink, orange→yellow, teal→green, indigo→purple. Each pill is a capsule with a soft shadow, in a row that scrolls sideways.
 - **Not copied:** tapping "Upcoming Cities" doesn't cycle the app's six hidden alternative styles (user decision, 2026-10-10).
 
@@ -133,7 +133,7 @@ interface TripProgress {
 - `src/ui/UpcomingTripCard.tsx` and `src/ui/TripProgressCard.tsx`, in the same rounded card style as the existing cards (`.card` / `.glass`).
 - `src/copy`:
   - a departure formatter, `tripCardDepartsText(ms, now, timeZone, h24)`;
-  - a pill builder, `upcomingCityPills(codes, airports)`, which turns codes into `{ city, subtitle }`, matches cities by name, keeps 3, and falls back to the code.
+  - a pill builder, `upcomingCityPills(codes, airports)`, which turns codes into `{ city, subtitle }`, matches cities by name and subtitle, keeps 3, and falls back to the code.
 - **Icons:** the Phosphor set (`scripts/build-icons.mjs`) gains a calendar and the delay badges' clock icons.
 - **Accessibility:**
   - The route has a visually hidden sentence, "Route: Louisville, Rockford, Anchorage", and the dots are hidden from screen readers.
@@ -168,6 +168,7 @@ The demo is anchored to the moment the page loads, so N and the words "today" or
 7. No hidden alternative city styles.
 8. Day N of M stays up until the trip's last flight actually lands, even after the stored release time. Duty's `findCurrentTrip` drops it then.
 9. Overnight at home or base mid-trip, the upcoming trip card gives the whole trip's length, matching the narrative's `tripDays`. The app counts only the remaining legs' days.
+10. City pills tell same-named cities apart by their state or country. Duty matches by name alone, which merges Portland, OR with Portland, ME.
 
 ## 11. Testing
 
@@ -184,7 +185,7 @@ The demo is anchored to the moment the page loads, so N and the words "today" or
   - null after the trip ends and at home or base.
 - **Copy:**
   - departure text for today, tomorrow and later, in 12- and 24-hour;
-  - pills match cities by name, keep 3, use state then country, and fall back to the code.
+  - pills match cities by name and subtitle, so Portland OR and ME stay apart; they keep 3, use state then country, and fall back to the code.
 - **UI:**
   - both cards render from snapshots;
   - accessible names;
@@ -208,6 +209,7 @@ The demo is anchored to the moment the page loads, so N and the words "today" or
 | 8 | US state codes come from the globe's OurAirports copy at build time, and country codes become short English names. Where either differs from the Crewluve app's own airport table, the app wins (CVG OH, IAD DC, DJT FL; "UAE", "Turkey"…), so each country reads one way. The build stops if a country would read two ways. | Design (Batch A reviews) |
 | 9 | Trip length is slice 1's `tripDays`, so it matches the narrative. | Design |
 | 10 | Day N of M's trip window runs until the last flight actually lands when that's after the stored release time. | Design (Batch B review) |
+| 11 | City pills match on city and state or country together, so same-named cities stay apart (Portland OR and ME). | Design (Batch C review) |
 
 ## 13. Roadmap after Part A
 

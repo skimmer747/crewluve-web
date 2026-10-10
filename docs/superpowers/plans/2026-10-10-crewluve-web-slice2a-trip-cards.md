@@ -2073,4 +2073,13 @@ Update the project memory with the new tip and what's next: Part B, the location
   - `d296338`: city order, and an empty country.
   - `1e1ab7c`: a commute with a late flight, six stops with home, a stale jumpseat, and the base zone end to end.
   - `ad30b52` and `350e432`: later dates and 24-hour lines in the given zone.
-- **Batch B review, decided:** Day N of M's window runs until the last flight lands (spec §3, §10 item 8, decision 10). It's queued as a follow-up commit, together with the review's Minor cleanups.
+- **Batch B review fixes:**
+  - `c5cfa9d`: Day N of M stays up until a late last flight lands (spec §3, §10 item 8, decision 10).
+  - `e87bbe0`: `TripExtras` from Task 6's printed code is now `UpcomingTripInputs`, with a named `FlightDelay` type. The `tripDays` tests moved into trips.test.ts, and snapshot.ts no longer re-exports `tripDays`.
+- **Batch D was built by the controller.** Auto mode blocked the new helper launches. The user chose "build it myself", then "ask an earlier reviewer" for the review, which goes to an existing reviewer by message.
+  - Commits: `5e23744`, `38c8174`, `c8ce78a`, `0f1f01c`.
+  - The code matches the printed blocks.
+- **Batch C review fixes:**
+  - `3b9445a`: city pills match on city and subtitle, so Portland OR and ME stay apart (spec §5, §10 item 10, decision 11). The pill key in TripProgressCard follows suit. The subtitle uses `state || country`.
+  - `1f56ebb`: tests for different cities in one state, and for two unknown airports.
+- **Batch A re-check minors:** `d8d0059` skips blank CSV lines, shows the ICU version on a spelling split, and stops when more than 10 US airports lack a state, which points to a cut-off list.
