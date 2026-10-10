@@ -44,7 +44,9 @@
 | `src/copy/trips.ts` | create | `upcomingCityPills`, `routeLabel` |
 | `src/ui/UpcomingTripCard.tsx` | create | The upcoming trip card |
 | `src/ui/TripProgressCard.tsx` | create | The Day N of M card |
-| `src/styles/cards.css` | modify | Styles for both cards |
+| `src/styles/trips.css` | create | Styles for both cards. Task 11–12's blocks were appended to cards.css, then moved here in the Batch D review. |
+| `src/main.tsx` | modify | Imports trips.css after cards.css |
+| `src/copy/visuals.ts` | modify | The badges' label, icon and color (`LINE_TRIP_BADGE`, `delayBadge`), added in the Batch D review |
 | `src/ui/StatusScreen.tsx` | modify | Places the cards between the countdowns and the footer |
 | Tests | create and modify | `tests/engine/trips.test.ts`, `tests/copy/trips.test.ts`, `tests/ui/tripCards.test.tsx`, plus additions to existing files |
 
@@ -2053,7 +2055,7 @@ Update the project memory with the new tip and what's next: Part B, the location
 | §7 Engine | 5–8 |
 | §8 UI and copy, icons, accessibility, colors | 3, 4, 9–13 |
 | §9 Demo | 14 |
-| §10 Deliberate differences | 5 (1), 6 (2–4), 9 (5), 13 (6), 12 (7) |
+| §10 Deliberate differences | 5 (1), 6 (2–4), 9 (5), 13 (6), 12 (7); from the reviews, item 8 `c5cfa9d`, item 9 Task 8 and `e87bbe0`, item 10 `3b9445a` |
 | §11 Testing | Every task, then 15 |
 
 ## Execution notes

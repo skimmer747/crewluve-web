@@ -97,6 +97,7 @@ The pill subtitles need two things the airport list doesn't have yet. Today `pub
   - Where the app's table gives the city's state rather than the airport's, the app wins: CVG is "OH" (Cincinnati) and IAD is "DC" (Washington).
   - DJT replaced PBI on 2026-08-18 and isn't in OurAirports yet, so it's set to "FL" by hand.
   - The CSV has quoted fields, so the script parses it properly. It stops with a clear error if the file is missing or damaged. Nothing is downloaded.
+  - It also stops if more than 10 US airports end up without a state, which points to a cut-off list. Today there are none.
   - Other rows stay at six fields.
 - **Reading it.** `src/data/airports.ts` reads the field into `Airport.state` (string or null). A 6-field row parses as `state: null`, so an old cached copy keeps working.
 - **Size.** The file grows by roughly 50 KB uncompressed, a few KB once compressed.
@@ -138,7 +139,8 @@ interface TripProgress {
 - **Accessibility:**
   - The route has a visually hidden sentence, "Route: Louisville, Rockford, Anchorage", and the dots are hidden from screen readers.
   - The progress bar is hidden from screen readers, since "Day 2 of 4" already says it.
-  - The pills are a list.
+  - The pills are a list, with an explicit `role="list"` labeled by "Upcoming Cities". Safari drops the list role from a list styled without bullets.
+  - The upcoming trip card has a screen-reader-only "Upcoming trip" heading, so heading navigation lands on it. The app's card has no title.
   - The badges are text, so they read as "Line Trip" and "Delayed".
 - **Light and dark:** the cards use the existing tokens. Blue is the app's system blue, already a token. The pill blends need five more iOS 26 system colors as tokens, in light and dark: cyan, pink, yellow, teal and indigo. The pills keep white text in both modes, as in the app.
 
@@ -214,7 +216,8 @@ The demo is anchored to the moment the page loads, so N and the words "today" or
 ## 13. Roadmap after Part A
 
 0. **Follow-up, right after Part A's release:** high-contrast colors. When a phone has Increase Contrast on (`prefers-contrast: more`), the site switches to Apple's high-contrast system colors, as the app does. The default look doesn't change. White text on the yellow pill and the orange and green badges is well below 4.5:1 today (Batch D review; user decision, 2026-10-10).
-1. Part B: location card (weather via a keyless service, local time, time difference, sun dial and popup).
-2. Part C: in-flight map.
-3. Slice 3: the Schedule page (calendar and timeline), with the View Schedule button and the trip card's tap-through.
-4. The idea-board features and the optional family logins, as in slice 1 spec §13.
+1. **Small follow-up:** city names follow the app's airport table too, where it differs. That's VPS Destin/Fort Walton Beach, DEL New Delhi, BAH Bahrain and TAO Qingdao (final review). This is slice 1 data that the pills now show more prominently.
+2. Part B: location card (weather via a keyless service, local time, time difference, sun dial and popup).
+3. Part C: in-flight map.
+4. Slice 3: the Schedule page (calendar and timeline), with the View Schedule button and the trip card's tap-through.
+5. The idea-board features and the optional family logins, as in slice 1 spec §13.
