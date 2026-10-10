@@ -1,12 +1,14 @@
 import { isKnownZone } from '../time/zoned'
 
-/** One airport in public/data/airports.json. */
-export type AirportTuple = [iata: string, city: string, country: string, lat: number, lng: number, tz: string]
+/** One airport in public/data/airports.json. US airports carry a seventh field, the state code. */
+export type AirportTuple = [iata: string, city: string, country: string, lat: number, lng: number, tz: string, state?: string]
 
 export interface Airport {
   iata: string
   city: string
   country: string
+  /** USPS state code for US airports ("KY"), else null. An older copy of the file has none. */
+  state: string | null
   lat: number
   lng: number
   tz: string
@@ -24,10 +26,10 @@ export interface AirportIndex {
 export function buildAirportIndex(rows: AirportTuple[]): AirportIndex {
   const clean = (code: string | null | undefined) => (code ? code.trim().toUpperCase() : '')
   const map = new Map<string, Airport>()
-  for (const [iata, city, country, lat, lng, tz] of rows) {
+  for (const [iata, city, country, lat, lng, tz, state] of rows) {
     const code = clean(iata)
     if (!code) continue
-    map.set(code, { iata: code, city, country, lat, lng, tz })
+    map.set(code, { iata: code, city, country, state: state ?? null, lat, lng, tz })
   }
   return {
     get: (code) => map.get(clean(code)),

@@ -49,6 +49,15 @@ describe('buildAirportIndex', () => {
     expect(padded.city('SDF')).toBe('Louisville')
     expect(padded.get('sdf')?.iata).toBe('SDF')
   })
+
+  it('keeps a US airport’s state, and has none for a six-field row', () => {
+    const idx = buildAirportIndex([
+      ['SDF', 'Louisville', 'USA', 38.17, -85.74, 'America/Kentucky/Louisville', 'KY'],
+      ['CGN', 'Cologne', 'Germany', 50.87, 7.14, 'Europe/Berlin'],
+    ])
+    expect(idx.get('SDF')?.state).toBe('KY')
+    expect(idx.get('CGN')?.state).toBeNull()
+  })
 })
 
 describe('loadAirports', () => {
