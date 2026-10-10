@@ -196,12 +196,27 @@ describe('tripCardDepartsText', () => {
     expect(tripCardDepartsText(Date.UTC(2026, 9, 13, 15, 32), now, NY, false)).toBe('Departs Tue Oct 13 at 11:32am')
   })
 
+  it('dates a later departure in the given zone, not UTC', () => {
+    expect(tripCardDepartsText(Date.UTC(2026, 9, 14, 1, 30), now, NY, false)).toBe('Departs Tue Oct 13 at 9:30pm')
+  })
+
   it('uses 24-hour time when the viewer does', () => {
     expect(tripCardDepartsText(Date.UTC(2026, 9, 13, 15, 32), now, NY, true)).toBe('Departs Tue Oct 13 at 11:32')
+  })
+
+  it('uses 24-hour time on the today and tomorrow lines too', () => {
+    expect(tripCardDepartsText(Date.UTC(2026, 9, 8, 22, 0), now, NY, true)).toBe('Departs today at 18:00')
+    expect(tripCardDepartsText(Date.UTC(2026, 9, 9, 10, 30), now, NY, true)).toBe('Departs tomorrow at 06:30')
   })
 
   it('compares calendar days in the given zone', () => {
     const lateNight = Date.UTC(2026, 9, 8, 3, 30) // Wed 7 Oct, 11:30pm EDT
     expect(tripCardDepartsText(Date.UTC(2026, 9, 8, 10, 30), lateNight, NY, false)).toBe('Departs tomorrow at 6:30am')
+  })
+
+  it('compares calendar days in a zone other than this machine’s', () => {
+    // 11:30pm Wed 7 Oct in Honolulu; 6:30am Thu there is tomorrow, though it's the same day in UTC and New York.
+    const HNL = 'Pacific/Honolulu'
+    expect(tripCardDepartsText(Date.UTC(2026, 9, 8, 16, 30), Date.UTC(2026, 9, 8, 9, 30), HNL, false)).toBe('Departs tomorrow at 6:30am')
   })
 })
