@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { RawBuilder } from '../../src/data/rowBuilder'
-import { buildLegs } from '../../src/engine/legs'
+import { buildLegs, type MoveLeg } from '../../src/engine/legs'
 import { buildSchedule } from '../../src/engine/normalize'
-import { tripDayNumber, tripDays } from '../../src/engine/trips'
+import { tripDayNumber, tripDays, upcomingTrip } from '../../src/engine/trips'
 import { A, at } from '../fixtures/engine'
 
 const NY = 'America/New_York'
@@ -13,6 +13,7 @@ function engineOf(b: RawBuilder) {
   return { schedule, legs: buildLegs(schedule) }
 }
 const alex = () => new RawBuilder(A).pilot('Alex', 'SDF', 'LEX')
+const pat = () => new RawBuilder(A).pilot('Pat', 'SDF', 'MCO')
 
 describe('tripDayNumber', () => {
   /** Fri 9 Oct 5:30am to Mon 12 Oct 10:00pm EDT: four calendar days in New York. */
@@ -54,5 +55,90 @@ describe('tripDayNumber', () => {
 
   it('uses the calendar-day length when trips.days is 0', () => {
     expect(tripDays(fourDays(0), NY)).toBe(4)
+  })
+})
+
+describe('upcomingTrip', () => {
+  const none = { commute: null, delay: null }
+  /** Sat 10 Oct: SDF→RFD→ANC; Sun 11 Oct: ANC→SDF. */
+  const withTrip = (b: RawBuilder) =>
+    b.trip('t1', {
+      days: 2,
+      dutyPeriods: [
+        { start: 1440, end: 2000, flights: [{ dep: 'SDF', arr: 'RFD', out: 1500, in: 1590 }, { dep: 'RFD', arr: 'ANC', out: 1650, in: 1980 }] },
+        { start: 3000, end: 3500, flights: [{ dep: 'ANC', arr: 'SDF', out: 3060, in: 3360 }] },
+      ],
+    })
+
+  it('is the next trip: each airport once in order, its first flight, and its length', () => {
+    const { schedule, legs } = engineOf(withTrip(alex()))
+    expect(upcomingTrip(schedule, legs, at(0), NY, none)).toEqual({
+      tripId: 't1',
+      departs: at(1500),
+      days: 2,
+      route: ['SDF', 'RFD', 'ANC'],
+      delayMinutes: null,
+    })
+  })
+
+  it('shows at most six stops', () => {
+    const b = alex().trip('t1', {
+      dutyPeriods: [
+        {
+          start: 1440,
+          end: 2400,
+          flights: [
+            { dep: 'SDF', arr: 'RFD', out: 1500, in: 1560 },
+            { dep: 'RFD', arr: 'ANC', out: 1600, in: 1700 },
+            { dep: 'ANC', arr: 'ONT', out: 1750, in: 1850 },
+            { dep: 'ONT', arr: 'HNL', out: 1900, in: 2000 },
+            { dep: 'HNL', arr: 'MIA', out: 2050, in: 2150 },
+            { dep: 'MIA', arr: 'ATL', out: 2200, in: 2300 },
+          ],
+        },
+      ],
+    })
+    const { schedule, legs } = engineOf(b)
+    expect(upcomingTrip(schedule, legs, at(0), NY, none)?.route).toEqual(['SDF', 'RFD', 'ANC', 'ONT', 'HNL', 'MIA'])
+  })
+
+  it('starts from home, and leaves when the commute jumpseat does, when one was logged', () => {
+    const { schedule, legs } = engineOf(withTrip(pat()).jumpseat('js1', 'MCO', 'SDF', 1300, 1420))
+    const commute = legs.find((l) => l.id === 'js1') as MoveLeg
+    expect(upcomingTrip(schedule, legs, at(0), NY, { commute, delay: null })).toMatchObject({
+      departs: at(1300),
+      route: ['MCO', 'SDF', 'RFD', 'ANC'],
+    })
+  })
+
+  it('leaves home where the route already has it, as the app does', () => {
+    const b = pat()
+      .trip('t1', {
+        dutyPeriods: [
+          { start: 1440, end: 2000, flights: [{ dep: 'SDF', arr: 'MCO', out: 1500, in: 1620 }, { dep: 'MCO', arr: 'SDF', out: 1700, in: 1820 }] },
+        ],
+      })
+      .jumpseat('js1', 'MCO', 'SDF', 1300, 1420)
+    const { schedule, legs } = engineOf(b)
+    const commute = legs.find((l) => l.id === 'js1') as MoveLeg
+    expect(upcomingTrip(schedule, legs, at(0), NY, { commute, delay: null })?.route).toEqual(['SDF', 'MCO'])
+  })
+
+  it('carries a delay or an early departure on this trip’s flight, and ignores one on another trip', () => {
+    const { schedule, legs } = engineOf(
+      withTrip(alex()).trip('t0', {
+        dutyPeriods: [{ start: -600, end: -100, flights: [{ dep: 'SDF', arr: 'MIA', out: -500, in: -300 }] }],
+      }),
+    )
+    const flightOf = (id: string) => legs.find((l) => l.kind === 'flight' && l.tripId === id) as MoveLeg
+    const delayed = (id: string, minutes: number) => ({ commute: null, delay: { flight: flightOf(id), minutes } })
+    expect(upcomingTrip(schedule, legs, at(0), NY, delayed('t1', 40))?.delayMinutes).toBe(40)
+    expect(upcomingTrip(schedule, legs, at(0), NY, delayed('t1', -20))?.delayMinutes).toBe(-20)
+    expect(upcomingTrip(schedule, legs, at(0), NY, delayed('t0', 40))?.delayMinutes).toBeNull()
+  })
+
+  it('is null with no trip flight ahead', () => {
+    const { schedule, legs } = engineOf(withTrip(alex()))
+    expect(upcomingTrip(schedule, legs, at(4000), NY, none)).toBeNull()
   })
 })
