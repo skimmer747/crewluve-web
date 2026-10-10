@@ -1,5 +1,8 @@
-// Builds public/data/airports.json as [iata, city, country, lat, lng, tz] tuples.
+// Builds public/data/airports.json as [iata, city, country, lat, lng, tz] tuples, plus a seventh field, the state code,
+// for US airports.
 // Source: the Flight Globe's merged list (Crewlu's own airport tables win over OurAirports there).
+// Countries: one spelling each, "USA" for the US (as the Crewluve app writes it) and short English names elsewhere.
+// States: iso_region from the OurAirports list the globe keeps beside its own ("US-KY" -> "KY").
 // Time zones: geo-tz, installed on demand by `npm run airports` and never saved as a dependency.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -14,6 +17,8 @@ const { find } = require('geo-tz/all')
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 // The Flight Globe checkout is expected next to this repo; set AIRPORTS_SOURCE to read it from elsewhere.
 const source = process.env.AIRPORTS_SOURCE ?? resolve(root, '../crewlu-globe/public/data/airports.json')
+// The OurAirports list the globe keeps next to it; set AIRPORTS_REGIONS_SOURCE to read it from elsewhere.
+const regionsSource = process.env.AIRPORTS_REGIONS_SOURCE ?? resolve(root, '../crewlu-globe/scripts/ourairports.csv')
 const outFile = resolve(root, 'public/data/airports.json')
 
 // Zones renamed in recent years, mapped to their older names. These are true aliases: the older name
@@ -33,8 +38,89 @@ const SAME_RULES_TODAY = new Map([
 ])
 const remapped = new Map()
 
+/** RFC 4180 CSV: a quoted field may hold commas, doubled quotes and line breaks. */
+function parseCsv(text) {
+  const rows = []
+  let row = []
+  let field = ''
+  let quoted = false
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i]
+    if (quoted) {
+      if (c !== '"') field += c
+      else if (text[i + 1] === '"') {
+        field += '"'
+        i++
+      } else quoted = false
+    } else if (c === '"') quoted = true
+    else if (c === ',') {
+      row.push(field)
+      field = ''
+    } else if (c === '\n') {
+      row.push(field)
+      rows.push(row)
+      row = []
+      field = ''
+    } else if (c !== '\r') field += c
+  }
+  if (field !== '' || row.length > 0) {
+    row.push(field)
+    rows.push(row)
+  }
+  return rows
+}
+
+/** iata_code -> iso_region ("US-KY") from OurAirports' airports.csv. Closed airports are skipped; the first open one wins. */
+function regionsByIata(text) {
+  const [header, ...rows] = parseCsv(text)
+  const column = (name) => {
+    const i = header.indexOf(name)
+    if (i < 0) throw new Error(`${regionsSource} has no ${name} column`)
+    return i
+  }
+  const iataAt = column('iata_code')
+  const regionAt = column('iso_region')
+  const typeAt = column('type')
+  const regions = new Map()
+  for (const row of rows) {
+    const iata = String(row[iataAt] ?? '').trim().toUpperCase()
+    if (!iata || row[typeAt] === 'closed' || regions.has(iata)) continue
+    regions.set(iata, String(row[regionAt] ?? ''))
+  }
+  return regions
+}
+const regions = regionsByIata(readFileSync(regionsSource, 'utf8'))
+
+const longRegionNames = new Intl.DisplayNames(['en'], { type: 'region' })
+const shortRegionNames = new Intl.DisplayNames(['en'], { type: 'region', style: 'short' })
+// Long English names that have a shorter form: "United Kingdom" -> "UK", "Hong Kong SAR China" -> "Hong Kong".
+const shortByLongName = new Map()
+const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+for (const a of LETTERS) {
+  for (const b of LETTERS) {
+    const long = longRegionNames.of(a + b)
+    const short = shortRegionNames.of(a + b)
+    if (long && short && long !== a + b && long !== short) shortByLongName.set(long, short)
+  }
+}
+
+/** One spelling per country: "USA" for the US (as the Crewluve app writes it), else the short English name. */
+function countryName(raw) {
+  const value = String(raw ?? '').trim()
+  if (value === 'US' || value === 'USA' || value === 'United States') return 'USA'
+  if (/^[A-Z]{2}$/.test(value)) return shortRegionNames.of(value) ?? value
+  return shortByLongName.get(value) ?? value
+}
+
+/** "KY" for a US airport whose OurAirports region is "US-KY"; null for anything else. */
+function usState(iata, country) {
+  if (country !== 'USA') return null
+  return /^US-([A-Z]{2})$/.exec(regions.get(iata) ?? '')?.[1] ?? null
+}
+
 const skipped = { 'bad code': 0, duplicate: 0, 'bad coordinates': 0, 'no zone': 0 }
 const inRange = (n, limit) => Number.isFinite(n) && Math.abs(n) <= limit
+let withoutState = 0
 
 const seen = new Set()
 const out = []
@@ -61,13 +147,19 @@ for (const r of JSON.parse(readFileSync(source, 'utf8'))) {
   if (tz !== found) remapped.set(found, (remapped.get(found) ?? 0) + 1)
   seen.add(iata)
   const round = (n) => Math.round(n * 1e4) / 1e4
-  out.push([iata, String(r.city || iata), String(r.country ?? ''), round(r.lat), round(r.lng), tz])
+  const country = countryName(r.country)
+  const state = usState(iata, country)
+  if (country === 'USA' && !state) withoutState++
+  const row = [iata, String(r.city || iata), country, round(r.lat), round(r.lng), tz]
+  if (state) row.push(state)
+  out.push(row)
 }
 out.sort((a, b) => (a[0] < b[0] ? -1 : 1))
 mkdirSync(dirname(outFile), { recursive: true })
 writeFileSync(outFile, JSON.stringify(out))
 console.log(`wrote ${out.length} airports to ${outFile}`)
 console.log(`skipped: ${Object.entries(skipped).map(([reason, n]) => `${n} ${reason}`).join(', ')}`)
+console.log(`US airports without a state: ${withoutState}`)
 const summarize = (names) =>
   [...remapped]
     .filter(([from]) => names.has(from))

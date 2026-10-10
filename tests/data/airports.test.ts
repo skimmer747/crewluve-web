@@ -112,4 +112,23 @@ describe('generated public/data/airports.json', () => {
     const blanks = rows.filter(([, city]) => city.trim() === '')
     expect(blanks.length, `blank city, e.g. ${blanks.slice(0, 5).map(([iata]) => iata).join(', ')}`).toBe(0)
   })
+
+  it('spells every country one way: "USA" for the US, the short English name elsewhere', () => {
+    expect(idx.get('SDF')?.country).toBe('USA')
+    expect(idx.get('ABE')?.country).toBe('USA') // was "US"
+    expect(idx.get('CGN')?.country).toBe('Germany')
+    expect(idx.get('AGB')?.country).toBe('Germany') // was "DE"
+    expect(idx.get('LHR')?.country).toBe('UK') // was "United Kingdom"
+    expect(idx.get('ABZ')?.country).toBe('UK') // was "GB"
+    expect(rows.some((r) => r[2] === 'US' || r[2] === 'United States')).toBe(false)
+  })
+
+  it('gives US airports their state code, and only them', () => {
+    expect(idx.get('SDF')?.state).toBe('KY')
+    expect(idx.get('ANC')?.state).toBe('AK')
+    expect(idx.get('ABE')?.state).toBe('PA')
+    expect(idx.get('CGN')?.state).toBeNull()
+    for (const row of rows) if (row.length === 7) expect(row[2]).toBe('USA')
+    expect(rows.filter((r) => r.length === 7).length).toBeGreaterThan(1500)
+  })
 })
