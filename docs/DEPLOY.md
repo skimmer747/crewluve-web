@@ -31,7 +31,8 @@ gh repo create skimmer747/crewluve-web --public --source . --remote origin --pus
 GitHub recommends this order, so that no one else can claim the subdomain while it points at GitHub.
 
 1. Recommended, once per account: verify crewlu.net under your GitHub profile → Settings → Pages → Verified domains.
-   Check whether this was already done for the Flight Globe.
+   It wasn't verified as of 2026-10-09 (no `_github-pages-challenge-skimmer747` TXT record), so this is optional extra
+   protection that also covers the globe.
 2. In the repo's Settings → Pages → Custom domain, enter `crewluve.crewlu.net` and save.
 
 `public/CNAME` stays in the repo as a record of the domain, but a deploy from GitHub Actions ignores it. The setting
@@ -39,13 +40,14 @@ in this step is what counts.
 
 ## 4. Point crewluve.crewlu.net at GitHub Pages
 
-In the DNS for crewlu.net, add:
+crewlu.net's DNS is on Cloudflare (nameservers `sergi` and `journey`). In that zone, the one that already lists `globe`, add:
 
-| Type  | Name     | Target                | TTL  |
-|-------|----------|-----------------------|------|
-| CNAME | crewluve | skimmer747.github.io. | Auto |
+| Type  | Name     | Target                | Proxy status             | TTL  |
+|-------|----------|-----------------------|--------------------------|------|
+| CNAME | crewluve | skimmer747.github.io. | DNS only (grey cloud)    | Auto |
 
-crewlu.net's CAA record already allows letsencrypt.org.
+Keep it DNS only: with Cloudflare's proxy on, GitHub can't check the domain or issue its certificate. crewlu.net has no
+CAA record, so Let's Encrypt is free to issue it.
 
 ## 5. HTTPS
 
