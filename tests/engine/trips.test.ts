@@ -140,6 +140,30 @@ describe('upcomingTrip', () => {
     expect(upcomingTrip(schedule, legs, at(0), NY, { commute, delay: null })?.route).toEqual(['SDF', 'MCO'])
   })
 
+  it('cuts the route at six stops after putting home first', () => {
+    const b = pat()
+      .trip('t1', {
+        dutyPeriods: [
+          {
+            start: 1440,
+            end: 2400,
+            flights: [
+              { dep: 'SDF', arr: 'RFD', out: 1500, in: 1560 },
+              { dep: 'RFD', arr: 'ANC', out: 1600, in: 1700 },
+              { dep: 'ANC', arr: 'ONT', out: 1750, in: 1850 },
+              { dep: 'ONT', arr: 'HNL', out: 1900, in: 2000 },
+              { dep: 'HNL', arr: 'MIA', out: 2050, in: 2150 },
+              { dep: 'MIA', arr: 'ATL', out: 2200, in: 2300 },
+            ],
+          },
+        ],
+      })
+      .jumpseat('js1', 'MCO', 'SDF', 1300, 1420)
+    const { schedule, legs } = engineOf(b)
+    const commute = legs.find((l) => l.id === 'js1') as MoveLeg
+    expect(upcomingTrip(schedule, legs, at(0), NY, { commute, delay: null })?.route).toEqual(['MCO', 'SDF', 'RFD', 'ANC', 'ONT', 'HNL'])
+  })
+
   it('carries a delay or an early departure on this trip’s flight, and ignores one on another trip', () => {
     const { schedule, legs } = engineOf(
       withTrip(alex()).trip('t0', {

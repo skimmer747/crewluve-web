@@ -472,4 +472,36 @@ describe('the trip cards (slice 2A)', () => {
     })
     expect(snapOf(b, 0).upcomingTrip).toMatchObject({ departs: at(1540), delayMinutes: 40 })
   })
+
+  it('a logged commute leaves at its own time even when the first flight is late (§10 item 3)', () => {
+    const b = new RawBuilder(A).pilot('Pat', 'SDF', 'MCO')
+      .trip('t1', {
+        dutyPeriods: [
+          { start: 1440, end: 2000, flights: [{ dep: 'SDF', arr: 'RFD', out: 1500, in: 1590, actualOut: 1540, actualIn: 1630 }] },
+        ],
+      })
+      .jumpseat('js1', 'MCO', 'SDF', 1300, 1420)
+    expect(snapOf(b, 0).upcomingTrip).toMatchObject({ departs: at(1300), delayMinutes: 40, route: ['MCO', 'SDF', 'RFD'] })
+  })
+
+  it('a stale jumpseat days before the trip never reaches the card', () => {
+    const b = new RawBuilder(A).pilot('Pat', 'SDF', 'MCO')
+      .trip('t1', {
+        dutyPeriods: [
+          { start: 3000, end: 3500, flights: [{ dep: 'SDF', arr: 'ANC', out: 3060, in: 3360 }] },
+        ],
+      })
+      .jumpseat('stale', 'MCO', 'SDF', 300, 420)
+    expect(snapOf(b, 0).upcomingTrip).toMatchObject({ departs: at(3060), route: ['SDF', 'ANC'] })
+  })
+
+  it('counts days in the base time zone end to end, where UTC would say otherwise', () => {
+    // Sat 10 Oct 11:00pm to Sun 2:30am EDT: two days in New York, one in UTC. trips.days is 0, so the calendar count decides.
+    const b = new RawBuilder(A).pilot('Alex', 'SDF', 'LEX').trip('t1', {
+      days: 0,
+      dutyPeriods: [{ start: 2490, end: 2700, flights: [{ dep: 'SDF', arr: 'ANC', out: 2550, in: 2650 }] }],
+    })
+    expect(snapOf(b, 0).upcomingTrip?.days).toBe(2)
+    expect(snapOf(b, 2610).tripProgress).toMatchObject({ day: 2, days: 2 })
+  })
 })
