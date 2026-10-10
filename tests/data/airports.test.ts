@@ -131,4 +131,18 @@ describe('generated public/data/airports.json', () => {
     for (const row of rows) if (row.length === 7) expect(row[2]).toBe('USA')
     expect(rows.filter((r) => r.length === 7).length).toBeGreaterThan(1500)
   })
+
+  it('uses the Crewluve app’s spelling where English names differ, so each country reads one way', () => {
+    expect(idx.get('IST')?.country).toBe('Turkey')
+    expect(idx.get('PRG')?.country).toBe('Czech Republic')
+    expect(idx.get('EMA')?.country).toBe('UK')
+    expect(idx.get('POS')?.country).toBe('Trinidad and Tobago')
+    expect(idx.get('TAB')?.country).toBe('Trinidad and Tobago')
+    expect(idx.get('STT')?.country).toBe('US Virgin Islands')
+    expect(idx.get('PLS')?.country).toBe('Turks and Caicos')
+    expect(idx.get('HKG')?.country).toBe('China')
+    expect(idx.get('HHP')?.country).toBe('China') // ICU's name for the code HK is "Hong Kong"; Crewlu's tables file HKG under China
+    const icuOnly = ['Türkiye', 'Czechia', 'United Kingdom', 'Trinidad & Tobago', 'U.S. Virgin Islands', 'Turks & Caicos Islands', 'Hong Kong']
+    expect(rows.some((r) => icuOnly.includes(r[2]))).toBe(false)
+  })
 })

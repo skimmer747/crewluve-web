@@ -104,12 +104,25 @@ for (const a of LETTERS) {
   }
 }
 
-/** One spelling per country: "USA" for the US (as the Crewluve app writes it), else the short English name. */
+// Where ICU's English name differs from the spelling Crewlu's own airport tables use, the Crewlu spelling wins, so each
+// country reads one way ("Turkey", never also "Türkiye"). This also covers "UK", which isn't an ISO code: ICU reads it
+// as "United Kingdom".
+const CREWLU_SPELLING = new Map([
+  ['Türkiye', 'Turkey'],
+  ['Czechia', 'Czech Republic'],
+  ['Turks & Caicos Islands', 'Turks and Caicos'],
+  ['Trinidad & Tobago', 'Trinidad and Tobago'],
+  ['U.S. Virgin Islands', 'US Virgin Islands'],
+  ['United Kingdom', 'UK'],
+  ['Hong Kong', 'China'], // not a spelling: Crewlu's tables file HKG under China, while ICU names the code HK "Hong Kong"
+])
+
+/** One spelling per country: "USA" for the US (as the Crewluve app writes it), else the short English name, in Crewlu's spelling where it differs. */
 function countryName(raw) {
   const value = String(raw ?? '').trim()
   if (value === 'US' || value === 'USA' || value === 'United States') return 'USA'
-  if (/^[A-Z]{2}$/.test(value)) return shortRegionNames.of(value) ?? value
-  return shortByLongName.get(value) ?? value
+  const name = /^[A-Z]{2}$/.test(value) ? shortRegionNames.of(value) ?? value : shortByLongName.get(value) ?? value
+  return CREWLU_SPELLING.get(name) ?? name
 }
 
 /** "KY" for a US airport whose OurAirports region is "US-KY"; null for anything else. */
