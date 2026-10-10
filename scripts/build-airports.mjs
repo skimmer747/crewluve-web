@@ -2,8 +2,9 @@
 // for US airports.
 // Source: the Flight Globe's merged list (Crewlu's own airport tables win over OurAirports there).
 // Countries: one spelling each, "USA" for the US (as the Crewluve app writes it) and short English names elsewhere,
-// in Crewlu's own spelling where the two differ.
-// States: iso_region from the OurAirports list the globe keeps beside its own ("US-KY" -> "KY").
+// except where the Crewluve app's own airport table (AirportDataProvider.swift) spells one differently: that wins.
+// States: iso_region from the OurAirports list the globe keeps beside its own ("US-KY" -> "KY"), except where the
+// Crewluve app's own airport table gives another state (CVG, IAD, DJT).
 // Time zones: geo-tz, installed on demand by `npm run airports` and never saved as a dependency.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -105,31 +106,40 @@ for (const a of LETTERS) {
   }
 }
 
-// Where ICU's English name differs from the spelling Crewlu's own airport tables use, the Crewlu spelling wins, so each
-// country reads one way ("Turkey", never also "Türkiye"). This also covers "UK", which isn't an ISO code: ICU reads it
-// as "United Kingdom".
-const CREWLU_SPELLING = new Map([
+// The Crewluve app's own airport table (AirportDataProvider.swift) is the reference: where ICU's English name differs
+// from the spelling it uses, the app's spelling wins, so each country reads one way ("Turkey", never also "Türkiye").
+// This also covers "UK", which isn't an ISO code: ICU reads it as "United Kingdom".
+const APP_SPELLING = new Map([
   ['Türkiye', 'Turkey'],
   ['Czechia', 'Czech Republic'],
   ['Turks & Caicos Islands', 'Turks and Caicos'],
   ['Trinidad & Tobago', 'Trinidad and Tobago'],
   ['U.S. Virgin Islands', 'US Virgin Islands'],
   ['United Kingdom', 'UK'],
+  ['United Arab Emirates', 'UAE'],
   ['Hong Kong', 'China'], // not a spelling: Crewlu's tables file HKG under China, while ICU names the code HK "Hong Kong"
 ])
 
-/** One spelling per country: "USA" for the US (as the Crewluve app writes it), else the short English name, in Crewlu's spelling where it differs. */
+/** One spelling per country: "USA" for the US (as the Crewluve app writes it), else the short English name, in the app's spelling where it differs. */
 function countryName(raw) {
   const value = String(raw ?? '').trim()
   if (value === 'US' || value === 'USA' || value === 'United States') return 'USA'
   const name = /^[A-Z]{2}$/.test(value) ? shortRegionNames.of(value) ?? value : shortByLongName.get(value) ?? value
-  return CREWLU_SPELLING.get(name) ?? name
+  return APP_SPELLING.get(name) ?? name
 }
 
-/** "KY" for a US airport whose OurAirports region is "US-KY"; null for anything else. */
+// The Crewluve app's airport table gives the city's state where it differs from where the airport sits: CVG serves
+// Cincinnati, OH, and IAD serves Washington, DC. DJT replaced PBI on 2026-08-18 and isn't in OurAirports yet.
+const APP_STATE = new Map([
+  ['CVG', 'OH'],
+  ['IAD', 'DC'],
+  ['DJT', 'FL'],
+])
+
+/** The app's state for the few airports in APP_STATE, else "KY" for a US airport whose OurAirports region is "US-KY"; null for anything else. */
 function usState(iata, country) {
   if (country !== 'USA') return null
-  return /^US-([A-Z]{2})$/.exec(regions.get(iata) ?? '')?.[1] ?? null
+  return APP_STATE.get(iata) ?? /^US-([A-Z]{2})$/.exec(regions.get(iata) ?? '')?.[1] ?? null
 }
 
 const skipped = { 'bad code': 0, duplicate: 0, 'bad coordinates': 0, 'no zone': 0 }

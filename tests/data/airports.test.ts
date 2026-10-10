@@ -142,7 +142,15 @@ describe('generated public/data/airports.json', () => {
     expect(idx.get('PLS')?.country).toBe('Turks and Caicos')
     expect(idx.get('HKG')?.country).toBe('China')
     expect(idx.get('HHP')?.country).toBe('China') // ICU's name for the code HK is "Hong Kong"; Crewlu's tables file HKG under China
-    const icuOnly = ['Türkiye', 'Czechia', 'United Kingdom', 'Trinidad & Tobago', 'U.S. Virgin Islands', 'Turks & Caicos Islands', 'Hong Kong']
+    const icuOnly = ['Türkiye', 'Czechia', 'United Kingdom', 'Trinidad & Tobago', 'U.S. Virgin Islands', 'Turks & Caicos Islands', 'Hong Kong', 'United Arab Emirates']
     expect(rows.some((r) => icuOnly.includes(r[2]))).toBe(false)
+  })
+
+  it('follows the Crewluve app’s own table where it differs: the city’s state, and "UAE"', () => {
+    expect(idx.get('CVG')?.state).toBe('OH')
+    expect(idx.get('IAD')?.state).toBe('DC')
+    expect(idx.get('DJT')?.state).toBe('FL')
+    expect(idx.get('DXB')?.country).toBe('UAE')
+    expect(idx.get('AUH')?.country).toBe('UAE')
   })
 })
