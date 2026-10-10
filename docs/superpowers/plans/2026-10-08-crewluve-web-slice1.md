@@ -7744,7 +7744,9 @@ git commit -m "Add GitHub Pages deploy workflow and deployment guide
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
-- [ ] **Step 6: Stop and ask the user**
+- [x] **Step 6: Stop and ask the user**
+
+Done 2026-10-10, with a yes before each step: the public repo and push, Pages from GitHub Actions, the custom domain, the Cloudflare CNAME (DNS only) and Enforce HTTPS. The certificate only started after removing and re-adding the custom domain, the same fix the globe needed. The step 6 checks passed: `HTTP/2 200`, one CSP tag, and the plain address redirects to https.
 
 Summarize what's ready. Ask whether to go ahead with `docs/DEPLOY.md` step 1, which creates the **public** GitHub repo and pushes. Ask separately before each later outward-facing step (Pages settings, DNS, HTTPS). Don't continue without a clear yes for each.
 
