@@ -154,6 +154,33 @@ describe('EmptyState', () => {
 })
 
 describe('StatusScreen trip cards (slice 2A)', () => {
+  /** The screen at `minutes` with its own viewer zone, pilot home zone and clock style. */
+  const screenWith = (minutes: number, opts: { viewerTz?: string; homeTz?: string; h24?: boolean }) => {
+    const now = at(minutes)
+    return (
+      <StatusScreen snap={makeSnapshot(e.schedule, e.legs, now, NY)} now={now} viewerTz={opts.viewerTz ?? NY} homeTz={opts.homeTz ?? NY}
+        h24={opts.h24 ?? false} airports={testAirports} demo={false} celebrateKey={0} footer={footer(now)} />
+    )
+  }
+
+  it('dates the departure in the pilot’s home zone, not the viewer’s', () => {
+    render(screenWith(-1440, { viewerTz: 'America/Los_Angeles', homeTz: NY }))
+    expect(screen.getByText('Departs tomorrow at 6:30am')).toBeTruthy()
+  })
+
+  it('passes the 24-hour choice through to the upcoming trip card', () => {
+    render(screenWith(-1440, { h24: true }))
+    expect(screen.getByText('Departs tomorrow at 06:30')).toBeTruthy()
+  })
+
+  it('away: the Day N card sits after the Back Home In card, before the footer', () => {
+    const { container } = render(screenWith(100, {}))
+    const back = screen.getByRole('heading', { level: 2, name: 'Back Home In' })
+    const day = screen.getByRole('heading', { level: 2, name: 'Day 1 of 2' })
+    expect(back.compareDocumentPosition(day) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(day.compareDocumentPosition(container.querySelector('.footer')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
   it('home: the upcoming trip card sits after the been-home pill, before the footer', () => {
     const { container } = renderAt(-1440)
     const card = container.querySelector('.trip-card')!

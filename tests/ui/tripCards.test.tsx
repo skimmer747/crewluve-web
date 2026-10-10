@@ -49,6 +49,14 @@ describe('UpcomingTripCard', () => {
     expect(screen.queryByText('Early')).toBeNull()
   })
 
+  it('colors the badges: blue Line Trip, orange Delayed, green Early', () => {
+    const { rerender } = render(card(trip({ delayMinutes: 40 })))
+    expect((screen.getByText('Line Trip') as HTMLElement).style.background).toBe('var(--blue)')
+    expect((screen.getByText('Delayed') as HTMLElement).style.background).toBe('var(--orange)')
+    rerender(card(trip({ delayMinutes: -20 })))
+    expect((screen.getByText('Early') as HTMLElement).style.background).toBe('var(--green)')
+  })
+
   it('says "1 day" for a one-day trip, and uses 24-hour time when asked', () => {
     render(card(trip({ days: 1 }), true))
     expect(screen.getByText('1 day')).toBeTruthy()
@@ -82,6 +90,18 @@ describe('TripProgressCard', () => {
       ['Louisville', 'KY'],
     ])
     expect(pills.map((li) => li.className)).toEqual(['city-pill blend-0', 'city-pill blend-1', 'city-pill blend-2'])
+  })
+
+  it('shows an unknown airport as its code, with no subtitle line', () => {
+    const { container } = render(<TripProgressCard progress={progress({ upcoming: ['XYZ'] })} airports={testAirports} />)
+    expect(container.querySelector('.city-pills > li .city-name')!.textContent).toBe('XYZ')
+    expect(container.querySelector('.city-sub')).toBeNull()
+  })
+
+  it('announces the pills as a list', () => {
+    render(<TripProgressCard progress={progress({ upcoming: ['ANC', 'SDF'] })} airports={testAirports} />)
+    expect(screen.getByRole('list').children).toHaveLength(2)
+    expect(screen.getAllByRole('listitem')).toHaveLength(2)
   })
 
   it('leaves out the cities when no flights remain', () => {
