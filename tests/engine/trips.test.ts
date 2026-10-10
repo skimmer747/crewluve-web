@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { RawBuilder } from '../../src/data/rowBuilder'
 import { buildLegs, type MoveLeg } from '../../src/engine/legs'
 import { buildSchedule } from '../../src/engine/normalize'
-import { tripDayNumber, tripDays, upcomingTrip } from '../../src/engine/trips'
+import { tripDayNumber, tripDays, tripProgress, upcomingTrip } from '../../src/engine/trips'
 import { A, at } from '../fixtures/engine'
 
 const NY = 'America/New_York'
@@ -140,5 +140,65 @@ describe('upcomingTrip', () => {
   it('is null with no trip flight ahead', () => {
     const { schedule, legs } = engineOf(withTrip(alex()))
     expect(upcomingTrip(schedule, legs, at(4000), NY, none)).toBeNull()
+  })
+})
+
+describe('tripProgress', () => {
+  /** Sat 10 Oct: SDF→RFD→ANC; Sun 11 Oct: ANC→SDF. Three days. */
+  const threeDayTrip = () =>
+    engineOf(
+      alex().trip('t1', {
+        days: 3,
+        dutyPeriods: [
+          { start: 1440, end: 2000, flights: [{ dep: 'SDF', arr: 'RFD', out: 1500, in: 1590 }, { dep: 'RFD', arr: 'ANC', out: 1650, in: 1980 }] },
+          { start: 3000, end: 3500, flights: [{ dep: 'ANC', arr: 'SDF', out: 3060, in: 3360 }] },
+        ],
+      }),
+    )
+
+  it('gives the day, the length, and where the remaining flights land, in order', () => {
+    const { schedule, legs } = threeDayTrip()
+    expect(tripProgress(schedule, legs, at(1600), NY)).toEqual({ tripId: 't1', day: 1, days: 3, upcoming: ['ANC', 'SDF'] })
+  })
+
+  it('names each airport once', () => {
+    const b = alex().trip('t1', {
+      dutyPeriods: [
+        {
+          start: 0,
+          end: 900,
+          flights: [
+            { dep: 'SDF', arr: 'ANC', out: 60, in: 300 },
+            { dep: 'ANC', arr: 'SDF', out: 360, in: 600 },
+            { dep: 'SDF', arr: 'ANC', out: 660, in: 880 },
+          ],
+        },
+      ],
+    })
+    const { schedule, legs } = engineOf(b)
+    expect(tripProgress(schedule, legs, at(30), NY)?.upcoming).toEqual(['ANC', 'SDF'])
+  })
+
+  it('has no cities left once the last flight is off', () => {
+    const { schedule, legs } = threeDayTrip()
+    expect(tripProgress(schedule, legs, at(3100), NY)).toMatchObject({ day: 2, upcoming: [] })
+  })
+
+  it('is null before and after the trip', () => {
+    const { schedule, legs } = threeDayTrip()
+    expect(tripProgress(schedule, legs, at(1000), NY)).toBeNull()
+    expect(tripProgress(schedule, legs, at(3600), NY)).toBeNull()
+  })
+
+  it('counts the length in calendar days when trips.days is 0', () => {
+    const b = alex().trip('t1', {
+      days: 0,
+      dutyPeriods: [
+        { start: 1440, end: 2000, flights: [{ dep: 'SDF', arr: 'ANC', out: 1500, in: 1900 }] },
+        { start: 3000, end: 3500, flights: [{ dep: 'ANC', arr: 'SDF', out: 3060, in: 3360 }] },
+      ],
+    })
+    const { schedule, legs } = engineOf(b)
+    expect(tripProgress(schedule, legs, at(1600), NY)?.days).toBe(2)
   })
 })

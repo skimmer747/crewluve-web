@@ -62,3 +62,26 @@ export function upcomingTrip(schedule: Schedule, legs: Leg[], t: number, baseTz:
     delayMinutes: delay && delay.flight.tripId === trip.id ? delay.minutes : null,
   }
 }
+
+export interface TripProgress {
+  tripId: string
+  /** 1…days */
+  day: number
+  days: number
+  /** Arrival airports of the trip's flights still to depart, in order, each once. The copy layer matches cities and keeps 3. */
+  upcoming: Iata[]
+}
+
+/**
+ * calculateTripOverview on CrewLu Cloud data: the trip covering t, its day number and length, and the airports its
+ * remaining flights land at. Covering means start ≤ t < end, the same test slice 1 uses for an all-hidden trip.
+ */
+export function tripProgress(schedule: Schedule, legs: Leg[], t: number, baseTz: string): TripProgress | null {
+  const trip = schedule.trips.find((tr) => tr.start <= t && t < tr.end)
+  if (!trip) return null
+  const upcoming: Iata[] = []
+  for (const l of legs) {
+    if (l.kind === 'flight' && l.tripId === trip.id && l.start > t && !upcoming.includes(l.arr)) upcoming.push(l.arr)
+  }
+  return { tripId: trip.id, day: tripDayNumber(trip, t, baseTz), days: tripDays(trip, baseTz), upcoming }
+}
