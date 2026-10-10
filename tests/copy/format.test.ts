@@ -198,6 +198,8 @@ describe('tripCardDepartsText', () => {
 
   it('dates a later departure in the given zone, not UTC', () => {
     expect(tripCardDepartsText(Date.UTC(2026, 9, 14, 1, 30), now, NY, false)).toBe('Departs Tue Oct 13 at 9:30pm')
+    // 9:30pm Tue 13 Oct in Honolulu is already Wed 14 Oct in both UTC and New York.
+    expect(tripCardDepartsText(Date.UTC(2026, 9, 14, 7, 30), now, 'Pacific/Honolulu', false)).toBe('Departs Tue Oct 13 at 9:30pm')
   })
 
   it('uses 24-hour time when the viewer does', () => {
