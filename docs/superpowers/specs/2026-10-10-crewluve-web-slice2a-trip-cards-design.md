@@ -38,7 +38,7 @@ Part B will put the location card between 3 and 4, and slice 3 adds the View Sch
 Visibility follows the app's `isSettled` rule (`PilotDisplayStatus.swift`: home or base):
 
 - **Upcoming trip card:** status is `home` or `base`, and a trip lies ahead.
-- **Day N of M card:** status is anything else, and a trip covers now (its start ≤ now ≤ its end, like Duty's `findCurrentTrip`).
+- **Day N of M card:** status is anything else, and a trip covers now. That's Duty's `findCurrentTrip`, written as start ≤ now < end, the same test slice 1 uses for a trip whose flights are all hidden.
 
 So the two never show together. At base, the upcoming trip card appears alongside the Back Home In countdown, as in the app. Between trips, while the pilot is driving or commuting home after the trip has ended, or on a reserve or training day, neither card shows.
 
@@ -48,7 +48,7 @@ Copies `UpcomingTripCard.swift`. Mockup approved on 2026-10-10.
 
 **Header row**
 - **Type badge:** a blue capsule with an airplane icon and "Line Trip" in white. The app infers Reserve, Hot Standby or Training from the trip's own legs, but on CrewLu Cloud those duty events never belong to a trip, so the app always shows Line Trip. The site shows Line Trip and doesn't carry the other three.
-- **Departure line:** "Departs today at 11:32am", "Departs tomorrow at 11:32am", or "Departs Tue Oct 13 at 11:32am" (abbreviated weekday and month, as in the app). It uses the viewer's time zone and 12- or 24-hour preference, like slice 1. 24-hour gives "at 23:32", fixing the app's fixed "h:mma".
+- **Departure line:** "Departs today at 11:32am", "Departs tomorrow at 11:32am", or "Departs Tue Oct 13 at 11:32am" (abbreviated weekday and month, as in the app). It uses the pilot's home time zone, like slice 1's card subtitles, and the viewer's 12- or 24-hour preference. 24-hour gives "at 23:32", fixing the app's fixed "h:mma".
 - **Days:** "1 day" or "N days". This is the same trip length slice 1's narrative uses (`tripDays`: `trips.days` when above 0, else the calendar-day count in the base time zone).
 - **Delay badge:** "Delayed" (orange) or "Early" (green), with a clock icon. It shows when slice 1's snapshot reports a 15+ minute departure delay (`DELAY_THRESHOLD_MIN`) on a flight of this trip.
 
@@ -74,7 +74,12 @@ Copies `TripProgressView` with its default "gradient pills" style. The data rule
 
 The pill subtitles need two things the airport list doesn't have yet. Today `public/data/airports.json` labels countries two ways: about 180 airports from Crewlu's own tables use names ("USA", "Germany"), and the other ~8,900 use two-letter codes ("US", "DE"). So `scripts/build-airports.mjs` gains two steps.
 
-- **Country names.** Every row gets a name. US rows, whether `US` or `USA`, become "USA", as the app writes it. Two-letter codes become English short names via `Intl.DisplayNames` (style `short`): `GB` is "UK", `HK` is "Hong Kong", `KR` is "South Korea", close to the app's own names. Rows that already have a name keep it. Nothing else on the site reads `country` today.
+- **Country names.** Every row gets a name, spelled one way.
+  - US rows, whether `US`, `USA` or "United States", become "USA", as the app writes it.
+  - Two-letter codes become English short names via `Intl.DisplayNames` (style `short`): `GB` is "UK", `HK` is "Hong Kong", `KR` is "South Korea", close to the app's own names.
+  - The few long names that have a shorter form become it too, so "United Kingdom" also reads "UK".
+  - Other names stay as they are.
+  - Nothing else on the site reads `country` today.
 - **US state codes.** US rows gain a seventh field, the state code: `[iata, city, country, lat, lng, tz, state]`.
   - It comes from `iso_region` in the OurAirports list the Flight Globe keeps next to its generated airport list: `../crewlu-globe/scripts/ourairports.csv` (override with `AIRPORTS_REGIONS_SOURCE`), matched on `iata_code`. `US-KY` becomes `KY`.
   - The CSV has quoted fields, so the script parses it properly. Nothing is downloaded.
@@ -121,7 +126,7 @@ interface TripProgress {
   - The progress bar is hidden from screen readers, since "Day 2 of 4" already says it.
   - The pills are a list.
   - The badges are text, so they read as "Line Trip" and "Delayed".
-- **Light and dark:** the cards use the existing tokens. Blue is the app's system blue, already a token. The pill blends keep white text in both modes.
+- **Light and dark:** the cards use the existing tokens. Blue is the app's system blue, already a token. The pill blends need five more iOS 26 system colors as tokens, in light and dark: cyan, pink, yellow, teal and indigo. The pills keep white text in both modes, as in the app.
 
 ## 9. Demo
 
