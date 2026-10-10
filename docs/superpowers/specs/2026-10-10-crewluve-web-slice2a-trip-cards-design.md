@@ -76,8 +76,13 @@ The pill subtitles need two things the airport list doesn't have yet. Today `pub
 
 - **Country names.** Every row gets a name, spelled one way.
   - US rows, whether `US`, `USA` or "United States", become "USA", as the app writes it.
-  - Two-letter codes become English short names via `Intl.DisplayNames` (style `short`): `GB` is "UK", `HK` is "Hong Kong", `KR` is "South Korea", close to the app's own names.
+  - Two-letter codes become English short names via `Intl.DisplayNames` (style `short`): `GB` is "UK", `KR` is "South Korea", close to the app's own names.
   - The few long names that have a shorter form become it too, so "United Kingdom" also reads "UK".
+  - Where ICU's English name differs from the spelling Crewlu's own airport tables use, Crewlu's spelling wins, as the app writes it:
+    - "Turkey" (not "Türkiye"), "Czech Republic", "Turks and Caicos", "Trinidad and Tobago" and "US Virgin Islands";
+    - "UK";
+    - "China" for Hong Kong, since HKG already reads "China" in Crewlu's tables.
+  - Each country therefore has exactly one spelling.
   - Other names stay as they are.
   - Nothing else on the site reads `country` today.
 - **US state codes.** US rows gain a seventh field, the state code: `[iata, city, country, lat, lng, tz, state]`.
@@ -189,7 +194,7 @@ The demo is anchored to the moment the page loads, so N and the words "today" or
 | 5 | The two cards' look, as mocked up on 2026-10-10. | User |
 | 6 | Day N uses the base time zone, capped at M. | Design |
 | 7 | Slice 1's bounded commute rule is reused for the route and departure. | Design (slice 1 §6.11) |
-| 8 | US state codes come from the globe's OurAirports copy at build time, and country codes become short English names ("USA" for the US). | Design |
+| 8 | US state codes come from the globe's OurAirports copy at build time. Country codes become short English names, in Crewlu's spelling where the two differ, so each country reads one way ("USA" for the US). | Design (Batch A review) |
 | 9 | Trip length is slice 1's `tripDays`, so it matches the narrative. | Design |
 
 ## 13. Roadmap after Part A
