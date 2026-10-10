@@ -2019,19 +2019,19 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ### Task 16: Merge and release (controller, asks first)
 
-- [ ] **Step 1: Final review**
+- [x] **Step 1: Final review**
 
 Run a final whole-branch code review of `main..slice2a`, and fix what it raises test-first.
 
-- [ ] **Step 2: Merge**
+- [x] **Step 2: Merge**
 
 Use superpowers:finishing-a-development-branch. Ask the user one question about how to merge `slice2a` into `main`.
 
-- [ ] **Step 3: Release, only with a fresh yes**
+- [x] **Step 3: Release, only with a fresh yes**
 
 Ask before pushing `main`; the push redeploys crewluve.crewlu.net. After the "Deploy to GitHub Pages" run succeeds, open https://crewluve.crewlu.net/?demo=1&scene=home and `…&scene=flying`. Confirm the two cards, with no console errors.
 
-- [ ] **Step 4: Update the memory**
+- [x] **Step 4: Update the memory**
 
 Update the project memory with the new tip and what's next: Part B, the location card.
 
@@ -2093,3 +2093,8 @@ Update the project memory with the new tip and what's next: Part B, the location
   - The trip styles moved to `src/styles/trips.css`.
 - **Task 15 (2026-10-10):** the user signed off on the look ("Looks right") from the demo screenshots: home, flying, base and last-leg, in light and dark, plus a 320 px check. Step 6 waits until after release, because the user wasn't signed in on the preview.
 - **Contrast:** the Batch D review measured white text on the yellow pill and the orange and green badges well below 4.5:1, as in the app. The user chose "Yes, as a follow-up": after this release, add Apple's high-contrast colors under `prefers-contrast: more`. The default look stays the same.
+- **Released 2026-10-10:**
+  - The final whole-branch review found no Critical or Important issues; its documentation notes are in `071c797`.
+  - The user chose "Merge into main", a fast-forward to `071c797`, with gates green on main, and then said yes to the push.
+  - Deploy run 38086870983 succeeded. The live demo shows both cards, with no console errors.
+  - Task 15 Step 6, the real-data check, is up to the user: sign in on the live site.
