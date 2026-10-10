@@ -3,6 +3,7 @@ import { RawBuilder } from '../../src/data/rowBuilder'
 import { buildLegs, type MoveLeg } from '../../src/engine/legs'
 import { buildSchedule } from '../../src/engine/normalize'
 import { tripDayNumber, tripDays, tripProgress, upcomingTrip } from '../../src/engine/trips'
+import type { Trip } from '../../src/engine/types'
 import { A, at } from '../fixtures/engine'
 
 const NY = 'America/New_York'
@@ -26,6 +27,26 @@ const twoDayTrip = () =>
     }),
   )
 
+describe('tripDays', () => {
+  const trip = (days: number | null, start: number, end: number): Trip => ({ id: 'x', start, end, days, dutyPeriods: [] })
+  // Friday 10 pm to Saturday 9 am in New York: two calendar days there, one in UTC.
+  const overnight = (days: number | null) => trip(days, Date.UTC(2026, 9, 10, 2, 0), Date.UTC(2026, 9, 10, 13, 0))
+
+  it('uses trips.days when it is above 0', () => {
+    expect(tripDays(overnight(4), NY)).toBe(4)
+    expect(tripDays(overnight(1), NY)).toBe(1)
+  })
+
+  it.each<[number | null]>([[null], [0], [-2]])('counts the calendar days in the zone given when trips.days is %s', (days) => {
+    expect(tripDays(overnight(days), NY)).toBe(2)
+    expect(tripDays(overnight(days), 'UTC')).toBe(1)
+  })
+
+  it('counts the first and last calendar day both', () => {
+    expect(tripDays(trip(null, at(0), at(2 * 1440 + 60)), NY)).toBe(3) // Friday 5:30 am to Sunday 6:30 am
+  })
+})
+
 describe('tripDayNumber', () => {
   /** Fri 9 Oct 5:30am to Mon 12 Oct 10:00pm EDT: four calendar days in New York. */
   const fourDays = (days?: number) =>
@@ -44,13 +65,17 @@ describe('tripDayNumber', () => {
     expect(tripDayNumber(fourDays(4), at(1440), NY)).toBe(2)
   })
 
-  it('stays on the last day late on a US evening, where a UTC count reads one more', () => {
-    // Mon 9:00pm EDT is already Tue 1:00am UTC, so Duty's UTC count says "Day 5 of 4".
-    expect(tripDayNumber(fourDays(4), at(5250), NY)).toBe(4)
+  it('counts Monday 9pm as day 4 in New York, where UTC already says day 5', () => {
+    // Mon 9:00pm EDT is already Tue 1:00am UTC. A stored length of 5 keeps the cap out of it, so only the zone decides.
+    expect(tripDayNumber(fourDays(5), at(5250), NY)).toBe(4)
   })
 
   it('never goes past the trip length', () => {
     expect(tripDayNumber(fourDays(3), at(5250), NY)).toBe(3)
+  })
+
+  it('never goes below day 1, before the trip has started', () => {
+    expect(tripDayNumber(fourDays(4), at(-1440), NY)).toBe(1)
   })
 
   it('turns over at midnight in the base zone, not in UTC', () => {

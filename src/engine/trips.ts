@@ -25,24 +25,30 @@ export interface UpcomingTrip {
   /** When the pilot leaves for it: the logged commute jumpseat's start, else the first flight's start. */
   departs: number
   days: number
-  /** Up to 6 airports: each remaining departure and arrival once, in order, with home first when a commute was found. */
+  /** Up to 6 airports: each remaining departure and arrival once, in order, with home first when a commute was found, unless the route already has it. */
   route: Iata[]
   /** The departure delay on this trip's flight when it's 15+ minutes off schedule; negative means early. */
   delayMinutes: number | null
 }
 
-export interface TripExtras {
+/** A flight's departure delay: `minutes` off its scheduled out time, positive when late and negative when early. */
+export interface FlightDelay {
+  flight: MoveLeg
+  minutes: number
+}
+
+export interface UpcomingTripInputs {
   /** The logged commute jumpseat from home to the trip's first airport (Snapshot.nextCommute). */
   commute: MoveLeg | null
   /** The relevant flight's departure delay when it is 15+ minutes off schedule (Snapshot.delay). */
-  delay: { flight: MoveLeg; minutes: number } | null
+  delay: FlightDelay | null
 }
 
 /**
  * UpcomingTripInfo.from on CrewLu Cloud data: the trip of the next trip flight after t. Its route is each remaining flight's
  * departure and arrival once, in order. Home goes first when a commute was found, unless the route already has it.
  */
-export function upcomingTrip(schedule: Schedule, legs: Leg[], t: number, baseTz: string, extras: TripExtras): UpcomingTrip | null {
+export function upcomingTrip(schedule: Schedule, legs: Leg[], t: number, baseTz: string, inputs: UpcomingTripInputs): UpcomingTrip | null {
   const first = nextTripFlight(legs, t)
   const trip = first?.tripId ? schedule.trips.find((tr) => tr.id === first.tripId) : undefined
   if (!first || !trip) return null
@@ -52,7 +58,7 @@ export function upcomingTrip(schedule: Schedule, legs: Leg[], t: number, baseTz:
     if (!route.includes(l.dep)) route.push(l.dep)
     if (!route.includes(l.arr)) route.push(l.arr)
   }
-  const { commute, delay } = extras
+  const { commute, delay } = inputs
   if (commute && !route.includes(commute.dep)) route.unshift(commute.dep)
   return {
     tripId: trip.id,

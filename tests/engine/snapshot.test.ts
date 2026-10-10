@@ -3,8 +3,8 @@ import { demoRaw } from '../../src/data/demo'
 import { RawBuilder } from '../../src/data/rowBuilder'
 import { buildLegs, type Leg } from '../../src/engine/legs'
 import { buildSchedule } from '../../src/engine/normalize'
-import { makeSnapshot, tripDays } from '../../src/engine/snapshot'
-import type { Schedule, Trip } from '../../src/engine/types'
+import { makeSnapshot } from '../../src/engine/snapshot'
+import type { Schedule } from '../../src/engine/types'
 import { A, at, engineFor } from '../fixtures/engine'
 
 const NY = 'America/New_York'
@@ -165,26 +165,6 @@ describe('trips with every flight hidden', () => {
     const sn = snapOf(hiddenTrip(new RawBuilder(A).pilot('Alex', 'SDF', 'LEX'), 3).commute('h', 'SDF', 'LEX', 'toHome', 1700, 1900, 't1'), 1800)
     expect(sn.status.kind).toBe('drivingHome')
     expect(sn.arrival).toMatchObject({ label: 'home', time: at(1900) })
-  })
-})
-
-describe('tripDays', () => {
-  const trip = (days: number | null, start: number, end: number): Trip => ({ id: 'x', start, end, days, dutyPeriods: [] })
-  // Friday 10 pm to Saturday 9 am in New York: two calendar days there, one in UTC.
-  const overnight = (days: number | null) => trip(days, Date.UTC(2026, 9, 10, 2, 0), Date.UTC(2026, 9, 10, 13, 0))
-
-  it('uses trips.days when it is above 0', () => {
-    expect(tripDays(overnight(4), NY)).toBe(4)
-    expect(tripDays(overnight(1), NY)).toBe(1)
-  })
-
-  it.each<[number | null]>([[null], [0], [-2]])('counts the calendar days in the zone given when trips.days is %s', (days) => {
-    expect(tripDays(overnight(days), NY)).toBe(2)
-    expect(tripDays(overnight(days), 'UTC')).toBe(1)
-  })
-
-  it('counts the first and last calendar day both', () => {
-    expect(tripDays(trip(null, at(0), at(2 * 1440 + 60)), NY)).toBe(3) // Friday 5:30 am to Sunday 6:30 am
   })
 })
 

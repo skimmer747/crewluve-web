@@ -4,7 +4,7 @@ import { lastHomeArrival, leaveTarget, nextTripFlight, nextTripHomecoming, type 
 import { isDuty, isHomecomingMove, isMove, type DriveLeg, type DutyLeg, type Leg, type MoveLeg } from './legs'
 import { resolveStatus, type Status } from './status'
 import { arrivalTarget, type ArrivalTarget } from './targets'
-import { tripDayNumber, tripDays, tripProgress, upcomingTrip, type TripProgress, type UpcomingTrip } from './trips'
+import { tripDayNumber, tripDays, tripProgress, upcomingTrip, type FlightDelay, type TripProgress, type UpcomingTrip } from './trips'
 import type { Iata, Pilot, Schedule, Trip } from './types'
 
 export const DELAY_THRESHOLD_MIN = 15
@@ -19,7 +19,7 @@ export interface Snapshot {
   /** 0…1 progress for the icon ring, or null where Crewluve shows none. */
   ring: number | null
   /** The relevant flight's departure delay, when it is 15+ minutes off schedule. */
-  delay: { flight: MoveLeg; minutes: number } | null
+  delay: FlightDelay | null
   arrival: ArrivalTarget | null
   fallbackDaysRemaining: number | null
   leave: LeaveTarget | null
@@ -36,16 +36,16 @@ export interface Snapshot {
   nextTripDays: number | null
   midTripAtHome: boolean
   daysHome: number | null
-  /** The next trip, for the upcoming trip card: shown at home or base, Crewluve's isSettled (slice 2A §3). */
+  /**
+   * The next trip, for the upcoming trip card: shown at home or base, Crewluve's isSettled (slice 2A §3). Overnight at home
+   * or base in the middle of a trip it is the rest of that trip, with the whole trip's length (slice 2A §10 item 9).
+   */
   upcomingTrip: UpcomingTrip | null
   /** Day N of M and the cities still ahead, for the trip progress card: shown during a trip, away from home and base. */
   tripProgress: TripProgress | null
   celebrate: boolean
   empty: boolean
 }
-
-// Kept here too, so existing imports of tripDays from the snapshot module keep working.
-export { tripDays }
 
 /** Everything the screen needs at time t. `legs` must come from buildLegs(schedule). */
 export function makeSnapshot(schedule: Schedule, legs: Leg[], t: number, baseTz: string): Snapshot {
