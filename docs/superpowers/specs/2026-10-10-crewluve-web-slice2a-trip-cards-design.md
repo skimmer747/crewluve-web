@@ -39,8 +39,14 @@ Visibility follows the app's `isSettled` rule (`PilotDisplayStatus.swift`: home 
 
 - **Upcoming trip card:** status is `home` or `base`, and a trip lies ahead.
 - **Day N of M card:** status is anything else, and a trip covers now. That's Duty's `findCurrentTrip`, written as start ≤ now < end, the same test slice 1 uses for a trip whose flights are all hidden.
+  - The end is the later of two times: the stored release time (`trips.end_date`) and when the trip's last flight actually lands.
+  - Duty keeps the release time when flights run late. Without this, a late final flight would drop the card just before landing (Batch B review; §10 item 8).
 
-So the two never show together. At base, the upcoming trip card appears alongside the Back Home In countdown, as in the app. Between trips, while the pilot is driving or commuting home after the trip has ended, or on a reserve or training day, neither card shows.
+So the two never show together.
+
+- **At base:** the upcoming trip card appears alongside the Back Home In countdown, as in the app.
+- **Overnight at home or base in the middle of a trip:** the status is settled, so the upcoming trip card shows the rest of that trip, again as in the app (§10 item 9).
+- **Between trips:** neither card shows. That covers driving to work before a trip starts, driving or commuting home after one has ended, and reserve or training days.
 
 ## 4. Upcoming trip card
 
@@ -54,7 +60,7 @@ Copies `UpcomingTripCard.swift`. Mockup approved on 2026-10-10.
 
 **When it departs.** If slice 1's bounded commute rule finds a logged jumpseat from home to the trip's first airport (`Snapshot.nextCommute`), the departure is that jumpseat's start. Otherwise it's the trip's first flight's start, which already includes a known delay. The app adds the trip flight's delay to the commute's time as well; the site doesn't.
 
-**Route row.** The trip's flights in order, each departure and arrival added once (deduplicated, as the app does). Home is put first when a commute jumpseat was found. It shows up to 6 stops. The first and last dots and codes are blue, the middle ones gray, joined by short gray lines. Codes are bold monospace. The row scrolls sideways if it ever runs out of room.
+**Route row.** The trip's remaining flights (those starting after now) in order, each departure and arrival added once (deduplicated, as the app does). Home is put first when a commute jumpseat was found, unless the route already has it. It shows up to 6 stops. The first and last dots and codes are blue, the middle ones gray, joined by short gray lines. Codes are bold monospace. The row scrolls sideways if it ever runs out of room.
 
 **Not on the site yet:** the chevron and the tap-through to the Schedule (slice 3).
 
@@ -78,16 +84,19 @@ The pill subtitles need two things the airport list doesn't have yet. Today `pub
   - US rows, whether `US`, `USA` or "United States", become "USA", as the app writes it.
   - Two-letter codes become English short names via `Intl.DisplayNames` (style `short`): `GB` is "UK", `KR` is "South Korea", close to the app's own names.
   - The few long names that have a shorter form become it too, so "United Kingdom" also reads "UK".
-  - Where ICU's English name differs from the spelling Crewlu's own airport tables use, Crewlu's spelling wins, as the app writes it:
+  - Where ICU's English name differs from the spelling in the Crewluve app's own airport table (`AirportDataProvider.swift`), the app's spelling wins:
     - "Turkey" (not "Türkiye"), "Czech Republic", "Turks and Caicos", "Trinidad and Tobago" and "US Virgin Islands";
-    - "UK";
-    - "China" for Hong Kong, since HKG already reads "China" in Crewlu's tables.
+    - "UK" and "UAE";
+    - "China" for Hong Kong, as the app's table files HKG.
   - Each country therefore has exactly one spelling.
+  - **Guard:** the build stops, naming the country, if any would come out spelled two ways. A different Node/ICU version can rename one (an older ICU says "China mainland"), and the build logs the ICU version.
   - Other names stay as they are.
   - Nothing else on the site reads `country` today.
 - **US state codes.** US rows gain a seventh field, the state code: `[iata, city, country, lat, lng, tz, state]`.
   - It comes from `iso_region` in the OurAirports list the Flight Globe keeps next to its generated airport list: `../crewlu-globe/scripts/ourairports.csv` (override with `AIRPORTS_REGIONS_SOURCE`), matched on `iata_code`. `US-KY` becomes `KY`.
-  - The CSV has quoted fields, so the script parses it properly. Nothing is downloaded.
+  - Where the app's table gives the city's state rather than the airport's, the app wins: CVG is "OH" (Cincinnati) and IAD is "DC" (Washington).
+  - DJT replaced PBI on 2026-08-18 and isn't in OurAirports yet, so it's set to "FL" by hand.
+  - The CSV has quoted fields, so the script parses it properly. It stops with a clear error if the file is missing or damaged. Nothing is downloaded.
   - Other rows stay at six fields.
 - **Reading it.** `src/data/airports.ts` reads the field into `Airport.state` (string or null). A 6-field row parses as `state: null`, so an old cached copy keeps working.
 - **Size.** The file grows by roughly 50 KB uncompressed, a few KB once compressed.
@@ -102,7 +111,7 @@ interface UpcomingTrip {
   /** When the pilot leaves for it: the logged commute jumpseat's start, else the first flight's start. */
   departs: number
   days: number
-  /** Up to 6 airports: home first when a commute was found, then each departure and arrival once, in order. */
+  /** Up to 6 airports: each remaining departure and arrival once, in order, with home first when a commute was found and isn't already on the route. */
   route: Iata[]
   /** The departure delay on this trip's flight when it's 15+ minutes off schedule; negative means early. */
   delayMinutes: number | null
@@ -117,7 +126,7 @@ interface TripProgress {
 }
 ```
 
-`Snapshot` gains `upcomingTrip: UpcomingTrip | null` and `tripProgress: TripProgress | null`. They follow the visibility rules in §3, so `StatusScreen` stays a thin view. "The next trip" is the trip of the first trip flight after now. It's the same flight slice 1 calls `nextTripFlight`, so hidden flights and trips stay out, as in slice 1 (C22).
+`Snapshot` gains `upcomingTrip: UpcomingTrip | null` and `tripProgress: TripProgress | null`. They follow the visibility rules in §3, so `StatusScreen` stays a thin view. "The next trip" is the trip of the first trip flight after now. It's the same flight slice 1 calls `nextTripFlight`, so hidden flights and trips stay out, as in slice 1 (C22). Overnight at home or base mid-trip, that's the rest of the current trip.
 
 ## 8. UI and copy
 
@@ -144,9 +153,9 @@ The demo data doesn't change.
 | `flying`, `turn` | Day N of 2: Anchorage AK, Louisville KY |
 | `layover` | Day N of 2: Louisville KY |
 | `delayed`, `last-leg` | Day N of 2, with Louisville KY until the last flight leaves, then no pills |
+| `driving-to-work`, `driving-home`, `commuting-home`, `reserve`, `training` | Neither card |
 
 The demo is anchored to the moment the page loads, so N and the words "today" or "tomorrow" depend on the time of day.
-| `driving-home`, `commuting-home`, `reserve`, `training` | Neither card |
 
 ## 10. Deliberate differences from the app
 
@@ -157,6 +166,8 @@ The demo is anchored to the moment the page loads, so N and the words "today" or
 5. 24-hour time is respected.
 6. No chevron, tap-through or View Schedule button until slice 3.
 7. No hidden alternative city styles.
+8. Day N of M stays up until the trip's last flight actually lands, even after the stored release time. Duty's `findCurrentTrip` drops it then.
+9. Overnight at home or base mid-trip, the upcoming trip card gives the whole trip's length, matching the narrative's `tripDays`. The app counts only the remaining legs' days.
 
 ## 11. Testing
 
@@ -194,8 +205,9 @@ The demo is anchored to the moment the page loads, so N and the words "today" or
 | 5 | The two cards' look, as mocked up on 2026-10-10. | User |
 | 6 | Day N uses the base time zone, capped at M. | Design |
 | 7 | Slice 1's bounded commute rule is reused for the route and departure. | Design (slice 1 §6.11) |
-| 8 | US state codes come from the globe's OurAirports copy at build time. Country codes become short English names, in Crewlu's spelling where the two differ, so each country reads one way ("USA" for the US). | Design (Batch A review) |
+| 8 | US state codes come from the globe's OurAirports copy at build time, and country codes become short English names. Where either differs from the Crewluve app's own airport table, the app wins (CVG OH, IAD DC, DJT FL; "UAE", "Turkey"…), so each country reads one way. The build stops if a country would read two ways. | Design (Batch A reviews) |
 | 9 | Trip length is slice 1's `tripDays`, so it matches the narrative. | Design |
+| 10 | Day N of M's trip window runs until the last flight actually lands when that's after the stored release time. | Design (Batch B review) |
 
 ## 13. Roadmap after Part A
 

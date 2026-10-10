@@ -2064,4 +2064,13 @@ Update the project memory with the new tip and what's next: Part B, the location
   - **Why:** after Task 2, a check found six countries still spelled two ways. ICU's names differed from Crewlu's own (Türkiye/Turkey, Czechia/Czech Republic and others), and ICU reads the source code "UK" as "United Kingdom".
   - **What changed:** `f7cea8c` adds a `CREWLU_SPELLING` map, applied in `countryName`, so Crewlu's spelling wins. It has seven entries, including Hong Kong → China, because HKG already reads "China" in Crewlu's tables. It also adds one more generated-file test.
   - **Where it's recorded:** spec §6 and decision 8 (`320046b`).
-  - **One gap:** DJT (West Palm Beach, from the globe's uncommitted working copy) is the one US airport without a state, so its pill subtitle falls back to "USA".
+  - **One gap:** DJT (West Palm Beach, from the globe's uncommitted working copy) is the one US airport without a state, so its pill subtitle falls back to "USA". Superseded: the Batch A review fixes set DJT to "FL".
+- **Batch A review fixes:**
+  - `b078782`: pill subtitles follow the Crewluve app's own airport table where it differs (CVG OH, IAD DC, DJT FL, "UAE"). `CREWLU_SPELLING` is now `APP_SPELLING`.
+  - `bfee126`: the build stops on a country spelled two ways, or on a damaged or missing CSV.
+- **Batches B and C, extra tests:** these came from mutation checks and the spec reviews, beyond the printed ones.
+  - `aa255f0`: flights already flown, and the trip window's edges.
+  - `d296338`: city order, and an empty country.
+  - `1e1ab7c`: a commute with a late flight, six stops with home, a stale jumpseat, and the base zone end to end.
+  - `ad30b52` and `350e432`: later dates and 24-hour lines in the given zone.
+- **Batch B review, decided:** Day N of M's window runs until the last flight lands (spec §3, §10 item 8, decision 10). It's queued as a follow-up commit, together with the review's Minor cleanups.
