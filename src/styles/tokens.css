@@ -8,6 +8,11 @@
   --red: #ff383c;
   --orange: #ff8d28;
   --purple: #cb30e0;
+  --pink: #ff2d55;
+  --yellow: #ffcc00;
+  --teal: #00c3d0;
+  --cyan: #00c0e8;
+  --indigo: #6155f5;
   --gray: #8e8e93;
   --ups: #663300;
   --glass-fill: rgba(242, 242, 247, 0.78);
@@ -28,6 +33,11 @@
     --red: #ff4245;
     --orange: #ff9230;
     --purple: #db34f2;
+    --pink: #ff375f;
+    --yellow: #ffd600;
+    --teal: #00d2e0;
+    --cyan: #3cd3fe;
+    --indigo: #6d7cff;
     --ups: #e09e33;
     --glass-fill: rgba(44, 44, 46, 0.6);
     --glass-edge: rgba(255, 255, 255, 0.08);

@@ -68,6 +68,12 @@ const SPEC_COLORS: Array<[name: string, light: string, dark: string]> = [
   ['--purple', '#CB30E0', '#DB34F2'],
   ['--gray', '#8E8E93', '#8E8E93'],
   ['--ups', '#663300', '#E09E33'],
+  // Slice 2A spec §8: the iOS 26 system colors the city pills blend.
+  ['--pink', '#FF2D55', '#FF375F'],
+  ['--yellow', '#FFCC00', '#FFD600'],
+  ['--teal', '#00C3D0', '#00D2E0'],
+  ['--cyan', '#00C0E8', '#3CD3FE'],
+  ['--indigo', '#6155F5', '#6D7CFF'],
 ]
 
 describe('tokens.css', () => {
