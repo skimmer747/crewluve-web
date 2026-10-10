@@ -11,13 +11,13 @@ const outFile = resolve(root, 'src/icons/iconPaths.ts')
 const { version } = JSON.parse(readFileSync(resolve(phosphorDir, 'package.json'), 'utf8'))
 
 // Component name -> Phosphor file stem. The first block maps the SF Symbols Crewluve uses on these
-// cards (spec §4.1); the second maps AirlineBranding's airline symbols (spec §6.10).
+// cards (spec §4.1, and the slice 2A trip cards); the second maps AirlineBranding's airline symbols (spec §6.10).
 const ICONS = {
   House: 'house', Airplane: 'airplane', Car: 'car', ArrowsClockwise: 'arrows-clockwise', Bed: 'bed',
   Buildings: 'buildings', ClockCountdown: 'clock-countdown', Lightning: 'lightning', BookOpen: 'book-open',
   MapPin: 'map-pin', Circle: 'circle', Package: 'package', AirplaneTakeoff: 'airplane-takeoff',
   AirplaneLanding: 'airplane-landing', Cloud: 'cloud', ArrowCircleUp: 'arrow-circle-up', Warning: 'warning',
-  ArrowClockwise: 'arrow-clockwise', SignOut: 'sign-out', Heart: 'heart',
+  ArrowClockwise: 'arrow-clockwise', SignOut: 'sign-out', Heart: 'heart', CalendarBlank: 'calendar-blank', Clock: 'clock',
 
   Triangle: 'triangle', Star: 'star', GlobeHemisphereWest: 'globe-hemisphere-west', AirplaneTilt: 'airplane-tilt',
   Mountains: 'mountains', CurrencyCircleDollar: 'currency-circle-dollar', Leaf: 'leaf', Sun: 'sun', Wind: 'wind',

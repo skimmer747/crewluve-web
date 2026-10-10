@@ -18,4 +18,8 @@ describe('ICON_PATHS', () => {
       expect(paths[0]).toMatch(/^M/)
     }
   })
+
+  it('has the trip cards’ calendar and clock icons', () => {
+    for (const name of ['CalendarBlank', 'Clock']) expect(ICON_PATHS).toHaveProperty(name)
+  })
 })
