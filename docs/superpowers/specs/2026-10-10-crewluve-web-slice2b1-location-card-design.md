@@ -36,7 +36,7 @@ Copies `standardLocationView`. Mockups approved on 2026-10-10: a daytime Anchora
 
 **Header row**
 - A red map-pin icon (Phosphor `MapPin`, filled, `--red`) and the city name (20 px semibold). The city name comes from the airport list's `city()`, with the code as fallback.
-- At the right, the country's flag emoji, for the 60 countries in the app's own flag list (`AirportData.countryFlags`, Canada through Hungary). None shows for the US, or for countries the app has no flag for. The airport list's country names already follow the app's spellings (Part A §6), so the app's names match directly.
+- At the right, the country's flag emoji, for the 74 countries in the app's own flag list (`countryFlags` in `AirportDataProvider.swift`, Canada through Jordan). None shows for the US, or for countries the app has no flag for. The airport list's country names already follow the app's spellings (Part A §6), so the app's names match directly.
 
 **Weather row**, when weather has loaded:
 - the condition icon (about 22 px, in its own color), the temperature (20 px bold), and the condition in words (15 px, secondary);
@@ -68,7 +68,7 @@ Copies `SunCircleView` at the card's size, 160 pt with a 42 pt radius and the ap
   - amber golden hour after sunrise and before sunset;
   - blue twilight before sunrise and after sunset.
 - **Markers:** ticks at sunrise and sunset; a small triangle at noon (top) and at midnight (bottom).
-- **Now:** a faint hand from the center to the current time, ending in a sun icon in daylight or a moon icon at night.
+- **Now:** a faint hand from the center to the current time, ending in a sun icon in daylight (yellow with an orange glow, like the app's multicolor sun) or a gray moon icon at night.
 - **Labels:** "Noon" above the top triangle, and the sunrise and sunset times beside their ticks. The app writes these as "8:12a" and "6:41p". 24-hour visitors get "08:12" and "18:41" instead.
 
 It updates every minute.
@@ -84,7 +84,7 @@ It updates every minute.
 - the demo's dial works with no network;
 - the times are always for the pilot's own day. The app takes "today" from the viewer's calendar.
 
-The tests check the results against published NOAA times for several airports and dates, to within 2 minutes.
+The tests check the results against NOAA Solar Calculator times, worked out separately with NOAA's own formulas, for several airports and dates, to within 2 minutes.
 
 **Weather** (`src/data/weather.ts`):
 - **The request:** `https://api.open-meteo.com/v1/forecast?latitude=…&longitude=…&current=temperature_2m,weather_code,is_day&temperature_unit=fahrenheit|celsius`.
@@ -113,7 +113,7 @@ The tests check the results against published NOAA times for several airports an
 | 75, 86 | Heavy Snow | CloudSnow |
 | 95, 96, 99 | Thunderstorms | CloudLightning |
 
-Colors: sun orange, moon indigo, clouds and fog gray, rain blue, snow cyan, lightning yellow.
+Colors: sun orange, moon indigo, clouds and fog gray, rain blue, snow cyan, lightning yellow. Partly cloudy takes the sun's or the moon's color.
 
 The Phosphor icon set (`scripts/build-icons.mjs`) gains Moon, CloudSun, CloudMoon, CloudFog, CloudRain, CloudSnow and CloudLightning. It already has Sun, Cloud, MapPin, Clock and Airplane.
 
@@ -137,6 +137,7 @@ The Phosphor icon set (`scripts/build-icons.mjs`) gains Moon, CloudSun, CloudMoo
 5. No quick-status or "Sleeping" notes, because those come from the pilot's phone, not CrewLu Cloud.
 6. The card is hidden in flight until Part C's map takes its place.
 7. The dial isn't tappable until Part B2.
+8. A difference under an hour reads "30m ahead of you", as the app's other two styles write it. The app's odometer shows "0h 30m".
 
 ## 9. Testing
 
@@ -163,7 +164,7 @@ The Phosphor icon set (`scripts/build-icons.mjs`) gains Moon, CloudSun, CloudMoo
 | 4 | Sun times are worked out on the site with the NOAA formulas. | Design |
 | 5 | Hidden in flight; otherwise shown, "Unknown Location" with no airport, as in the app. | Design (copying the app) |
 | 6 | The time difference compares with home's zone, and only the default odometer animation is copied. | Design (Part A precedent) |
-| 7 | Flags come from the app's own 60-country list. | Design (copying the app) |
+| 7 | Flags come from the app's own 74-country list. | Design (copying the app) |
 
 ## 11. Roadmap
 
