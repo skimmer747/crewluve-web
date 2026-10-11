@@ -105,6 +105,22 @@ describe('tokens.css', () => {
   })
 })
 
+describe('tokens.css: the sun popup’s night colors', () => {
+  const top = blocks(css('tokens'))
+  const customProperties = (body = '') => new Map(declarations(body).filter(([prop]) => prop.startsWith('--')))
+  const dark = customProperties(find(blocks(find(top, '@media (prefers-color-scheme: dark)')?.body ?? ''), ':root')?.body)
+  const forced = find(top, '.force-dark')
+
+  it('are the page’s dark colors exactly, every one of them', () => {
+    expect(forced).toBeDefined()
+    expect(customProperties(forced!.body)).toEqual(dark)
+  })
+
+  it('tell the browser the card is dark, for its own controls and scroll bars', () => {
+    expect(declarations(forced!.body)).toContainEqual(['color-scheme', 'dark'])
+  })
+})
+
 describe('cards.css', () => {
   const top = blocks(css('cards'))
 

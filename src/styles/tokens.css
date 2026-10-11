@@ -45,3 +45,27 @@
     --glass-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   }
 }
+
+/* The sun popup's card at night (slice 2B2 §4): the dark colors above, whatever the device's setting. They must stay
+   identical to the prefers-color-scheme: dark block; a test checks. */
+.force-dark {
+  color-scheme: dark;
+  --bg: #000000;
+  --text: #ffffff;
+  --text-2: rgba(235, 235, 245, 0.6);
+  --green: #30d158;
+  --blue: #0091ff;
+  --red: #ff4245;
+  --orange: #ff9230;
+  --purple: #db34f2;
+  --pink: #ff375f;
+  --yellow: #ffd600;
+  --teal: #00d2e0;
+  --cyan: #3cd3fe;
+  --indigo: #6d7cff;
+  --ups: #e09e33;
+  --glass-fill: rgba(44, 44, 46, 0.6);
+  --glass-edge: rgba(255, 255, 255, 0.08);
+  --glass-rim: rgba(255, 255, 255, 0.12);
+  --glass-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
