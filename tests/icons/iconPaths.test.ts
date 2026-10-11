@@ -22,4 +22,10 @@ describe('ICON_PATHS', () => {
   it('has the trip cards’ calendar and clock icons', () => {
     for (const name of ['CalendarBlank', 'Clock']) expect(ICON_PATHS).toHaveProperty(name)
   })
+
+  it('has the location card’s weather and sun dial icons', () => {
+    for (const name of ['Sun', 'Moon', 'CloudSun', 'CloudMoon', 'CloudFog', 'CloudRain', 'CloudSnow', 'CloudLightning']) {
+      expect(ICON_PATHS).toHaveProperty(name)
+    }
+  })
 })
