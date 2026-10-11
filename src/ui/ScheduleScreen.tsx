@@ -1,8 +1,10 @@
 import { useMemo } from 'preact/hooks'
 import type { AirportIndex } from '../data/airports'
+import { loadDemoWeather } from '../data/demoWeather'
+import { loadLiveWeather, tempUnitFor, type TempUnit, type WeatherLoader, type WeatherPlace } from '../data/weather'
 import { buildLegs, type Leg } from '../engine/legs'
 import { buildSchedule } from '../engine/normalize'
-import { safeSnapshot } from '../engine/snapshot'
+import { safeSnapshot, type Snapshot } from '../engine/snapshot'
 import type { Schedule } from '../engine/types'
 import { prefers24Hour, viewerTimeZone } from '../time/zoned'
 import { EmptyState } from './EmptyState'
@@ -10,6 +12,8 @@ import { Footer, type FooterProps } from './Footer'
 import type { ScheduleHandle } from './hooks/useSchedule'
 import { useNow } from './hooks/useNow'
 import { useVisibilityCount } from './hooks/useVisibilityCount'
+import { useWeather } from './hooks/useWeather'
+import { showsLocationCard } from './LocationCard'
 import { StatusScreen } from './StatusScreen'
 import { Title } from './Title'
 
@@ -18,14 +22,17 @@ export interface ScheduleScreenProps {
   airports: AirportIndex
   demo: boolean
   onSignOut: () => void
+  /** Where the location card's weather comes from: Open-Meteo, or the made-up samples in the demo. Tests pass a fake. */
+  loadWeather?: WeatherLoader
 }
 
 /** Rebuilds the schedule when new rows arrive, and the snapshot every second. */
-export function ScheduleScreen({ schedule, airports, demo, onSignOut }: ScheduleScreenProps) {
+export function ScheduleScreen({ schedule, airports, demo, onSignOut, loadWeather = demo ? loadDemoWeather : loadLiveWeather }: ScheduleScreenProps) {
   const now = useNow()
   const celebrateKey = useVisibilityCount()
   const viewerTz = useMemo(() => viewerTimeZone(), [])
   const h24 = useMemo(() => prefers24Hour(), [])
+  const unit = useMemo(() => tempUnitFor(), [])
   const built = useMemo<{ s: Schedule; legs: Leg[] } | null>(() => {
     if (!schedule.raw) return null
     try {
@@ -50,7 +57,13 @@ export function ScheduleScreen({ schedule, airports, demo, onSignOut }: Schedule
     h24,
   }
 
-  if (!built || built.s.empty) {
+  const ready = built && !built.s.empty ? built : null
+  const homeTz = (ready && airports.tz(ready.s.pilot.effHome)) ?? viewerTz
+  const snap = ready ? safeSnapshot(ready.s, ready.legs, now, airports.tz(ready.s.pilot.base) ?? viewerTz) : null
+  // Asked for before the early return below, so the hooks run in the same order on every render.
+  const weather = useWeather(weatherPlace(snap, airports, unit), loadWeather)
+
+  if (!snap) {
     return (
       <main class="screen">
         <Title text="CrewLuve" />
@@ -60,11 +73,14 @@ export function ScheduleScreen({ schedule, airports, demo, onSignOut }: Schedule
     )
   }
 
-  const baseTz = airports.tz(built.s.pilot.base) ?? viewerTz
-  const homeTz = airports.tz(built.s.pilot.effHome) ?? viewerTz
-  const snap = safeSnapshot(built.s, built.legs, now, baseTz)
   return (
-    <StatusScreen snap={snap} now={now} viewerTz={viewerTz} homeTz={homeTz} h24={h24} airports={airports} demo={demo}
+    <StatusScreen snap={snap} now={now} viewerTz={viewerTz} homeTz={homeTz} h24={h24} airports={airports} weather={weather} demo={demo}
       celebrateKey={celebrateKey} footer={footer} />
   )
+}
+
+/** The airport whose weather the location card shows, or null when the card is hidden or the airport isn't in the list. */
+function weatherPlace(snap: Snapshot | null, airports: AirportIndex, unit: TempUnit): WeatherPlace | null {
+  const airport = snap && showsLocationCard(snap) ? airports.get(snap.status.airport) : undefined
+  return airport ? { code: airport.iata, lat: airport.lat, lng: airport.lng, tz: airports.tz(airport.iata), unit } : null
 }

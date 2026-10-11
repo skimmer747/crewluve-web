@@ -1,8 +1,10 @@
 // @vitest-environment happy-dom
 import { cleanup, render, screen } from '@testing-library/preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { demoRaw } from '../../src/data/demo'
-import type { Leg } from '../../src/engine/legs'
+import { demoRaw, demoRawForScene, DEMO_SCENES, type DemoScene } from '../../src/data/demo'
+import type { Weather } from '../../src/data/weather'
+import { buildLegs, type Leg } from '../../src/engine/legs'
+import { buildSchedule } from '../../src/engine/normalize'
 import { makeSnapshot, safeSnapshot, type Snapshot } from '../../src/engine/snapshot'
 import { EmptyState } from '../../src/ui/EmptyState'
 import type { FooterProps } from '../../src/ui/Footer'
@@ -33,7 +35,8 @@ const footer = (now: number): FooterProps => ({
 function screenAt(minutes: number, snap: Snapshot = makeSnapshot(e.schedule, e.legs, at(minutes), NY), demo = false, celebrateKey = 0) {
   const now = at(minutes)
   return (
-    <StatusScreen snap={snap} now={now} viewerTz={NY} homeTz={NY} h24={false} airports={testAirports} demo={demo} celebrateKey={celebrateKey} footer={footer(now)} />
+    <StatusScreen snap={snap} now={now} viewerTz={NY} homeTz={NY} h24={false} airports={testAirports} weather={null} demo={demo} celebrateKey={celebrateKey}
+      footer={footer(now)} />
   )
 }
 
@@ -159,7 +162,7 @@ describe('StatusScreen trip cards (slice 2A)', () => {
     const now = at(minutes)
     return (
       <StatusScreen snap={makeSnapshot(e.schedule, e.legs, now, NY)} now={now} viewerTz={opts.viewerTz ?? NY} homeTz={opts.homeTz ?? NY}
-        h24={opts.h24 ?? false} airports={testAirports} demo={false} celebrateKey={0} footer={footer(now)} />
+        h24={opts.h24 ?? false} airports={testAirports} weather={null} demo={false} celebrateKey={0} footer={footer(now)} />
     )
   }
 
@@ -206,5 +209,71 @@ describe('StatusScreen trip cards (slice 2A)', () => {
   it('shows neither card when the snapshot has none', () => {
     const { container } = renderAt(1950)
     expect(container.querySelector('.trip-card')).toBeNull()
+  })
+})
+
+describe('StatusScreen location card (slice 2B1)', () => {
+  const FOLLOWING = Node.DOCUMENT_POSITION_FOLLOWING
+  const withWeather = (minutes: number, weather: Weather | null) => {
+    const now = at(minutes)
+    return (
+      <StatusScreen snap={makeSnapshot(e.schedule, e.legs, now, NY)} now={now} viewerTz={NY} homeTz={NY} h24={false} airports={testAirports}
+        weather={weather} demo={false} celebrateKey={0} footer={footer(now)} />
+    )
+  }
+
+  it('sits after the countdown and the been-home pill, and before the trip card', () => {
+    const { container } = renderAt(-1440)
+    const location = container.querySelector('.location')!
+    expect(container.querySelector('.countdown')!.compareDocumentPosition(location) & FOLLOWING).toBeTruthy()
+    expect(container.querySelector('.pill')!.compareDocumentPosition(location) & FOLLOWING).toBeTruthy()
+    expect(location.compareDocumentPosition(container.querySelector('.trip-card')!) & FOLLOWING).toBeTruthy()
+  })
+
+  it('shows where the pilot is, with the weather it is given', () => {
+    const { container } = render(withWeather(180, { temperature: 61, code: 3, isDay: true }))
+    expect(screen.getByRole('heading', { level: 2, name: 'Rockford' })).toBeTruthy()
+    expect(container.querySelector('.weather-temp')!.textContent).toBe('61°')
+  })
+
+  it('is hidden while the pilot is flying', () => {
+    const { container } = renderAt(100)
+    expect(container.querySelector('.location')).toBeNull()
+  })
+
+  it('reads "Unknown Location" when the engine can’t tell where the pilot is', () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const unknown = safeSnapshot(e.schedule, null as unknown as Leg[], at(0), NY)
+    renderAt(0, unknown)
+    expect(screen.getByRole('heading', { level: 2, name: 'Unknown Location' })).toBeTruthy()
+    error.mockRestore()
+  })
+})
+
+describe('the location card in each demo scene', () => {
+  const NOW = Date.UTC(2026, 9, 20, 16, 0)
+  const CITY: Record<DemoScene, string | null> = {
+    home: 'Lexington',
+    'driving-to-work': 'Lexington',
+    base: 'Louisville',
+    flying: null,
+    turn: 'Rockford',
+    layover: 'Miami',
+    delayed: 'Anchorage',
+    'last-leg': null,
+    'driving-home': 'Louisville',
+    'commuting-home': 'Louisville',
+    reserve: 'Louisville',
+    training: 'Louisville',
+  }
+
+  it.each(Object.keys(DEMO_SCENES) as DemoScene[])('%s', (scene) => {
+    const schedule = buildSchedule(demoRawForScene(scene, NOW), NOW)
+    const snap = makeSnapshot(schedule, buildLegs(schedule), NOW, NY)
+    const { container } = render(
+      <StatusScreen snap={snap} now={NOW} viewerTz={NY} homeTz={NY} h24={false} airports={testAirports} weather={null} demo celebrateKey={0}
+        footer={footer(NOW)} />,
+    )
+    expect(container.querySelector('.location-city')?.textContent ?? null).toBe(CITY[scene])
   })
 })

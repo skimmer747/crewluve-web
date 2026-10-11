@@ -2,12 +2,14 @@ import { arrivalWhenText, leaveWhenText, tripDepartsText } from '../copy/format'
 import { safeNarrative } from '../copy/narrative'
 import { arrivalCard, leaveCard, statusVisual } from '../copy/visuals'
 import type { AirportIndex } from '../data/airports'
+import type { Weather } from '../data/weather'
 import type { Snapshot } from '../engine/snapshot'
 import { CountdownCard } from './CountdownCard'
 import { DaysHomePill } from './DaysHomePill'
 import { DemoBanner } from './DemoBanner'
 import { FallbackCard } from './FallbackCard'
 import { Footer, type FooterProps } from './Footer'
+import { LocationCard, showsLocationCard } from './LocationCard'
 import { NarrativeCard } from './NarrativeCard'
 import { Title, titleFor } from './Title'
 import { TripProgressCard } from './TripProgressCard'
@@ -21,12 +23,14 @@ export interface StatusScreenProps {
   homeTz: string
   h24: boolean
   airports: AirportIndex
+  /** The location card's weather (slice 2B1 §6), or null while it loads or when there's none. */
+  weather: Weather | null
   demo: boolean
   celebrateKey: number
   footer: FooterProps
 }
 
-/** The top of Crewluve's main screen, in its card order (spec §4.4; the trip cards, slice 2A §3). */
+/** The top of Crewluve's main screen, in its card order (spec §4.4; the location card, slice 2B1 §3; the trip cards, slice 2A §3). */
 export function StatusScreen(p: StatusScreenProps) {
   const { snap } = p
   const spans = safeNarrative(snap, { now: p.now, viewerTz: p.viewerTz, h24: p.h24, airports: p.airports })
@@ -36,6 +40,9 @@ export function StatusScreen(p: StatusScreenProps) {
       {p.demo && <DemoBanner />}
       <NarrativeCard spans={spans} visual={statusVisual(snap)} ring={snap.ring} />
       {snap.status.kind === 'home' ? <HomeCards {...p} /> : <AwayCard {...p} />}
+      {showsLocationCard(snap) && (
+        <LocationCard airport={snap.status.airport} now={p.now} homeTz={p.homeTz} h24={p.h24} airports={p.airports} weather={p.weather} />
+      )}
       {snap.upcomingTrip && (
         <UpcomingTripCard trip={snap.upcomingTrip} now={p.now} timeZone={p.homeTz} h24={p.h24} airports={p.airports} />
       )}

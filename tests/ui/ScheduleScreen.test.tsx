@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { demoRawForScene } from '../../src/data/demo'
 import { RawBuilder } from '../../src/data/rowBuilder'
 import type { RawSchedule } from '../../src/data/rows'
+import { tempUnitFor, type WeatherLoader } from '../../src/data/weather'
 import type { ScheduleHandle } from '../../src/ui/hooks/useSchedule'
 import { ScheduleScreen } from '../../src/ui/ScheduleScreen'
 import { testAirports } from '../fixtures/airports'
@@ -92,5 +93,40 @@ describe('ScheduleScreen details', () => {
       fireEvent(document, new Event('visibilitychange'))
     })
     expect(frames.pending).toBe(1)
+  })
+})
+
+describe('ScheduleScreen location card (slice 2B1)', () => {
+  it('asks for the weather where the pilot is, and shows it', async () => {
+    const load = vi.fn<WeatherLoader>(async () => ({ temperature: 41, code: 3, isDay: true }))
+    render(<ScheduleScreen schedule={handle(demoRawForScene('delayed', NOW))} airports={testAirports} demo={false} onSignOut={() => {}} loadWeather={load} />)
+    expect(await screen.findByText('41°')).toBeTruthy()
+    expect(load).toHaveBeenCalledWith({ code: 'ANC', lat: 61.1744, lng: -149.9983, tz: 'America/Anchorage', unit: tempUnitFor() })
+  })
+
+  it('asks for no weather while the pilot is flying', async () => {
+    const load = vi.fn<WeatherLoader>(async () => null)
+    const { container } = render(
+      <ScheduleScreen schedule={handle(demoRawForScene('flying', NOW))} airports={testAirports} demo={false} onSignOut={() => {}} loadWeather={load} />,
+    )
+    await act(async () => {})
+    expect(load).not.toHaveBeenCalled()
+    expect(container.querySelector('.location')).toBeNull()
+  })
+
+  it('shows the demo’s made-up weather without touching the network', async () => {
+    const fetch = vi.fn()
+    vi.stubGlobal('fetch', fetch)
+    render(<ScheduleScreen schedule={handle(demoRawForScene('delayed', NOW))} airports={testAirports} demo onSignOut={() => {}} />)
+    expect(await screen.findByText('Cloudy')).toBeTruthy()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('asks Open-Meteo when live', async () => {
+    const fetch = vi.fn(async (_url: string) => ({ ok: true, json: async () => ({ current: { temperature_2m: 41, weather_code: 3, is_day: 1 } }) }))
+    vi.stubGlobal('fetch', fetch)
+    render(<ScheduleScreen schedule={handle(demoRawForScene('delayed', NOW))} airports={testAirports} demo={false} onSignOut={() => {}} />)
+    expect(await screen.findByText('41°')).toBeTruthy()
+    expect(fetch.mock.calls[0][0]).toMatch(/^https:\/\/api\.open-meteo\.com\/v1\/forecast\?latitude=61\.17&longitude=-150\.00&/)
   })
 })
