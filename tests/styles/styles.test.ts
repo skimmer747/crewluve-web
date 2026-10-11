@@ -236,6 +236,15 @@ describe('cards.css', () => {
   it('draws the sign-in button on the readable fill behind its white text', () => {
     expect(declarations(find(top, '.primary')!.body)).toContainEqual(['background', 'var(--fill-blue, var(--blue))'])
   })
+
+  it('gives the glass and the sign-in fields a 1 px edge under Increase Contrast, after both rules so it wins', () => {
+    const media = find(top, '@media (prefers-contrast: more)')
+    expect(media).toBeDefined()
+    const edge = find(blocks(media!.body), '.glass, .field')
+    expect(edge).toBeDefined()
+    expect(declarations(edge!.body)).toEqual([['border-width', '1px']])
+    expect(top.indexOf(media!)).toBeGreaterThan(Math.max(top.indexOf(find(top, '.glass')!), top.indexOf(find(top, '.field')!)))
+  })
 })
 
 describe('trips.css', () => {
