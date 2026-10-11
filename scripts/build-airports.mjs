@@ -1,6 +1,8 @@
 // Builds public/data/airports.json as [iata, city, country, lat, lng, tz] tuples, plus a seventh field, the state code,
 // for US airports.
 // Source: the Flight Globe's merged list (Crewlu's own airport tables win over OurAirports there).
+// Cities: the globe's, except where the Crewluve app's own airport table (AirportDataProvider.swift) names one
+// differently: VPS, DEL, BAH and TAO.
 // Countries: one spelling each, "USA" for the US (as the Crewluve app writes it) and short English names elsewhere,
 // except where the Crewluve app's own airport table (AirportDataProvider.swift) spells one differently: that wins.
 // States: iso_region from the OurAirports list the globe keeps beside its own ("US-KY" -> "KY"), except where the
@@ -164,6 +166,15 @@ function usState(iata, country) {
   return APP_STATE.get(iata) ?? /^US-([A-Z]{2})$/.exec(regions.get(iata)?.region ?? '')?.[1] ?? null
 }
 
+// The Crewluve app's airport table names these four cities differently from the globe's list. The app's names win, so
+// the site reads like the app.
+const APP_CITY = new Map([
+  ['VPS', 'Destin/Fort Walton Beach'],
+  ['DEL', 'New Delhi'],
+  ['BAH', 'Bahrain'],
+  ['TAO', 'Qingdao'],
+])
+
 const skipped = { 'bad code': 0, duplicate: 0, 'bad coordinates': 0, 'no zone': 0 }
 const inRange = (n, limit) => Number.isFinite(n) && Math.abs(n) <= limit
 const withoutState = []
@@ -196,7 +207,7 @@ for (const r of JSON.parse(readFileSync(source, 'utf8'))) {
   const country = countryName(r.country)
   const state = usState(iata, country)
   if (country === 'USA' && !state) withoutState.push(iata)
-  const row = [iata, String(r.city || iata), country, round(r.lat), round(r.lng), tz]
+  const row = [iata, APP_CITY.get(iata) ?? String(r.city || iata), country, round(r.lat), round(r.lng), tz]
   if (state) row.push(state)
   out.push(row)
 }

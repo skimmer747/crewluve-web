@@ -162,4 +162,11 @@ describe('generated public/data/airports.json', () => {
     expect(idx.get('DXB')?.country).toBe('UAE')
     expect(idx.get('AUH')?.country).toBe('UAE')
   })
+
+  it('names cities as the Crewluve app’s table does where the globe’s list differs', () => {
+    expect(idx.city('VPS')).toBe('Destin/Fort Walton Beach')
+    expect(idx.city('DEL')).toBe('New Delhi')
+    expect(idx.city('BAH')).toBe('Bahrain')
+    expect(idx.city('TAO')).toBe('Qingdao')
+  })
 })
