@@ -9,10 +9,12 @@ import {
   daysText,
   delayText,
   departureText,
+  dialTimeText,
   leaveWhenText,
   longDateTimeText,
   narrativeCountdown,
   ordinalSuffix,
+  shortTimeText,
   spokenDuration,
   timeWithZone,
   tripCardDepartsText,
@@ -83,6 +85,24 @@ describe('clock times', () => {
     expect(clockText(Date.UTC(2026, 9, 9, 4, 5), NY, false)).toBe('12:05am')
     expect(clockText(Date.UTC(2026, 9, 9, 4, 5), NY, true)).toBe('00:05')
     expect(clockText(Date.UTC(2026, 9, 9, 16, 0), NY, false)).toBe('12:00pm')
+  })
+
+  it('prints the location card clock like iOS, with a narrow space before AM or PM', () => {
+    expect(shortTimeText(afternoon, NY, false)).toBe('1:10\u202FPM')
+    expect(shortTimeText(afternoon, NY, true)).toBe('13:10')
+    expect(shortTimeText(Date.UTC(2026, 9, 9, 4, 5), NY, false)).toBe('12:05\u202FAM')
+    expect(shortTimeText(Date.UTC(2026, 9, 9, 4, 5), NY, true)).toBe('00:05')
+    expect(shortTimeText(Date.UTC(2026, 9, 9, 16, 0), NY, false)).toBe('12:00\u202FPM')
+    expect(shortTimeText(afternoon, 'America/Anchorage', false)).toBe('9:10\u202FAM')
+  })
+
+  it('prints sun dial labels as the app does, with a and p, or 24-hour', () => {
+    expect(dialTimeText(Date.UTC(2026, 9, 10, 12, 12), NY, false)).toBe('8:12a')
+    expect(dialTimeText(Date.UTC(2026, 9, 10, 22, 41), NY, false)).toBe('6:41p')
+    expect(dialTimeText(Date.UTC(2026, 9, 10, 12, 12), NY, true)).toBe('08:12')
+    expect(dialTimeText(Date.UTC(2026, 9, 10, 22, 41), NY, true)).toBe('18:41')
+    expect(dialTimeText(Date.UTC(2026, 9, 9, 4, 5), NY, false)).toBe('12:05a')
+    expect(dialTimeText(Date.UTC(2026, 9, 9, 16, 0), NY, false)).toBe('12:00p')
   })
 
   it('adds the zone for {T}', () => {

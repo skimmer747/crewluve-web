@@ -69,6 +69,12 @@ export function calendarDay(ms: number, timeZone: string): number {
   return Date.UTC(p.year, p.month - 1, p.day) / DAY
 }
 
+/** The zone's offset from UTC at `ms`, in minutes: -240 for New York in summer, 330 for Kolkata. */
+export function zoneOffsetMinutes(ms: number, timeZone: string): number {
+  const p = zonedParts(ms, timeZone)
+  return (Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute) - Math.floor(ms / MINUTE) * MINUTE) / MINUTE
+}
+
 /** Zone abbreviation the way iOS prints it: "EDT", "HST", or "GMT+2" outside the US. */
 export function zoneAbbr(ms: number, timeZone: string): string {
   const parts = abbrFormatterFor(timeZone).formatToParts(ms)

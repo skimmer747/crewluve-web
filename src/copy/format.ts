@@ -112,6 +112,20 @@ export function clockWithDayText(ms: number, now: number, timeZone: string, h24:
   return `${MONTHS[p.month - 1].slice(0, 3)} ${p.day}, ${time}`
 }
 
+/** The location card's clock: "9:14 AM", with iOS's narrow no-break space before AM, or "09:14" (DateFormatter's short time). */
+export function shortTimeText(ms: number, timeZone: string, h24: boolean): string {
+  const { hour, minute } = zonedParts(ms, timeZone)
+  if (h24) return `${pad2(hour)}:${pad2(minute)}`
+  return `${hour % 12 === 0 ? 12 : hour % 12}:${pad2(minute)}\u202F${hour < 12 ? 'AM' : 'PM'}`
+}
+
+/** A sun dial label: "8:12a" or "6:41p" (SunCircleView.formatTime, "h:mma" with a and p), or "08:12" in 24-hour. */
+export function dialTimeText(ms: number, timeZone: string, h24: boolean): string {
+  const { hour, minute } = zonedParts(ms, timeZone)
+  if (h24) return `${pad2(hour)}:${pad2(minute)}`
+  return `${hour % 12 === 0 ? 12 : hour % 12}:${pad2(minute)}${hour < 12 ? 'a' : 'p'}`
+}
+
 /** {T}: "1:00pm EST" or "13:00 EST" (formattedLocalTime). */
 export function timeWithZone(ms: number, timeZone: string, h24: boolean): string {
   return `${clockText(ms, timeZone, h24)} ${zoneAbbr(ms, timeZone)}`
@@ -150,10 +164,7 @@ export function longDateTimeText(ms: number, timeZone: string, h24: boolean): st
 /** Arrival card date: "Sun, Mar 1 at 5:57 PM", with iOS's narrow no-break space before PM; or "Sun, Mar 1 at 17:57". */
 export function arrivalWhenText(ms: number, timeZone: string, h24: boolean): string {
   const p = zonedParts(ms, timeZone)
-  const time = h24
-    ? `${pad2(p.hour)}:${pad2(p.minute)}`
-    : `${p.hour % 12 === 0 ? 12 : p.hour % 12}:${pad2(p.minute)}\u202F${p.hour < 12 ? 'AM' : 'PM'}`
-  return `${WEEKDAYS[p.weekday].slice(0, 3)}, ${MONTHS[p.month - 1].slice(0, 3)} ${p.day} at ${time}`
+  return `${WEEKDAYS[p.weekday].slice(0, 3)}, ${MONTHS[p.month - 1].slice(0, 3)} ${p.day} at ${shortTimeText(ms, timeZone, h24)}`
 }
 
 /** Leave card subtitle: "Departs Sunday March 1st at 5:57pm" (24-hour: "… at 17:57", fixing the app's "17:57pm"). */
