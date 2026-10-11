@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, render, screen } from '@testing-library/preact'
+import { cleanup, fireEvent, render, screen } from '@testing-library/preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { demoRaw, demoRawForScene, DEMO_SCENES, type DemoScene } from '../../src/data/demo'
 import type { Weather } from '../../src/data/weather'
@@ -267,6 +267,57 @@ describe('StatusScreen location card (slice 2B1)', () => {
     renderAt(0, unknown)
     expect(screen.getByRole('heading', { level: 2, name: 'Unknown Location' })).toBeTruthy()
     error.mockRestore()
+  })
+})
+
+describe('StatusScreen sun popup (slice 2B2)', () => {
+  const rockford: Weather = { temperature: 61, code: 3, isDay: true }
+  const turnAt = (minutes = 180) => {
+    const now = at(minutes)
+    return (
+      <StatusScreen snap={makeSnapshot(e.schedule, e.legs, now, NY)} now={now} viewerTz={NY} homeTz={NY} h24={false} airports={testAirports}
+        weather={rockford} demo={false} celebrateKey={0} footer={footer(now)} />
+    )
+  }
+  const openDial = () => fireEvent.click(screen.getByRole('button', { name: /\. Opens sun details\.$/ }))
+
+  it('opens from the location card’s dial, after <main>, and hides the page behind it', () => {
+    const { container } = render(turnAt())
+    const main = container.querySelector('main')!
+    expect(screen.queryByRole('dialog')).toBeNull()
+    openDial()
+    const dialog = screen.getByRole('dialog', { name: 'Rockford' })
+    expect(main.contains(dialog)).toBe(false)
+    expect(main.compareDocumentPosition(dialog) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(main.getAttribute('aria-hidden')).toBe('true')
+    expect(main.hasAttribute('inert')).toBe(true)
+  })
+
+  it('counts down to the snapshot’s next flight on the big dial', () => {
+    render(turnAt())
+    openDial()
+    expect(screen.getByRole('img', { name: /Next departure .+, in .+\.$/ })).toBeTruthy()
+  })
+
+  it('shows the page again once the popup has closed', () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce'), media: query }))
+    const { container } = render(turnAt())
+    openDial()
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    const main = container.querySelector('main')!
+    expect(main.getAttribute('aria-hidden')).toBeNull()
+    expect(main.hasAttribute('inert')).toBe(false)
+  })
+
+  it('closes by itself when the dial goes away at takeoff, and stays closed when it comes back', () => {
+    const { rerender } = render(turnAt())
+    openDial()
+    expect(screen.getByRole('dialog')).toBeTruthy()
+    rerender(turnAt(100))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    rerender(turnAt())
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 })
 

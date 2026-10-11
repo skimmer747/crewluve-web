@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'preact/hooks'
 import { arrivalWhenText, leaveWhenText, tripDepartsText } from '../copy/format'
 import { safeNarrative } from '../copy/narrative'
 import { arrivalCard, leaveCard, statusVisual } from '../copy/visuals'
@@ -10,7 +11,9 @@ import { DemoBanner } from './DemoBanner'
 import { FallbackCard } from './FallbackCard'
 import { Footer, type FooterProps } from './Footer'
 import { LocationCard, showsLocationCard } from './LocationCard'
+import { locationFacts } from './locationFacts'
 import { NarrativeCard } from './NarrativeCard'
+import { SunPopup } from './SunPopup'
 import { Title, titleFor } from './Title'
 import { TripProgressCard } from './TripProgressCard'
 import { UpcomingTripCard } from './UpcomingTripCard'
@@ -30,25 +33,62 @@ export interface StatusScreenProps {
   footer: FooterProps
 }
 
-/** The top of Crewluve's main screen, in its card order (spec §4.4; the location card, slice 2B1 §3; the trip cards, slice 2A §3). */
+/**
+ * The top of Crewluve's main screen, in its card order (spec §4.4; the location card, slice 2B1 §3; the trip cards, slice
+ * 2A §3), and the sun popup the location card's dial opens (slice 2B2 §9). The popup goes after <main>, since the card's
+ * frosted glass would trap a full-screen overlay inside the card; while it's open, the page is hidden from screen readers.
+ */
 export function StatusScreen(p: StatusScreenProps) {
   const { snap } = p
+  const [sunOpen, setSunOpen] = useState(false)
   const spans = safeNarrative(snap, { now: p.now, viewerTz: p.viewerTz, h24: p.h24, airports: p.airports })
+  const airport = snap.status.airport
+  const facts = showsLocationCard(snap) ? locationFacts(airport, p.now, p.airports, p.weather) : null
+  const dialShown = airport != null && facts?.tz != null && facts.sun != null
+  // The popup closes by itself when the dial goes away: at takeoff, or when the sun neither rises nor sets.
+  useEffect(() => {
+    if (sunOpen && !dialShown) setSunOpen(false)
+  }, [sunOpen, dialShown])
+  const open = sunOpen && dialShown
+  const flight = snap.nextFlight
   return (
-    <main class="screen">
-      <Title text={titleFor(snap.hasName ? snap.name : null)} />
-      {p.demo && <DemoBanner />}
-      <NarrativeCard spans={spans} visual={statusVisual(snap)} ring={snap.ring} />
-      {snap.status.kind === 'home' ? <HomeCards {...p} /> : <AwayCard {...p} />}
-      {showsLocationCard(snap) && (
-        <LocationCard airport={snap.status.airport} now={p.now} homeTz={p.homeTz} h24={p.h24} airports={p.airports} weather={p.weather} />
+    <>
+      <main class="screen" aria-hidden={open ? 'true' : undefined} inert={open || undefined}>
+        <Title text={titleFor(snap.hasName ? snap.name : null)} />
+        {p.demo && <DemoBanner />}
+        <NarrativeCard spans={spans} visual={statusVisual(snap)} ring={snap.ring} />
+        {snap.status.kind === 'home' ? <HomeCards {...p} /> : <AwayCard {...p} />}
+        {showsLocationCard(snap) && (
+          <LocationCard
+            airport={airport}
+            now={p.now}
+            homeTz={p.homeTz}
+            h24={p.h24}
+            airports={p.airports}
+            weather={p.weather}
+            onOpenSun={() => setSunOpen(true)}
+          />
+        )}
+        {snap.upcomingTrip && (
+          <UpcomingTripCard trip={snap.upcomingTrip} now={p.now} timeZone={p.homeTz} h24={p.h24} airports={p.airports} />
+        )}
+        {snap.tripProgress && <TripProgressCard progress={snap.tripProgress} airports={p.airports} />}
+        <Footer {...p.footer} />
+      </main>
+      {open && airport && (
+        <SunPopup
+          airport={airport}
+          now={p.now}
+          homeTz={p.homeTz}
+          homeAirport={snap.pilot.effHome}
+          h24={p.h24}
+          airports={p.airports}
+          weather={p.weather}
+          departure={flight ? { scheduled: flight.schedStart, actual: flight.start } : null}
+          onClose={() => setSunOpen(false)}
+        />
       )}
-      {snap.upcomingTrip && (
-        <UpcomingTripCard trip={snap.upcomingTrip} now={p.now} timeZone={p.homeTz} h24={p.h24} airports={p.airports} />
-      )}
-      {snap.tripProgress && <TripProgressCard progress={snap.tripProgress} airports={p.airports} />}
-      <Footer {...p.footer} />
-    </main>
+    </>
   )
 }
 
