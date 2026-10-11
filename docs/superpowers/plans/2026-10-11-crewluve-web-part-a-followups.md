@@ -733,7 +733,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ### Task 7: Merge and release (controller, asks first)
 
-- [ ] **Step 1: Merge**
+- [x] **Step 1: Merge**
 
 Use superpowers:finishing-a-development-branch. Ask the user one question about how to merge `parta-followups` into `main`.
 
@@ -790,3 +790,5 @@ Update the project memory with the new tip and what's next: Part C, the in-fligh
   - The weather animation reads its colors when the popup opens, and again when day turns to night or the weather changes. Switching Increase Contrast while it's open recolors it only at one of those moments, as with light and dark.
   - The pills' 9 px subtitles stay white at 85% like the app's. On the fills that reaches 3.6:1 or more rather than 4.5:1, and spec §3.2 now says so.
 - **Totals:** after the review follow-ups, the suite is 1660 tests in 70 files.
+- **Re-check:** the code-quality reviewer re-checked `18781ea..c4ca9df` and it passed. `ecbcdd3` takes two of its wording notes.
+- **Merge:** the user chose to merge into `main` locally. After the re-check, `main` fast-forwarded to `ecbcdd3`, and the merged result passed all three gates with 1660 tests. The branch is deleted.
