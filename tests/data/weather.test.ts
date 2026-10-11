@@ -58,10 +58,12 @@ describe('parseWeather', () => {
 })
 
 describe('fetchWeather', () => {
-  it('sends a plain GET with no cookies and no referrer, and returns the weather', async () => {
+  it('sends a plain GET that is never cached and carries no cookies or referrer, and returns the weather', async () => {
     const { fetch, calls } = fakeFetch({ body: reply({ temperature_2m: 41.2, weather_code: 3, is_day: 1 }) })
     expect(await fetchWeather(61.1744, -149.9983, 'fahrenheit', fetch)).toEqual({ temperature: 41.2, code: 3, isDay: true })
-    expect(calls).toEqual([{ url: weatherUrl(61.1744, -149.9983, 'fahrenheit'), init: { credentials: 'omit', referrerPolicy: 'no-referrer' } }])
+    expect(calls).toEqual([
+      { url: weatherUrl(61.1744, -149.9983, 'fahrenheit'), init: { cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer' } },
+    ])
   })
 
   it.each([
@@ -85,19 +87,31 @@ describe('loadLiveWeather', () => {
 })
 
 describe('tempUnitFor', () => {
+  // Apple's weather format uses Fahrenheit in the US, Puerto Rico, the Bahamas, Belize, the Cayman Islands and Palau.
   it.each([
     ['en-US', 'fahrenheit'],
     ['en', 'fahrenheit'],
     ['es-US', 'fahrenheit'],
+    ['es-PR', 'fahrenheit'],
     ['en-BS', 'fahrenheit'],
-    ['en-LR', 'fahrenheit'],
-    ['my', 'fahrenheit'],
+    ['en-BZ', 'fahrenheit'],
+    ['en-KY', 'fahrenheit'],
+    ['en-PW', 'fahrenheit'],
+    ['en-LR', 'celsius'],
+    ['my', 'celsius'],
     ['en-GB', 'celsius'],
     ['en-CA', 'celsius'],
     ['de', 'celsius'],
     ['ja-JP', 'celsius'],
   ])('%s uses %s', (locale, unit) => {
     expect(tempUnitFor(locale)).toBe(unit)
+  })
+
+  it('reads the browser’s language setting when given none', () => {
+    vi.stubGlobal('navigator', { language: 'en-GB' })
+    expect(tempUnitFor()).toBe('celsius')
+    vi.stubGlobal('navigator', { language: 'en-US' })
+    expect(tempUnitFor()).toBe('fahrenheit')
   })
 
   it('falls back to Celsius for a language setting it cannot read', () => {

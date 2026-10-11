@@ -30,8 +30,8 @@ export interface WeatherPlace {
 /** Where weather comes from: Open-Meteo when live, made-up samples in the demo. Resolves to null when there's none. */
 export type WeatherLoader = (place: WeatherPlace) => Promise<Weather | null>
 
-/** Regions that use Fahrenheit (slice 2B1 §6). Everywhere else gets Celsius. */
-const FAHRENHEIT_REGIONS = new Set(['US', 'LR', 'MM', 'BS', 'BZ', 'KY', 'PW', 'FM', 'MH'])
+/** Regions where Apple's weather format, which the app uses, gives Fahrenheit (slice 2B1 §6). Everywhere else gets Celsius. */
+const FAHRENHEIT_REGIONS = new Set(['US', 'PR', 'BS', 'BZ', 'KY', 'PW'])
 
 /** The visitor's unit, from the region of their language setting. A bare language fills in its usual region: "en" means the US. */
 export function tempUnitFor(locale: string = navigator.language): TempUnit {
@@ -65,12 +65,13 @@ export function parseWeather(body: unknown): Weather | null {
 }
 
 /**
- * The current weather from Open-Meteo, or null when it can't be had. A plain GET that sends no cookies and no referrer
- * (slice 2B1 §7). Tests pass their own `fetch`; the parameter keeps that name so the read-only scan still checks this call.
+ * The current weather from Open-Meteo, or null when it can't be had. A plain GET that sends no cookies and no referrer,
+ * and that the browser never caches (slice 2B1 §6, §7). Tests pass their own `fetch`; the parameter keeps that name so
+ * the read-only scan still checks this call.
  */
 export async function fetchWeather(lat: number, lng: number, unit: TempUnit, fetch: typeof globalThis.fetch = globalThis.fetch): Promise<Weather | null> {
   try {
-    const res = await fetch(weatherUrl(lat, lng, unit), { credentials: 'omit', referrerPolicy: 'no-referrer' })
+    const res = await fetch(weatherUrl(lat, lng, unit), { cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer' })
     return res.ok ? parseWeather(await res.json()) : null
   } catch {
     return null
