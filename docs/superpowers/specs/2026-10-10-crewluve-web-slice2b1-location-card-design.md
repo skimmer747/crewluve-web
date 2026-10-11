@@ -161,12 +161,15 @@ The Phosphor icon set (`scripts/build-icons.mjs`) gains Moon, CloudSun, CloudMoo
 | # | Decision | Source |
 |---|---|---|
 | 1 | Part B splits into B1 (the card) and B2 (the popup). | User, 2026-10-10 |
-| 2 | Weather comes from Open-Meteo, which sees only the airport's coordinates. | User, 2026-10-10 |
+| 2 | Weather comes from Open-Meteo, which sees the airport's rounded coordinates and what every browser request carries (§7), never names, the account or the schedule. | User, 2026-10-10; §7 wording corrected in review, 2026-10-11 |
 | 3 | The card's look and behavior, as mocked up on 2026-10-10. | User |
 | 4 | Sun times are worked out on the site with the NOAA formulas. | Design |
 | 5 | Hidden in flight; otherwise shown, "Unknown Location" with no airport, as in the app. | Design (copying the app) |
 | 6 | The time difference compares with home's zone, and only the default odometer animation is copied. | Design (Part A precedent) |
 | 7 | Flags come from the app's own 74-country list. | Design (copying the app) |
+| 8 | The weather's words, rounding and units follow Apple's weather format as the app uses it: "Fog" and "Thunderstorm"; halves to the even number, with "-0°"; Fahrenheit for US, PR, BS, BZ, KY and PW. | Batch A spec review, 2026-10-11 |
+| 9 | The weather request is never cached (`no-store`) and gives up after 10 seconds. The 15-minute refresh skips weather a return to the page has just fetched. | Batch A and B reviews, 2026-10-11 |
+| 10 | During ground transport the card shows, as for a drive (§8 item 9), following slice 1's decision to give ground legs their own status. | Batch C spec review, 2026-10-11 |
 
 ## 11. Roadmap
 

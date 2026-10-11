@@ -3238,7 +3238,7 @@ Update the project memory with the new tip and what's next: Part B2, the sun dia
 | §5 The sun dial | 2 (labels), 3 (screen-reader label), 10 (geometry), 11 (dial), 13 (styles, polar days) |
 | §6 Data: sun times, weather request, units, parsing, freshness, codes, colors, icons, time difference, demo | 1, 3, 4, 5, 6, 7, 9 |
 | §7 Security and privacy | 5 (plain GET, no cookies or referrer, the read-only scan), 7 (demo offline), 15 (CSP) |
-| §8 Deliberate differences | 1 (1), 5–6 (2), 2 and 11 (3), 12 (4), 13 (5: no quick status), 13–14 (6), 11 (7), 3 (8) |
+| §8 Deliberate differences | 1 (1), 5–6 (2), 2 and 11 (3), 12 (4), 13 (5: no quick status), 13–14 (6), 11 (7), 3 (8), 13 (9: ground transport, pinned by the `showsLocationCard` test) |
 | §9 Testing | Every task, then 16 |
 
 ## Execution notes
@@ -3271,9 +3271,10 @@ Update the project memory with the new tip and what's next: Part B2, the sun dia
   - `bbbfd62`: a test for a stalled reply body, the 10-second value pinned, and the rounding comment corrected (halves go away from zero).
   - `f20f036`: the sun and moon icon sizes and the Noon label's position are pinned.
   - Not taken: lazy initial values for the hook's refs. They would save one small allocation a second.
-- **Batch C spec review:** compliant. The reviewer rendered the app's own SunCircleView and card layout with SwiftUI, beside the site's in WebKit, and found them aligned to about a pixel. Its points became `1c6c979`:
+- **Batch C spec review:** "Issues found": two CSS points, neither a departure from the spec, both fixed below. The reviewer rendered the app's own SunCircleView and card layout with SwiftUI, beside the site's in WebKit, and found them aligned to about a pixel. Its points became `1c6c979`:
   - The style rule for the dial's drawing is now `.sun-dial > svg`. `.sun-dial svg` also matched the sun or moon icon nested inside, which Firefox may stretch to the whole box.
   - The dial is lifted with `top: -6px` instead of a margin, so the card keeps the app's height: 192 px plus the border, where it had been 6 px shorter.
   - A polar-day case joins the polar-night one.
   - It also noted that the card shows during ground transport, where the app shows its in-flight map. That follows slice 1's decision to give ground legs their own status, so it's recorded as spec §8 item 9 and not changed.
+- **Batch D spec review:** compliant. The reviewer ran the built site in WebKit with its real CSP. In the demo scenes the only request was `/data/airports.json`: no Open-Meteo call and no CSP violation. Its doc notes led to rows 8–10 of spec §10, a corrected row 2, item 9 in the coverage table, and a `showsLocationCard` test for every status.
 - **Task 16 (2026-10-11):** the user signed off on the look ("Looks right") from five screenshots: Anchorage by day and at night, home in Lexington at night, Miami in dark mode, and a 320 px phone. They chose to keep the app's two narrow-phone overlaps. Step 6, live weather, waits until after release.

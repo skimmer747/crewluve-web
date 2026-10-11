@@ -1,9 +1,13 @@
 // @vitest-environment happy-dom
 import { cleanup, render, screen } from '@testing-library/preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { demoRaw } from '../../src/data/demo'
 import type { Weather } from '../../src/data/weather'
-import { LocationCard } from '../../src/ui/LocationCard'
+import { makeSnapshot } from '../../src/engine/snapshot'
+import type { StatusKind } from '../../src/engine/status'
+import { LocationCard, showsLocationCard } from '../../src/ui/LocationCard'
 import { testAirports } from '../fixtures/airports'
+import { A, at, engineFor } from '../fixtures/engine'
 import { iconNameOf } from '../fixtures/ui'
 
 afterEach(() => {
@@ -114,5 +118,19 @@ describe('LocationCard', () => {
     expect(container.querySelector('.weather-row')!.textContent).toBe('XYZ')
     expect(container.querySelector('.location-time')).toBeNull()
     expect(container.querySelector('.sun-dial')).toBeNull()
+  })
+})
+
+describe('showsLocationCard', () => {
+  // Every status but flying, as in the app. Ground transport shows the card, like a drive (spec §8 item 9).
+  const SHOWN: Record<StatusKind, boolean> = {
+    home: true, commutingHome: true, drivingHome: true, drivingToWork: true, inFlight: false, ground: true, turn: true,
+    layover: true, base: true, reserve: true, hotStandby: true, training: true, event: true, off: true, unknown: true,
+  }
+  const e = engineFor(demoRaw('driver', A))
+  const snap = makeSnapshot(e.schedule, e.legs, at(0), NY)
+
+  it.each(Object.entries(SHOWN))('%s: %s', (kind, shown) => {
+    expect(showsLocationCard({ ...snap, status: { ...snap.status, kind: kind as StatusKind } })).toBe(shown)
   })
 })
