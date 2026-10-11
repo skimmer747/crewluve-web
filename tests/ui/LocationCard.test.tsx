@@ -6,6 +6,7 @@ import type { Weather } from '../../src/data/weather'
 import { makeSnapshot } from '../../src/engine/snapshot'
 import type { StatusKind } from '../../src/engine/status'
 import { LocationCard, showsLocationCard } from '../../src/ui/LocationCard'
+import { locationFacts } from '../../src/ui/locationFacts'
 import { testAirports } from '../fixtures/airports'
 import { A, at, engineFor } from '../fixtures/engine'
 import { iconNameOf } from '../fixtures/ui'
@@ -19,9 +20,14 @@ const NY = 'America/New_York'
 const NOW = Date.UTC(2026, 9, 10, 17, 14) // Saturday 10 October: 9:14 AM in Anchorage, 1:14 PM in New York
 const cloudy: Weather = { temperature: 41.2, code: 3, isDay: true }
 
-const card = (airport: string | null, weather: Weather | null = null, opts: { h24?: boolean; now?: number } = {}) => (
-  <LocationCard airport={airport} now={opts.now ?? NOW} homeTz={NY} h24={opts.h24 ?? false} airports={testAirports} weather={weather} />
-)
+/** The card as the screen draws it, with the place's facts worked out for the time and weather given. */
+const card = (airport: string | null, weather: Weather | null = null, opts: { h24?: boolean; now?: number } = {}) => {
+  const now = opts.now ?? NOW
+  return (
+    <LocationCard airport={airport} facts={locationFacts(airport, now, testAirports, weather)} now={now} homeTz={NY} h24={opts.h24 ?? false}
+      weather={weather} />
+  )
+}
 /** Shows the odometer's final text at once. */
 const reduceMotion = () => vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce'), media: query }))
 
@@ -122,7 +128,10 @@ describe('LocationCard', () => {
 
   it('makes the dial a button that opens the sun popup when the screen gives it one', () => {
     const onOpenSun = vi.fn()
-    render(<LocationCard airport="ANC" now={NOW} homeTz={NY} h24={false} airports={testAirports} weather={cloudy} onOpenSun={onOpenSun} />)
+    render(
+      <LocationCard airport="ANC" facts={locationFacts('ANC', NOW, testAirports, cloudy)} now={NOW} homeTz={NY} h24={false} weather={cloudy}
+        onOpenSun={onOpenSun} />,
+    )
     const dial = screen.getByRole('button', { name: /^Sunrise .+, sunset .+, daytime in Anchorage\. Opens sun details\.$/ })
     fireEvent.click(dial)
     expect(onOpenSun).toHaveBeenCalledTimes(1)

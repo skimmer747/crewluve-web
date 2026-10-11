@@ -1,12 +1,11 @@
 import { shortTimeText } from '../copy/format'
 import { timeDifference } from '../copy/location'
 import { temperatureText } from '../copy/weather'
-import type { AirportIndex } from '../data/airports'
 import type { Weather } from '../data/weather'
 import type { Snapshot } from '../engine/snapshot'
 import { cssColor } from './colors'
 import { Icon } from './Icon'
-import { locationFacts, showsDial } from './locationFacts'
+import { showsDial, type LocationFacts } from './locationFacts'
 import { SunDial } from './SunDial'
 import { TimeDifferenceLine } from './TimeDifferenceLine'
 import { WeatherCredit } from './WeatherCredit'
@@ -20,10 +19,11 @@ export interface LocationCardProps {
   /** Where the pilot is: the snapshot's status.airport, or null when it can't be told. */
   airport: string | null
   now: number
+  /** What's known about that place: its city, flag, zone, sun times and weather words, worked out by the screen. */
+  facts: LocationFacts
   /** The family's time zone, for "ahead of you" and "behind you". */
   homeTz: string
   h24: boolean
-  airports: AirportIndex
   weather: Weather | null
   /** Opens the sun popup: the dial becomes a button, and is handed to it for focus to come back to (slice 2B2 §3). */
   onOpenSun?: (dial: HTMLElement) => void
@@ -33,8 +33,7 @@ export interface LocationCardProps {
  * LocationCardView's standard view (slice 2B1 §4): the city and flag, the weather, the local time and how far it is
  * from home's, with the sun dial in the upper right. With no airport it's just "Unknown Location", as in the app.
  */
-export function LocationCard({ airport, now, homeTz, h24, airports, weather, onOpenSun }: LocationCardProps) {
-  const facts = locationFacts(airport, now, airports, weather)
+export function LocationCard({ airport, facts, now, homeTz, h24, weather, onOpenSun }: LocationCardProps) {
   const { city, flag, tz, visual } = facts
   return (
     <section class="card glass location">

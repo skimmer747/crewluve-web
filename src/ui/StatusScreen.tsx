@@ -46,7 +46,7 @@ export function StatusScreen(p: StatusScreenProps) {
   const wasOpen = useRef(false)
   const spans = safeNarrative(snap, { now: p.now, viewerTz: p.viewerTz, h24: p.h24, airports: p.airports })
   const airport = snap.status.airport
-  // The place, worked out here for the popup and for when it may be open, by the card's own rule for its dial.
+  // The place, worked out once for the card, the popup and when the popup may be open: the card's rule for its dial.
   const facts = showsLocationCard(snap) ? locationFacts(airport, p.now, p.airports, p.weather) : null
   const dialFacts = facts && showsDial(facts) ? facts : null
   const dialShown = dialFacts != null
@@ -69,13 +69,13 @@ export function StatusScreen(p: StatusScreenProps) {
         {p.demo && <DemoBanner />}
         <NarrativeCard spans={spans} visual={statusVisual(snap)} ring={snap.ring} />
         {snap.status.kind === 'home' ? <HomeCards {...p} /> : <AwayCard {...p} />}
-        {showsLocationCard(snap) && (
+        {facts && (
           <LocationCard
             airport={airport}
+            facts={facts}
             now={p.now}
             homeTz={p.homeTz}
             h24={p.h24}
-            airports={p.airports}
             weather={p.weather}
             onOpenSun={(button) => {
               dial.current = button

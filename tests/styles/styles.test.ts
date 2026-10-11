@@ -240,6 +240,15 @@ describe('sunPopup.css', () => {
     expect(declarations(still!.body)).toContainEqual(['transition', 'none'])
   })
 
+  it('lets a drag start on the handle and the header without the browser scrolling instead', () => {
+    expect(rule('.sun-popup-grab')).toContainEqual(['touch-action', 'none'])
+  })
+
+  it('grows the dial from half size without fading it on its own, so it fades once, with the card', () => {
+    expect(find(top, '@keyframes sun-popup-zoom')!.body).not.toMatch(/opacity/)
+    expect(rule('.sun-popup.closing .sun-dial.big').find(([prop]) => prop === 'opacity')).toBeUndefined()
+  })
+
   it('closes in 0.2 s, ease-out', () => {
     expect(rule('.sun-popup.closing .sun-popup-backdrop, .sun-popup.closing .sun-popup-card')).toContainEqual(['transition', 'opacity 0.2s ease-out'])
   })

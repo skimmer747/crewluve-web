@@ -2,7 +2,12 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/preact'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Weather } from '../../src/data/weather'
+import { sharedDaylight } from '../../src/time/sharedDaylight'
+import { sunTimes } from '../../src/time/sun'
+import { wedgePath } from '../../src/ui/bigDialGeometry'
+import { DRAG_CLOSE_PX } from '../../src/ui/hooks/useDragToClose'
 import { locationFacts, showsDial } from '../../src/ui/locationFacts'
+import { hourAngle } from '../../src/ui/sunDialGeometry'
 import { CLOSE_MS, SunPopup, type SunPopupProps } from '../../src/ui/SunPopup'
 import { HOUR, MINUTE } from '../../src/time/zoned'
 import { testAirports } from '../fixtures/airports'
@@ -115,6 +120,34 @@ describe('SunPopup', () => {
   })
 })
 
+describe('SunPopup: what it hands the dial', () => {
+  // One departure object throughout, as when nothing about the flight has changed, so only the input under test moves.
+  const departure = { scheduled, actual: scheduled }
+
+  it('works home’s sun times out again when home’s day turns over', () => {
+    const evening = Date.UTC(2026, 9, 11, 3) // 11 PM on 10 October in New York
+    const { container, rerender } = render(popup({ now: evening, departure }))
+    rerender(popup({ now: NIGHT, departure }))
+    const anchorage = testAirports.get('ANC')!
+    const lexington = testAirports.get('LEX')!
+    const [span] = sharedDaylight(sunTimes(NIGHT, anchorage.lat, anchorage.lng, 'America/Anchorage')!, sunTimes(NIGHT, lexington.lat, lexington.lng, NY)!, NY)
+    expect(container.querySelector('.sun-shared-wedge')!.getAttribute('d')).toBe(wedgePath(hourAngle(span.start), hourAngle(span.end)))
+  })
+
+  it('uses the home zone it’s given now', () => {
+    const { rerender } = render(popup({ departure }))
+    expect(screen.getByRole('img').getAttribute('aria-label')).toContain('4 hours behind you')
+    rerender(popup({ departure, homeTz: 'America/Chicago' }))
+    expect(screen.getByRole('img').getAttribute('aria-label')).toContain('3 hours behind you')
+  })
+
+  it('shows a delay as soon as it arrives', () => {
+    const { rerender } = render(popup({ departure }))
+    rerender(popup({ departure: { scheduled, actual: scheduled + 40 * MINUTE } }))
+    expect(screen.getByRole('img').getAttribute('aria-label')).toContain('40 minutes late')
+  })
+})
+
 describe('SunPopup: opening and closing', () => {
   it('moves focus to the close button and holds the page still where it was, then puts it back', () => {
     // The body is fixed in place, since iOS before 16 still scrolls a page whose body has overflow: hidden.
@@ -171,6 +204,21 @@ describe('SunPopup: opening and closing', () => {
     expect(card.style.transform).toBe('translateY(160px)')
     expect(card.classList.contains('dragging')).toBe(true)
     fireEvent.pointerUp(grab, { clientY: 260, pointerId: 1 })
+    vi.advanceTimersByTime(CLOSE_MS)
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('springs back from a drag of exactly 100 px, and closes past it', () => {
+    vi.useFakeTimers()
+    const onClose = vi.fn()
+    const { container } = render(popup({ onClose }))
+    const grab = container.querySelector('.sun-popup-grab')!
+    fireEvent.pointerDown(grab, { clientY: 100, pointerId: 1 })
+    fireEvent.pointerUp(grab, { clientY: 100 + DRAG_CLOSE_PX, pointerId: 1 })
+    vi.advanceTimersByTime(CLOSE_MS)
+    expect(onClose).not.toHaveBeenCalled()
+    fireEvent.pointerDown(grab, { clientY: 100, pointerId: 2 })
+    fireEvent.pointerUp(grab, { clientY: 101 + DRAG_CLOSE_PX, pointerId: 2 })
     vi.advanceTimersByTime(CLOSE_MS)
     expect(onClose).toHaveBeenCalledTimes(1)
   })
