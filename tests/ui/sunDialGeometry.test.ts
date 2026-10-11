@@ -1,0 +1,118 @@
+import { describe, expect, it } from 'vitest'
+import { arcPath, dialAngle, glowBands, labelAt, markerPath, pointAt, skyBackground, skyStops, tickAt } from '../../src/ui/sunDialGeometry'
+
+const NY = 'America/New_York'
+/** 10 October 2026 at `hour`:`minute` in New York (EDT, UTC-4). */
+const ny = (hour: number, minute = 0) => Date.UTC(2026, 9, 10, hour + 4, minute)
+
+describe('dialAngle', () => {
+  it('puts midnight at the bottom, 6 am at the left, noon at the top and 6 pm at the right', () => {
+    expect(dialAngle(ny(0), NY)).toBe(90)
+    expect(dialAngle(ny(6), NY)).toBe(180)
+    expect(dialAngle(ny(12), NY)).toBe(270)
+    expect(dialAngle(ny(18), NY)).toBe(360)
+    expect(dialAngle(ny(8, 12), NY)).toBe(213)
+  })
+
+  it('reads the clock in the zone it is given', () => {
+    // Noon in New York is 9 am in Los Angeles.
+    expect(dialAngle(ny(12), 'America/Los_Angeles')).toBe(225)
+  })
+})
+
+describe('pointAt', () => {
+  it('measures from the circle’s center, 2 points below the middle of the 160-point box', () => {
+    const at = (angle: number) => {
+      const p = pointAt(angle, 42)
+      return [Math.round(p.x * 1000) / 1000, Math.round(p.y * 1000) / 1000]
+    }
+    expect(at(90)).toEqual([80, 124])
+    expect(at(180)).toEqual([38, 82])
+    expect(at(270)).toEqual([80, 40])
+    expect(at(360)).toEqual([122, 82])
+  })
+})
+
+describe('arcPath', () => {
+  it('draws clockwise from the first angle to the second', () => {
+    // 6 am to 6 pm goes over the top; 6 pm to 6 am goes under the bottom.
+    expect(arcPath(180, 360, 42)).toBe('M38 82A42 42 0 0 1 122 82')
+    expect(arcPath(360, 180, 42)).toBe('M122 82A42 42 0 0 1 38 82')
+  })
+
+  it('takes the long way round when the arc is more than half the circle', () => {
+    expect(arcPath(180, 405, 42)).toBe('M38 82A42 42 0 1 1 109.7 111.7')
+  })
+})
+
+describe('glowBands', () => {
+  it('lays 30 minutes of golden hour inside the daylight and 30 of twilight outside it, at both ends', () => {
+    expect(glowBands(213, 378)).toEqual([
+      { kind: 'golden', from: 213, to: 220.5 },
+      { kind: 'golden', from: 370.5, to: 378 },
+      { kind: 'twilight', from: 205.5, to: 213 },
+      { kind: 'twilight', from: 378, to: 385.5 },
+    ])
+  })
+
+  it('measures the daylight round the dial, wherever 3 o’clock falls', () => {
+    // The same sunset written as 18° instead of 378° still gets full 30-minute golden bands.
+    const [morning, evening] = glowBands(213, 18)
+    expect(morning).toEqual({ kind: 'golden', from: 213, to: 220.5 })
+    expect(evening).toEqual({ kind: 'golden', from: 10.5, to: 18 })
+  })
+
+  it('keeps each golden band to half the daylight on a very short day', () => {
+    const [morning, evening] = glowBands(260, 270)
+    expect(morning).toEqual({ kind: 'golden', from: 260, to: 265 })
+    expect(evening).toEqual({ kind: 'golden', from: 265, to: 270 })
+  })
+})
+
+describe('markers, ticks and labels', () => {
+  it('points the noon triangle at the top of the circle and the midnight one at the bottom', () => {
+    expect(markerPath(270)).toBe('M80 40L76.5 34L83.5 34Z')
+    expect(markerPath(90)).toBe('M80 124L76.5 130L83.5 130Z')
+  })
+
+  it('crosses the circle with a 6-point tick', () => {
+    const tick = tickAt(180)
+    expect([tick.from.x, tick.from.y, tick.to.x, tick.to.y].map((v) => Math.round(v * 1000) / 1000)).toEqual([41, 82, 35, 82])
+  })
+
+  it('puts the labels 38 points beyond the circle, kept 22 points from the sides and 8 from the top and bottom', () => {
+    const at = (angle: number) => {
+      const p = labelAt(angle)
+      return [Math.round(p.x * 100) / 100, Math.round(p.y * 100) / 100]
+    }
+    expect(at(180)).toEqual([22, 82])
+    expect(at(360)).toEqual([138, 82])
+    expect(at(270)).toEqual([80, 8])
+    expect(at(405)).toEqual([136.57, 138.57])
+  })
+})
+
+describe('the sky', () => {
+  it('runs navy, amber at sunrise, sky blue by day, amber at sunset, navy again, from 3 o’clock round', () => {
+    // Sunrise 8:12 am (213°), sunset 7:12 pm (378°, just past 3 o'clock).
+    const stops = skyStops(213, 378).map((s) => [s.color, Math.round(s.at * 10000) / 10000])
+    expect(stops).toEqual([
+      ['rgb(102, 179, 255)', 0.01],
+      ['rgb(230, 153, 51)', 0.05],
+      ['rgb(13, 13, 51)', 0.07],
+      ['rgb(13, 13, 51)', 0.25],
+      ['rgb(13, 13, 51)', 0.25],
+      ['rgb(13, 13, 51)', 0.5717],
+      ['rgb(230, 153, 51)', 0.5917],
+      ['rgb(102, 179, 255)', 0.6317],
+      ['rgb(102, 179, 255)', 0.75],
+    ])
+  })
+
+  it('becomes a conic gradient that starts at 3 o’clock', () => {
+    expect(skyBackground(213, 378)).toBe(
+      'conic-gradient(from 90deg, rgb(102, 179, 255) 1%, rgb(230, 153, 51) 5%, rgb(13, 13, 51) 7%, rgb(13, 13, 51) 25%, ' +
+        'rgb(13, 13, 51) 25%, rgb(13, 13, 51) 57.17%, rgb(230, 153, 51) 59.17%, rgb(102, 179, 255) 63.17%, rgb(102, 179, 255) 75%)',
+    )
+  })
+})
