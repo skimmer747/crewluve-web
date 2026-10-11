@@ -41,7 +41,7 @@ describe('production CSP plugin', () => {
     expect(csp).not.toContain("'unsafe-inline'")
   })
 
-  it('lets the app reach the CrewLu Cloud project the client uses', () => {
-    expect(injectCsp('<!--csp-->')).toContain(`connect-src 'self' ${SUPABASE_URL};`)
+  it('lets the app reach the CrewLu Cloud project the client uses, and Open-Meteo for the weather, and nothing else', () => {
+    expect(injectCsp('<!--csp-->')).toContain(`connect-src 'self' ${SUPABASE_URL} https://api.open-meteo.com;`)
   })
 })
