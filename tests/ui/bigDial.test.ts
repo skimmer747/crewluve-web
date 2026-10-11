@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bigDialLayers, bigDialTurns, type DialDetail } from '../../src/ui/bigDial'
+import { bigDialBase, bigDialLayers, bigDialTurns, type DialDetail } from '../../src/ui/bigDial'
 import type { DialMoment } from '../../src/ui/dialTimeline'
 import {
   arcPath,
@@ -29,7 +29,7 @@ const detail: DialDetail = { homeTz: NY, homeSun, departure: onTime, still: fals
 
 const drawn: DialMoment = { home: { progress: 1, opacity: 1, middle: 1 }, departure: { progress: 1, opacity: 1, middle: 1 } }
 const idle: DialMoment = { home: { progress: 0, opacity: 1, middle: 0 }, departure: { progress: 0, opacity: 1, middle: 0 } }
-const layers = (d: DialDetail, moment = drawn, h24 = false) => bigDialLayers(sun, now, ANC, h24, d, moment)
+const layers = (d: DialDetail, moment = drawn, h24 = false) => bigDialLayers(bigDialBase(sun, now, ANC, h24, d), moment)
 
 describe('bigDialTurns', () => {
   it('has the home turn while the clocks differ, and the departure turn while the departure is ahead', () => {

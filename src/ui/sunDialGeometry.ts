@@ -171,6 +171,12 @@ export const DETAIL = {
   sweepPlane: 8,
   /** The departure plane sits 2 points beyond the departure triangle. */
   planeRadius: DIAL.radius + DIAL.marker + 2,
+  /**
+   * The middle's two lines, 10 points over 7 at about 1.2 times their size, centered on the dial's center as the app's
+   * VStack is: their centers sit 4.2 points above it and 6 below.
+   */
+  middleAbove: 4.2,
+  middleBelow: 6,
 } as const
 
 /** An angle wrapped into 0 up to 360, like the app's (a - b + 360).truncatingRemainder(dividingBy: 360). */

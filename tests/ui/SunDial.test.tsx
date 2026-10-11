@@ -9,6 +9,7 @@ import { iconNameOf, stubAnimationFrames } from '../fixtures/ui'
 
 afterEach(() => {
   cleanup()
+  vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
 
@@ -275,6 +276,19 @@ describe('SunDial at 360', () => {
     expect(Number(container.querySelector('.sun-sweep')!.getAttribute('opacity'))).toBeCloseTo(0.3154, 4)
     expect(Number(container.querySelector('.sun-plane.rider')!.getAttribute('opacity'))).toBeCloseTo(0.3154, 4)
     expect(Number(container.querySelector('.sun-middle')!.getAttribute('opacity'))).toBeCloseTo(0.3154, 4)
+  })
+
+  it('works out everything that doesn’t move once per render, not on every animation frame', async () => {
+    const frames = stubAnimationFrames()
+    render(big())
+    await frames.frame(1000)
+    const formatToParts = vi.spyOn(Intl.DateTimeFormat.prototype, 'formatToParts')
+    // `format` is a getter on the prototype, though TypeScript's types call it a method, so any call reads the getter.
+    const format = vi.spyOn(Intl.DateTimeFormat.prototype as unknown as { format: unknown }, 'format', 'get')
+    await frames.frame(1400)
+    await frames.frame(1000 + 3100 + 400)
+    expect(formatToParts).not.toHaveBeenCalled()
+    expect(format).not.toHaveBeenCalled()
   })
 
   it('asks for no frames when nothing moves', () => {
