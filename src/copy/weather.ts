@@ -70,6 +70,23 @@ export function weatherVisual(code: WeatherCode, isDay: boolean): WeatherVisual 
   return { words, icon, color }
 }
 
+/** Which of the app's weather animations plays behind the sun popup (slice 2B2 §7). */
+export type WeatherAnimation = 'sunRays' | 'stars' | 'rain' | 'snow' | 'clouds' | 'thunderstorm' | 'fog'
+
+/**
+ * The animation for a weather code, read from the card's words in the app's order (WeatherAnimationType.from):
+ * thunderstorm, snow, rain, fog, clouds, then the clear sky, with sun rays by day and stars at night.
+ */
+export function weatherAnimation(code: WeatherCode, isDay: boolean): WeatherAnimation {
+  const words = CONDITIONS[code][0].toLowerCase()
+  if (words.includes('thunderstorm')) return 'thunderstorm'
+  if (words.includes('snow') || words.includes('flurries')) return 'snow'
+  if (words.includes('rain') || words.includes('drizzle')) return 'rain'
+  if (words.includes('fog')) return 'fog'
+  if (words.includes('cloudy')) return 'clouds'
+  return isDay ? 'sunRays' : 'stars'
+}
+
 /**
  * Whole degrees the way the app's weather format writes them: halves round to the even number (40.5 is 40), and a
  * reading just below zero keeps its minus sign ("-0"). Browsers without roundingMode round halves away from zero instead.

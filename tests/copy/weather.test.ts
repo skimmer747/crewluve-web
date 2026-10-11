@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { temperatureText, weatherVisual } from '../../src/copy/weather'
+import { temperatureText, weatherAnimation, weatherVisual } from '../../src/copy/weather'
 import { WEATHER_CODES, type WeatherCode } from '../../src/data/weather'
 import { ICON_PATHS } from '../../src/icons/iconPaths'
 import { cssColor } from '../../src/ui/colors'
@@ -63,5 +63,32 @@ describe('temperatureText', () => {
   it('keeps the minus sign just below zero, as the app does', () => {
     expect(temperatureText(-0.4)).toBe('-0°')
     expect(temperatureText(0.4)).toBe('0°')
+  })
+})
+
+describe('weatherAnimation', () => {
+  // Spec §7's table: the card's words to the app's animations.
+  it.each<[WeatherCode[], string]>([
+    [[95, 96, 99], 'thunderstorm'],
+    [[71, 73, 75, 77, 85, 86], 'snow'],
+    [[51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82], 'rain'],
+    [[45, 48], 'fog'],
+    [[2, 3], 'clouds'],
+  ])('codes %j play %s, by day and by night', (codes, animation) => {
+    for (const code of codes) {
+      expect(weatherAnimation(code, true)).toBe(animation)
+      expect(weatherAnimation(code, false)).toBe(animation)
+    }
+  })
+
+  it('plays sun rays in a clear sky by day and stars at night', () => {
+    for (const code of [0, 1] as WeatherCode[]) {
+      expect(weatherAnimation(code, true)).toBe('sunRays')
+      expect(weatherAnimation(code, false)).toBe('stars')
+    }
+  })
+
+  it('has an animation for every code', () => {
+    for (const code of WEATHER_CODES) expect(weatherAnimation(code, true)).toMatch(/^(sunRays|rain|snow|clouds|thunderstorm|fog)$/)
   })
 })
