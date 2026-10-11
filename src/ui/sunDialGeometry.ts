@@ -32,21 +32,22 @@ export function dialAngle(ms: number, timeZone: string): number {
   return 90 + ((hour + minute / 60) / 24) * 360
 }
 
-/** The point `radius` from the dial's center at `angle` degrees. */
+/** A number rounded to hundredths, which keeps the SVG's numbers short. */
+const round = (v: number) => Math.round(v * 100) / 100
+
+/** The point `radius` from the dial's center at `angle` degrees, rounded to hundredths. */
 export function pointAt(angle: number, radius: number): Point {
   const a = (angle * Math.PI) / 180
-  return { x: DIAL.cx + radius * Math.cos(a), y: DIAL.cy + radius * Math.sin(a) }
+  return { x: round(DIAL.cx + radius * Math.cos(a)), y: round(DIAL.cy + radius * Math.sin(a)) }
 }
-
-/** A coordinate rounded to hundredths, which keeps path data short. */
-const round = (v: number) => Math.round(v * 100) / 100
 
 /** An SVG path along the circle of `radius`, clockwise from angle `from` to angle `to`. */
 export function arcPath(from: number, to: number, radius: number): string {
   const sweep = (((to - from) % 360) + 360) % 360
   const a = pointAt(from, radius)
   const b = pointAt(to, radius)
-  return `M${round(a.x)} ${round(a.y)}A${radius} ${radius} 0 ${sweep > 180 ? 1 : 0} 1 ${round(b.x)} ${round(b.y)}`
+  const r = round(radius)
+  return `M${a.x} ${a.y}A${r} ${r} 0 ${sweep > 180 ? 1 : 0} 1 ${b.x} ${b.y}`
 }
 
 /** A 30-minute glow: golden hour, amber, just inside the daylight; twilight, blue, just outside it. */
@@ -82,7 +83,7 @@ export function markerPath(angle: 90 | 270): string {
   const tip = pointAt(angle, DIAL.radius)
   const base = pointAt(angle, DIAL.radius + DIAL.marker)
   const half = DIAL.markerHalfWidth
-  return `M${round(tip.x)} ${round(tip.y)}L${round(base.x - half)} ${round(base.y)}L${round(base.x + half)} ${round(base.y)}Z`
+  return `M${tip.x} ${tip.y}L${round(base.x - half)} ${base.y}L${round(base.x + half)} ${base.y}Z`
 }
 
 /** Where the sunrise or sunset label goes: 38 points beyond the circle, kept inside the box. */

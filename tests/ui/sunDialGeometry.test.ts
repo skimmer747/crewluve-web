@@ -31,6 +31,10 @@ describe('pointAt', () => {
     expect(at(270)).toEqual([80, 40])
     expect(at(360)).toEqual([122, 82])
   })
+
+  it('rounds to hundredths, which keeps the SVG’s numbers short', () => {
+    expect(pointAt(213, 42)).toEqual({ x: 44.78, y: 59.13 })
+  })
 })
 
 describe('arcPath', () => {
@@ -42,6 +46,15 @@ describe('arcPath', () => {
 
   it('takes the long way round when the arc is more than half the circle', () => {
     expect(arcPath(180, 405, 42)).toBe('M38 82A42 42 0 1 1 109.7 111.7')
+  })
+
+  it('draws a night longer than 12 hours the long way round, from sunset back past 3 o’clock to sunrise', () => {
+    // Sunset 7:00 pm (375°), sunrise 8:00 am (210°): 13 hours of night.
+    expect(arcPath(375, 210, 42)).toBe('M120.57 92.87A42 42 0 1 1 43.63 61')
+  })
+
+  it('rounds a computed radius too', () => {
+    expect(arcPath(180, 360, 42 * 0.85)).toBe('M44.3 82A35.7 35.7 0 0 1 115.7 82')
   })
 })
 
@@ -62,10 +75,12 @@ describe('glowBands', () => {
     expect(evening).toEqual({ kind: 'golden', from: 10.5, to: 18 })
   })
 
-  it('keeps each golden band to half the daylight on a very short day', () => {
-    const [morning, evening] = glowBands(260, 270)
+  it('keeps each golden band to half the daylight on a very short day, and the twilight at 30 minutes', () => {
+    const [morning, evening, dawn, dusk] = glowBands(260, 270)
     expect(morning).toEqual({ kind: 'golden', from: 260, to: 265 })
     expect(evening).toEqual({ kind: 'golden', from: 265, to: 270 })
+    expect(dawn).toEqual({ kind: 'twilight', from: 252.5, to: 260 })
+    expect(dusk).toEqual({ kind: 'twilight', from: 270, to: 277.5 })
   })
 })
 
@@ -107,6 +122,13 @@ describe('the sky', () => {
       ['rgb(102, 179, 255)', 0.6317],
       ['rgb(102, 179, 255)', 0.75],
     ])
+  })
+
+  it('wraps the navy that follows a sunset just before 6 pm round to the start of the turn', () => {
+    // Sunset 5:45 pm (356.25°): the navy 2% after it lands just past 3 o'clock, at the start of the gradient.
+    const stops = skyStops(213, 356.25).map((s) => [s.color, Math.round(s.at * 10000) / 10000])
+    expect(stops[0]).toEqual(['rgb(13, 13, 51)', 0.0096])
+    expect(stops[stops.length - 1]).toEqual(['rgb(230, 153, 51)', 0.9896])
   })
 
   it('becomes a conic gradient that starts at 3 o’clock', () => {
