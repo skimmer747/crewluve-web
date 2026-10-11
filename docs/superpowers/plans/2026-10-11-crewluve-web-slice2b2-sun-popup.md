@@ -80,7 +80,7 @@
 - Create: `src/time/moon.ts`
 - Test: `tests/time/moon.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/time/moon.test.ts`:
 
@@ -143,12 +143,12 @@ describe('moonCycle', () => {
 
 Eclipses happen exactly at new moon (solar) or full moon (lunar), so the four eclipses of 2026 pin the formula to published times. It lands within 0.6 days of each, inside the spec's one-day allowance (§11 item 3).
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/time/moon.test.ts`
 Expected: FAIL with `Error: Cannot find module '../../src/time/moon'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/time/moon.ts`:
 
@@ -182,12 +182,12 @@ export function moonPhase(t: number): MoonPhase {
 }
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/time/moon.test.ts`
 Expected: PASS, 7 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -206,7 +206,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/time/sharedDaylight.ts`
 - Test: `tests/time/sharedDaylight.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/time/sharedDaylight.test.ts`:
 
@@ -302,12 +302,12 @@ describe('sharedDaylight', () => {
 
 The first five cases are the app's `SharedDaylightTests`, case for case. The last two cover home's polar data and the whole seconds the sun times carry.
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/time/sharedDaylight.test.ts`
 Expected: FAIL with `Error: Cannot find module '../../src/time/sharedDaylight'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/time/sharedDaylight.ts`. It follows `Utils/SharedDaylight.swift` line for line:
 
@@ -350,12 +350,12 @@ export function sharedDaylight(pilot: SunTimes, home: SunTimes, homeTz: string):
 }
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/time/sharedDaylight.test.ts`
 Expected: PASS, 7 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -374,7 +374,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/copy/sunDetail.ts`
 - Test: `tests/copy/sunDetail.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/copy/sunDetail.test.ts`:
 
@@ -492,12 +492,12 @@ describe('bigDialLabel', () => {
 
 The description's durations come from the site's `spokenDuration`, which puts a comma between hours and minutes ("in 5 hours, 20 minutes"). The spec's §5.3 example now reads the same way.
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/copy/sunDetail.test.ts`
 Expected: FAIL with `Error: Cannot find module '../../src/copy/sunDetail'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/copy/sunDetail.ts`:
 
@@ -609,12 +609,12 @@ export function bigDialLabel({ sun, now, timeZone, homeTz, h24, city, departure 
 
 `departureOffset` uses `DELAY_THRESHOLD_MIN` from the snapshot, so the popup counts a delay at 15 minutes or more like every other part of the site (spec §11 item 1).
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/copy/sunDetail.test.ts`
 Expected: PASS, 18 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -633,7 +633,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/copy/weather.ts`
 - Test: `tests/copy/weather.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 In `tests/copy/weather.test.ts`, change the first import from `../../src/copy/weather` to:
 
@@ -673,12 +673,12 @@ describe('weatherAnimation', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/copy/weather.test.ts`
 Expected: FAIL. The 19 existing tests pass; the 7 new ones fail with `TypeError: weatherAnimation is not a function`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/copy/weather.ts`, add this after `weatherVisual`, just before the comment that begins "Whole degrees the way the app's weather format writes them":
 
@@ -706,12 +706,12 @@ export function weatherAnimation(code: WeatherCode, isDay: boolean): WeatherAnim
 
 It reads the card's words in the app's order (`WeatherAnimationType.from`), so a code always plays the animation its words name. Open-Meteo has no windy weather, so the app's wind animation isn't needed (spec §11 item 4).
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/copy/weather.test.ts`
 Expected: PASS, 26 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -731,7 +731,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Regenerate: `src/icons/iconPaths.ts`
 - Test: `tests/icons/iconPaths.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 In `tests/icons/iconPaths.test.ts`, add this test inside the `describe`, after the last one:
 
@@ -741,12 +741,12 @@ In `tests/icons/iconPaths.test.ts`, add this test inside the `describe`, after t
   })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/icons/iconPaths.test.ts`
 Expected: FAIL. The new test fails with `expected { …(50) } to have property "XCircle"`.
 
-- [ ] **Step 3: Add the icons to the build script and regenerate**
+- [x] **Step 3: Add the icons to the build script and regenerate**
 
 In `scripts/build-icons.mjs`, change the last line of the comment above `const ICONS = {` to:
 
@@ -771,12 +771,12 @@ npm run icons
 
 Expected: `wrote 53 icons to …/src/icons/iconPaths.ts`. If `@phosphor-icons/core` 2.1.1 is already in `node_modules`, `node scripts/build-icons.mjs` does the same without npm. `git diff src/icons/iconPaths.ts` shows three added lines, `XCircle`, `SunHorizon` and `MapPinArea`, and no other change. If `package-lock.json` changed, run `git checkout -- package-lock.json`.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/icons/iconPaths.test.ts`
 Expected: PASS, 5 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -795,7 +795,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/ui/sunDialGeometry.ts`
 - Test: `tests/ui/sunDialGeometry.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 In `tests/ui/sunDialGeometry.test.ts`, replace the one-line import from `../../src/ui/sunDialGeometry` with:
 
@@ -966,12 +966,12 @@ describe('wedgePath', () => {
 
 The expected numbers were worked out separately, in plain JavaScript, before the code was written.
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/sunDialGeometry.test.ts`
 Expected: FAIL before any test runs, with `TypeError: Cannot read properties of undefined (reading 'sweepRadius')`: the new `departureSweep` block reads `DETAIL`, which doesn't exist yet.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/ui/sunDialGeometry.ts`, replace `dialAngle` with this pair, so the dial and the shared daylight place hours the same way:
 
@@ -1163,12 +1163,12 @@ Notes on the copy from the app:
 - `departureSweep` cuts the sweep where the app's `DepartureArcShape` instances do: dashed laps, then solid up to the scheduled time, then red to the actual time. The red piece is empty unless the actual time is past the scheduled one, so an early departure has none, as in the app.
 - `planeSpot` turns Phosphor's plane, which points up, by the angle + 180. The app's SF Symbol points right and turns by the angle + 90; both end up pointing clockwise along the dial.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/sunDialGeometry.test.ts`
 Expected: PASS, 37 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -1187,7 +1187,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/ui/dialTimeline.ts`
 - Test: `tests/ui/dialTimeline.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/dialTimeline.test.ts`:
 
@@ -1279,12 +1279,12 @@ describe('dialMoment', () => {
 
 The moments are the spec's §12 list: 0, 0.4, 0.8, 2.0, 2.3, 2.6, 2.8 and 3.1 s.
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/dialTimeline.test.ts`
 Expected: FAIL with `Error: Cannot find module '../../src/ui/dialTimeline'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/dialTimeline.ts`:
 
@@ -1377,12 +1377,12 @@ export function dialMoment(elapsed: number, turns: DialTurns): DialMoment {
 
 It copies the app's `.task` loop in `SunCircleView`: `withAnimation(.easeOut(duration: 0.8))`, sleep 2.0 s, fade with `.easeOut(duration: 0.6)`, sleep 0.8 s, reset, sleep 0.3 s. The departure sweep's 0.8 s grows with the days ahead (`0.8 * max(1, depHours / 24)`), so a sweep of more than 2.5 days is still drawing when it starts to fade.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/dialTimeline.test.ts`
 Expected: PASS, 14 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -1401,7 +1401,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/ui/hooks/useElapsed.ts`
 - Test: `tests/ui/useElapsed.test.tsx`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/useElapsed.test.tsx`:
 
@@ -1447,12 +1447,12 @@ describe('useElapsed', () => {
 
 `stubAnimationFrames` (in `tests/fixtures/ui.ts`) holds every frame until the test hands it a time.
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/useElapsed.test.tsx`
 Expected: FAIL with `Error: Failed to resolve import "../../src/ui/hooks/useElapsed" from "tests/ui/useElapsed.test.tsx". Does the file exist?`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/hooks/useElapsed.ts`:
 
@@ -1481,12 +1481,12 @@ export function useElapsed(running: boolean): number {
 }
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/useElapsed.test.tsx`
 Expected: PASS, 2 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -1505,7 +1505,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/ui/bigDial.ts`
 - Test: `tests/ui/bigDial.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/bigDial.test.ts`:
 
@@ -1641,12 +1641,12 @@ describe('bigDialLayers: the departure', () => {
 
 Anchorage is 4 hours behind New York in October, and the times are the ones the spec's §5.3 example uses.
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/bigDial.test.ts`
 Expected: FAIL with `Error: Cannot find module '../../src/ui/bigDial'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/bigDial.ts`:
 
@@ -1814,12 +1814,12 @@ The rules come from `SunCircleView`:
 - the actual time counts only when it's 15 minutes or more off, through `departureTime` and `departureOffset` (spec §11 item 1);
 - an early departure also gets the red marks at its actual time, as in the app, but no red sweep.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/bigDial.test.ts`
 Expected: PASS, 11 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -1838,7 +1838,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/ui/SunDial.tsx`
 - Test: `tests/ui/SunDial.test.tsx`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 In `tests/ui/SunDial.test.tsx`, replace everything above `const ANC` (the imports and the `afterEach`) with:
 
@@ -1971,12 +1971,12 @@ describe('SunDial at 360', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/SunDial.test.tsx`
 Expected: FAIL in 6 of the 9 new tests, since the dial has no button, no `big` class and no big layers yet. The other 3 check that layers stay out or that nothing moves, so they pass already, as do the 11 existing tests.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `src/ui/SunDial.tsx` with:
 
@@ -2215,12 +2215,12 @@ What changed from B1:
   - the house, the planes, the labels and the loop's two turns, over the sun.
 - `useElapsed` runs only on the big dial, only when a turn applies, and never for reduced motion.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/SunDial.test.tsx`
 Expected: PASS, 20 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -2239,7 +2239,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/ui/MoonPhaseIcon.tsx`
 - Test: `tests/ui/MoonPhaseIcon.test.tsx`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/MoonPhaseIcon.test.tsx`:
 
@@ -2288,12 +2288,12 @@ describe('MoonPhaseIcon', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/MoonPhaseIcon.test.tsx`
 Expected: FAIL with `Error: Failed to resolve import "../../src/ui/MoonPhaseIcon" from "tests/ui/MoonPhaseIcon.test.tsx". Does the file exist?`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/MoonPhaseIcon.tsx`:
 
@@ -2334,12 +2334,12 @@ export function MoonPhaseIcon({ t, size = 17 }: { t: number; size?: number }) {
 
 The app's popup shows one of eight SF Symbols; the site draws the lit part for the moon's exact age instead (spec §8). The outline keeps a new moon visible.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/MoonPhaseIcon.test.tsx`
 Expected: PASS, 4 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -2358,7 +2358,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/ui/weatherParticles.ts`
 - Test: `tests/ui/weatherParticles.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/weatherParticles.test.ts`:
 
@@ -2500,12 +2500,12 @@ describe('weatherShapes', () => {
 
 Each test checks the spec's §7 table: how many particles, their sizes, colors and strengths, and how they move over time.
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/weatherParticles.test.ts`
 Expected: FAIL with `Error: Cannot find module '../../src/ui/weatherParticles'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/weatherParticles.ts`:
 
@@ -2661,12 +2661,12 @@ export function weatherShapes(kind: WeatherAnimation, t: number, w: number, h: n
 
 Every formula is `WeatherBackgroundView.swift`'s, number for number. The one change is the hash: the app's works in 64-bit integers, and this one uses `Math.imul` on 32 bits, so the particles sit in different places (spec §11 item 9).
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/weatherParticles.test.ts`
 Expected: PASS, 8 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -2685,7 +2685,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/ui/WeatherBackdrop.tsx`
 - Test: `tests/ui/WeatherBackdrop.test.tsx`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/WeatherBackdrop.test.tsx`:
 
@@ -2793,12 +2793,12 @@ describe('WeatherBackdrop', () => {
 
 happy-dom's canvas has no 2D context, so the test gives it a stand-in that records what's drawn.
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/WeatherBackdrop.test.tsx`
 Expected: FAIL with `Error: Failed to resolve import "../../src/ui/WeatherBackdrop" from "tests/ui/WeatherBackdrop.test.tsx". Does the file exist?`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/WeatherBackdrop.tsx`:
 
@@ -2930,12 +2930,12 @@ Notes:
 - The colors are read from the theme where the canvas sits, so they follow the popup's light or dark set; `dark` reads them again when that changes.
 - The drawing is capped at twice the screen's pixel density, to keep large phones smooth.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/WeatherBackdrop.test.tsx`
 Expected: PASS, 5 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -2955,7 +2955,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/ui/LocationCard.tsx`, `src/styles/location.css`
 - Test: `tests/ui/LocationCard.test.tsx`, `tests/styles/styles.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/ui/LocationCard.test.tsx`, add `fireEvent` to the Testing Library import:
 
@@ -2986,12 +2986,12 @@ In `tests/styles/styles.test.ts`, replace the test "never lets the dial, which o
   })
 ```
 
-- [ ] **Step 2: Run them and watch them fail**
+- [x] **Step 2: Run them and watch them fail**
 
 Run: `npx vitest run tests/ui/LocationCard.test.tsx tests/styles/styles.test.ts`
 Expected: FAIL in two tests. The card has no button yet, and `.sun-dial` still has `pointer-events: none`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/locationFacts.ts`. It's the part of the card that works out where the pilot is, moved out so the popup can share it:
 
@@ -3142,12 +3142,12 @@ button.sun-dial {
 
 The dial now takes taps, as the app's does, so its box covers the right side of the card's text. That's the app's layout too, and nothing under it can be tapped: the weather credit sits at the left.
 
-- [ ] **Step 4: Run them and watch them pass**
+- [x] **Step 4: Run them and watch them pass**
 
 Run: `npx vitest run tests/ui/LocationCard.test.tsx tests/styles/styles.test.ts`
 Expected: PASS, 73 tests (30 and 43).
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -3166,7 +3166,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/styles/tokens.css`
 - Test: `tests/styles/styles.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 In `tests/styles/styles.test.ts`, add this block just before `describe('cards.css', () => {`:
 
@@ -3188,12 +3188,12 @@ describe('tokens.css: the sun popup’s night colors', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/styles/styles.test.ts`
 Expected: FAIL in the two new tests: there's no `.force-dark` block yet.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Add this to the end of `src/styles/tokens.css`:
 
@@ -3226,12 +3226,12 @@ Add this to the end of `src/styles/tokens.css`:
 
 The popup adds `force-dark` to its card at night, so the card is dark then whatever the device's setting, as the app's is (spec §4). By day the card follows the device. The card sets `color: var(--text)` itself (Task 17), so its text picks up these values rather than the page's.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/styles/styles.test.ts`
 Expected: PASS, 45 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -3250,7 +3250,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/ui/motion.ts`, `src/ui/SunPopup.tsx`
 - Test: `tests/ui/SunPopup.test.tsx`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/SunPopup.test.tsx`:
 
@@ -3496,12 +3496,12 @@ describe('SunPopup: opening and closing', () => {
 
 At 10:05 PM in Anchorage the card is dark; at 1:14 PM it follows the device. The times and the daylight are what the site's own sun formulas give for that day (sunrise 8:30 AM, sunset 7:03 PM), and the moon is new.
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/SunPopup.test.tsx`
 Expected: FAIL with `Error: Failed to resolve import "../../src/ui/SunPopup" from "tests/ui/SunPopup.test.tsx". Does the file exist?`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/motion.ts`:
 
@@ -3757,12 +3757,12 @@ How it copies `SunCircleDetailView`, and where it has to differ:
 - **Focus goes back** once the render that closes the popup is done. Preact takes the popup away before it lifts `inert` from `<main>`, and nothing in an inert page can take focus. The browser check in the scratch copy found this; happy-dom doesn't enforce `inert`, so the unit test can only check that focus comes back.
 - **Reduced motion** is read once, as the popup opens: no weather canvas, a still dial, and it closes at once (spec §11 item 6).
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/SunPopup.test.tsx`
 Expected: PASS, 18 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -3782,7 +3782,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/main.tsx`
 - Test: `tests/styles/styles.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 In `tests/styles/styles.test.ts`, add these two blocks just before `describe('full-height blocks', () => {`:
 
@@ -3839,12 +3839,12 @@ describe('backdrop blurs', () => {
 
 The existing test "imports every stylesheet in src/styles" will also check that `src/main.tsx` imports the new file.
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/styles/styles.test.ts`
 Expected: FAIL with `ENOENT: no such file or directory` for `src/styles/sunPopup.css`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/styles/sunPopup.css`:
 
@@ -4293,12 +4293,12 @@ Notes:
 - The zoom samples SwiftUI's `spring(response: 0.5, dampingFraction: 0.7)` every 0.1 s. It overshoots to 1.02 and settles in 0.6 s.
 - The spring back after a short drag is a CSS transition that overshoots slightly, like the app's `spring(response: 0.3, dampingFraction: 0.7)`.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/styles/styles.test.ts`
 Expected: PASS, 51 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -4317,7 +4317,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/ui/StatusScreen.tsx`
 - Test: `tests/ui/StatusScreen.test.tsx`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 In `tests/ui/StatusScreen.test.tsx`, add `fireEvent` to the Testing Library import:
 
@@ -4382,12 +4382,12 @@ describe('StatusScreen sun popup (slice 2B2)', () => {
 
 At minute 180 of the demo's driver schedule the pilot is on a turn at Rockford, in daylight, with the next flight ahead; at minute 100 the pilot is flying and the card is gone.
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/StatusScreen.test.tsx`
 Expected: FAIL. The 37 existing tests pass; the 4 new ones fail, since the card's dial isn't a button until the screen gives it `onOpenSun`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `src/ui/StatusScreen.tsx` with this version. `HomeCards` and `AwayCard` are unchanged:
 
@@ -4533,12 +4533,12 @@ Notes:
 - The popup closes by itself when the dial goes away, at takeoff or when the sun neither rises nor sets. The effect also resets the open state, so the popup doesn't come back on its own when the dial does.
 - The departure is the snapshot's next flight: its scheduled start and its estimated start (spec §8).
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/StatusScreen.test.tsx`
 Expected: PASS, 41 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
