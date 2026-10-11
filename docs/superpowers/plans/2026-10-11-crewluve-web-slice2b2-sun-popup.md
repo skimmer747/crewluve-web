@@ -74,6 +74,8 @@
 
 ---
 
+> **The printed code below is the code as first built.** The review fixes have changed some of these files since, and the Execution notes at the end list each change by commit. To rebuild, start from the branch, not from these blocks.
+
 ### Task 1: The moon's phase
 
 **Files:**
@@ -4652,4 +4654,15 @@ Update the project memory with the new tip and what's next: the Part A follow-up
 
 ## Execution notes
 
-(Add notes here as the build goes: where the code had to differ from a printed block, and why.)
+**Build (2026-10-11):** Tasks 1–18 were built in order on `slice2b2`, each from its printed blocks, one commit per task (`6134b17`…`0fb2621`). Every step 2 failed and every step 4 passed as printed, and the branch matched the scratch copy exactly: 1564 tests in 69 files.
+
+**Reviews:** auto mode blocked a new helper for Batch C's spec review. The user chose to send the remaining reviews to the two running reviewers by message: the Batch A reviewer takes Batch C, and the Batch B reviewer takes Batch D.
+
+**Fixes from the Batch A and B spec reviews (`5ac5d31`):**
+- **The actual departure time, always.** The plan's `departureTime` used the scheduled time for an offset under 15 minutes. That left the popup up to 14 minutes off the page's own sentence, and it dropped the departure from the dial between a small delay's scheduled and actual times. Spec §8 and §5.3 call for the actual time; the 15-minute rule decides only the late or early marks. `departureTime` is gone, and a departure under 15 minutes off sweeps cyan to its actual time (spec decision 9).
+- **The description's order:** "Next departure 4:05 AM, 40 minutes late, in 6 hours", so the delay can't be heard as part of the countdown (spec decision 10).
+- **No red for an early departure.** Task 6 dropped the app's late-only guard on the red sweep as redundant. It isn't: angles keep only the hour and minute, so an early departure a whole number of days out, to the minute, drew a red lap. The guard is back, as `hoursToActual > hoursToScheduled`.
+- **Tests added:** the sweep's day rules (laps counted to the scheduled time, "more than a day" by the actual time, exactly a day, a scheduled time already past), all eight moon boundaries, the early side of the 15-minute rule, a departure exactly at now, the one-second filter, and the label and middle text sizes at 360 (moved from arithmetic in the geometry test to `styles.test.ts`).
+- **A correction to "How the printed code was checked":** the one-second filter can change the result. A span of exactly one second is dropped or kept by floating-point rounding, as in the app (18:59:59 to 19:00:00 is dropped), and a test now pins that. The polar early return still can't change the result.
+- **Spec clarifications (§5.2, §5.3, §8, decisions 9–11):** the actual-time rule; the description's order; and, copying the app, a sweep that stays cyan to the actual time when the scheduled time has already passed.
+- The suite is 1574 tests in 69 files.

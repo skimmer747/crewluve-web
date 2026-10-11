@@ -79,6 +79,8 @@ The card's dial grows a size setting, as the app's `SunCircleView` has one. The 
   - A cyan arc sweeps clockwise from now's time along a circle at 0.85 × the radius.
   - A departure more than a day ahead sweeps one dashed lap (dashes `4 × scale`, `3 × scale`) per full day, then a solid arc for the rest.
   - The cyan runs to the actual time, but never past the scheduled time. A late departure continues in red (80%) from the scheduled time to the actual time.
+  - A departure under 15 minutes off counts as on time, so its sweep is cyan all the way to its actual time.
+  - When the scheduled time has already passed but the flight hasn't left, the sweep is cyan to the actual time, as the app draws it.
   - A plane (`8 × scale`) rides the arc's leading end, pointing along it. It's red when late, green when early, and cyan otherwise.
   - In the middle: the countdown to the actual departure ("1d 3h", "1d", "5h20m", "5h" or "45m", `10 × scale` semibold rounded), over "to go" (`7 × scale` medium rounded), in the plane's color.
 - **Timing**, copying the app:
@@ -93,7 +95,8 @@ The card's dial grows a size setting, as the app's `SunCircleView` has one. The 
 
 - Every label scales from the card's size. At 360 that's "Noon" at 18 px and the time labels at 20.25 px.
 - The big dial is one image to screen readers, with a description like this: "Sunrise 8:30 AM, sunset 7:03 PM, nighttime in Anchorage, 4 hours behind you. Next departure 3:25 AM, in 5 hours, 20 minutes."
-  - The departure time is the actual one. It adds ", 40 minutes late" or ", 20 minutes early" for a delay or an early departure.
+  - The departure time is the actual one, even when it's under 15 minutes off.
+  - A delay or an early departure of 15 minutes or more is named right after the time, before the countdown, so it can't be heard as part of it: "Next departure 4:05 AM, 40 minutes late, in 6 hours."
   - Parts that don't apply are left out.
 
 ## 6. The rows
@@ -135,13 +138,14 @@ They play behind the whole card, copying `WeatherBackgroundView`. Each is drawn 
 
 - **The next departure** is the snapshot's next flight (`nextFlight`). The scheduled time is its scheduled start, and the actual time is its estimated start.
   - The difference counts as late or early only at 15 minutes or more either way, as slice 1 decided (its decision 9) for every delay on the site.
+  - That rule decides only whether the departure is marked late or early. The countdown, the description and the layers always use the actual time, as the page's sentence does.
   - The departure layers and the sweep show while the actual time is still ahead.
 - **Home's sunrise and sunset** come from the B1 sun formulas, for the home airport (`pilot.effHome`) on home's local date. They're needed only for the shared daylight.
 - **Shared daylight** is a port of the app's `SharedDaylight.windows`:
   - Times are hours on home's clock, from 0 to 24.
   - The result is no span, one, or two: the pilot's daylight can wrap past midnight on home's clock and split in two.
   - There's no span when home's sunrise isn't before its sunset.
-  - Spans under a second are dropped.
+  - Spans of about a second or less are dropped, by the app's own filter (more than 1/3600 of an hour).
 - **The time difference** is the pilot's zone offset minus home's at that moment, as on the card.
   - "+6h" when it's whole hours, otherwise "+5:30". The sign is "+" when the pilot is ahead or level.
 - **The countdown:**
@@ -240,6 +244,9 @@ They play behind the whole card, copying `WeatherBackgroundView`. Each is drawn 
 | 6 | How it's built and tested (§8–§12). | User, 2026-10-11 |
 | 7 | Delays count at 15 minutes or more, following slice 1's decision 9. | Design |
 | 8 | Reduced motion: no zoom, a still dial with both arcs drawn, and no weather animation. | Design |
+| 9 | The countdown, the description and the layers use the actual departure time however little it's off; the 15-minute rule decides only the late or early marks, so a departure under 15 minutes off sweeps cyan to its actual time. | Review of the build, 2026-10-11 |
+| 10 | The description names a delay or an early departure before the countdown. | Review of the build, 2026-10-11 |
+| 11 | When the scheduled time has passed but the flight hasn't left, the sweep is cyan to the actual time, as in the app. | Review of the build, 2026-10-11, copying the app |
 
 ## 14. Roadmap
 
