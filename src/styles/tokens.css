@@ -70,3 +70,85 @@
   --glass-rim: rgba(255, 255, 255, 0.12);
   --glass-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
 }
+
+/* Increase Contrast (Part A follow-ups spec §3): Apple's high-contrast system colors, as the app gets them from iOS,
+   secondary text at 68%, and more solid glass with a stronger edge. These are the light ones. The dark ones are on
+   .force-dark here, for the popup at night, and on :root for dark devices in the block after this one. */
+@media (prefers-contrast: more) {
+  :root {
+    --text-2: rgba(60, 60, 67, 0.678);
+    --green: #008932;
+    --blue: #1e6ef4;
+    --red: #e9152d;
+    --orange: #c55300;
+    --purple: #b02fc2;
+    --pink: #e7124d;
+    --yellow: #a16a00;
+    --teal: #008198;
+    --cyan: #007eae;
+    --indigo: #564ade;
+    --gray: #6c6c70;
+    --bar-track: rgba(108, 108, 112, 0.2);
+    --glass-fill: rgba(242, 242, 247, 0.94);
+    --glass-edge: rgba(0, 0, 0, 0.3);
+  }
+
+  /* The dark high-contrast set in the next block, exactly; a test checks. */
+  .force-dark {
+    --text-2: rgba(235, 235, 245, 0.678);
+    --green: #4ad968;
+    --blue: #5cb8ff;
+    --red: #ff6165;
+    --orange: #ffa056;
+    --purple: #ea8dff;
+    --pink: #ff8ac4;
+    --yellow: #fedf43;
+    --teal: #3bddec;
+    --cyan: #6dd9ff;
+    --indigo: #a7aaff;
+    --gray: #aeaeb2;
+    --bar-track: rgba(174, 174, 178, 0.2);
+    --glass-fill: rgba(44, 44, 46, 0.88);
+    --glass-edge: rgba(255, 255, 255, 0.35);
+    --fill-green: #008932;
+    --fill-blue: #1e6ef4;
+    --fill-orange: #c55300;
+    --fill-purple: #b02fc2;
+    --fill-pink: #e7124d;
+    --fill-yellow: #a16a00;
+    --fill-teal: #008198;
+    --fill-cyan: #007eae;
+    --fill-indigo: #564ade;
+  }
+}
+
+/* The dark high-contrast colors. They're lighter, so white text would get harder to read on them: the --fill-* colors
+   keep the light high-contrast ones behind the pills', badges' and sign-in button's white text (spec §3.3). */
+@media (prefers-color-scheme: dark) and (prefers-contrast: more) {
+  :root {
+    --text-2: rgba(235, 235, 245, 0.678);
+    --green: #4ad968;
+    --blue: #5cb8ff;
+    --red: #ff6165;
+    --orange: #ffa056;
+    --purple: #ea8dff;
+    --pink: #ff8ac4;
+    --yellow: #fedf43;
+    --teal: #3bddec;
+    --cyan: #6dd9ff;
+    --indigo: #a7aaff;
+    --gray: #aeaeb2;
+    --bar-track: rgba(174, 174, 178, 0.2);
+    --glass-fill: rgba(44, 44, 46, 0.88);
+    --glass-edge: rgba(255, 255, 255, 0.35);
+    --fill-green: #008932;
+    --fill-blue: #1e6ef4;
+    --fill-orange: #c55300;
+    --fill-purple: #b02fc2;
+    --fill-pink: #e7124d;
+    --fill-yellow: #a16a00;
+    --fill-teal: #008198;
+    --fill-cyan: #007eae;
+    --fill-indigo: #564ade;
+  }
+}

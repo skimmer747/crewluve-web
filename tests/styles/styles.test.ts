@@ -123,6 +123,82 @@ describe('tokens.css: the sun popup’s night colors', () => {
   })
 })
 
+// Part A follow-ups spec §3.2: Apple's high-contrast values (iOS 26) under Increase Contrast, light and dark. Secondary
+// text keeps its color at 68% (173 of 255, as UIKit's), and the progress track is the high-contrast gray at 20%.
+const HIGH_CONTRAST: Array<[name: string, light: string, dark: string]> = [
+  ['--text-2', 'rgba(60,60,67,.678)', 'rgba(235,235,245,.678)'],
+  ['--red', '#E9152D', '#FF6165'],
+  ['--orange', '#C55300', '#FFA056'],
+  ['--yellow', '#A16A00', '#FEDF43'],
+  ['--green', '#008932', '#4AD968'],
+  ['--teal', '#008198', '#3BDDEC'],
+  ['--cyan', '#007EAE', '#6DD9FF'],
+  ['--blue', '#1E6EF4', '#5CB8FF'],
+  ['--indigo', '#564ADE', '#A7AAFF'],
+  ['--purple', '#B02FC2', '#EA8DFF'],
+  ['--pink', '#E7124D', '#FF8AC4'],
+  ['--gray', '#6C6C70', '#AEAEB2'],
+  ['--bar-track', 'rgba(108,108,112,.2)', 'rgba(174,174,178,.2)'],
+]
+
+/** The nine colors white text sits on: the city pills' blends, the badges and the sign-in button (spec §3.3). */
+const FILLS = ['green', 'blue', 'orange', 'purple', 'pink', 'yellow', 'teal', 'cyan', 'indigo']
+
+describe('tokens.css: Increase Contrast', () => {
+  const top = blocks(css('tokens'))
+  const customProperties = (body = '') => new Map(declarations(body).filter(([prop]) => prop.startsWith('--')))
+  const lightMedia = find(top, '@media (prefers-contrast: more)')
+  const darkMedia = find(top, '@media (prefers-color-scheme: dark) and (prefers-contrast: more)')
+  const light = customProperties(find(blocks(lightMedia?.body ?? ''), ':root')?.body)
+  const dark = customProperties(find(blocks(darkMedia?.body ?? ''), ':root')?.body)
+  const forced = customProperties(find(blocks(lightMedia?.body ?? ''), '.force-dark')?.body)
+  const lightDefault = customProperties(find(top, ':root')?.body)
+  const darkDefault = customProperties(find(blocks(find(top, '@media (prefers-color-scheme: dark)')?.body ?? ''), ':root')?.body)
+
+  it('comes after the default colors, light set first, so the dark set wins on a dark device', () => {
+    expect(lightMedia).toBeDefined()
+    expect(darkMedia).toBeDefined()
+    expect(top.indexOf(lightMedia!)).toBeGreaterThan(top.indexOf(find(top, '.force-dark')!))
+    expect(top.indexOf(darkMedia!)).toBeGreaterThan(top.indexOf(lightMedia!))
+  })
+
+  it.each(HIGH_CONTRAST)('%s is Apple’s high-contrast value in light mode', (name, lightSpec) => {
+    expect(normalize(light.get(name))).toBe(normalize(lightSpec))
+  })
+
+  it.each(HIGH_CONTRAST)('%s is Apple’s high-contrast value in dark mode', (name, _lightSpec, darkSpec) => {
+    expect(normalize(dark.get(name))).toBe(normalize(darkSpec))
+  })
+
+  it('sets in the dark set everything the light set sets, so none of the light set reaches a dark device', () => {
+    expect(light.size).toBeGreaterThan(0)
+    expect([...light.keys()].filter((name) => !dark.has(name))).toEqual([])
+  })
+
+  it('gives the popup at night the dark set exactly, every one of them', () => {
+    expect(forced.size).toBeGreaterThan(0)
+    expect(forced).toEqual(dark)
+  })
+
+  it('keeps white text on the light high-contrast colors in dark mode, and only there', () => {
+    for (const color of FILLS) expect(normalize(dark.get(`--fill-${color}`)), `--fill-${color}`).toBe(normalize(light.get(`--${color}`)))
+    expect([...dark.keys()].filter((name) => name.startsWith('--fill-'))).toHaveLength(FILLS.length)
+    for (const set of [lightDefault, darkDefault, light]) expect([...set.keys()].filter((name) => name.startsWith('--fill-'))).toEqual([])
+  })
+
+  it('makes the glass more solid, with a stronger edge of the same color', () => {
+    const rgba = (value = '') => /^rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)$/.exec(value)?.slice(1).map(Number) ?? []
+    for (const [hc, base] of [[light, lightDefault], [dark, darkDefault]]) {
+      for (const name of ['--glass-fill', '--glass-edge']) {
+        const [r, g, b, a] = rgba(hc.get(name))
+        const [r0, g0, b0, a0] = rgba(base.get(name))
+        expect([r, g, b], name).toEqual([r0, g0, b0])
+        expect(a, name).toBeGreaterThan(a0)
+      }
+    }
+  })
+})
+
 describe('cards.css', () => {
   const top = blocks(css('cards'))
 
