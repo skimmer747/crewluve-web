@@ -89,10 +89,11 @@ The tests check the results against NOAA Solar Calculator times, worked out sepa
 **Weather** (`src/data/weather.ts`):
 - **The request:** `https://api.open-meteo.com/v1/forecast?latitude=…&longitude=…&current=temperature_2m,weather_code,is_day&temperature_unit=fahrenheit|celsius`.
   - The latitude and longitude are the airport's, from the airport list, rounded to 2 decimals.
-  - It's a plain GET with `credentials: 'omit'` and `referrerPolicy: 'no-referrer'`. Nothing else is sent.
-- **Units:** Fahrenheit for visitors whose locale region uses it (US, LR, MM, BS, BZ, KY, PW, FM, MH, read with `Intl.Locale(navigator.language).maximize()`), otherwise Celsius. The temperature shows rounded, as "41°", like the app.
+  - It's a plain GET with `cache: 'no-store'`, `credentials: 'omit'` and `referrerPolicy: 'no-referrer'`. Besides the URL, only the headers every browser sends go with it.
+- **Units:** Fahrenheit where Apple's weather format, which the app uses, gives it: the US, Puerto Rico, the Bahamas, Belize, the Cayman Islands and Palau (US, PR, BS, BZ, KY, PW). The region is read with `Intl.Locale(navigator.language).maximize()`. Everyone else gets Celsius.
+- **Rounding:** the temperature shows as whole degrees, as "41°", rounded like the app's format. Halves round to the even number (40.5 shows 40°), and a reading just below zero shows "-0°".
 - **Parsing:** the reply is checked for finite numbers and a known code. Anything else counts as no weather. No text from the reply is ever shown; the words come from the site's own table.
-- **Freshness:** results are kept in memory for each airport and unit for 15 minutes, like the app's cache. The site fetches again when the pilot's airport changes, every 15 minutes, and when the page becomes visible again with stale weather. A failure shows the plane-and-code row and tries again at the next refresh, so it never retries rapidly. Nothing is stored on the device.
+- **Freshness:** results are kept in memory for each airport and unit for 15 minutes, like the app's cache. The site fetches again when the pilot's airport changes, every 15 minutes, and when the page becomes visible again with stale weather. A failure shows the plane-and-code row and tries again at the next refresh, so it never retries rapidly. Nothing is stored on the device; `no-store` keeps the reply out of the browser's cache too.
 
 **Weather codes to words and icons** (`src/copy/weather.ts`): Open-Meteo's WMO codes map to the app's wording (Apple's condition names). The icon and color come from the site's Phosphor set. At night, clear-sky codes get moon icons (`is_day`).
 
@@ -102,7 +103,7 @@ The tests check the results against NOAA Solar Calculator times, worked out sepa
 | 1 | Mostly Clear | Sun / Moon |
 | 2 | Partly Cloudy | CloudSun / CloudMoon |
 | 3 | Cloudy | Cloud |
-| 45, 48 | Foggy | CloudFog |
+| 45, 48 | Fog | CloudFog |
 | 51, 53, 55 | Drizzle | CloudRain |
 | 56, 57 | Freezing Drizzle | CloudRain |
 | 61, 63, 80, 81 | Rain | CloudRain |
@@ -111,7 +112,7 @@ The tests check the results against NOAA Solar Calculator times, worked out sepa
 | 71 | Flurries | CloudSnow |
 | 73, 77, 85 | Snow | CloudSnow |
 | 75, 86 | Heavy Snow | CloudSnow |
-| 95, 96, 99 | Thunderstorms | CloudLightning |
+| 95, 96, 99 | Thunderstorm | CloudLightning |
 
 Colors: sun orange, moon indigo, clouds and fog gray, rain blue, snow cyan, lightning yellow. Partly cloudy takes the sun's or the moon's color.
 
@@ -125,7 +126,7 @@ The Phosphor icon set (`scripts/build-icons.mjs`) gains Moon, CloudSun, CloudMoo
 
 - **CSP:** `connect-src` gains exactly one address, `https://api.open-meteo.com`, and nothing else changes.
 - **Read-only guarantee:** the weather fetch is a GET with no body. It passes the existing read-only scan, which allows read-only fetches like the airport list. The CrewLu Cloud guard (`readOnlyFetch`) is untouched.
-- **What Open-Meteo sees:** only the airport's rounded coordinates and the visitor's internet address. It never sees names, the account or the schedule. The user approved this on 2026-10-10.
+- **What Open-Meteo sees:** the airport's rounded coordinates, the visitor's internet address, and the headers every browser sends: the site's address (crewluve.crewlu.net), the browser's name and its language. It never sees names, the account or the schedule. The user approved this on 2026-10-10.
 - **Tests never use the network:** the weather module takes its fetch function as an argument, and the suite's network guard stays in place.
 
 ## 8. Deliberate differences from the app
