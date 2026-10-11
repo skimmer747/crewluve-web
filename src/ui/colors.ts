@@ -13,5 +13,5 @@ export function cssColor(token: ColorToken): string {
  */
 export function cssFill(token: ColorToken): string {
   if (token.startsWith('#') || token === 'secondary') return cssColor(token)
-  return `var(--fill-${token}, var(--${token}))`
+  return `var(--fill-${token}, ${cssColor(token)})`
 }

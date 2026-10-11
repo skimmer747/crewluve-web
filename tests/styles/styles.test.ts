@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { delayBadge, LINE_TRIP_BADGE } from '../../src/copy/visuals'
 import { DIAL } from '../../src/ui/sunDialGeometry'
 
 // These read the stylesheets as text. They pin what the spec fixes (the §4.1 colors) and the lines that keep
@@ -54,6 +55,9 @@ const declarations = (body: string): Array<[string, string]> =>
 
 const find = (list: Block[], head: string) => list.find((b) => b.head === head)
 
+/** A rule's custom properties, by name. */
+const customProperties = (body = '') => new Map(declarations(body).filter(([prop]) => prop.startsWith('--')))
+
 /** Colors compare by value: case, spaces, a leading 0 in decimals, and #abc against #aabbcc don't matter. */
 function normalize(value = ''): string {
   const v = value.toLowerCase().replace(/\s+/g, '').replace(/(\D)0\./g, '$1.')
@@ -86,7 +90,6 @@ describe('tokens.css', () => {
   const top = blocks(css('tokens'))
   const lightRoot = find(top, ':root')
   const darkMedia = find(top, '@media (prefers-color-scheme: dark)')
-  const customProperties = (body = '') => new Map(declarations(body).filter(([prop]) => prop.startsWith('--')))
   const light = customProperties(lightRoot?.body)
   const dark = customProperties(find(blocks(darkMedia?.body ?? ''), ':root')?.body)
 
@@ -109,7 +112,6 @@ describe('tokens.css', () => {
 
 describe('tokens.css: the sun popup’s night colors', () => {
   const top = blocks(css('tokens'))
-  const customProperties = (body = '') => new Map(declarations(body).filter(([prop]) => prop.startsWith('--')))
   const dark = customProperties(find(blocks(find(top, '@media (prefers-color-scheme: dark)')?.body ?? ''), ':root')?.body)
   const forced = find(top, '.force-dark')
 
@@ -146,7 +148,6 @@ const FILLS = ['green', 'blue', 'orange', 'purple', 'pink', 'yellow', 'teal', 'c
 
 describe('tokens.css: Increase Contrast', () => {
   const top = blocks(css('tokens'))
-  const customProperties = (body = '') => new Map(declarations(body).filter(([prop]) => prop.startsWith('--')))
   const lightMedia = find(top, '@media (prefers-contrast: more)')
   const darkMedia = find(top, '@media (prefers-color-scheme: dark) and (prefers-contrast: more)')
   const light = customProperties(find(blocks(lightMedia?.body ?? ''), ':root')?.body)
@@ -158,6 +159,7 @@ describe('tokens.css: Increase Contrast', () => {
   it('comes after the default colors, light set first, so the dark set wins on a dark device', () => {
     expect(lightMedia).toBeDefined()
     expect(darkMedia).toBeDefined()
+    expect(top.indexOf(lightMedia!)).toBeGreaterThan(top.indexOf(find(top, '@media (prefers-color-scheme: dark)')!))
     expect(top.indexOf(lightMedia!)).toBeGreaterThan(top.indexOf(find(top, '.force-dark')!))
     expect(top.indexOf(darkMedia!)).toBeGreaterThan(top.indexOf(lightMedia!))
   })
@@ -190,6 +192,10 @@ describe('tokens.css: Increase Contrast', () => {
     const changed = [...HIGH_CONTRAST.map(([name]) => name), '--glass-fill', '--glass-edge'].sort()
     expect([...light.keys()].sort()).toEqual(changed)
     expect([...dark.keys()].sort()).toEqual([...changed, ...FILLS.map((color) => `--fill-${color}`)].sort())
+  })
+
+  it('has a fill for every color a badge can take, so no badge loses its readable background', () => {
+    for (const badge of [LINE_TRIP_BADGE, delayBadge(40), delayBadge(-20)]) expect(FILLS, badge.label).toContain(badge.color)
   })
 
   it('defines the fills in no other stylesheet', () => {
