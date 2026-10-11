@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { DIAL } from '../../src/ui/sunDialGeometry'
 
 // These read the stylesheets as text. They pin what the spec fixes (the §4.1 colors) and the lines that keep
 // browsers with gaps working (fallbacks). They don't pin sizes and timings that Task 32 tunes by eye.
@@ -159,6 +160,25 @@ describe('location.css', () => {
   it('sizes only the dial’s own drawing, not the sun or moon icon nested inside it', () => {
     expect(find(top, '.sun-dial > svg')).toBeDefined()
     expect(find(top, '.sun-dial svg')).toBeUndefined()
+  })
+
+  it('colors the difference blue ahead and orange behind, indented 24 px like the app', () => {
+    expect(declarations(find(top, '.time-diff.ahead .time-diff-num')!.body)).toContainEqual(['color', 'var(--blue)'])
+    expect(declarations(find(top, '.time-diff.behind .time-diff-num')!.body)).toContainEqual(['color', 'var(--orange)'])
+    expect(declarations(find(top, '.time-diff')!.body)).toContainEqual(['margin', '0 0 0 24px'])
+  })
+
+  it('never lets the dial, which overlaps the text, catch a tap', () => {
+    expect(declarations(find(top, '.sun-dial')!.body)).toContainEqual(['pointer-events', 'none'])
+  })
+
+  it('places the sky circle where the dial’s geometry draws the circle', () => {
+    const percent = (v: number) => `${(v / DIAL.size) * 100}%`
+    const decls = declarations(find(top, '.sun-sky')!.body)
+    expect(decls).toContainEqual(['left', percent(DIAL.cx - DIAL.radius)])
+    expect(decls).toContainEqual(['top', percent(DIAL.cy - DIAL.radius)])
+    expect(decls).toContainEqual(['width', percent(2 * DIAL.radius)])
+    expect(decls).toContainEqual(['height', percent(2 * DIAL.radius)])
   })
 
   it('lifts the dial 6 px like the app’s offset, without shrinking the card', () => {

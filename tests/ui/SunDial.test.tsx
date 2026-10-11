@@ -2,7 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/preact'
 import { afterEach, describe, expect, it } from 'vitest'
 import { SunDial } from '../../src/ui/SunDial'
-import { arcPath, dialAngle, pointAt } from '../../src/ui/sunDialGeometry'
+import { arcPath, cornerFor, dialAngle, glowBands, labelAt, markerPath, pointAt, skyBackground, tickAt } from '../../src/ui/sunDialGeometry'
 import { iconNameOf } from '../fixtures/ui'
 
 afterEach(cleanup)
@@ -68,5 +68,56 @@ describe('SunDial', () => {
     expect(now.querySelector('svg')!.getAttribute('width')).toBe('12')
     expect(now.getAttribute('filter')).toBeNull()
     expect(screen.getByRole('img').getAttribute('aria-label')).toBe('Sunrise 8:12\u202FAM, sunset 6:41\u202FPM, nighttime in Anchorage')
+  })
+})
+
+describe('SunDial: where everything goes', () => {
+  const rise = dialAngle(sun.sunrise, ANC)
+  const set = dialAngle(sun.sunset, ANC)
+  const attrs = (el: Element | null, names: string[]) => names.map((name) => Number(el!.getAttribute(name)))
+
+  it('fills the sky from sunrise to sunset', () => {
+    const { container } = render(dial(MORNING))
+    expect((container.querySelector('.sun-sky') as HTMLElement).style.background).toBe(skyBackground(rise, set))
+  })
+
+  it('puts each time label beside its own tick', () => {
+    const { container } = render(dial(MORNING))
+    const [riseLabel, setLabel] = [...container.querySelectorAll('.sun-time')]
+    expect(attrs(riseLabel, ['x', 'y'])).toEqual([labelAt(rise).x, labelAt(rise).y])
+    expect(attrs(setLabel, ['x', 'y'])).toEqual([labelAt(set).x, labelAt(set).y])
+  })
+
+  it('ticks sunrise and sunset, points the triangles at noon and midnight, and lays the bands on the circle', () => {
+    const { container } = render(dial(MORNING))
+    const ticks = [...container.querySelectorAll('.sun-tick')].map((tick) => attrs(tick, ['x1', 'y1', 'x2', 'y2']))
+    expect(ticks).toEqual([rise, set].map((a) => [tickAt(a).from.x, tickAt(a).from.y, tickAt(a).to.x, tickAt(a).to.y]))
+    expect([...container.querySelectorAll('.sun-marker')].map((m) => m.getAttribute('d'))).toEqual([markerPath(270), markerPath(90)])
+    expect([...container.querySelectorAll('.sun-band')].map((b) => [b.getAttribute('class'), b.getAttribute('d')])).toEqual(
+      glowBands(rise, set).map((band) => [`sun-band ${band.kind}`, arcPath(band.from, band.to, 42)]),
+    )
+  })
+
+  it('runs the hand from the center, and centers the icon on its end in day or night colors', () => {
+    const { container, rerender } = render(dial(MORNING))
+    expect(attrs(container.querySelector('.sun-hand'), ['x1', 'y1'])).toEqual([80, 82])
+    const corner = cornerFor(pointAt(dialAngle(MORNING, ANC), 42), 14)
+    const now = container.querySelector('.sun-now')!
+    expect(now.getAttribute('class')).toBe('sun-now day')
+    expect(now.getAttribute('transform')).toBe(`translate(${corner.x} ${corner.y})`)
+    rerender(dial(NIGHT))
+    expect(container.querySelector('.sun-now')!.getAttribute('class')).toBe('sun-now night')
+  })
+
+  it('gives two dials on one page their own gradient and filter ids', () => {
+    const { container } = render(
+      <div>
+        {dial(MORNING)}
+        {dial(MORNING)}
+      </div>,
+    )
+    const ids = [...container.querySelectorAll('linearGradient, filter')].map((el) => el.id)
+    expect(ids).toHaveLength(6)
+    expect(new Set(ids).size).toBe(6)
   })
 })

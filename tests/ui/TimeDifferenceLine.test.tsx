@@ -85,6 +85,28 @@ describe('TimeDifferenceLine', () => {
     expect(seen(container)).toBe('2h ahead of you')
   })
 
+  it('waits 200 ms, then takes 150 ms an hour, like the app', () => {
+    expect([ODOMETER_DELAY_MS, ODOMETER_STEP_MS]).toEqual([200, 150])
+  })
+
+  it('rolls in a fresh number for each hour', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const { container } = render(<TimeDifferenceLine diff={behind4} />)
+    const first = container.querySelector('.roll')
+    await advance(ODOMETER_DELAY_MS)
+    expect(container.querySelector('.roll')).not.toBe(first)
+  })
+
+  it('keeps counting while the screen hands it a new but equal difference every render', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const { container, rerender } = render(<TimeDifferenceLine diff={{ ...behind4 }} />)
+    for (let i = 0; i < 10; i++) {
+      await advance(100)
+      rerender(<TimeDifferenceLine diff={{ ...behind4 }} />)
+    }
+    expect(seen(container)).toBe('4h behind you')
+  })
+
   it('stops counting when it goes away', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
     const { unmount } = render(<TimeDifferenceLine diff={behind4} />)
