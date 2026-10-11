@@ -27,6 +27,8 @@ describe('SunDial', () => {
   it('labels noon, sunrise and sunset the way the app does', () => {
     const { container } = render(dial(MORNING))
     expect(texts(container)).toEqual(['Noon', '8:12a', '6:41p'])
+    // "Noon" sits 14 points above the top of the circle.
+    expect(num(container.querySelector('.sun-noon'), 'y')).toBe(26)
   })
 
   it('labels sunrise and sunset in 24-hour time for visitors who use it', () => {
@@ -55,6 +57,7 @@ describe('SunDial', () => {
     expect(num(hand, 'y2')).toBeCloseTo(tip.y, 6)
     const now = container.querySelector('.sun-now')!
     expect(iconNameOf(now.querySelector('svg'))).toBe('Sun')
+    expect(now.querySelector('svg')!.getAttribute('width')).toBe('14')
     expect(now.getAttribute('filter')).toMatch(/^url\(#.+-glow\)$/)
   })
 
@@ -62,6 +65,7 @@ describe('SunDial', () => {
     const { container } = render(dial(NIGHT))
     const now = container.querySelector('.sun-now')!
     expect(iconNameOf(now.querySelector('svg'))).toBe('Moon')
+    expect(now.querySelector('svg')!.getAttribute('width')).toBe('12')
     expect(now.getAttribute('filter')).toBeNull()
     expect(screen.getByRole('img').getAttribute('aria-label')).toBe('Sunrise 8:12\u202FAM, sunset 6:41\u202FPM, nighttime in Anchorage')
   })
