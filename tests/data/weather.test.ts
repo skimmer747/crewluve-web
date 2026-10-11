@@ -87,6 +87,23 @@ describe('fetchWeather', () => {
     expect(await answer).toBeNull()
   })
 
+  it('gives up on a reply whose body stalls, after the same 10 seconds', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    expect(WEATHER_TIMEOUT_MS).toBe(10_000)
+    // The headers arrive, then the body never finishes; like a real fetch, it fails only when the signal aborts.
+    const stalledBody = ((_input: RequestInfo | URL, init?: RequestInit) =>
+      Promise.resolve({
+        ok: true,
+        json: () =>
+          new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () => reject(new DOMException('The operation was aborted.', 'AbortError')))
+          }),
+      } as Response)) as typeof globalThis.fetch
+    const answer = fetchWeather(61.17, -150, 'celsius', stalledBody)
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(await answer).toBeNull()
+  })
+
   it('stops its 10-second timer once the answer is in', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
     await fetchWeather(61.17, -150, 'celsius', fakeFetch({ body: reply({ temperature_2m: 5, weather_code: 3, is_day: 1 }) }).fetch)

@@ -72,7 +72,7 @@ export function weatherVisual(code: WeatherCode, isDay: boolean): WeatherVisual 
 
 /**
  * Whole degrees the way the app's weather format writes them: halves round to the even number (40.5 is 40), and a
- * reading just below zero keeps its minus sign ("-0"). Browsers without roundingMode round halves up instead.
+ * reading just below zero keeps its minus sign ("-0"). Browsers without roundingMode round halves away from zero instead.
  */
 const WHOLE_DEGREES = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0, useGrouping: false, roundingMode: 'halfEven' } as Intl.NumberFormatOptions)
 
