@@ -65,7 +65,7 @@ The trip card's progress track is the gray at 20%, written today as a fixed colo
 - Modify: `src/styles/trips.css:113-119`
 - Test: `tests/styles/styles.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 In `tests/styles/styles.test.ts`, add the track's row at the end of `SPEC_COLORS`, after the `--indigo` row:
 
@@ -89,12 +89,12 @@ describe('trips.css', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/styles/styles.test.ts`
 Expected: FAIL in 3 tests: `--bar-track is the spec value in light mode`, the same in dark mode, and `draws the progress track in --bar-track…`, since neither exists yet.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/styles/tokens.css`, add `--bar-track` to the first `:root` block, after `--gray`:
 
@@ -118,12 +118,12 @@ In `src/styles/trips.css`, replace the progress bar's rule and its comment with:
 }
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/styles/styles.test.ts`
 Expected: PASS, 59 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1616 tests in 70 files after this task.
 
@@ -142,7 +142,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/styles/tokens.css` (two blocks added at the end)
 - Test: `tests/styles/styles.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 In `tests/styles/styles.test.ts`, add this block just before `describe('cards.css', () => {`:
 
@@ -231,12 +231,12 @@ What the tests pin:
 - the nine fills, defined only in the dark sets;
 - the glass more opaque with a stronger edge of the same color, not exact values, since Task 6 may tune them (spec §3.4).
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/styles/styles.test.ts`
 Expected: FAIL in all 31 new tests: the high-contrast blocks don't exist yet.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Add this to the end of `src/styles/tokens.css`, after the `.force-dark` block:
 
@@ -331,12 +331,12 @@ How the blocks work together:
 - **The fills:** they're defined only in the dark sets, so anywhere else `var(--fill-blue, var(--blue))` falls back to the color itself (Task 3).
 - **Unchanged:** `--bg`, `--text`, `--ups`, `--glass-rim` and `--glass-shadow` aren't in either set, so they keep their default values.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/styles/styles.test.ts`
 Expected: PASS, 90 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1647 tests in 70 files after this task.
 
@@ -358,7 +358,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/styles/cards.css:275-277`
 - Test: `tests/ui/basics.test.tsx`, `tests/ui/tripCards.test.tsx`, `tests/styles/styles.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/ui/basics.test.tsx`, import `cssFill` beside `cssColor`:
 
@@ -417,12 +417,12 @@ and this one at the end of the `trips.css` block, after the progress track's tes
   })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/basics.test.tsx tests/ui/tripCards.test.tsx tests/styles/styles.test.ts`
 Expected: FAIL in 9 tests: the two `cssFill` tests (`cssFill is not a function`), the badge colors test, the sign-in button's test and the five blends.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Add this to the end of `src/ui/colors.ts`:
 
@@ -493,12 +493,12 @@ In `src/styles/cards.css`, in the `.primary` rule, change the background:
 
 These are the only places with white text on a color (spec §3.3). Nowhere else defines the fills, so without Increase Contrast, and on a light device, these read their ordinary colors exactly as before.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/basics.test.tsx tests/ui/tripCards.test.tsx tests/styles/styles.test.ts`
 Expected: PASS, 128 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1655 tests in 70 files after this task.
 
@@ -517,7 +517,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/styles/cards.css` (a block added at the end)
 - Test: `tests/styles/styles.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 In `tests/styles/styles.test.ts`, add this test at the end of the `cards.css` block, after the sign-in button's test:
 
@@ -532,12 +532,12 @@ In `tests/styles/styles.test.ts`, add this test at the end of the `cards.css` bl
   })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/styles/styles.test.ts`
 Expected: FAIL in 1 test, with `expected undefined to be defined`: there's no `prefers-contrast` block in cards.css yet.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Add this to the end of `src/styles/cards.css`:
 
@@ -554,12 +554,12 @@ Add this to the end of `src/styles/cards.css`:
 
 `.glass` and `.field` both set `border: 0.5px solid var(--glass-edge)` earlier in the file. A media query adds no specificity, so this rule has to come after both to win, and the test checks that. Every frosted element has the `glass` class: the cards, the sun popup's card, the days-home pill, the demo banner and the footer's two round buttons (spec §3.4).
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/styles/styles.test.ts`
 Expected: PASS, 97 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1656 tests in 70 files after this task.
 
@@ -579,7 +579,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Regenerate: `public/data/airports.json`
 - Test: `tests/data/airports.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 In `tests/data/airports.test.ts`, add this test at the end of the `generated public/data/airports.json` block:
 
@@ -592,12 +592,12 @@ In `tests/data/airports.test.ts`, add this test at the end of the `generated pub
   })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/data/airports.test.ts`
 Expected: FAIL in 1 test, with `expected 'Valparaiso' to be 'Destin/Fort Walton Beach'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `scripts/build-airports.mjs`, add a line about cities to the header comment, after the "Source:" line:
 
@@ -654,12 +654,12 @@ Then check the other repo and the lockfile:
 - `git -C ../crewlu-globe status --short` still shows only ` M public/data/airports.json`, the user's own change.
 - If `git status --short` lists `package-lock.json`, restore it with `git checkout -- package-lock.json`.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/data/airports.test.ts`
 Expected: PASS, 34 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1657 tests in 70 files after this task.
 
@@ -677,11 +677,11 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Files:**
 - Modify (only if the user wants the glass tuned): `src/styles/tokens.css`
 
-- [ ] **Step 1: Build and open the preview**
+- [x] **Step 1: Build and open the preview**
 
 Run `npm run build`, then start or reuse the `crewluve-preview` server from `.claude/launch.json` (port 5181) in the browser pane.
 
-- [ ] **Step 2: Switch the high-contrast rules on**
+- [x] **Step 2: Switch the high-contrast rules on**
 
 The browser pane can't turn on Increase Contrast, so this debugging script copies the `prefers-contrast: more` rules out of their media queries for inspection. It changes nothing on disk, and a reload undoes it. Run it with `javascript_tool` after each page load:
 
@@ -700,7 +700,7 @@ document.getAnimations().forEach((a) => a.finish())
 
 Light or dark comes from `resize_window` with `colorScheme`; reload after switching, then run the script again. The CSP allows this: it blocks new `<style>` elements, not changes through the CSSOM.
 
-- [ ] **Step 3: Take the screenshots**
+- [x] **Step 3: Take the screenshots**
 
 At the mobile preset (375 × 812), in light and in dark, take screenshots of:
 - `/?demo=1&scene=home`: the main screen, the countdown, the location card, and the upcoming trip card's "Line Trip" badge;
@@ -710,7 +710,7 @@ At the mobile preset (375 × 812), in light and in dark, take screenshots of:
 
 Before each screenshot, run `document.getAnimations().forEach((a) => a.finish())`, since the hidden pane holds back CSS animations. Also check in dark mode that `getComputedStyle(document.querySelector('.badge')).backgroundColor` is `rgb(30, 110, 244)`: the badge keeps the darker blue behind its white text.
 
-- [ ] **Step 4: Ask the user to sign off**
+- [x] **Step 4: Ask the user to sign off**
 
 Show the user the screenshots, without and with the script, and ask one question: "Looks right (Recommended)" or "Change something". Mention that they can also turn on Increase Contrast on their own phone or Mac:
 - on an iPhone: Settings → Accessibility → Display & Text Size → Increase Contrast;
@@ -718,7 +718,7 @@ Show the user the screenshots, without and with the script, and ask one question
 
 If they want the glass tuned (spec §3.4), change the `--glass-fill` and `--glass-edge` values in both high-contrast sets. Keep the two dark sets identical; the tests check that, and that each stays more opaque than its default.
 
-- [ ] **Step 5: Run the gates and commit any tuning**
+- [x] **Step 5: Run the gates and commit any tuning**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -775,4 +775,18 @@ Update the project memory with the new tip and what's next: Part C, the in-fligh
 
 ## Execution notes
 
-(Add notes here as the build goes: where the code had to differ from a printed block, and why.)
+- **Build, 2026-10-11:** Tasks 1–5 went in from the printed blocks on `parta-followups`, test-first: `3a5b27c`, `24a1a0c`, `82dbe21`, `137ca62` and `18781ea`. Every Step 2 failed and every Step 4 passed with the printed count, and the files came out byte-identical to the scratch copy's. `npm run airports` changed only the four rows; the Flight Globe and `package-lock.json` were untouched.
+- **Look check (Task 6):** the user saw side-by-side screenshots of the built branch, today's look beside Increase Contrast, and said "Looks right". They covered the main screen in light and dark, the badge and pill in dark, the popup by day and at night, and the longest name. There was no tuning, so there's no tuning commit.
+  - The browser pane sometimes hands back the previous frame right after a script changes the page. Taking a small throwaway screenshot first, then the real one, gets the current frame.
+- **Spec review:** passed, and its own 26 deliberate breaks were all caught. From its notes, `1e4e62e` adds two tests:
+  - the high-contrast sets change only what spec §3.2 lists, never `--bg`, `--text` or `--ups`;
+  - no stylesheet but `tokens.css` defines a fill.
+- **Code-quality review, which was also the final review:** "Ready to merge? Yes", with nothing Critical or Important. It checked the cascade in headless Chrome against the built CSS of both base and head. `9f6b79d` makes its minor changes:
+  - the order test also checks the high-contrast blocks against the plain dark block (moving that block to the end passed before);
+  - a test checks that every color a badge can take has a fill;
+  - one custom-properties helper at the top of `styles.test.ts` replaces three copies;
+  - `cssFill` builds its fallback with `cssColor`, with the same output.
+- **Left as they are, by design:**
+  - The weather animation reads its colors when the popup opens. Switching Increase Contrast while it's open recolors it only on the next opening, as with light and dark.
+  - The pills' 9 px subtitles stay white at 85% like the app's. On the fills that reaches 3.6:1 or more rather than 4.5:1, and spec §3.2 now says so.
+- **Totals:** after the review follow-ups, the suite is 1660 tests in 70 files.

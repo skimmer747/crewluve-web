@@ -46,6 +46,7 @@ The eleven system colors switch to Apple's high-contrast values: light ones on a
 - **What it does, measured on the cards:**
   - Colored text on the light card, as low as 1.4:1 today (yellow), becomes 4.1:1 or more.
   - White text on the badges, pills and sign-in button, as low as 1.5:1 today (yellow), becomes 4.5:1 or more.
+  - The pills' small subtitles, white at 85% like the app's, go from as low as 1.4:1 to 3.6:1 or more.
   - Secondary text goes from 3.3:1 to 4.0:1 on the light card, and from 6.0:1 to 6.6:1 on the dark one.
   - Colored text on the dark card, 4.8:1 or more today, becomes 5.1:1 or more.
 
