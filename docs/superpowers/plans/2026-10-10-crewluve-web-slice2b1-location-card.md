@@ -68,7 +68,7 @@
 - Create: `src/time/sun.ts`
 - Test: `tests/time/sun.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/time/sun.test.ts`:
 
@@ -136,12 +136,12 @@ describe('isDaytime', () => {
 
 The reference times come from NOAA's Solar Calculator formulas, worked out separately in Python. Kiritimati keeps UTC+14 at 157°W, so it shows that the local date wins even where a zone sits a whole day away from its longitude.
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/time/sun.test.ts`
 Expected: FAIL with `Error: Cannot find module '../../src/time/sun'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/time/sun.ts`:
 
@@ -214,12 +214,12 @@ export function isDaytime(t: number, sun: SunTimes): boolean {
 }
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/time/sun.test.ts`
 Expected: PASS, 9 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -239,7 +239,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/copy/format.ts` (add `shortTimeText` and `dialTimeText` before `timeWithZone`; `arrivalWhenText` reuses `shortTimeText`)
 - Test: `tests/time/zoned.test.ts`, `tests/copy/format.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/time/zoned.test.ts`, add `zoneOffsetMinutes` to the import from `'../../src/time/zoned'`, so the line reads:
 
@@ -287,12 +287,12 @@ In `tests/copy/format.test.ts`, add `dialTimeText` (after `departureText`) and `
   })
 ```
 
-- [ ] **Step 2: Run them and watch them fail**
+- [x] **Step 2: Run them and watch them fail**
 
 Run: `npx vitest run tests/time/zoned.test.ts tests/copy/format.test.ts`
 Expected: FAIL with `TypeError: zoneOffsetMinutes is not a function` and `TypeError: shortTimeText is not a function`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/time/zoned.ts`, add this function right after `calendarDay`:
 
@@ -331,12 +331,12 @@ export function arrivalWhenText(ms: number, timeZone: string, h24: boolean): str
 }
 ```
 
-- [ ] **Step 4: Run them and watch them pass**
+- [x] **Step 4: Run them and watch them pass**
 
 Run: `npx vitest run tests/time/zoned.test.ts tests/copy/format.test.ts`
 Expected: PASS. The existing `arrivalWhenText` tests still pass, which shows the refactor kept its output.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -355,7 +355,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/copy/location.ts`
 - Test: `tests/copy/location.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/copy/location.test.ts`:
 
@@ -417,12 +417,12 @@ describe('sunDialLabel', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/copy/location.test.ts`
 Expected: FAIL with `Error: Cannot find module '../../src/copy/location'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/copy/location.ts`:
 
@@ -473,12 +473,12 @@ export function sunDialLabel(sun: SunTimes, now: number, timeZone: string, h24: 
 
 A difference under an hour reads "30m ahead of you", as in the spec. The app's odometer would show "0h 30m"; spec §8 item 8 records this.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/copy/location.test.ts`
 Expected: PASS, 7 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -498,7 +498,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Regenerate: `src/icons/iconPaths.ts`
 - Test: `tests/icons/iconPaths.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add this test at the end of `describe('ICON_PATHS', …)` in `tests/icons/iconPaths.test.ts`:
 
@@ -510,12 +510,12 @@ Add this test at the end of `describe('ICON_PATHS', …)` in `tests/icons/iconPa
   })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/icons/iconPaths.test.ts`
 Expected: FAIL in "has the location card’s weather and sun dial icons", which can't find `Moon`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `scripts/build-icons.mjs`, replace the two-line comment above `const ICONS = {` with:
 
@@ -543,12 +543,12 @@ git status --short
 
 Expected: `wrote 50 icons to …/src/icons/iconPaths.ts`. Only `scripts/build-icons.mjs` and `src/icons/iconPaths.ts` show as changed. If `package-lock.json` changed too, run `git checkout -- package-lock.json`. `git diff src/icons/iconPaths.ts` shows seven added lines, `Moon` through `CloudLightning`, and no other change.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/icons/iconPaths.test.ts`
 Expected: PASS, 4 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -567,7 +567,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/data/weather.ts`
 - Test: `tests/data/weather.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/data/weather.test.ts`:
 
@@ -681,12 +681,12 @@ describe('tempUnitFor', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/data/weather.test.ts`
 Expected: FAIL with `Error: Cannot find module '../../src/data/weather'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/data/weather.ts`:
 
@@ -776,12 +776,12 @@ export const loadLiveWeather: WeatherLoader = (place) => fetchWeather(place.lat,
 
 `fetchWeather`'s fetch parameter is named `fetch` on purpose. The read-only scan recognizes calls by that name, so it still checks this request: a plain GET with no body.
 
-- [ ] **Step 4: Run it and the read-only scan, and watch them pass**
+- [x] **Step 4: Run it and the read-only scan, and watch them pass**
 
 Run: `npx vitest run tests/data/weather.test.ts tests/data/readOnly.test.ts`
 Expected: PASS. The scan now lists `src/data/weather.ts` among the files it checked.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -801,7 +801,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/copy/weather.ts`
 - Test: `tests/copy/weather.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/copy/weather.test.ts`:
 
@@ -872,12 +872,12 @@ describe('temperatureText', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/copy/weather.test.ts`, then `npx tsc --noEmit`.
 Expected: Vitest fails with `Error: Cannot find module '../../src/copy/weather'`. tsc also reports `Argument of type '"cyan"' is not assignable to parameter of type 'ColorToken'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `src/copy/colors.ts` with:
 
@@ -972,12 +972,12 @@ export function temperatureText(degrees: number): string {
 
 Partly cloudy takes the sun's or the moon's color, orange by day and indigo at night (spec §6).
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/copy/weather.test.ts` and `npx tsc --noEmit`
 Expected: PASS, 19 tests; tsc clean.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -996,7 +996,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/data/demoWeather.ts`
 - Test: `tests/data/demoWeather.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/data/demoWeather.test.ts`:
 
@@ -1067,12 +1067,12 @@ describe('loadDemoWeather', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/data/demoWeather.test.ts`
 Expected: FAIL with `Error: Cannot find module '../../src/data/demoWeather'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/data/demoWeather.ts`:
 
@@ -1105,12 +1105,12 @@ export const loadDemoWeather: WeatherLoader = async (place) => {
 }
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/data/demoWeather.test.ts`
 Expected: PASS, 11 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -1129,7 +1129,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/copy/flags.ts`
 - Test: `tests/copy/flags.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/copy/flags.test.ts`. Its table is the app's own list, copied as code points from `countryFlags` in `~/Dev/Crewluv/Crewluv/Utils/AirportDataProvider.swift`:
 
@@ -1195,12 +1195,12 @@ describe('countryFlag', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/copy/flags.test.ts`
 Expected: FAIL with `Error: Cannot find module '../../src/copy/flags'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/copy/flags.ts`:
 
@@ -1239,12 +1239,12 @@ export function countryFlag(country: string | null | undefined): string | null {
 
 It looks names up in a `Map`, not a plain object, so a name like "constructor" can't find a property every object has.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/copy/flags.test.ts`
 Expected: PASS, 78 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -1263,7 +1263,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/ui/hooks/useWeather.ts`
 - Test: `tests/ui/useWeather.test.tsx`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/useWeather.test.tsx`:
 
@@ -1458,12 +1458,12 @@ describe('useWeather', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/useWeather.test.tsx`
 Expected: FAIL with `Error: Cannot find module '../../src/ui/hooks/useWeather'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/hooks/useWeather.ts`:
 
@@ -1523,12 +1523,12 @@ export function useWeather(place: WeatherPlace | null, load: WeatherLoader, refr
 
 The interval forces a fetch rather than checking the age, because the timer starts before the first answer lands. An age check at the 15-minute tick would find weather a little under 15 minutes old and skip it until the next tick. The "slow to come" test catches that.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/useWeather.test.tsx`
 Expected: PASS, 11 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -1547,7 +1547,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/ui/sunDialGeometry.ts`
 - Test: `tests/ui/sunDialGeometry.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/sunDialGeometry.test.ts`:
 
@@ -1672,12 +1672,12 @@ describe('the sky', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/sunDialGeometry.test.ts`
 Expected: FAIL with `Error: Cannot find module '../../src/ui/sunDialGeometry'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/sunDialGeometry.ts`. Every number comes from `SunCircleView` in `PilotStatusView.swift` at its card size, 160:
 
@@ -1825,12 +1825,12 @@ export function skyBackground(sunrise: number, sunset: number): string {
 
 SVG's y axis points down, as SwiftUI's does, so growing angles run clockwise on screen, and the app's angles carry over unchanged. CSS's `conic-gradient` starts at 12 o'clock, so `from 90deg` moves its start to 3 o'clock, where SwiftUI's begins.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/sunDialGeometry.test.ts`
 Expected: PASS, 13 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -1849,7 +1849,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/ui/SunDial.tsx`
 - Test: `tests/ui/SunDial.test.tsx`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/SunDial.test.tsx`:
 
@@ -1924,12 +1924,12 @@ describe('SunDial', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/SunDial.test.tsx`
 Expected: FAIL with `Error: Cannot find module '../../src/ui/SunDial'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/SunDial.tsx`:
 
@@ -2031,12 +2031,12 @@ export function SunDial({ sun, now, timeZone, h24, city }: SunDialProps) {
 
 Its classes get their colors and strokes from `src/styles/location.css` in Task 13. The CSP allows the sky's inline `background`, because Preact sets object styles through the CSSOM rather than a `style` attribute in the HTML (slice 2A found the same for the trip bar).
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/SunDial.test.tsx`
 Expected: PASS, 6 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -2055,7 +2055,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/ui/TimeDifferenceLine.tsx`
 - Test: `tests/ui/TimeDifferenceLine.test.tsx`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/TimeDifferenceLine.test.tsx`:
 
@@ -2157,12 +2157,12 @@ describe('TimeDifferenceLine', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/TimeDifferenceLine.test.tsx`
 Expected: FAIL with `Error: Cannot find module '../../src/ui/TimeDifferenceLine'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/TimeDifferenceLine.tsx`. The timing copies `OdometerTimeDiffView` in `PilotStatusView.swift`: a 0.2 s pause, then one hour every 0.15 s, then the minutes fade in:
 
@@ -2233,12 +2233,12 @@ function Odometer({ diff, direction }: { diff: TimeDifference; direction: 'ahead
 }
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/TimeDifferenceLine.test.tsx`
 Expected: PASS, 9 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -2258,7 +2258,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/main.tsx`, `tests/fixtures/airports.ts`, `tests/styles/styles.test.ts`
 - Test: `tests/ui/LocationCard.test.tsx`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add Utqiaġvik to the test airports, for the polar-night test. In `tests/fixtures/airports.ts`, add this row after the `CGN` row:
 
@@ -2408,12 +2408,12 @@ describe('location.css', () => {
 })
 ```
 
-- [ ] **Step 2: Run them and watch them fail**
+- [x] **Step 2: Run them and watch them fail**
 
 Run: `npx vitest run tests/ui/LocationCard.test.tsx tests/styles/styles.test.ts`
 Expected: FAIL. The card test can't find `'../../src/ui/LocationCard'`, and the styles test can't read `src/styles/location.css`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/LocationCard.tsx`:
 
@@ -2787,12 +2787,12 @@ import './styles/location.css'
 
 The `roll-in` keyframes the odometer uses already live in cards.css.
 
-- [ ] **Step 4: Run them and watch them pass**
+- [x] **Step 4: Run them and watch them pass**
 
 Run: `npx vitest run tests/ui/LocationCard.test.tsx tests/styles/styles.test.ts`
 Expected: PASS. The card test has 12 tests. The styles test's "imports every stylesheet" check now covers location.css too.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -2811,7 +2811,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/ui/StatusScreen.tsx`, `src/ui/ScheduleScreen.tsx`
 - Test: `tests/ui/StatusScreen.test.tsx`, `tests/ui/ScheduleScreen.test.tsx`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/ui/StatusScreen.test.tsx`, replace the imports of `demoRaw`, `Leg` and the snapshot functions with these five lines:
 
@@ -2940,12 +2940,12 @@ describe('ScheduleScreen location card (slice 2B1)', () => {
 })
 ```
 
-- [ ] **Step 2: Run them and watch them fail**
+- [x] **Step 2: Run them and watch them fail**
 
 Run: `npx vitest run tests/ui/StatusScreen.test.tsx tests/ui/ScheduleScreen.test.tsx`
 Expected: FAIL. No `.location` card renders, so the placement, scene and weather tests fail.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/ui/StatusScreen.tsx`:
 
@@ -3066,12 +3066,12 @@ function weatherPlace(snap: Snapshot | null, airports: AirportIndex, unit: TempU
 
 `Root.tsx` needs no change: it already tells `ScheduleScreen` whether this is the demo.
 
-- [ ] **Step 4: Run them and watch them pass**
+- [x] **Step 4: Run them and watch them pass**
 
 Run: `npx vitest run tests/ui/StatusScreen.test.tsx tests/ui/ScheduleScreen.test.tsx`
 Expected: PASS. Every demo scene shows the city its status says, and none in flight.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -3090,7 +3090,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `vite.config.ts`
 - Test: `tests/viteConfig.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 In `tests/viteConfig.test.ts`, replace the last test with:
 
@@ -3102,12 +3102,12 @@ In `tests/viteConfig.test.ts`, replace the last test with:
 
 The address is written out in the test, not imported, so a change to the constant can't pass unnoticed.
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/viteConfig.test.ts`
 Expected: FAIL. The policy still ends `connect-src` with the CrewLu Cloud address.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `vite.config.ts`, add `import { OPEN_METEO_URL } from './src/data/weather'` after the `SUPABASE_URL` import. Replace the comment above `const CSP` with:
 
@@ -3123,12 +3123,12 @@ Then change the `connect-src` line to:
   `connect-src 'self' ${SUPABASE_URL} ${OPEN_METEO_URL}`,
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/viteConfig.test.ts`
 Expected: PASS, 5 tests.
 
-- [ ] **Step 5: Run the gates, check the built page and commit**
+- [x] **Step 5: Run the gates, check the built page and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -3244,3 +3244,6 @@ Update the project memory with the new tip and what's next: Part B2, the sun dia
 ## Execution notes
 
 (Add notes here as the build goes: where the code had to differ from a printed block, and why.)
+
+- **Build (2026-10-11):** the user chose "I build, helpers review". The controller built Tasks 1–15 test-first from the printed blocks, in commits `d8daf16` through `02d2714`. The code matches the blocks exactly, and the suite ends at 1352 tests in 59 files.
+  - **One wording difference:** in the `.tsx` tests (Tasks 9, 11, 12 and 13), a missing module fails with `Failed to resolve import "…" … Does the file exist?` instead of `Cannot find module`. It's the same failure.
