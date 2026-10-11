@@ -1,10 +1,9 @@
 import { DAY } from './zoned'
 
-/** The moon's eight phases, as Apple's WeatherKit has them (MoonPhase in the app). */
-export type MoonPhase =
-  | 'new' | 'waxingCrescent' | 'firstQuarter' | 'waxingGibbous' | 'full' | 'waningGibbous' | 'lastQuarter' | 'waningCrescent'
+const PHASES = ['new', 'waxingCrescent', 'firstQuarter', 'waxingGibbous', 'full', 'waningGibbous', 'lastQuarter', 'waningCrescent'] as const
 
-const PHASES: readonly MoonPhase[] = ['new', 'waxingCrescent', 'firstQuarter', 'waxingGibbous', 'full', 'waningGibbous', 'lastQuarter', 'waningCrescent']
+/** The moon's eight phases, as Apple's WeatherKit has them (MoonPhase in the app), in order from new moon. */
+export type MoonPhase = (typeof PHASES)[number]
 
 /** The mean length of the moon's cycle, new moon to new moon, in days. */
 export const SYNODIC_MONTH = 29.530588853

@@ -3,7 +3,7 @@ import { demoRaw } from '../../src/data/demo'
 import { RawBuilder } from '../../src/data/rowBuilder'
 import { buildLegs, type Leg } from '../../src/engine/legs'
 import { buildSchedule } from '../../src/engine/normalize'
-import { makeSnapshot } from '../../src/engine/snapshot'
+import { departureOffset, makeSnapshot } from '../../src/engine/snapshot'
 import type { Schedule } from '../../src/engine/types'
 import { A, at, engineFor } from '../fixtures/engine'
 
@@ -483,5 +483,18 @@ describe('the trip cards (slice 2A)', () => {
     })
     expect(snapOf(b, 0).upcomingTrip?.days).toBe(2)
     expect(snapOf(b, 2610).tripProgress).toMatchObject({ day: 2, days: 2 })
+  })
+})
+
+describe('departureOffset', () => {
+  const scheduled = Date.UTC(2026, 9, 11, 11, 25)
+  const minute = 60_000
+  it('counts a departure as late or early only at 15 minutes or more either way (slice 1 decision 9)', () => {
+    expect(departureOffset({ scheduled, actual: scheduled + 40 * minute })).toBe(40)
+    expect(departureOffset({ scheduled, actual: scheduled - 20 * minute })).toBe(-20)
+    expect(departureOffset({ scheduled, actual: scheduled + 14 * minute })).toBeNull()
+    expect(departureOffset({ scheduled, actual: scheduled + 15 * minute })).toBe(15)
+    expect(departureOffset({ scheduled, actual: scheduled - 14 * minute })).toBeNull()
+    expect(departureOffset({ scheduled, actual: scheduled - 15 * minute })).toBe(-15)
   })
 })

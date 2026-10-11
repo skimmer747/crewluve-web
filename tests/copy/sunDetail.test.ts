@@ -1,22 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { bigDialLabel, daylightText, departureCountdownText, departureOffset, hourDifference, moonPhaseName } from '../../src/copy/sunDetail'
+import { timeDifference } from '../../src/copy/location'
+import { bigDialLabel, daylightText, departureCountdownText, hourDifference, moonPhaseName } from '../../src/copy/sunDetail'
 import { DAY, HOUR, MINUTE } from '../../src/time/zoned'
 
 const NY = 'America/New_York'
 const ANC = 'America/Anchorage'
 const OCT = Date.UTC(2026, 9, 10, 16) // Saturday 10 October, noon in New York
-
-describe('departureOffset', () => {
-  const scheduled = Date.UTC(2026, 9, 11, 11, 25)
-  it('counts a departure as late or early only at 15 minutes or more either way, as everywhere on the site', () => {
-    expect(departureOffset({ scheduled, actual: scheduled + 40 * MINUTE })).toBe(40)
-    expect(departureOffset({ scheduled, actual: scheduled - 20 * MINUTE })).toBe(-20)
-    expect(departureOffset({ scheduled, actual: scheduled + 14 * MINUTE })).toBeNull()
-    expect(departureOffset({ scheduled, actual: scheduled + 15 * MINUTE })).toBe(15)
-    expect(departureOffset({ scheduled, actual: scheduled - 14 * MINUTE })).toBeNull()
-    expect(departureOffset({ scheduled, actual: scheduled - 15 * MINUTE })).toBe(-15)
-  })
-})
 
 describe('daylightText', () => {
   it('reads like the app, always with hours and minutes', () => {
@@ -31,19 +20,21 @@ describe('daylightText', () => {
 })
 
 describe('hourDifference', () => {
+  const between = (pilotTz: string, homeTz: string) => hourDifference(timeDifference(OCT, pilotTz, homeTz))
+
   it('gives whole hours with a sign, and whether the pilot is ahead', () => {
-    expect(hourDifference(OCT, 'Europe/Berlin', NY)).toEqual({ amount: '+6h', ahead: true })
-    expect(hourDifference(OCT, ANC, NY)).toEqual({ amount: '-4h', ahead: false })
+    expect(between('Europe/Berlin', NY)).toEqual({ amount: '+6h', ahead: true })
+    expect(between(ANC, NY)).toEqual({ amount: '-4h', ahead: false })
   })
 
   it('gives hours and minutes for a half-hour zone', () => {
-    expect(hourDifference(OCT, 'Asia/Kolkata', NY)).toEqual({ amount: '+9:30', ahead: true })
-    expect(hourDifference(OCT, NY, 'Asia/Kolkata')).toEqual({ amount: '-9:30', ahead: false })
-    expect(hourDifference(OCT, 'Asia/Kathmandu', 'Asia/Kolkata')).toEqual({ amount: '+0:15', ahead: true })
+    expect(between('Asia/Kolkata', NY)).toEqual({ amount: '+9:30', ahead: true })
+    expect(between(NY, 'Asia/Kolkata')).toEqual({ amount: '-9:30', ahead: false })
+    expect(between('Asia/Kathmandu', 'Asia/Kolkata')).toEqual({ amount: '+0:15', ahead: true })
   })
 
   it('gives "+0h", not ahead, when the clocks match', () => {
-    expect(hourDifference(OCT, 'America/Detroit', NY)).toEqual({ amount: '+0h', ahead: false })
+    expect(between('America/Detroit', NY)).toEqual({ amount: '+0h', ahead: false })
   })
 })
 
@@ -87,6 +78,12 @@ describe('bigDialLabel', () => {
       'Sunrise 8:30\u202FAM, sunset 7:03\u202FPM, nighttime in Anchorage, 4 hours behind you. Next departure 4:05\u202FAM, 40 minutes late, in 6 hours.',
     )
     expect(bigDialLabel({ ...base, departure: { scheduled, actual: scheduled - 20 * MINUTE } })).toContain('Next departure 3:05\u202FAM, 20 minutes early, in 5 hours.')
+  })
+
+  it('writes every time in 24-hour time for visitors who use it', () => {
+    expect(bigDialLabel({ ...base, h24: true, departure: { scheduled, actual: scheduled } })).toBe(
+      'Sunrise 08:30, sunset 19:03, nighttime in Anchorage, 4 hours behind you. Next departure 03:25, in 5 hours, 20 minutes.',
+    )
   })
 
   it('names the actual time of a departure under 15 minutes off, without calling it late', () => {

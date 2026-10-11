@@ -74,17 +74,26 @@ export function weatherVisual(code: WeatherCode, isDay: boolean): WeatherVisual 
 export type WeatherAnimation = 'sunRays' | 'stars' | 'rain' | 'snow' | 'clouds' | 'thunderstorm' | 'fog'
 
 /**
- * The animation for a weather code, read from the card's words in the app's order (WeatherAnimationType.from):
- * thunderstorm, snow, rain, fog, clouds, then the clear sky, with sun rays by day and stars at night.
+ * The animation for a weather code (WeatherAnimationType.from): sun rays by day and stars at night in a clear sky. The
+ * app tests the card's words in the order thunderstorm, snow, rain, fog, clouds, then clear; each of the card's skies
+ * matches exactly one of those, so going by the sky gives the same answer for every code.
  */
 export function weatherAnimation(code: WeatherCode, isDay: boolean): WeatherAnimation {
-  const words = CONDITIONS[code][0].toLowerCase()
-  if (words.includes('thunderstorm')) return 'thunderstorm'
-  if (words.includes('snow') || words.includes('flurries')) return 'snow'
-  if (words.includes('rain') || words.includes('drizzle')) return 'rain'
-  if (words.includes('fog')) return 'fog'
-  if (words.includes('cloudy')) return 'clouds'
-  return isDay ? 'sunRays' : 'stars'
+  switch (CONDITIONS[code][1]) {
+    case 'storm':
+      return 'thunderstorm'
+    case 'snow':
+      return 'snow'
+    case 'rain':
+      return 'rain'
+    case 'fog':
+      return 'fog'
+    case 'partly':
+    case 'cloudy':
+      return 'clouds'
+    case 'clear':
+      return isDay ? 'sunRays' : 'stars'
+  }
 }
 
 /**

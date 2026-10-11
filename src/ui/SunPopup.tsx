@@ -1,9 +1,10 @@
 import { useEffect, useId, useRef, useState } from 'preact/hooks'
 import { shortTimeText } from '../copy/format'
-import { daylightText, moonPhaseName, type DialDeparture } from '../copy/sunDetail'
+import { daylightText, moonPhaseName } from '../copy/sunDetail'
 import { temperatureText, weatherAnimation } from '../copy/weather'
 import type { AirportIndex } from '../data/airports'
 import type { Weather } from '../data/weather'
+import type { Departure } from '../engine/snapshot'
 import { moonPhase } from '../time/moon'
 import { isDaytime, sunTimes } from '../time/sun'
 import { cssColor } from './colors'
@@ -30,7 +31,7 @@ export interface SunPopupProps {
   h24: boolean
   airports: AirportIndex
   weather: Weather | null
-  departure: DialDeparture | null
+  departure: Departure | null
   /** Called once the popup has finished closing. */
   onClose: () => void
 }

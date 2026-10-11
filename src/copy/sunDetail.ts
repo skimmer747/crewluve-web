@@ -1,25 +1,9 @@
-import { DELAY_THRESHOLD_MIN } from '../engine/snapshot'
+import { departureOffset, type Departure } from '../engine/snapshot'
 import type { MoonPhase } from '../time/moon'
 import type { SunTimes } from '../time/sun'
-import { MINUTE, zoneOffsetMinutes } from '../time/zoned'
+import { MINUTE } from '../time/zoned'
 import { delayText, shortTimeText, spokenDuration } from './format'
-import { spokenTimeDifference, sunDialLabel, timeDifference } from './location'
-
-/** The next departure, from the schedule's next flight: its scheduled and its estimated block-out times. */
-export interface DialDeparture {
-  scheduled: number
-  actual: number
-}
-
-/**
- * How late (positive) or early (negative) the departure is, in minutes, when that's 15 minutes or more; else null
- * (slice 1 decision 9). It decides only whether the departure is marked late or early: the countdown always runs to
- * the actual time, as the page's sentence does.
- */
-export function departureOffset(departure: DialDeparture): number | null {
-  const minutes = Math.round((departure.actual - departure.scheduled) / MINUTE)
-  return Math.abs(minutes) >= DELAY_THRESHOLD_MIN ? minutes : null
-}
+import { spokenTimeDifference, sunDialLabel, timeDifference, type TimeDifference } from './location'
 
 /** "10h 33m of daylight": sunset minus sunrise, never below zero, always with both parts (daylightDurationText in the app). */
 export function daylightText(sun: SunTimes): string {
@@ -31,12 +15,12 @@ export function daylightText(sun: SunTimes): string {
  * The middle of the big dial during the home-time turn: "+6h" or "+5:30", and whether the pilot is ahead
  * (hourDifferenceText in the app). The sign is "+" when the pilot is ahead or level.
  */
-export function hourDifference(t: number, pilotTz: string, homeTz: string): { amount: string; ahead: boolean } {
-  const diff = zoneOffsetMinutes(t, pilotTz) - zoneOffsetMinutes(t, homeTz)
-  const hours = Math.floor(Math.abs(diff) / 60)
-  const minutes = Math.abs(diff) % 60
-  const sign = diff >= 0 ? '+' : '-'
-  return { amount: minutes === 0 ? `${sign}${hours}h` : `${sign}${hours}:${String(minutes).padStart(2, '0')}`, ahead: diff > 0 }
+export function hourDifference(d: TimeDifference): { amount: string; ahead: boolean } {
+  const sign = d.direction === 'behind' ? '-' : '+'
+  return {
+    amount: d.minutes === 0 ? `${sign}${d.hours}h` : `${sign}${d.hours}:${String(d.minutes).padStart(2, '0')}`,
+    ahead: d.direction === 'ahead',
+  }
 }
 
 /** The big dial's departure countdown: "1d 3h", "1d", "5h20m", "5h" or "45m" (departureCountdownText in the app). */
@@ -76,7 +60,7 @@ export interface BigDialLabelArgs {
   homeTz: string
   h24: boolean
   city: string
-  departure: DialDeparture | null
+  departure: Departure | null
 }
 
 /**
@@ -87,15 +71,12 @@ export interface BigDialLabelArgs {
  */
 export function bigDialLabel({ sun, now, timeZone, homeTz, h24, city, departure }: BigDialLabelArgs): string {
   const difference = timeDifference(now, timeZone, homeTz)
-  const sentences = [
-    difference.direction === 'same'
-      ? sunDialLabel(sun, now, timeZone, h24, city)
-      : `${sunDialLabel(sun, now, timeZone, h24, city)}, ${spokenTimeDifference(difference)}`,
-  ]
+  const sunWords = sunDialLabel(sun, now, timeZone, h24, city)
+  const sentences = [difference.direction === 'same' ? sunWords : `${sunWords}, ${spokenTimeDifference(difference)}`]
   if (departure && departure.actual > now) {
     const offset = departureOffset(departure)
-    const late = offset == null ? '' : `, ${delayText(offset)} ${offset > 0 ? 'late' : 'early'}`
-    sentences.push(`Next departure ${shortTimeText(departure.actual, timeZone, h24)}${late}, in ${spokenDuration(departure.actual - now)}`)
+    const offsetWords = offset == null ? '' : `, ${delayText(offset)} ${offset > 0 ? 'late' : 'early'}`
+    sentences.push(`Next departure ${shortTimeText(departure.actual, timeZone, h24)}${offsetWords}, in ${spokenDuration(departure.actual - now)}`)
   }
   return `${sentences.join('. ')}.`
 }

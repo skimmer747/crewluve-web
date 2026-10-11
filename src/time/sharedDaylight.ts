@@ -10,6 +10,7 @@ export interface DaylightSpan {
 /** The time of `ms` on `timeZone`'s clock, in hours, with the minutes and seconds as a fraction. */
 function clockHour(ms: number, timeZone: string): number {
   const { hour, minute } = zonedParts(ms, timeZone)
+  // The seconds are the instant's own: every zone's offset has been whole minutes since 1972.
   const seconds = ((Math.floor(ms / 1000) % 60) + 60) % 60
   return hour + minute / 60 + seconds / 3600
 }

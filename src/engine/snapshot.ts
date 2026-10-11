@@ -9,6 +9,22 @@ import type { Iata, Pilot, Schedule, Trip } from './types'
 
 export const DELAY_THRESHOLD_MIN = 15
 
+/** A flight's departure: its scheduled and its estimated (actual) block-out times. */
+export interface Departure {
+  scheduled: number
+  actual: number
+}
+
+/**
+ * How late (positive) or early (negative) a departure is, in minutes, when that's 15 minutes or more either way; else
+ * null (slice 1 decision 9). It decides whether a delay is shown, never which time counts: the site always counts down
+ * to the estimated time.
+ */
+export function departureOffset({ scheduled, actual }: Departure): number | null {
+  const minutes = Math.round((actual - scheduled) / MINUTE)
+  return Math.abs(minutes) >= DELAY_THRESHOLD_MIN ? minutes : null
+}
+
 export interface Snapshot {
   t: number
   /** First name, or "Your pilot". */
@@ -138,8 +154,8 @@ function relevantDelay(status: Status, nextFlight: MoveLeg | null, nextMove: Mov
         : status.kind === 'turn' || status.kind === 'layover' || status.kind === 'base' || status.kind === 'off' ? nextMove
           : null
   if (!flight) return null
-  const minutes = Math.round((flight.start - flight.schedStart) / MINUTE)
-  return Math.abs(minutes) >= DELAY_THRESHOLD_MIN ? { flight, minutes } : null
+  const minutes = departureOffset({ scheduled: flight.schedStart, actual: flight.start })
+  return minutes == null ? null : { flight, minutes }
 }
 
 function flightlessTrip(schedule: Schedule, legs: Leg[], t: number): Trip | null {

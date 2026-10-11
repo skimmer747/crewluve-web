@@ -1,6 +1,7 @@
 import { dialTimeText } from '../copy/format'
 import { timeDifference } from '../copy/location'
-import { departureCountdownText, departureOffset, hourDifference, type DialDeparture } from '../copy/sunDetail'
+import { departureCountdownText, hourDifference } from '../copy/sunDetail'
+import { departureOffset, type Departure } from '../engine/snapshot'
 import { sharedDaylight } from '../time/sharedDaylight'
 import type { SunTimes } from '../time/sun'
 import { DAY, HOUR } from '../time/zoned'
@@ -33,7 +34,7 @@ export interface DialDetail {
   /** Home's sunrise and sunset, for the shared daylight, or null when home's airport isn't known. */
   homeSun: SunTimes | null
   /** The next departure, or null when there's none. */
-  departure: DialDeparture | null
+  departure: Departure | null
   /** Reduced motion: the loop holds still with both arcs drawn. */
   still: boolean
 }
@@ -146,7 +147,7 @@ export function bigDialBase(sun: SunTimes, now: number, timeZone: string, h24: b
         wedge: wedgePath(hourAngle(span.start), hourAngle(span.end)),
         arc: arcPath(hourAngle(span.start), hourAngle(span.end), DIAL.radius),
       })),
-      ...hourDifference(now, timeZone, detail.homeTz),
+      ...hourDifference(timeDifference(now, timeZone, detail.homeTz)),
     }
   }
   let departure: DepartureBase | null = null
