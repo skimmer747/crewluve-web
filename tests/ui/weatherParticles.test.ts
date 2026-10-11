@@ -89,6 +89,52 @@ describe('weatherShapes', () => {
     }
   })
 
+  it('pulses each ray between 60 and 180 px, and twinkles each star between 20% and 80%', () => {
+    const times = Array.from({ length: 300 }, (_, i) => i * 0.1)
+    const lengths = times.map((t) => of(weatherShapes('sunRays', t, W, H), 'line').map((r) => Math.hypot(r.x2 - W * 0.85, r.y2 - H * 0.12)))
+    for (let i = 0; i < 12; i++) {
+      const seen = lengths.map((l) => l[i])
+      expect(Math.max(...seen) - Math.min(...seen)).toBeGreaterThan(110)
+    }
+    const alphas = times.slice(0, 150).map((t) => of(weatherShapes('stars', t, W, H), 'dot').map((s) => s.alpha))
+    for (let i = 0; i < 40; i++) {
+      const seen = alphas.map((a) => a[i])
+      expect(Math.max(...seen) - Math.min(...seen)).toBeGreaterThan(0.5)
+    }
+  })
+
+  it('slants each rain streak 8 px down the card, and moves the drops sideways the same way as they fall', () => {
+    const drops = of(weatherShapes('rain', 3, W, H), 'line')
+    for (const d of drops) expect(d.x2 - d.x1).toBeCloseTo((8 * (d.y2 - d.y1)) / H, 9)
+    const later = of(weatherShapes('rain', 3.05, W, H), 'line')
+    later.forEach((d, i) => {
+      const dy = d.y1 - drops[i].y1
+      if (dy > 0) expect(d.x1 - drops[i].x1).toBeCloseTo((8 * dy) / H, 9)
+    })
+  })
+
+  it('sways each snowflake 15 to 40 px either side as it falls', () => {
+    const times = Array.from({ length: 500 }, (_, i) => i * 0.05)
+    const xs = times.map((t) => of(weatherShapes('snow', t, W, H), 'dot').map((f) => f.x))
+    for (let i = 0; i < 35; i++) {
+      const seen = xs.map((x) => x[i])
+      const swing = Math.max(...seen) - Math.min(...seen)
+      expect(swing).toBeGreaterThanOrEqual(2 * 15 - 1)
+      expect(swing).toBeLessThanOrEqual(2 * 40 + 1e-9)
+    }
+  })
+
+  it('drifts each cloud 8 to 23 px a second across the card', () => {
+    const clouds = of(weatherShapes('clouds', 3, W, H), 'soft')
+    const later = of(weatherShapes('clouds', 4, W, H), 'soft')
+    const moved = later.map((c, i) => c.x - clouds[i].x).filter((dx) => dx > 0)
+    expect(moved.length).toBeGreaterThanOrEqual(6)
+    for (const dx of moved) {
+      expect(dx).toBeGreaterThanOrEqual(8 - 1e-9)
+      expect(dx).toBeLessThanOrEqual(23 + 1e-9)
+    }
+  })
+
   it('drifts 7 soft clouds of 120–270 by 50–100 px across, at 25% to 45%', () => {
     const clouds = of(weatherShapes('clouds', 3, W, H), 'soft')
     expect(clouds).toHaveLength(7)

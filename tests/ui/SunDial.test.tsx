@@ -140,6 +140,13 @@ describe('SunDial on the card', () => {
     expect(onOpen).toHaveBeenCalledTimes(1)
   })
 
+  it('holds only phrasing content in the button, as HTML asks: the sky is a span', () => {
+    render(<SunDial sun={sun} now={MORNING} timeZone={ANC} h24={false} city="Anchorage" onOpen={() => {}} />)
+    const button = screen.getByRole('button')
+    expect(button.querySelector('div')).toBeNull()
+    expect(button.querySelector('span.sun-sky')).not.toBeNull()
+  })
+
   it('draws none of the big dial’s layers', () => {
     const { container } = render(dial(MORNING))
     expect(container.querySelector('.sun-dial')!.getAttribute('class')).toBe('sun-dial')
@@ -226,6 +233,48 @@ describe('SunDial at 360', () => {
     expect(container.querySelector('.sun-arrow')!.getAttribute('opacity')).toBe('1')
     expect(container.querySelector('.sun-sweep-solid')).not.toBeNull()
     expect(middle(container)).toEqual(['5h20m', 'to go'])
+  })
+
+  it('draws a late sweep red past the scheduled time, with a red rider and countdown', () => {
+    const { container } = render(big({ ...detail, departure: { scheduled, actual: scheduled + 40 * MINUTE }, still: true }))
+    expect(container.querySelector('.sun-sweep-solid')).not.toBeNull()
+    expect(container.querySelector('.sun-sweep-delay')).not.toBeNull()
+    expect(container.querySelector('.sun-plane.rider')!.getAttribute('class')).toBe('sun-plane rider late')
+    expect(container.querySelector('.sun-middle')!.getAttribute('class')).toBe('sun-middle late')
+  })
+
+  it('draws an early departure’s rider and countdown green, with no red sweep', () => {
+    const { container } = render(big({ ...detail, departure: { scheduled, actual: scheduled - 20 * MINUTE }, still: true }))
+    expect(container.querySelector('.sun-sweep-delay')).toBeNull()
+    expect(container.querySelector('.sun-plane.rider')!.getAttribute('class')).toBe('sun-plane rider early')
+    expect(container.querySelector('.sun-middle')!.getAttribute('class')).toBe('sun-middle early')
+  })
+
+  it('goes round dashed for each full day to a departure more than a day ahead', () => {
+    const tomorrow = NIGHT + 27 * HOUR
+    const { container } = render(big({ ...detail, departure: { scheduled: tomorrow, actual: tomorrow }, still: true }))
+    expect(container.querySelector('.sun-sweep-laps')).not.toBeNull()
+    expect(container.querySelector('.sun-sweep-solid')).not.toBeNull()
+  })
+
+  it('draws the arrow and the difference blue when the pilot is ahead of home', () => {
+    // Anchorage is 2 hours ahead of Honolulu.
+    const { container } = render(big({ ...detail, homeTz: 'Pacific/Honolulu', homeSun: null, departure: null, still: true }))
+    expect(container.querySelector('.sun-arrow')!.getAttribute('class')).toBe('sun-arrow ahead')
+    expect(container.querySelector('.sun-middle')!.getAttribute('class')).toBe('sun-middle ahead')
+    expect(middle(container)).toEqual(['+2h', 'ahead'])
+  })
+
+  it('fades the arrow from 2 s into its turn, and the sweep, its rider and the countdown with theirs', async () => {
+    const frames = stubAnimationFrames()
+    const { container } = render(big())
+    await frames.frame(1000)
+    await frames.frame(1000 + 2300)
+    expect(Number(container.querySelector('.sun-arrow')!.getAttribute('opacity'))).toBeCloseTo(0.3154, 4)
+    await frames.frame(1000 + 3100 + 2300)
+    expect(Number(container.querySelector('.sun-sweep')!.getAttribute('opacity'))).toBeCloseTo(0.3154, 4)
+    expect(Number(container.querySelector('.sun-plane.rider')!.getAttribute('opacity'))).toBeCloseTo(0.3154, 4)
+    expect(Number(container.querySelector('.sun-middle')!.getAttribute('opacity'))).toBeCloseTo(0.3154, 4)
   })
 
   it('asks for no frames when nothing moves', () => {

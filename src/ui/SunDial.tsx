@@ -52,7 +52,8 @@ export function SunDial(props: SunDialProps) {
   ]
   const drawing = (
     <>
-      <div class="sun-sky" style={{ background: skyBackground(rise, set) }} />
+      {/* A span, since the card's button may hold only phrasing content; it's absolutely placed, so it acts as a block. */}
+      <span class="sun-sky" style={{ background: skyBackground(rise, set) }} />
       <svg viewBox={`0 0 ${DIAL.size} ${DIAL.size}`} aria-hidden="true">
         <defs>
           {/* userSpaceOnUse, so each arc's colors run from its own start to its end, as the app's do. */}
