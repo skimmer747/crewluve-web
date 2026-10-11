@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/preact'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { WEATHER_TIMEOUT_MS, type Weather, type WeatherLoader, type WeatherPlace } from '../../src/data/weather'
-import { TICK_GRACE_MS, useWeather, WEATHER_REFRESH_MS } from '../../src/ui/hooks/useWeather'
+import type { Weather, WeatherLoader, WeatherPlace } from '../../src/data/weather'
+import { useWeather, WEATHER_CHECK_MS, WEATHER_REFRESH_MS } from '../../src/ui/hooks/useWeather'
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
@@ -117,14 +117,17 @@ describe('useWeather', () => {
     expect(calls).toHaveLength(2)
   })
 
-  it('fetches at each 15-minute tick even when the last answer was slow to come', async () => {
+  it('fetches within a minute of the weather turning 15 minutes old, even when the answer was slow to come', async () => {
     vi.useRealTimers()
     vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval', 'setTimeout', 'clearTimeout'] })
     const load = vi.fn<WeatherLoader>(() => new Promise((resolve) => setTimeout(() => resolve(cloudy(41)), 2000)))
     render(<Probe place={ANC} load={load} />)
     await advance(2000)
     expect(shown()).toBe('41°')
+    // Minute 15: the weather is 2 seconds short of 15 minutes old.
     await advance(WEATHER_REFRESH_MS - 2000)
+    expect(load).toHaveBeenCalledTimes(1)
+    await advance(WEATHER_CHECK_MS)
     expect(load).toHaveBeenCalledTimes(2)
   })
 
@@ -232,7 +235,7 @@ describe('useWeather', () => {
     expect(calls).toHaveLength(1)
   })
 
-  it('skips the 15-minute tick that comes just after a return to the page fetched', async () => {
+  it('fetches again 15 minutes after a return to the page fetched, and not before', async () => {
     const { load, calls } = countingLoader()
     render(<Probe place={ANC} load={load} />)
     await flush()
@@ -242,8 +245,23 @@ describe('useWeather', () => {
     expect(calls).toHaveLength(2)
     await advance(60_000)
     expect(calls).toHaveLength(2)
-    await advance(WEATHER_REFRESH_MS)
+    await advance(WEATHER_REFRESH_MS - 60_000)
     expect(calls).toHaveLength(3)
+  })
+
+  it('fetches an airport’s weather again as soon as it turns 15 minutes old, after going away and back', async () => {
+    const { load, calls } = countingLoader()
+    const { rerender } = render(<Probe place={ANC} load={load} />)
+    await flush()
+    await advance(12 * 60_000)
+    rerender(<Probe place={SDF} load={load} />)
+    await flush()
+    rerender(<Probe place={ANC} load={load} />)
+    await flush()
+    // Anchorage's weather is 12 minutes old, so it stays; 3 minutes later it's 15.
+    expect(calls).toEqual(['ANC|fahrenheit', 'SDF|fahrenheit'])
+    await advance(3 * 60_000)
+    expect(calls).toEqual(['ANC|fahrenheit', 'SDF|fahrenheit', 'ANC|fahrenheit'])
   })
 
   it('treats a loader that throws at once as a failure, and tries again at the next refresh', async () => {
@@ -260,9 +278,8 @@ describe('useWeather', () => {
     expect(shown()).toBe('41°')
   })
 
-  it('gives the tick a minute’s grace, longer than the slowest first answer can take', () => {
-    expect(TICK_GRACE_MS).toBe(60_000)
-    expect(TICK_GRACE_MS).toBeGreaterThan(WEATHER_TIMEOUT_MS)
+  it('checks once a minute, so the weather is never more than about 16 minutes old', () => {
+    expect(WEATHER_CHECK_MS).toBe(60_000)
   })
 
   it('stops its timer and listener when it unmounts', async () => {
