@@ -71,6 +71,18 @@
 | `src/ui/StatusScreen.tsx` | modify | Keeps whether the popup is open, and draws it after `<main>` |
 | Tests | create and modify | Ten new test files, plus additions to seven existing ones |
 
+**Files the reviews added or reshaped (see the Execution notes at the end):**
+
+| File | Change | Responsibility |
+|---|---|---|
+| `src/ui/bigDialGeometry.ts` | create | The big dial's geometry, moved out of `sunDialGeometry.ts`: `DETAIL`, the arrow, the sweep, the departure's marks, the wedges and the planes |
+| `src/ui/BigDialDrawing.tsx` | create | The drawing of the big dial's layers, moved out of `SunDial.tsx` |
+| `src/styles/bigDial.css` | create | The styles of those layers, moved out of `sunPopup.css` |
+| `src/ui/hooks/useModalDialog.ts` | create | Focus, the Tab trap, Escape and the page held still, moved out of `SunPopup.tsx` |
+| `src/ui/hooks/useDragToClose.ts` | create | The drag down to close, moved out of `SunPopup.tsx` |
+| `src/ui/WeatherCredit.tsx` | create | The Open-Meteo credit, shared by the card and the popup |
+| `src/engine/snapshot.ts` | modify | `Departure` and `departureOffset`, moved from `src/copy/sunDetail.ts` and used by the snapshot's own delay |
+
 ---
 
 > **The printed code below is the code as first built.** The review fixes have changed some of these files since, and the Execution notes at the end list each change by commit. To rebuild, start from the branch, not from these blocks.
@@ -4578,7 +4590,8 @@ Compare with `SunCircleDetailView.swift`, the big-size parts of `SunCircleView`,
 - the loop: the home arrow with "-4h behind", then the sweep with its rider and "4h58m to go", red past the scheduled time when late;
 - the weather animation behind the card (Cloudy in the demo);
 - how far the clouds and fog spread. They're softened with gradients rather than blur (spec §11 item 5), and a stretched gradient fades along a band's whole length, where the app's blurred bands stay strong across most of the card. If they look too faint at the sides, show the user before changing anything;
-- the card's shadow. It follows the spec's "20 px blur", taken from the app's `shadow(radius: 20)`, but SwiftUI's radius usually looks closer to a 40 px CSS blur. Compare, and show the user before changing it.
+- the card's shadow. It follows the spec's "20 px blur", taken from the app's `shadow(radius: 20)`, but SwiftUI's radius usually looks closer to a 40 px CSS blur. Compare, and show the user before changing it;
+- if an iPhone on iOS 15 or earlier is to hand, that a swipe on the open popup doesn't scroll the page behind. Nothing here can emulate it; the code fixes the body in place for it.
 
 Two overlaps come from the app's own layout, so show them rather than fix them: the departure and delay labels can touch near the top of the dial, and "Noon" can sit under the departure plane.
 
@@ -4689,3 +4702,11 @@ Update the project memory with the new tip and what's next: the Part A follow-up
 - **Batch A tidy-ups:** `Departure` and `departureOffset` moved to `src/engine/snapshot.ts`, and the snapshot's own delay uses them. `hourDifference` builds on `timeDifference`, and `weatherAnimation` goes by the card's typed sky. The moon's phases are written once. There are clearer names and a 24-hour description test.
 - **Left as is:** `MoonPhaseIcon` keeps its own one-line `round`.
 - The suite is 1595 tests in 69 files.
+
+**Fixes from the Batch B and D code-quality reviews and the second Batch A and C check (`2614cc0`, `0842556`, `171a957`, `eb88d44`, `6a2743d`, `c654238`):**
+- **The page held still on iOS before 16 (Important).** `overflow: hidden` on the body doesn't stop touch scrolling in iOS Safari before 16, inside the site's floor, so a swipe on the card could scroll the page behind. The body is now fixed where it was while the popup is open, and the page goes back to the same scroll position afterwards. The browser pane showed the page stay put and come back to the same place; an older iPhone is a Task 19 check if one is to hand.
+- **Steady inputs for the dial.** The popup memoizes home's sun times and the dial's detail, so a drag (a render per pointer move) doesn't make the dial work itself out again. The dial's arcs, bands and ticks join what it works out once a second. A test changes each input at the same moment, so dropping any memo key fails it.
+- **The place's facts from the screen.** `StatusScreen` passes the popup `DialFacts`, whose zone and sun times can't be missing, so the popup can't mount empty and lock the page. `showsDial` is the one rule for the card's dial and for when the popup may be open. The card still works out its own facts; a second `sunTimes` call a second is cheap.
+- **Reshaped for one job per file:** `useModalDialog` and `useDragToClose` (the Tab trap now covers any focusable, and focus moves in a layout effect), `WeatherCredit`, `bigDialGeometry.ts`, `BigDialDrawing.tsx` (renamed from `BigDialLayers.tsx`, which shared its name with a type), and `bigDial.css`.
+- **Small fixes:** `useElapsed` starts each run from zero; the timeline's shared do-nothing turn is frozen; `arcPath` uses the shared angle wrap; `bigDialBase` works out the time difference once; the engine test uses `MINUTE`; and the screen's `homeTz` comment names everything that uses it.
+- The suite is 1606 tests in 70 files.
