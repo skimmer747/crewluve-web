@@ -25,7 +25,7 @@ The user chose to build all of the app's popup in one part on 2026-10-11:
 
 ## 3. Opening and closing
 
-- **Opening:** tap or click the sun dial on the location card. The dial's whole 160 px box is a button, as the app's whole dial is its tap area. Keyboard users can press Enter or Space on it. The popup zooms up: a spring in which the big dial grows from half size and fades in, and the backdrop fades in.
+- **Opening:** tap or click the sun dial on the location card. The dial's whole 160 px box is a button, as the app's whole dial is its tap area. Keyboard users can press Enter or Space on it. The popup zooms up on a spring: the backdrop and the card fade in, and the big dial grows from half size, fading in with the card.
 - **Closing:** the close button, the Escape key, a tap on the backdrop, or dragging the card down more than 100 px. A shorter drag springs back. Closing takes 0.2 s, ease-out, back to nothing.
 - **It closes by itself** when the card's dial goes away: at takeoff, or when the location has no sun times.
 - **While it's open:** the page behind doesn't scroll and is hidden from screen readers. Focus moves to the close button, Tab stays inside the popup, and focus returns to the dial afterwards.
@@ -67,6 +67,7 @@ The card's dial grows a size setting, as the app's `SunCircleView` has one. The 
   - a small cyan triangle (40%) just outside the circle there, pointing in, like the noon marker but turned to face the center;
   - a cyan plane icon (`10 × scale`) just beyond it, pointing along the dial's direction of travel;
   - the scheduled time as a cyan label (`9 × scale`, medium), placed and kept inside the box like the sunrise label.
+  - A departure under 15 minutes off counts as on time, so the hand, triangle, plane and label sit at its actual time instead.
 - **A delay or early departure** of 15 minutes or more adds a red hand (40%), a red plane and a red label at the actual departure time.
 
 ### 5.2 The loop
@@ -138,7 +139,7 @@ They play behind the whole card, copying `WeatherBackgroundView`. Each is drawn 
 
 - **The next departure** is the snapshot's next flight (`nextFlight`). The scheduled time is its scheduled start, and the actual time is its estimated start.
   - The difference counts as late or early only at 15 minutes or more either way, as slice 1 decided (its decision 9) for every delay on the site.
-  - That rule decides only whether the departure is marked late or early. The countdown, the description and the layers always use the actual time, as the page's sentence does.
+  - That rule decides only whether the departure is marked late or early. The countdown, the description and the departure turn always use the actual time, as the page's sentence does, and a departure under 15 minutes off is drawn as on time at its actual time.
   - The departure layers and the sweep show while the actual time is still ahead.
 - **Home's sunrise and sunset** come from the B1 sun formulas, for the home airport (`pilot.effHome`) on home's local date. They're needed only for the shared daylight.
 - **Shared daylight** is a port of the app's `SharedDaylight.windows`:
@@ -194,6 +195,8 @@ They play behind the whole card, copying `WeatherBackgroundView`. Each is drawn 
 8. Home's sunrise and sunset are worked out on the site rather than taken from home's weather, extending B1 §8 item 1.
 9. The particles come from the site's own seeded hash, so their positions aren't identical to the app's.
 10. Keyboard and screen-reader support: Enter or Space opens it, Escape closes it, and focus stays inside while it's open.
+11. The drag starts on the drag handle and the header, which can't scroll. The rest of the card scrolls on a short screen, and a browser can't tell a scroll from a drag that starts there. The app drags from anywhere on the card.
+12. The card fades in and out with the backdrop. In the app it slides up and down as a full-screen cover.
 
 ## 12. Testing
 
@@ -244,7 +247,7 @@ They play behind the whole card, copying `WeatherBackgroundView`. Each is drawn 
 | 6 | How it's built and tested (§8–§12). | User, 2026-10-11 |
 | 7 | Delays count at 15 minutes or more, following slice 1's decision 9. | Design |
 | 8 | Reduced motion: no zoom, a still dial with both arcs drawn, and no weather animation. | Design |
-| 9 | The countdown, the description and the layers use the actual departure time however little it's off; the 15-minute rule decides only the late or early marks, so a departure under 15 minutes off sweeps cyan to its actual time. | Review of the build, 2026-10-11 |
+| 9 | The countdown, the description and the departure turn use the actual departure time however little it's off; the 15-minute rule decides only the late or early marks. A departure under 15 minutes off is drawn as on time at its actual time: its cyan marks and label sit there, and its sweep is cyan all the way. | Review of the build, 2026-10-11 |
 | 10 | The description names a delay or an early departure before the countdown. | Review of the build, 2026-10-11 |
 | 11 | When the scheduled time has passed but the flight hasn't left, the sweep is cyan to the actual time, as in the app. | Review of the build, 2026-10-11, copying the app |
 

@@ -4577,7 +4577,8 @@ Compare with `SunCircleDetailView.swift`, the big-size parts of `SunCircleView`,
 - the dial: home's dashed line and house, the shared daylight's wedge and white arc, the departure's hand, triangle, plane and label, and the red set for the delay;
 - the loop: the home arrow with "-4h behind", then the sweep with its rider and "4h58m to go", red past the scheduled time when late;
 - the weather animation behind the card (Cloudy in the demo);
-- how far the clouds and fog spread. They're softened with gradients rather than blur (spec §11 item 5), and a stretched gradient fades along a band's whole length, where the app's blurred bands stay strong across most of the card. If they look too faint at the sides, show the user before changing anything.
+- how far the clouds and fog spread. They're softened with gradients rather than blur (spec §11 item 5), and a stretched gradient fades along a band's whole length, where the app's blurred bands stay strong across most of the card. If they look too faint at the sides, show the user before changing anything;
+- the card's shadow. It follows the spec's "20 px blur", taken from the app's `shadow(radius: 20)`, but SwiftUI's radius usually looks closer to a 40 px CSS blur. Compare, and show the user before changing it.
 
 Two overlaps come from the app's own layout, so show them rather than fix them: the departure and delay labels can touch near the top of the dial, and "Noon" can sit under the departure plane.
 
@@ -4673,3 +4674,18 @@ Update the project memory with the new tip and what's next: the Part A follow-up
 - **Tests added for the particles:** the rays' pulsing and the stars' twinkling over time, the rain's 8 px slant, the snow's sway, and the clouds' drift.
 - **Look check:** whether the clouds and fog spread like the app's, since they're softened with gradients (Task 19).
 - The suite is 1584 tests in 69 files.
+
+**Fixes from the Batch B re-check and the Batch D spec review (`3db1eca`):**
+- **Focus back to the dial (Important).** The popup handed focus back to whatever had it when it opened. In a real browser that was already the page body: Preact runs the popup's effect after `<main>` turns inert, and Safari, Firefox and iPhones never focus a button on click anyway. Now the dial hands its own button to the screen as it opens the popup (`onOpen(dial)`, `onOpenSun(dial)`), and the screen focuses it in an effect after the render that lifts `inert`. The popup no longer restores focus itself.
+- **An on-time departure's marks at its actual time.** The re-check asked whether, under 15 minutes off, the label should show the scheduled 3:25 while the countdown and the description go by 3:35. Now such a departure is drawn as on time at its actual time: its cyan marks and label sit there, and every time on the page agrees (spec §5.1, §8, decision 9). The spec's "the layers always use the actual time" now reads "the departure turn".
+- **A single fade.** The card's fade multiplied the dial's own, so the dial showed at about 18% at 0.1 s rather than the app's 42%. The dial now only grows from half size, and fades with the card (spec §3).
+- **Recorded as deliberate differences (spec §11 items 11 and 12):** the drag starts on the handle and the header, and the card fades rather than sliding up.
+- **Tests added:** the departure's scheduled and estimated times taken from the snapshot, home's airport for the shared daylight, closing by itself when the sun times go away, and focus coming back after a click that never focused the dial.
+- **For the look check (Task 19):** the card's shadow.
+
+**Fixes from the Batch A and C code-quality reviews (`b754c9a`, `7d580ea`, `885a749`):**
+- **The big dial no longer works everything out on every frame (Important).** While the loop ran, each animation frame recomputed the angles, labels, description and layers: about 27 date-formatting calls a frame. Now `bigDialBase` and the labels are worked out with `useMemo` when the card or the popup renders, and each frame adds only the arrow, the sweep and its rider (`bigDialLayers(base, moment)`). A test counts the formatting calls during frames: none. The big layers' drawing moved to `src/ui/BigDialLayers.tsx`, and the middle text's offsets are named in `DETAIL`.
+- **The weather canvas:** it skips drawing while it has no size; `paint` is checked to handle every shape; the palette holds only the line and dot colors, with white for any the stylesheet hasn't set; and `dark` became `night`, named for what the popup passes. New tests cover dots, the flash and bolt, no size, and re-reading the colors.
+- **Batch A tidy-ups:** `Departure` and `departureOffset` moved to `src/engine/snapshot.ts`, and the snapshot's own delay uses them. `hourDifference` builds on `timeDifference`, and `weatherAnimation` goes by the card's typed sky. The moon's phases are written once. There are clearer names and a 24-hour description test.
+- **Left as is:** `MoonPhaseIcon` keeps its own one-line `round`.
+- The suite is 1595 tests in 69 files.
