@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { spokenTimeDifference, sunDialLabel, timeDifference, timeDifferenceText } from '../../src/copy/location'
+import { spokenTimeDifference, sunDialLabel, timeDifference } from '../../src/copy/location'
 
 const NY = 'America/New_York'
 const OCT = Date.UTC(2026, 9, 10, 16) // Saturday 10 October, noon in New York
@@ -9,6 +9,8 @@ describe('timeDifference', () => {
     expect(timeDifference(OCT, 'America/Anchorage', NY)).toEqual({ hours: 4, minutes: 0, direction: 'behind' })
     expect(timeDifference(OCT, 'Asia/Kolkata', NY)).toEqual({ hours: 9, minutes: 30, direction: 'ahead' })
     expect(timeDifference(OCT, 'America/St_Johns', 'America/Halifax')).toEqual({ hours: 0, minutes: 30, direction: 'ahead' })
+    // Behind by a whole number of hours and some minutes, as for a family at home in a half-hour zone.
+    expect(timeDifference(OCT, NY, 'Asia/Kolkata')).toEqual({ hours: 9, minutes: 30, direction: 'behind' })
   })
 
   it('calls different zones with the same clock time the same time', () => {
@@ -19,15 +21,6 @@ describe('timeDifference', () => {
     // Europe leaves summer time on 25 October and the US on 1 November, so Cologne is 6 hours ahead of New York, then 5.
     expect(timeDifference(OCT, 'Europe/Berlin', NY)).toMatchObject({ hours: 6, direction: 'ahead' })
     expect(timeDifference(Date.UTC(2026, 9, 28, 16), 'Europe/Berlin', NY)).toMatchObject({ hours: 5, direction: 'ahead' })
-  })
-})
-
-describe('timeDifferenceText', () => {
-  it('reads like the app', () => {
-    expect(timeDifferenceText({ hours: 4, minutes: 0, direction: 'behind' })).toBe('4h behind you')
-    expect(timeDifferenceText({ hours: 1, minutes: 30, direction: 'ahead' })).toBe('1h 30m ahead of you')
-    expect(timeDifferenceText({ hours: 0, minutes: 30, direction: 'ahead' })).toBe('30m ahead of you')
-    expect(timeDifferenceText({ hours: 0, minutes: 0, direction: 'same' })).toBe('same time as you')
   })
 })
 
@@ -45,8 +38,8 @@ describe('sunDialLabel', () => {
   const ANC = 'America/Anchorage'
 
   it('reads the sunrise, the sunset and whether it’s day or night there', () => {
-    expect(sunDialLabel(sun, Date.UTC(2026, 9, 10, 17), ANC, false, 'Anchorage')).toBe('Sunrise 8:12 AM, sunset 6:41 PM, daytime in Anchorage')
-    expect(sunDialLabel(sun, Date.UTC(2026, 9, 10, 15), ANC, false, 'Anchorage')).toBe('Sunrise 8:12 AM, sunset 6:41 PM, nighttime in Anchorage')
+    expect(sunDialLabel(sun, Date.UTC(2026, 9, 10, 17), ANC, false, 'Anchorage')).toBe('Sunrise 8:12\u202FAM, sunset 6:41\u202FPM, daytime in Anchorage')
+    expect(sunDialLabel(sun, Date.UTC(2026, 9, 10, 15), ANC, false, 'Anchorage')).toBe('Sunrise 8:12\u202FAM, sunset 6:41\u202FPM, nighttime in Anchorage')
   })
 
   it('uses 24-hour times when the visitor does', () => {

@@ -22,14 +22,11 @@ export function directionText(direction: 'ahead' | 'behind'): string {
   return direction === 'ahead' ? 'ahead of you' : 'behind you'
 }
 
-/** "4h behind you", "1h 30m ahead of you", "30m ahead of you", or "same time as you". */
-export function timeDifferenceText(d: TimeDifference): string {
-  if (d.direction === 'same') return 'same time as you'
-  const amount = [d.hours > 0 ? `${d.hours}h` : '', d.minutes > 0 ? `${d.minutes}m` : ''].filter(Boolean).join(' ')
-  return `${amount} ${directionText(d.direction)}`
-}
-
-/** The same in words, for screen readers: "4 hours behind you", "1 hour 30 minutes ahead of you". */
+/**
+ * The difference in words, for screen readers: "4 hours behind you", "1 hour 30 minutes ahead of you". The visible
+ * "4h behind you" is drawn by src/ui/TimeDifferenceLine.tsx. delayText is the site's hours and minutes in words,
+ * shared with the delay lines, so a change to its wording changes both.
+ */
 export function spokenTimeDifference(d: TimeDifference): string {
   if (d.direction === 'same') return 'same time as you'
   return `${delayText(d.hours * 60 + d.minutes)} ${directionText(d.direction)}`
