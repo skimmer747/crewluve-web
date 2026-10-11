@@ -6,9 +6,10 @@ export const WEATHER_REFRESH_MS = 15 * 60_000
 
 /**
  * The 15-minute tick fetches weather that's at least 14 minutes old. The timer starts before the first answer lands,
- * so a strict 15 would skip a tick; anything fresher came from a return to the page just now.
+ * so a strict 15 would skip a tick; anything fresher came from a return to the page just now. It must stay longer
+ * than WEATHER_TIMEOUT_MS (10 s), the latest a first answer can land.
  */
-const TICK_GRACE_MS = 60_000
+export const TICK_GRACE_MS = 60_000
 
 /**
  * The current weather at `place`, or null while it loads or when there's none (slice 2B1 §6). Results stay in memory

@@ -49,10 +49,22 @@ describe('LocationCard', () => {
     expect(icon.style.color).toBe('var(--gray)')
     expect(row.querySelector('.weather-temp')!.textContent).toBe('41°')
     expect(row.querySelector('.weather-words')!.textContent).toBe('Cloudy')
-    const credit = screen.getByRole('link', { name: 'Weather: Open-Meteo' })
+    // Screen readers also hear that it opens a new tab; the hidden words don't show.
+    const credit = screen.getByRole('link', { name: 'Weather: Open-Meteo (opens in a new tab)' })
+    expect(credit.querySelector('.sr-only')!.textContent).toBe(' (opens in a new tab)')
     expect(credit.getAttribute('href')).toBe('https://open-meteo.com/')
     expect(credit.getAttribute('target')).toBe('_blank')
     expect(credit.getAttribute('rel')).toBe('noopener noreferrer')
+  })
+
+  it('sizes the icons like the app: 22 px for the pin and the weather, 17 px for the clock and the plane', () => {
+    const width = (el: Element | null) => el!.getAttribute('width')
+    const { container, rerender } = render(card('ANC', cloudy))
+    expect(width(container.querySelector('.location-head svg'))).toBe('22')
+    expect(width(container.querySelector('.weather-row svg'))).toBe('22')
+    expect(width(container.querySelector('.time-row svg'))).toBe('17')
+    rerender(card('ANC'))
+    expect(width(container.querySelector('.weather-none svg'))).toBe('17')
   })
 
   it('shows a moon for a clear night', () => {

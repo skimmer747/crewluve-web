@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/preact'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Weather, WeatherLoader, WeatherPlace } from '../../src/data/weather'
-import { useWeather, WEATHER_REFRESH_MS } from '../../src/ui/hooks/useWeather'
+import { WEATHER_TIMEOUT_MS, type Weather, type WeatherLoader, type WeatherPlace } from '../../src/data/weather'
+import { TICK_GRACE_MS, useWeather, WEATHER_REFRESH_MS } from '../../src/ui/hooks/useWeather'
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
@@ -258,6 +258,11 @@ describe('useWeather', () => {
     expect(shown()).toBe('none')
     await advance(WEATHER_REFRESH_MS)
     expect(shown()).toBe('41°')
+  })
+
+  it('gives the tick a minute’s grace, longer than the slowest first answer can take', () => {
+    expect(TICK_GRACE_MS).toBe(60_000)
+    expect(TICK_GRACE_MS).toBeGreaterThan(WEATHER_TIMEOUT_MS)
   })
 
   it('stops its timer and listener when it unmounts', async () => {

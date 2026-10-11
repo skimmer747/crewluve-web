@@ -73,6 +73,11 @@ export function glowBands(sunrise: number, sunset: number): GlowBand[] {
   ]
 }
 
+/** The top-left corner that centers an icon of `size` on point `p`, rounded after the subtraction. */
+export function cornerFor(p: Point, size: number): Point {
+  return { x: round(p.x - size / 2), y: round(p.y - size / 2) }
+}
+
 /** The tick across the circle at sunrise or sunset. */
 export function tickAt(angle: number): { from: Point; to: Point } {
   return { from: pointAt(angle, DIAL.radius - DIAL.tick / 2), to: pointAt(angle, DIAL.radius + DIAL.tick / 2) }

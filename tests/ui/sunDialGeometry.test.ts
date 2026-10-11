@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { arcPath, dialAngle, glowBands, labelAt, markerPath, pointAt, skyBackground, skyStops, tickAt } from '../../src/ui/sunDialGeometry'
+import { arcPath, cornerFor, dialAngle, glowBands, labelAt, markerPath, pointAt, skyBackground, skyStops, tickAt } from '../../src/ui/sunDialGeometry'
 
 const NY = 'America/New_York'
 /** 10 October 2026 at `hour`:`minute` in New York (EDT, UTC-4). */
@@ -81,6 +81,13 @@ describe('glowBands', () => {
     expect(evening).toEqual({ kind: 'golden', from: 265, to: 270 })
     expect(dawn).toEqual({ kind: 'twilight', from: 252.5, to: 260 })
     expect(dusk).toEqual({ kind: 'twilight', from: 270, to: 277.5 })
+  })
+})
+
+describe('cornerFor', () => {
+  it('gives the top-left corner that centers an icon on a point, rounded after the subtraction', () => {
+    // 69.6 - 7 is 62.599999999999994 in floating point.
+    expect(cornerFor({ x: 69.6, y: 59.13 }, 14)).toEqual({ x: 62.6, y: 52.13 })
   })
 })
 

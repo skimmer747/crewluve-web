@@ -3,7 +3,7 @@ import { dialTimeText } from '../copy/format'
 import { sunDialLabel } from '../copy/location'
 import { isDaytime, type SunTimes } from '../time/sun'
 import { Icon } from './Icon'
-import { arcPath, dialAngle, DIAL, glowBands, labelAt, markerPath, pointAt, skyBackground, tickAt } from './sunDialGeometry'
+import { arcPath, cornerFor, dialAngle, DIAL, glowBands, labelAt, markerPath, pointAt, skyBackground, tickAt } from './sunDialGeometry'
 
 export interface SunDialProps {
   sun: SunTimes
@@ -29,6 +29,7 @@ export function SunDial({ sun, now, timeZone, h24, city }: SunDialProps) {
   const hand = pointAt(dialAngle(now, timeZone), r)
   const day = isDaytime(now, sun)
   const icon = day ? DIAL.sunIcon : DIAL.moonIcon
+  const corner = cornerFor(hand, icon)
   const labels = [
     { at: labelAt(rise), text: dialTimeText(sun.sunrise, timeZone, h24) },
     { at: labelAt(set), text: dialTimeText(sun.sunset, timeZone, h24) },
@@ -74,7 +75,7 @@ export function SunDial({ sun, now, timeZone, h24, city }: SunDialProps) {
         <line class="sun-hand" x1={DIAL.cx} y1={DIAL.cy} x2={hand.x} y2={hand.y} />
         <g
           class={day ? 'sun-now day' : 'sun-now night'}
-          transform={`translate(${hand.x - icon / 2} ${hand.y - icon / 2})`}
+          transform={`translate(${corner.x} ${corner.y})`}
           filter={day ? `url(#${id}-glow)` : undefined}
         >
           <Icon name={day ? 'Sun' : 'Moon'} size={icon} />

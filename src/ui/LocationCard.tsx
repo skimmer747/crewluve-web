@@ -57,6 +57,7 @@ export function LocationCard({ airport, now, homeTz, h24, airports, weather }: L
               <p class="weather-credit">
                 <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">
                   Weather: Open-Meteo
+                  <span class="sr-only"> (opens in a new tab)</span>
                 </a>
               </p>
             </>
