@@ -12,4 +12,5 @@ export const testAirports = buildAirportIndex([
   ['HNL', 'Honolulu', 'USA', 21.3245, -157.9251, 'Pacific/Honolulu', 'HI'],
   ['ATL', 'Atlanta', 'USA', 33.6407, -84.4277, 'America/New_York', 'GA'],
   ['CGN', 'Cologne', 'Germany', 50.8659, 7.1427, 'Europe/Berlin'],
+  ['BRW', 'Utqiaġvik', 'USA', 71.2854, -156.766, 'America/Anchorage', 'AK'],
 ])

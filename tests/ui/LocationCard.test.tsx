@@ -1,0 +1,115 @@
+// @vitest-environment happy-dom
+import { cleanup, render, screen } from '@testing-library/preact'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { Weather } from '../../src/data/weather'
+import { LocationCard } from '../../src/ui/LocationCard'
+import { testAirports } from '../fixtures/airports'
+import { iconNameOf } from '../fixtures/ui'
+
+afterEach(() => {
+  cleanup()
+  vi.unstubAllGlobals()
+})
+
+const NY = 'America/New_York'
+const NOW = Date.UTC(2026, 9, 10, 17, 14) // Saturday 10 October: 9:14 AM in Anchorage, 1:14 PM in New York
+const cloudy: Weather = { temperature: 41.2, code: 3, isDay: true }
+
+const card = (airport: string | null, weather: Weather | null = null, opts: { h24?: boolean; now?: number } = {}) => (
+  <LocationCard airport={airport} now={opts.now ?? NOW} homeTz={NY} h24={opts.h24 ?? false} airports={testAirports} weather={weather} />
+)
+/** Shows the odometer's final text at once. */
+const reduceMotion = () => vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce'), media: query }))
+
+describe('LocationCard', () => {
+  it('heads the card with a red pin and the city', () => {
+    const { container } = render(card('ANC', cloudy))
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('Anchorage')
+    const pin = container.querySelector('.location-head svg') as SVGElement
+    expect(iconNameOf(pin)).toBe('MapPin')
+    expect(pin.style.color).toBe('var(--red)')
+  })
+
+  it('shows the flag of a country the app has one for, and none in the US', () => {
+    const { container, rerender } = render(card('CGN'))
+    expect(container.querySelector('.location-flag')!.textContent).toBe('\u{1F1E9}\u{1F1EA}')
+    rerender(card('ANC'))
+    expect(container.querySelector('.location-flag')).toBeNull()
+  })
+
+  it('shows the weather, then credits Open-Meteo in a link that opens a new tab', () => {
+    const { container } = render(card('ANC', cloudy))
+    const row = container.querySelector('.weather-row')!
+    const icon = row.querySelector('svg') as SVGElement
+    expect(iconNameOf(icon)).toBe('Cloud')
+    expect(icon.style.color).toBe('var(--gray)')
+    expect(row.querySelector('.weather-temp')!.textContent).toBe('41°')
+    expect(row.querySelector('.weather-words')!.textContent).toBe('Cloudy')
+    const credit = screen.getByRole('link', { name: 'Weather: Open-Meteo' })
+    expect(credit.getAttribute('href')).toBe('https://open-meteo.com/')
+    expect(credit.getAttribute('target')).toBe('_blank')
+    expect(credit.getAttribute('rel')).toBe('noopener noreferrer')
+  })
+
+  it('shows a moon for a clear night', () => {
+    const { container } = render(card('LEX', { temperature: 58, code: 0, isDay: false }))
+    const icon = container.querySelector('.weather-row svg') as SVGElement
+    expect(iconNameOf(icon)).toBe('Moon')
+    expect(icon.style.color).toBe('var(--indigo)')
+  })
+
+  it('shows a plane and the airport code while there’s no weather', () => {
+    const { container } = render(card('ANC'))
+    const row = container.querySelector('.weather-row')!
+    expect(row.classList.contains('weather-none')).toBe(true)
+    expect(iconNameOf(row.querySelector('svg'))).toBe('Airplane')
+    expect(row.textContent).toBe('ANC')
+    expect(screen.queryByRole('link')).toBeNull()
+  })
+
+  it('shows the pilot’s local time and how far it is from home', () => {
+    reduceMotion()
+    const { container } = render(card('ANC', cloudy))
+    expect(container.querySelector('.time-label')!.textContent).toBe('Current time:')
+    expect(container.querySelector('.time-value')!.textContent).toBe('9:14 AM')
+    expect(container.querySelector('.time-diff .sr-only')!.textContent).toBe('4 hours behind you')
+    expect(container.querySelector('.time-diff [aria-hidden="true"]')!.textContent).toBe('4h behind you')
+  })
+
+  it('uses 24-hour time for visitors who use it', () => {
+    const { container } = render(card('ANC', cloudy, { h24: true }))
+    expect(container.querySelector('.time-value')!.textContent).toBe('09:14')
+  })
+
+  it('says "same time as you" in home’s time zone', () => {
+    const { container } = render(card('LEX'))
+    expect(container.querySelector('.time-diff')!.textContent).toBe('same time as you')
+  })
+
+  it('puts the sun dial in the corner, named for the city', () => {
+    render(card('ANC', cloudy))
+    expect(screen.getByRole('img').getAttribute('aria-label')).toMatch(/^Sunrise .+, sunset .+, daytime in Anchorage$/)
+  })
+
+  it('leaves the dial out when the sun neither rises nor sets that day, but keeps the time', () => {
+    const { container } = render(card('BRW', null, { now: Date.UTC(2026, 11, 21, 20) })) // Utqiaġvik in midwinter
+    expect(container.querySelector('.sun-dial')).toBeNull()
+    expect(container.querySelector('.time-value')!.textContent).toBe('11:00 AM')
+  })
+
+  it('shows only "Unknown Location" when nobody can tell where the pilot is', () => {
+    const { container } = render(card(null, cloudy))
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('Unknown Location')
+    expect(container.querySelector('.weather-row')).toBeNull()
+    expect(container.querySelector('.location-time')).toBeNull()
+    expect(container.querySelector('.sun-dial')).toBeNull()
+  })
+
+  it('shows an airport missing from the list as its code, with no time or dial', () => {
+    const { container } = render(card('XYZ'))
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('XYZ')
+    expect(container.querySelector('.weather-row')!.textContent).toBe('XYZ')
+    expect(container.querySelector('.location-time')).toBeNull()
+    expect(container.querySelector('.sun-dial')).toBeNull()
+  })
+})

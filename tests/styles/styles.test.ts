@@ -139,6 +139,24 @@ describe('cards.css', () => {
   })
 })
 
+describe('location.css', () => {
+  const top = blocks(css('location'))
+
+  it('rolls each new hour of the time difference in, with steady digits', () => {
+    expect(declarations(find(top, '.time-diff .roll')!.body).find(([prop]) => prop === 'animation')?.[1]).toMatch(/^roll-in\b/)
+    expect(declarations(find(top, '.time-diff-num')!.body)).toContainEqual(['font-variant-numeric', 'tabular-nums'])
+    expect(declarations(find(top, '.time-value')!.body)).toContainEqual(['font-variant-numeric', 'tabular-nums'])
+  })
+
+  it('turns the roll and the minutes’ fade off for people who prefer reduced motion', () => {
+    const media = find(top, '@media (prefers-reduced-motion: reduce)')
+    expect(media).toBeDefined()
+    const inside = blocks(media!.body)
+    expect(declarations(find(inside, '.time-diff .roll')!.body)).toContainEqual(['animation', 'none'])
+    expect(declarations(find(inside, '.time-diff-minutes')!.body)).toContainEqual(['transition', 'none'])
+  })
+})
+
 describe('full-height blocks', () => {
   it('follow each min-height: 100vh with min-height: 100dvh, so the iOS toolbar does not push content off screen', () => {
     let pairs = 0
