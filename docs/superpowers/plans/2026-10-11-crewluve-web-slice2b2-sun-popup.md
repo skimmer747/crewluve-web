@@ -23,10 +23,9 @@
 
 **How the printed code was checked**
 - Every code block below was built and run in a scratch copy of the project before this plan was written. All three gates passed there. A script then applied this plan's changes, step by step, to a fresh copy of `main`, and every file came out identical to the scratch copy's.
-- 63 deliberate breaks were tried against the new tests, and they caught 61. The two they miss are both in the port of the app's `SharedDaylight`, and neither can change the result:
-  - its early return when home's sunrise isn't before its sunset: every span is empty then anyway;
-  - its one-second filter: sun times have whole seconds, so a span is either empty or a second or more.
-  Both stay, line for line as in the app.
+- 63 deliberate breaks were tried against the new tests, and they caught 61. The two they missed are both in the port of the app's `SharedDaylight`, and both stay, line for line as in the app:
+  - its early return when home's sunrise isn't before its sunset can't change the result, since every span is empty then anyway;
+  - its one-second filter was thought unable to change it too, but the Batch A review showed it can: a span of exactly one second falls either side of it by rounding. A test now pins it (see the Execution notes).
 - A look at the scratch build in the browser pane showed the popup as designed: dark at night, light by day, the loop's arrow and sweep, a red delay, drifting clouds, and narrow and short screens. It also turned up one bug, now fixed in the printed code: focus didn't go back to the dial after closing, because Preact takes the popup away before the page stops being inert (Task 16).
 
 **Network and other repos**
@@ -4577,7 +4576,8 @@ Compare with `SunCircleDetailView.swift`, the big-size parts of `SunCircleView`,
 - dark at night; by day, light on a light device and dark on a dark one (`resize_window` with `colorScheme`);
 - the dial: home's dashed line and house, the shared daylight's wedge and white arc, the departure's hand, triangle, plane and label, and the red set for the delay;
 - the loop: the home arrow with "-4h behind", then the sweep with its rider and "4h58m to go", red past the scheduled time when late;
-- the weather animation behind the card (Cloudy in the demo).
+- the weather animation behind the card (Cloudy in the demo);
+- how far the clouds and fog spread. They're softened with gradients rather than blur (spec §11 item 5), and a stretched gradient fades along a band's whole length, where the app's blurred bands stay strong across most of the card. If they look too faint at the sides, show the user before changing anything.
 
 Two overlaps come from the app's own layout, so show them rather than fix them: the departure and delay labels can touch near the top of the dial, and "Noon" can sit under the departure plane.
 
@@ -4666,3 +4666,10 @@ Update the project memory with the new tip and what's next: the Part A follow-up
 - **A correction to "How the printed code was checked":** the one-second filter can change the result. A span of exactly one second is dropped or kept by floating-point rounding, as in the app (18:59:59 to 19:00:00 is dropped), and a test now pins that. The polar early return still can't change the result.
 - **Spec clarifications (§5.2, §5.3, §8, decisions 9–11):** the actual-time rule; the description's order; and, copying the app, a sweep that stays cyan to the actual time when the scheduled time has already passed.
 - The suite is 1574 tests in 69 files.
+
+**Fixes from the Batch C spec review (`3f3f1b2`):** the code matched the spec and the app, and the review found these:
+- **Invalid HTML:** the dial's sky was a `<div>` inside the card's `<button>`, which may hold only phrasing content. It's a `<span>` now. It's absolutely placed, so it still acts as a block.
+- **Tests added for the dial at 360:** the red sweep and the red rider and countdown when late; the green ones when early; the dashed laps; the blue "ahead" arrow and "+2h"; and the fades of the arrow, the sweep, its rider and the countdown.
+- **Tests added for the particles:** the rays' pulsing and the stars' twinkling over time, the rain's 8 px slant, the snow's sway, and the clouds' drift.
+- **Look check:** whether the clouds and fog spread like the app's, since they're softened with gradients (Task 19).
+- The suite is 1584 tests in 69 files.
