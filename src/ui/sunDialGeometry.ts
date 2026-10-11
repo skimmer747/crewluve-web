@@ -242,7 +242,7 @@ export interface Sweep {
   laps: string | null
   /** The solid part, up to the scheduled time at most. */
   solid: string | null
-  /** The red part, from the scheduled time to the actual one when that's later. */
+  /** The red part, from the scheduled time to the actual one, when the actual one is later. */
   delay: string | null
   /** The angle of the leading end, where the plane rides. */
   tip: number
@@ -250,8 +250,9 @@ export interface Sweep {
 
 /**
  * The departure sweep round the 0.85 circle, clockwise from now and `progress` of the way to the actual departure,
- * cut into the pieces the app's DepartureArcShape instances draw. Each full day ahead is a lap. The red piece is
- * empty unless the actual time is past the scheduled one, so an early departure has none, as in the app.
+ * cut into the pieces the app's DepartureArcShape instances draw. Each full day ahead is a lap. Only a departure later
+ * than scheduled gets the red piece, as in the app: angles keep only the hour and minute, so an early departure's
+ * actual time can sit past its scheduled one round the dial when they're whole days apart.
  */
 export function departureSweep(s: SweepInput): Sweep {
   const total = Math.floor(s.hoursToActual / 24) * 360 + turn(s.actual - s.now)
@@ -268,7 +269,7 @@ export function departureSweep(s: SweepInput): Sweep {
   return {
     laps: overDay ? piece(0, laps) : null,
     solid: overDay ? piece(laps, toScheduled - laps) : piece(0, toScheduled),
-    delay: piece(toScheduled, Infinity),
+    delay: s.hoursToActual > s.hoursToScheduled ? piece(toScheduled, Infinity) : null,
     tip: s.now + drawn,
   }
 }

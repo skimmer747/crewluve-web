@@ -201,6 +201,12 @@ describe('location.css', () => {
     expect(decls).toContainEqual(['height', percent(2 * DIAL.radius)])
   })
 
+  it('sizes the dial’s labels in its 160-point drawing, so they grow to 18 px and 20.25 px at the popup’s 360', () => {
+    const fontSize = (head: string) => parseFloat(declarations(find(top, head)!.body).find(([prop]) => prop === 'font-size')![1])
+    expect(fontSize('.sun-noon') * (360 / DIAL.size)).toBe(18)
+    expect(fontSize('.sun-time') * (360 / DIAL.size)).toBe(20.25)
+  })
+
   it('lifts the dial 6 px like the app’s offset, without shrinking the card', () => {
     const decls = declarations(find(top, '.sun-dial')!.body)
     expect(decls).toContainEqual(['top', '-6px'])
@@ -219,6 +225,12 @@ describe('sunPopup.css', () => {
 
   it('keeps the big dial square at the card’s full width, without aspect-ratio, which Safari 14 lacks', () => {
     expect(rule('.sun-dial.big')).toEqual(expect.arrayContaining([['width', '100%'], ['height', '0'], ['padding-bottom', '100%']]))
+  })
+
+  it('sizes the middle’s text in the dial’s 160-point drawing: 10 and 7 points, 22.5 px and 15.75 px at 360', () => {
+    const fontSize = (head: string) => parseFloat(rule(head).find(([prop]) => prop === 'font-size')![1])
+    expect(fontSize('.sun-middle-big') * (360 / DIAL.size)).toBe(22.5)
+    expect(fontSize('.sun-middle-small') * (360 / DIAL.size)).toBe(15.75)
   })
 
   it('dims the page with black at 30%', () => {

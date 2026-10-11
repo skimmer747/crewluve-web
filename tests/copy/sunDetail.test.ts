@@ -1,31 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import {
-  bigDialLabel,
-  daylightText,
-  departureCountdownText,
-  departureOffset,
-  departureTime,
-  hourDifference,
-  moonPhaseName,
-} from '../../src/copy/sunDetail'
+import { bigDialLabel, daylightText, departureCountdownText, departureOffset, hourDifference, moonPhaseName } from '../../src/copy/sunDetail'
 import { DAY, HOUR, MINUTE } from '../../src/time/zoned'
 
 const NY = 'America/New_York'
 const ANC = 'America/Anchorage'
 const OCT = Date.UTC(2026, 9, 10, 16) // Saturday 10 October, noon in New York
 
-describe('departureOffset and departureTime', () => {
+describe('departureOffset', () => {
   const scheduled = Date.UTC(2026, 9, 11, 11, 25)
-  it('count a departure as late or early only at 15 minutes or more, as everywhere on the site', () => {
+  it('counts a departure as late or early only at 15 minutes or more either way, as everywhere on the site', () => {
     expect(departureOffset({ scheduled, actual: scheduled + 40 * MINUTE })).toBe(40)
     expect(departureOffset({ scheduled, actual: scheduled - 20 * MINUTE })).toBe(-20)
     expect(departureOffset({ scheduled, actual: scheduled + 14 * MINUTE })).toBeNull()
     expect(departureOffset({ scheduled, actual: scheduled + 15 * MINUTE })).toBe(15)
-  })
-
-  it('leave at the estimated time when it counts as off, else at the scheduled time', () => {
-    expect(departureTime({ scheduled, actual: scheduled + 40 * MINUTE })).toBe(scheduled + 40 * MINUTE)
-    expect(departureTime({ scheduled, actual: scheduled + 10 * MINUTE })).toBe(scheduled)
+    expect(departureOffset({ scheduled, actual: scheduled - 14 * MINUTE })).toBeNull()
+    expect(departureOffset({ scheduled, actual: scheduled - 15 * MINUTE })).toBe(-15)
   })
 })
 
@@ -93,11 +82,15 @@ describe('bigDialLabel', () => {
     )
   })
 
-  it('names the actual time, and says how late or early', () => {
+  it('names the actual time, and says how late or early before the countdown', () => {
     expect(bigDialLabel({ ...base, departure: { scheduled, actual: scheduled + 40 * MINUTE } })).toBe(
-      'Sunrise 8:30\u202FAM, sunset 7:03\u202FPM, nighttime in Anchorage, 4 hours behind you. Next departure 4:05\u202FAM, in 6 hours, 40 minutes late.',
+      'Sunrise 8:30\u202FAM, sunset 7:03\u202FPM, nighttime in Anchorage, 4 hours behind you. Next departure 4:05\u202FAM, 40 minutes late, in 6 hours.',
     )
-    expect(bigDialLabel({ ...base, departure: { scheduled, actual: scheduled - 20 * MINUTE } })).toContain('Next departure 3:05\u202FAM, in 5 hours, 20 minutes early.')
+    expect(bigDialLabel({ ...base, departure: { scheduled, actual: scheduled - 20 * MINUTE } })).toContain('Next departure 3:05\u202FAM, 20 minutes early, in 5 hours.')
+  })
+
+  it('names the actual time of a departure under 15 minutes off, without calling it late', () => {
+    expect(bigDialLabel({ ...base, departure: { scheduled, actual: scheduled + 10 * MINUTE } })).toContain('Next departure 3:35\u202FAM, in 5 hours, 30 minutes.')
   })
 
   it('leaves out what doesn’t apply: the same clock as home, and a departure already gone or missing', () => {
@@ -105,5 +98,6 @@ describe('bigDialLabel', () => {
     expect(bigDialLabel({ ...base, departure: { scheduled: now - MINUTE, actual: now - MINUTE } })).toBe(
       'Sunrise 8:30\u202FAM, sunset 7:03\u202FPM, nighttime in Anchorage, 4 hours behind you.',
     )
+    expect(bigDialLabel({ ...base, departure: { scheduled: now, actual: now } })).not.toContain('Next departure')
   })
 })

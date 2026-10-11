@@ -191,7 +191,7 @@ describe('SunDial at 360', () => {
     expect(container.querySelector('.sun-hand.delay')).not.toBeNull()
     expect(iconNameOf(container.querySelector('.sun-plane.delay svg'))).toBe('Airplane')
     expect(container.querySelector('.sun-time.delay')!.textContent).toBe('4:05a')
-    expect(screen.getByRole('img').getAttribute('aria-label')).toContain('Next departure 4:05\u202FAM, in 6 hours, 40 minutes late.')
+    expect(screen.getByRole('img').getAttribute('aria-label')).toContain('Next departure 4:05\u202FAM, 40 minutes late, in 6 hours.')
   })
 
   it('leaves out home’s layers on the same clock, and the departure’s when there is none', () => {

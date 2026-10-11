@@ -39,9 +39,13 @@ describe('bigDialTurns', () => {
     expect(bigDialTurns(now, ANC, { ...detail, departure: null }).departureDays).toBeNull()
   })
 
-  it('counts to the actual time only when it’s 15 minutes or more off', () => {
+  it('counts down to the actual time, however little it’s off', () => {
     expect(bigDialTurns(now, ANC, { ...detail, departure: { scheduled, actual: scheduled + 40 * MINUTE } }).departureDays).toBe((6 * HOUR) / DAY)
-    expect(bigDialTurns(now, ANC, { ...detail, departure: { scheduled, actual: scheduled + 10 * MINUTE } }).departureDays).toBe((5 * HOUR + 20 * MINUTE) / DAY)
+    expect(bigDialTurns(now, ANC, { ...detail, departure: { scheduled, actual: scheduled + 10 * MINUTE } }).departureDays).toBe((5 * HOUR + 30 * MINUTE) / DAY)
+  })
+
+  it('keeps the departure turn through a small delay’s minutes past the scheduled time', () => {
+    expect(bigDialTurns(now, ANC, { ...detail, departure: { scheduled: now - 5 * MINUTE, actual: now + 5 * MINUTE } }).departureDays).toBe((5 * MINUTE) / DAY)
   })
 })
 
@@ -115,9 +119,30 @@ describe('bigDialLayers: the departure', () => {
     expect([early.countdown, early.tone]).toEqual(['5h', 'early'])
   })
 
-  it('treats a departure under 15 minutes off as on time', () => {
-    const slightly = layers({ ...detail, departure: { scheduled, actual: scheduled + 10 * MINUTE } }).departure!
-    expect([slightly.delay, slightly.tone, slightly.countdown]).toEqual([null, 'on-time', '5h20m'])
+  it('counts the laps to the scheduled time, so a delay past a day boundary runs on in red', () => {
+    // Due in 23 hours 50 minutes, leaving 40 minutes late: a little over a day ahead.
+    const due = now + 23 * HOUR + 50 * MINUTE
+    const late = layers({ ...detail, departure: { scheduled: due, actual: due + 40 * MINUTE } }).departure!
+    expect(late.sweep).toEqual(
+      departureSweep({ now: at(now), scheduled: at(due), actual: at(due + 40 * MINUTE), hoursToScheduled: 23 + 50 / 60, hoursToActual: 24.5, progress: 1 }),
+    )
+    expect(late.sweep.laps).toBeNull()
+    expect(late.sweep.delay).not.toBeNull()
+  })
+
+  it('treats a departure under 15 minutes off as on time, counting down and sweeping cyan to its actual time', () => {
+    const actual = scheduled + 10 * MINUTE
+    const slightly = layers({ ...detail, departure: { scheduled, actual } }).departure!
+    expect([slightly.delay, slightly.tone, slightly.countdown]).toEqual([null, 'on-time', '5h30m'])
+    expect(slightly.label.text).toBe('3:25a')
+    expect(slightly.sweep).toEqual(
+      departureSweep({ now: at(now), scheduled: at(actual), actual: at(actual), hoursToScheduled: 5.5, hoursToActual: 5.5, progress: 1 }),
+    )
+  })
+
+  it('shows the departure through a small delay’s minutes past the scheduled time', () => {
+    const between = layers({ ...detail, departure: { scheduled: now - 5 * MINUTE, actual: now + 5 * MINUTE } }).departure!
+    expect([between.countdown, between.tone]).toEqual(['5m', 'on-time'])
   })
 
   it('shows nothing of a departure that’s gone or missing', () => {

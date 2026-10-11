@@ -11,15 +11,14 @@ export interface DialDeparture {
   actual: number
 }
 
-/** How late (positive) or early (negative) the departure is, in minutes, when that's 15 minutes or more; else null (slice 1 decision 9). */
+/**
+ * How late (positive) or early (negative) the departure is, in minutes, when that's 15 minutes or more; else null
+ * (slice 1 decision 9). It decides only whether the departure is marked late or early: the countdown always runs to
+ * the actual time, as the page's sentence does.
+ */
 export function departureOffset(departure: DialDeparture): number | null {
   const minutes = Math.round((departure.actual - departure.scheduled) / MINUTE)
   return Math.abs(minutes) >= DELAY_THRESHOLD_MIN ? minutes : null
-}
-
-/** When the flight leaves as the dial counts it: the estimated time when it's off by 15 minutes or more, else the scheduled one. */
-export function departureTime(departure: DialDeparture): number {
-  return departureOffset(departure) == null ? departure.scheduled : departure.actual
 }
 
 /** "10h 33m of daylight": sunset minus sunrise, never below zero, always with both parts (daylightDurationText in the app). */
@@ -82,7 +81,9 @@ export interface BigDialLabelArgs {
 
 /**
  * What screen readers hear for the big dial (slice 2B2 §5.3): "Sunrise 8:30 AM, sunset 7:03 PM, nighttime in Anchorage,
- * 4 hours behind you. Next departure 3:25 AM, in 5 hours, 20 minutes." Parts that don't apply are left out.
+ * 4 hours behind you. Next departure 3:25 AM, in 5 hours, 20 minutes." A delay or an early departure is named right
+ * after the time ("Next departure 4:05 AM, 40 minutes late, in 6 hours"), so it can't be heard as part of the
+ * countdown. Parts that don't apply are left out.
  */
 export function bigDialLabel({ sun, now, timeZone, homeTz, h24, city, departure }: BigDialLabelArgs): string {
   const difference = timeDifference(now, timeZone, homeTz)
@@ -91,13 +92,10 @@ export function bigDialLabel({ sun, now, timeZone, homeTz, h24, city, departure 
       ? sunDialLabel(sun, now, timeZone, h24, city)
       : `${sunDialLabel(sun, now, timeZone, h24, city)}, ${spokenTimeDifference(difference)}`,
   ]
-  if (departure) {
-    const leaves = departureTime(departure)
-    if (leaves > now) {
-      const offset = departureOffset(departure)
-      const late = offset == null ? '' : `, ${delayText(offset)} ${offset > 0 ? 'late' : 'early'}`
-      sentences.push(`Next departure ${shortTimeText(leaves, timeZone, h24)}, in ${spokenDuration(leaves - now)}${late}`)
-    }
+  if (departure && departure.actual > now) {
+    const offset = departureOffset(departure)
+    const late = offset == null ? '' : `, ${delayText(offset)} ${offset > 0 ? 'late' : 'early'}`
+    sentences.push(`Next departure ${shortTimeText(departure.actual, timeZone, h24)}${late}, in ${spokenDuration(departure.actual - now)}`)
   }
   return `${sentences.join('. ')}.`
 }

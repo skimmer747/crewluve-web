@@ -1,6 +1,6 @@
 import { dialTimeText } from '../copy/format'
 import { timeDifference } from '../copy/location'
-import { departureCountdownText, departureOffset, departureTime, hourDifference, type DialDeparture } from '../copy/sunDetail'
+import { departureCountdownText, departureOffset, hourDifference, type DialDeparture } from '../copy/sunDetail'
 import { sharedDaylight } from '../time/sharedDaylight'
 import type { SunTimes } from '../time/sun'
 import { DAY, HOUR } from '../time/zoned'
@@ -85,9 +85,9 @@ export interface BigDialLayers {
   departure: DepartureLayers | null
 }
 
-/** Which turns of the loop apply now: home's while the clocks differ, the departure's while it's ahead. */
+/** Which turns of the loop apply now: home's while the clocks differ, the departure's while its actual time is ahead. */
 export function bigDialTurns(now: number, timeZone: string, detail: DialDetail): DialTurns {
-  const leaves = detail.departure ? departureTime(detail.departure) : null
+  const leaves = detail.departure?.actual
   return {
     home: timeDifference(now, timeZone, detail.homeTz).direction !== 'same',
     departureDays: leaves != null && leaves > now ? (leaves - now) / DAY : null,
@@ -129,24 +129,25 @@ export function bigDialLayers(sun: SunTimes, now: number, timeZone: string, h24:
   }
   let departure: DepartureLayers | null = null
   if (detail.departure && turns.departureDays != null) {
-    const { scheduled } = detail.departure
-    const leaves = departureTime(detail.departure)
+    const { scheduled, actual } = detail.departure
     const offset = departureOffset(detail.departure)
+    // A departure under 15 minutes off counts as on time, so its sweep runs cyan all the way to the actual time.
+    const due = offset == null ? actual : scheduled
     const sweep = departureSweep({
       now: nowAngle,
-      scheduled: dialAngle(scheduled, timeZone),
-      actual: dialAngle(leaves, timeZone),
-      hoursToScheduled: (scheduled - now) / HOUR,
-      hoursToActual: (leaves - now) / HOUR,
+      scheduled: dialAngle(due, timeZone),
+      actual: dialAngle(actual, timeZone),
+      hoursToScheduled: (due - now) / HOUR,
+      hoursToActual: (actual - now) / HOUR,
       progress: moment.departure.progress,
     })
     departure = {
       ...marksAt(scheduled, timeZone, h24),
       marker: departureMarkerPath(dialAngle(scheduled, timeZone)),
-      delay: offset == null ? null : marksAt(leaves, timeZone, h24),
+      delay: offset == null ? null : marksAt(actual, timeZone, h24),
       sweep,
       rider: planeSpot(sweep.tip, DETAIL.sweepRadius, DETAIL.sweepPlane),
-      countdown: departureCountdownText(leaves - now),
+      countdown: departureCountdownText(actual - now),
       tone: offset == null ? 'on-time' : offset > 0 ? 'late' : 'early',
       turn: moment.departure,
     }

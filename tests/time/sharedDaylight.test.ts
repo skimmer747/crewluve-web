@@ -84,4 +84,14 @@ describe('sharedDaylight', () => {
     expect(kept).toHaveLength(1)
     expect(kept[0].start).toBeCloseTo(18 + 59.5 / 60, 6)
   })
+
+  it('drops a span of a second where the app’s own arithmetic does: 18:59:59 to 19:00:00', () => {
+    // 19 minus (18 + 59/60 + 59/3600) comes out a hair under 1/3600 of an hour, in Swift's doubles as in JavaScript's.
+    const spans = sharedDaylight(
+      { sunrise: newYork('2026-06-10T18:59:59'), sunset: newYork('2026-06-10T23:00') },
+      { sunrise: newYork('2026-06-10T05:00'), sunset: newYork('2026-06-10T19:00') },
+      NY,
+    )
+    expect(spans).toEqual([])
+  })
 })

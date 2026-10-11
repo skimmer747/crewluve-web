@@ -33,14 +33,16 @@ describe('moonPhase', () => {
     ])
   })
 
-  it('changes name halfway between the main points', () => {
+  it('changes name at each of the eight boundaries, halfway between the main points', () => {
     const fullMoon = Date.parse('2026-08-28T04:12:00Z')
     const cycleStart = fullMoon - moonCycle(fullMoon) * SYNODIC_MONTH * DAY
     const at = (fraction: number) => cycleStart + fraction * SYNODIC_MONTH * DAY
-    expect(moonPhase(at(1 / 16 - 0.001))).toBe('new')
-    expect(moonPhase(at(1 / 16 + 0.001))).toBe('waxingCrescent')
-    expect(moonPhase(at(7 / 16 + 0.001))).toBe('full')
-    expect(moonPhase(at(15 / 16 + 0.001))).toBe('new')
+    const names = ['new', 'waxingCrescent', 'firstQuarter', 'waxingGibbous', 'full', 'waningGibbous', 'lastQuarter', 'waningCrescent']
+    for (let k = 0; k < 8; k++) {
+      const boundary = (2 * k + 1) / 16
+      expect(moonPhase(at(boundary - 0.001))).toBe(names[k])
+      expect(moonPhase(at(boundary + 0.001))).toBe(names[(k + 1) % 8])
+    }
   })
 })
 

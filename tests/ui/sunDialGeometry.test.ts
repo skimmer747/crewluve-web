@@ -170,9 +170,6 @@ describe('the big dial’s measurements', () => {
   it('scale every card measurement by 2.25 at the popup’s 360 px', () => {
     const scale = 360 / DIAL.size
     expect(scale).toBe(2.25)
-    // The labels the spec names: "Noon" at 18 px and the time labels at 20.25 px (8 and 9 points on the card).
-    expect(8 * scale).toBe(18)
-    expect(9 * scale).toBe(20.25)
     expect(DETAIL.homeIcon * scale).toBe(22.5)
     expect(DETAIL.arrowhead * scale).toBe(11.25)
   })
@@ -272,6 +269,50 @@ describe('departureSweep', () => {
     // 20 minutes early: 4:40 pm is 340.
     const early = { ...base, actual: 340, hoursToActual: 4 + 40 / 60 }
     expect(departureSweep(early)).toEqual({ laps: null, solid: turnPath(270, 70, r), delay: null, tip: 340 })
+  })
+
+  it('draws no red for an early departure, even when its clock time matches the scheduled one a day on', () => {
+    // Now is 12:00:30; the flight is due at 12:00 tomorrow, 30 seconds short of a day, and leaves 20 minutes early.
+    // Both clocks read 12:00, so the scheduled time is 0° round from now and the actual time 355°: the app draws
+    // neither cyan nor red.
+    const early = { now: 270, scheduled: 270, actual: 265, hoursToScheduled: 24 - 0.5 / 60, hoursToActual: 24 - 20.5 / 60, progress: 1 }
+    expect(departureSweep(early)).toEqual({ laps: null, solid: null, delay: null, tip: 625 })
+  })
+
+  it('counts full laps to the scheduled time, and goes past a day only by the actual time', () => {
+    // Late across a day: due in 23 hours (11 am tomorrow, 255), leaving in 25 (1 pm, 285).
+    expect(departureSweep({ ...base, scheduled: 255, actual: 285, hoursToScheduled: 23, hoursToActual: 25 })).toEqual({
+      laps: null,
+      solid: turnPath(270, 345, r),
+      delay: turnPath(615, 30, r),
+      tip: 645,
+    })
+    // Early across a day: due in 25 hours (1 pm, 285), leaving in 23.5 (11:30 am, 262.5).
+    expect(departureSweep({ ...base, scheduled: 285, actual: 262.5, hoursToScheduled: 25, hoursToActual: 23.5 })).toEqual({
+      laps: null,
+      solid: turnPath(270, 352.5, r),
+      delay: null,
+      tip: 622.5,
+    })
+  })
+
+  it('draws a departure exactly a day ahead as one solid lap', () => {
+    expect(departureSweep({ ...base, scheduled: 270, actual: 270, hoursToScheduled: 24, hoursToActual: 24 })).toEqual({
+      laps: null,
+      solid: turnPath(270, 360, r),
+      delay: null,
+      tip: 630,
+    })
+  })
+
+  it('sweeps cyan to the actual time when the scheduled time has already passed, as the app does', () => {
+    // Due 20 minutes ago (11:40 am, 265), leaving in 20 minutes (12:20 pm, 275).
+    expect(departureSweep({ ...base, scheduled: 265, actual: 275, hoursToScheduled: -1 / 3, hoursToActual: 1 / 3 })).toEqual({
+      laps: null,
+      solid: turnPath(270, 5, r),
+      delay: null,
+      tip: 275,
+    })
   })
 })
 
