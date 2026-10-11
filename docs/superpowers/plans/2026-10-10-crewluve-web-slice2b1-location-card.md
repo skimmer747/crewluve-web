@@ -3214,11 +3214,11 @@ Run a final whole-branch code review of `main..slice2b1`, and fix what it raises
 
 Use superpowers:finishing-a-development-branch. Ask the user one question about how to merge `slice2b1` into `main`.
 
-- [ ] **Step 3: Release, only with a fresh yes**
+- [x] **Step 3: Release, only with a fresh yes**
 
 Ask before pushing `main`; the push redeploys crewluve.crewlu.net. After the "Deploy to GitHub Pages" run succeeds, open https://crewluve.crewlu.net/?demo=1&scene=delayed and `…&scene=flying`. Confirm the card in the first and none in the second, with no console errors, and that the demo made no request to Open-Meteo.
 
-- [ ] **Step 4: Update the memory**
+- [x] **Step 4: Update the memory**
 
 Update the project memory with the new tip and what's next: Part B2, the sun dial popup.
 
@@ -3309,3 +3309,9 @@ Update the project memory with the new tip and what's next: Part B2, the sun dia
 - **Final check of the follow-ups (`197b976` through `6662d4c`):** "Ready to merge? Yes". The suite also passes under `TZ=Asia/Kathmandu` in French. Weather now stays within about 16 minutes: a return at minute 17 fetches at 17, 32 and 47. One optional cleanup is left for later: `loadDemoWeather` still works out day or night itself, though the card now uses that only as the polar fallback.
 - **Merged 2026-10-11:** the user chose "Merge into main", a fast-forward of 43 commits to `927b2c3`, with the gates green on main (1409 tests). The `slice2b1` branch is deleted.
 - **Task 16 (2026-10-11):** the user signed off on the look ("Looks right") from five screenshots: Anchorage by day and at night, home in Lexington at night, Miami in dark mode, and a 320 px phone. They chose to keep the app's two narrow-phone overlaps. Step 6, live weather, waits until after release.
+- **Released 2026-10-11:**
+  - The user said yes to the push: `071c797..5a404b1`.
+  - Deploy run 38149304711 succeeded, building and deploying.
+  - The live page's `connect-src` is `'self'`, the CrewLu Cloud address, and `https://api.open-meteo.com`.
+  - The live demo checks passed: `delayed` shows the Anchorage card between the countdown and the trip card, with 41° Cloudy and the dial; `flying` shows no card; neither had console errors or a request to Open-Meteo.
+  - Task 16 step 6, the live weather check, is up to the user: sign in on the live site.
