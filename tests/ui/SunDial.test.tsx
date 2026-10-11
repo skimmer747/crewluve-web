@@ -1,11 +1,16 @@
 // @vitest-environment happy-dom
-import { cleanup, render, screen } from '@testing-library/preact'
-import { afterEach, describe, expect, it } from 'vitest'
+import { cleanup, fireEvent, render, screen } from '@testing-library/preact'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { DialDetail } from '../../src/ui/bigDial'
 import { SunDial } from '../../src/ui/SunDial'
-import { arcPath, cornerFor, dialAngle, glowBands, labelAt, markerPath, pointAt, skyBackground, tickAt } from '../../src/ui/sunDialGeometry'
-import { iconNameOf } from '../fixtures/ui'
+import { arcPath, cornerFor, departureMarkerPath, dialAngle, glowBands, labelAt, markerPath, pointAt, skyBackground, tickAt } from '../../src/ui/sunDialGeometry'
+import { HOUR, MINUTE } from '../../src/time/zoned'
+import { iconNameOf, stubAnimationFrames } from '../fixtures/ui'
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.unstubAllGlobals()
+})
 
 const ANC = 'America/Anchorage'
 // Round numbers for Anchorage on 10 October 2026: sunrise 8:12 AM, sunset 6:41 PM.
@@ -119,5 +124,113 @@ describe('SunDial: where everything goes', () => {
     const ids = [...container.querySelectorAll('linearGradient, filter')].map((el) => el.id)
     expect(ids).toHaveLength(6)
     expect(new Set(ids).size).toBe(6)
+  })
+})
+
+describe('SunDial on the card', () => {
+  it('is a button that opens the popup when the card gives it somewhere to go', () => {
+    const onOpen = vi.fn()
+    render(<SunDial sun={sun} now={MORNING} timeZone={ANC} h24={false} city="Anchorage" onOpen={onOpen} />)
+    const button = screen.getByRole('button', { name: 'Sunrise 8:12\u202FAM, sunset 6:41\u202FPM, daytime in Anchorage. Opens sun details.' })
+    // A real button, so Enter and Space press it as well as a tap or click.
+    expect(button.tagName).toBe('BUTTON')
+    expect(button.getAttribute('type')).toBe('button')
+    expect(button.getAttribute('aria-haspopup')).toBe('dialog')
+    fireEvent.click(button)
+    expect(onOpen).toHaveBeenCalledTimes(1)
+  })
+
+  it('draws none of the big dial’s layers', () => {
+    const { container } = render(dial(MORNING))
+    expect(container.querySelector('.sun-dial')!.getAttribute('class')).toBe('sun-dial')
+    for (const layer of ['.sun-house', '.sun-home-line', '.sun-shared', '.sun-shared-wedge', '.sun-departure-marker', '.sun-plane', '.sun-arrow', '.sun-sweep', '.sun-middle']) {
+      expect(container.querySelector(layer), layer).toBeNull()
+    }
+  })
+})
+
+describe('SunDial at 360', () => {
+  const NY = 'America/New_York'
+  // 10:05 PM in Anchorage is 2:05 AM in New York; New York's day runs 7:13 AM to 6:28 PM. The flight leaves at 3:25 AM.
+  const homeSun = { sunrise: Date.UTC(2026, 9, 10, 11, 13), sunset: Date.UTC(2026, 9, 10, 22, 28) }
+  const scheduled = NIGHT + 5 * HOUR + 20 * MINUTE
+  const detail: DialDetail = { homeTz: NY, homeSun, departure: { scheduled, actual: scheduled }, still: false }
+  const big = (d: DialDetail = detail) => <SunDial sun={sun} now={NIGHT} timeZone={ANC} h24={false} city="Anchorage" size={360} detail={d} />
+  const middle = (container: Element) => [...container.querySelectorAll('.sun-middle text')].map((t) => t.textContent)
+
+  it('is one image to screen readers, described with the time difference and the next departure', () => {
+    const { container } = render(big())
+    expect(
+      screen.getByRole('img', {
+        name: 'Sunrise 8:12\u202FAM, sunset 6:41\u202FPM, nighttime in Anchorage, 4 hours behind you. Next departure 3:25\u202FAM, in 5 hours, 20 minutes.',
+      }),
+    ).toBeTruthy()
+    expect(container.querySelector('.sun-dial')!.getAttribute('class')).toBe('sun-dial big')
+    expect(screen.queryByRole('button')).toBeNull()
+  })
+
+  it('draws home’s dashed line and house, the shared daylight, and the departure’s hand, triangle, plane and label', () => {
+    const { container } = render(big())
+    const homeTip = pointAt(dialAngle(NIGHT, NY), 42)
+    const homeLine = container.querySelector('.sun-home-line')!
+    expect([homeLine.getAttribute('x2'), homeLine.getAttribute('y2')]).toEqual([String(homeTip.x), String(homeTip.y)])
+    expect(iconNameOf(container.querySelector('.sun-house svg'))).toBe('House')
+    expect(container.querySelector('.sun-house svg')!.getAttribute('width')).toBe('10')
+    expect(container.querySelectorAll('.sun-shared-wedge')).toHaveLength(1)
+    expect(container.querySelectorAll('.sun-shared')).toHaveLength(1)
+    expect(container.querySelector('.sun-hand.departure')).not.toBeNull()
+    expect(container.querySelector('.sun-departure-marker')!.getAttribute('d')).toBe(departureMarkerPath(dialAngle(scheduled, ANC)))
+    expect(iconNameOf(container.querySelector('.sun-plane.departure svg'))).toBe('Airplane')
+    expect(container.querySelector('.sun-time.departure')!.textContent).toBe('3:25a')
+    expect(container.querySelector('.sun-hand.delay')).toBeNull()
+    expect(container.querySelector('.sun-plane.delay')).toBeNull()
+  })
+
+  it('adds the red hand, plane and label at the actual time for a delay', () => {
+    const { container } = render(big({ ...detail, departure: { scheduled, actual: scheduled + 40 * MINUTE } }))
+    expect(container.querySelector('.sun-hand.delay')).not.toBeNull()
+    expect(iconNameOf(container.querySelector('.sun-plane.delay svg'))).toBe('Airplane')
+    expect(container.querySelector('.sun-time.delay')!.textContent).toBe('4:05a')
+    expect(screen.getByRole('img').getAttribute('aria-label')).toContain('Next departure 4:05\u202FAM, in 6 hours, 40 minutes late.')
+  })
+
+  it('leaves out home’s layers on the same clock, and the departure’s when there is none', () => {
+    const { container } = render(big({ ...detail, homeTz: ANC, departure: null }))
+    for (const layer of ['.sun-house', '.sun-home-line', '.sun-shared', '.sun-shared-wedge', '.sun-hand.departure', '.sun-departure-marker', '.sun-plane']) {
+      expect(container.querySelector(layer), layer).toBeNull()
+    }
+  })
+
+  it('runs the loop: the home arrow and "-4h behind", then the departure sweep and "5h20m to go"', async () => {
+    const frames = stubAnimationFrames()
+    const { container } = render(big())
+    await frames.frame(1000)
+    expect(container.querySelector('.sun-arrow')).toBeNull()
+    expect(middle(container)).toEqual([])
+    await frames.frame(1400)
+    expect(container.querySelector('.sun-arrow')!.getAttribute('class')).toBe('sun-arrow behind')
+    expect(middle(container)).toEqual(['-4h', 'behind'])
+    expect(Number(container.querySelector('.sun-middle')!.getAttribute('opacity'))).toBeCloseTo(0.6846, 4)
+    expect(container.querySelector('.sun-sweep')).toBeNull()
+    await frames.frame(1000 + 3100 + 400)
+    expect(container.querySelector('.sun-arrow')).toBeNull()
+    expect(container.querySelector('.sun-sweep-solid')).not.toBeNull()
+    expect(container.querySelector('.sun-plane.rider')!.getAttribute('class')).toBe('sun-plane rider on-time')
+    expect(middle(container)).toEqual(['5h20m', 'to go'])
+  })
+
+  it('holds still for reduced motion, with both arcs drawn and the countdown in the middle', () => {
+    const frames = stubAnimationFrames()
+    const { container } = render(big({ ...detail, still: true }))
+    expect(frames.pending).toBe(0)
+    expect(container.querySelector('.sun-arrow')!.getAttribute('opacity')).toBe('1')
+    expect(container.querySelector('.sun-sweep-solid')).not.toBeNull()
+    expect(middle(container)).toEqual(['5h20m', 'to go'])
+  })
+
+  it('asks for no frames when nothing moves', () => {
+    const frames = stubAnimationFrames()
+    render(big({ ...detail, homeTz: ANC, departure: null }))
+    expect(frames.pending).toBe(0)
   })
 })
