@@ -3288,4 +3288,13 @@ Update the project memory with the new tip and what's next: Part B2, the sun dia
     - Style tests for the number colors, the 24 px indent and `pointer-events: none`, and a check of the sky circle against `DIAL`.
   - Ground transport was already pinned in `baacc21`.
 - **Batch D spec review:** compliant. The reviewer ran the built site in WebKit with its real CSP. In the demo scenes the only request was `/data/airports.json`: no Open-Meteo call and no CSP violation. Its doc notes led to rows 8–10 of spec §10, a corrected row 2, item 9 in the coverage table, and a `showsLocationCard` test for every status.
+- **Batch D code review:** "Ready to merge: Yes", with nothing Critical or Important. It checked in a real browser, under the production CSP, that:
+  - the demo makes no Open-Meteo call;
+  - a GET with the site's exact options gets an answer from Open-Meteo;
+  - any other host is blocked.
+  It also confirmed every Batch C fix holds. Its three suggested tests became one commit (see `git log`):
+  - with an empty schedule, the weather stops refreshing, which pins the hook's place before the early return;
+  - the difference is measured from home, not from the visitor's zone;
+  - the card honors 24-hour time.
+  - Not taken: moving `weatherPlace` next to `showsLocationCard`. It works where it is.
 - **Task 16 (2026-10-11):** the user signed off on the look ("Looks right") from five screenshots: Anchorage by day and at night, home in Lexington at night, Miami in dark mode, and a 320 px phone. They chose to keep the app's two narrow-phone overlaps. Step 6, live weather, waits until after release.
