@@ -241,6 +241,26 @@ describe('StatusScreen location card (slice 2B1)', () => {
     expect(container.querySelector('.location')).toBeNull()
   })
 
+  /** The turn at Rockford (Chicago time), seen by a visitor in Los Angeles whose family is at home in New York. */
+  const fromLosAngeles = (h24: boolean) => {
+    const now = at(180)
+    return (
+      <StatusScreen snap={makeSnapshot(e.schedule, e.legs, now, NY)} now={now} viewerTz="America/Los_Angeles" homeTz={NY} h24={h24}
+        airports={testAirports} weather={null} demo={false} celebrateKey={0} footer={footer(now)} />
+    )
+  }
+
+  it('measures the time difference from home, not from wherever the visitor is', () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce'), media: query }))
+    const { container } = render(fromLosAngeles(false))
+    expect(container.querySelector('.time-diff .sr-only')!.textContent).toBe('1 hour behind you')
+  })
+
+  it('writes the card’s clock in 24-hour time for visitors who use it', () => {
+    const { container } = render(fromLosAngeles(true))
+    expect(container.querySelector('.time-value')!.textContent).toMatch(/^\d{2}:\d{2}$/)
+  })
+
   it('reads "Unknown Location" when the engine can’t tell where the pilot is', () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {})
     const unknown = safeSnapshot(e.schedule, null as unknown as Leg[], at(0), NY)

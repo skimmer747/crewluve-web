@@ -5,6 +5,7 @@ import { demoRawForScene } from '../../src/data/demo'
 import { RawBuilder } from '../../src/data/rowBuilder'
 import type { RawSchedule } from '../../src/data/rows'
 import { tempUnitFor, type WeatherLoader } from '../../src/data/weather'
+import { WEATHER_REFRESH_MS } from '../../src/ui/hooks/useWeather'
 import type { ScheduleHandle } from '../../src/ui/hooks/useSchedule'
 import { ScheduleScreen } from '../../src/ui/ScheduleScreen'
 import { testAirports } from '../fixtures/airports'
@@ -102,6 +103,20 @@ describe('ScheduleScreen location card (slice 2B1)', () => {
     render(<ScheduleScreen schedule={handle(demoRawForScene('delayed', NOW))} airports={testAirports} demo={false} onSignOut={() => {}} loadWeather={load} />)
     expect(await screen.findByText('41°')).toBeTruthy()
     expect(load).toHaveBeenCalledWith({ code: 'ANC', lat: 61.1744, lng: -149.9983, tz: 'America/Anchorage', unit: tempUnitFor() })
+  })
+
+  it('stops asking for weather once the schedule empties, since the hook still runs on the empty screen', async () => {
+    const load = vi.fn<WeatherLoader>(async () => ({ temperature: 41, code: 3, isDay: true }))
+    const screenFor = (raw: RawSchedule) => (
+      <ScheduleScreen schedule={handle(raw)} airports={testAirports} demo={false} onSignOut={() => {}} loadWeather={load} />
+    )
+    const { rerender } = render(screenFor(demoRawForScene('delayed', NOW)))
+    expect(await screen.findByText('41°')).toBeTruthy()
+    rerender(screenFor(new RawBuilder(NOW).build()))
+    await act(async () => {
+      vi.advanceTimersByTime(WEATHER_REFRESH_MS)
+    })
+    expect(load).toHaveBeenCalledTimes(1)
   })
 
   it('asks for no weather while the pilot is flying', async () => {
