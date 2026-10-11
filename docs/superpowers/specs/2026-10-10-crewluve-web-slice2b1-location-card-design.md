@@ -139,6 +139,7 @@ The Phosphor icon set (`scripts/build-icons.mjs`) gains Moon, CloudSun, CloudMoo
 6. The card is hidden in flight until Part C's map takes its place.
 7. The dial isn't tappable until Part B2.
 8. A difference under an hour reads "30m ahead of you", as the app's other two styles write it. The app's odometer shows "0h 30m".
+9. During ground transport the card shows, with the departure city, as it does for a drive. Slice 1 gave ground legs their own status instead of "In Flight" (its deliberate difference 9). The app counts them as flights, so it shows its in-flight map there.
 
 ## 9. Testing
 

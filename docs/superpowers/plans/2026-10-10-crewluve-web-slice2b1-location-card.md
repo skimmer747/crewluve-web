@@ -3262,4 +3262,9 @@ Update the project memory with the new tip and what's next: Part B2, the sun dia
   - The hook redraws when an answer lands for the airport on screen, even one the visitor left and came back to.
   - The comment about `load` is now accurate.
   - A new test covers going back to an airport after 15 minutes.
+- **Batch C spec review:** compliant. The reviewer rendered the app's own SunCircleView and card layout with SwiftUI, beside the site's in WebKit, and found them aligned to about a pixel. Its points became `1c6c979`:
+  - The style rule for the dial's drawing is now `.sun-dial > svg`. `.sun-dial svg` also matched the sun or moon icon nested inside, which Firefox may stretch to the whole box.
+  - The dial is lifted with `top: -6px` instead of a margin, so the card keeps the app's height: 192 px plus the border, where it had been 6 px shorter.
+  - A polar-day case joins the polar-night one.
+  - It also noted that the card shows during ground transport, where the app shows its in-flight map. That follows slice 1's decision to give ground legs their own status, so it's recorded as spec §8 item 9 and not changed.
 - **Task 16 (2026-10-11):** the user signed off on the look ("Looks right") from five screenshots: Anchorage by day and at night, home in Lexington at night, Miami in dark mode, and a 320 px phone. They chose to keep the app's two narrow-phone overlaps. Step 6, live weather, waits until after release.
