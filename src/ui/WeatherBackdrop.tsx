@@ -7,19 +7,14 @@ const SOFT_RGB = { cloud: '140, 153, 179', fog: '153, 161, 173' } as const
 
 type Palette = Record<ParticleColor, string>
 
-/** The particles' colors: the theme's, read where the canvas sits, so they follow the popup's light or dark colors. */
+/**
+ * The lines' and dots' colors: the theme's, read where the canvas sits, so they follow the popup's light or dark set.
+ * White stands in for any the stylesheet hasn't set.
+ */
 function readPalette(el: Element): Palette {
   const style = getComputedStyle(el)
-  const theme = (name: string, fallback: string) => style.getPropertyValue(`--${name}`).trim() || fallback
-  return {
-    orange: theme('orange', '#ff8d28'),
-    yellow: theme('yellow', '#ffcc00'),
-    blue: theme('blue', '#0088ff'),
-    cyan: theme('cyan', '#00c0e8'),
-    white: '#ffffff',
-    cloud: `rgb(${SOFT_RGB.cloud})`,
-    fog: `rgb(${SOFT_RGB.fog})`,
-  }
+  const theme = (name: string) => style.getPropertyValue(`--${name}`).trim() || '#ffffff'
+  return { orange: theme('orange'), yellow: theme('yellow'), blue: theme('blue'), cyan: theme('cyan'), white: '#ffffff' }
 }
 
 /** Draws one shape. Soft shapes fade out toward their edges, in place of the app's blur, which Safari's canvas lacked before 18. */
@@ -69,20 +64,25 @@ function paint(ctx: CanvasRenderingContext2D, shape: WeatherShape, colors: Palet
       shape.points.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)))
       ctx.stroke()
       return
+    default: {
+      // A new kind of shape has to be painted here: this stops the build until it is.
+      const unpainted: never = shape
+      return unpainted
+    }
   }
 }
 
 export interface WeatherBackdropProps {
   kind: WeatherAnimation
-  /** Whether the popup is in its dark colors: the particles' colors are read again when it changes. */
-  dark: boolean
+  /** Whether it's night where the pilot is, which forces the popup's dark colors: they're read again when it changes. */
+  night: boolean
 }
 
 /**
  * The weather animation behind the popup card (slice 2B2 §7), drawn on a canvas each animation frame while the page is
  * visible. The popup leaves it out for reduced motion and when there's no weather.
  */
-export function WeatherBackdrop({ kind, dark }: WeatherBackdropProps) {
+export function WeatherBackdrop({ kind, night }: WeatherBackdropProps) {
   const ref = useRef<HTMLCanvasElement>(null)
   useEffect(() => {
     const canvas = ref.current
@@ -94,13 +94,16 @@ export function WeatherBackdrop({ kind, dark }: WeatherBackdropProps) {
       const ratio = Math.min(2, window.devicePixelRatio || 1)
       const w = canvas.clientWidth
       const h = canvas.clientHeight
-      if (canvas.width !== Math.round(w * ratio) || canvas.height !== Math.round(h * ratio)) {
-        canvas.width = Math.round(w * ratio)
-        canvas.height = Math.round(h * ratio)
+      // Nothing to draw on until the card has a size; the particles' formulas divide by it.
+      if (w > 0 && h > 0) {
+        if (canvas.width !== Math.round(w * ratio) || canvas.height !== Math.round(h * ratio)) {
+          canvas.width = Math.round(w * ratio)
+          canvas.height = Math.round(h * ratio)
+        }
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
+        ctx.clearRect(0, 0, w, h)
+        for (const shape of weatherShapes(kind, now / 1000, w, h)) paint(ctx, shape, colors, w, h)
       }
-      ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
-      ctx.clearRect(0, 0, w, h)
-      for (const shape of weatherShapes(kind, now / 1000, w, h)) paint(ctx, shape, colors, w, h)
       raf = requestAnimationFrame(draw)
     }
     const start = () => {
@@ -115,6 +118,6 @@ export function WeatherBackdrop({ kind, dark }: WeatherBackdropProps) {
       cancelAnimationFrame(raf)
       document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [kind, dark])
+  }, [kind, night])
   return <canvas ref={ref} class="sun-popup-weather" aria-hidden="true" />
 }

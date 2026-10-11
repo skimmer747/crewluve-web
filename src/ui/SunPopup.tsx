@@ -122,7 +122,7 @@ export function SunPopup(p: SunPopupProps) {
         aria-labelledby={titleId}
         style={drag ? { transform: `translateY(${drag}px)` } : undefined}
       >
-        {p.weather && !still && <WeatherBackdrop kind={weatherAnimation(p.weather.code, day)} dark={!day} />}
+        {p.weather && !still && <WeatherBackdrop kind={weatherAnimation(p.weather.code, day)} night={!day} />}
         <div class="sun-popup-scroll">
           <div
             class="sun-popup-grab"

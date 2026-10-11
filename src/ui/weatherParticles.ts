@@ -5,8 +5,8 @@ import type { WeatherAnimation } from '../copy/weather'
  * the time and the particle's number, so nothing is stored between frames. Sizes are in CSS pixels of the card.
  */
 
-/** The colors the particles use: theme colors, white, and the app's cloud and fog grays. */
-export type ParticleColor = 'orange' | 'yellow' | 'blue' | 'cyan' | 'white' | 'cloud' | 'fog'
+/** The colors lines and dots use: theme colors and white. Soft shapes use the app's cloud or fog gray. */
+export type ParticleColor = 'orange' | 'yellow' | 'blue' | 'cyan' | 'white'
 
 export type WeatherShape =
   | { kind: 'line'; x1: number; y1: number; x2: number; y2: number; width: number; color: ParticleColor; alpha: number }
