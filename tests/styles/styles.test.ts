@@ -155,6 +155,17 @@ describe('location.css', () => {
     expect(declarations(find(inside, '.time-diff .roll')!.body)).toContainEqual(['animation', 'none'])
     expect(declarations(find(inside, '.time-diff-minutes')!.body)).toContainEqual(['transition', 'none'])
   })
+
+  it('sizes only the dial’s own drawing, not the sun or moon icon nested inside it', () => {
+    expect(find(top, '.sun-dial > svg')).toBeDefined()
+    expect(find(top, '.sun-dial svg')).toBeUndefined()
+  })
+
+  it('lifts the dial 6 px like the app’s offset, without shrinking the card', () => {
+    const decls = declarations(find(top, '.sun-dial')!.body)
+    expect(decls).toContainEqual(['top', '-6px'])
+    expect(decls.find(([prop]) => prop === 'margin-top')).toBeUndefined()
+  })
 })
 
 describe('full-height blocks', () => {

@@ -145,12 +145,13 @@
   }
 }
 
-/* The sun dial: 160 px like the app's, smaller on narrow phones, 6 px above the padding at the upper right. */
+/* The sun dial: 160 px like the app's, smaller on narrow phones, at the upper right. top lifts it 6 px above the
+   padding the way the app's .offset(y: -6) does, without changing the card's height as a margin would. */
 .sun-dial {
   position: relative;
+  top: -6px;
   justify-self: end;
   align-self: start;
-  margin-top: -6px;
   width: min(160px, 42vw);
   height: min(160px, 42vw);
   pointer-events: none;
@@ -167,7 +168,8 @@
   opacity: 0.25;
 }
 
-.sun-dial svg {
+/* The dial's own drawing only: the sun or moon icon inside it is an <svg> too, and keeps its own size. */
+.sun-dial > svg {
   position: absolute;
   top: 0;
   left: 0;

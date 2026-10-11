@@ -92,9 +92,12 @@ describe('LocationCard', () => {
   })
 
   it('leaves the dial out when the sun neither rises nor sets that day, but keeps the time', () => {
-    const { container } = render(card('BRW', null, { now: Date.UTC(2026, 11, 21, 20) })) // Utqiaġvik in midwinter
+    const { container, rerender } = render(card('BRW', null, { now: Date.UTC(2026, 11, 21, 20) })) // Utqiaġvik in midwinter
     expect(container.querySelector('.sun-dial')).toBeNull()
     expect(container.querySelector('.time-value')!.textContent).toBe('11:00\u202FAM')
+    rerender(card('BRW', null, { now: Date.UTC(2026, 5, 21, 20) })) // and in midsummer
+    expect(container.querySelector('.sun-dial')).toBeNull()
+    expect(container.querySelector('.time-value')!.textContent).toBe('12:00\u202FPM')
   })
 
   it('shows only "Unknown Location" when nobody can tell where the pilot is', () => {
