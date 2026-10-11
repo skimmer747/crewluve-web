@@ -29,16 +29,27 @@ export interface Point {
  */
 export function dialAngle(ms: number, timeZone: string): number {
   const { hour, minute } = zonedParts(ms, timeZone)
-  return 90 + ((hour + minute / 60) / 24) * 360
+  return hourAngle(hour + minute / 60)
+}
+
+/** Where an hour of the day, from 0 up to 24 with a fraction, sits on the dial (angleForClockHour): midnight 90, noon 270. */
+export function hourAngle(hour: number): number {
+  return 90 + (hour / 24) * 360
 }
 
 /** A number rounded to hundredths, which keeps the SVG's numbers short. */
 const round = (v: number) => Math.round(v * 100) / 100
 
+/** The point `radius` from the dial's center at `angle` degrees, unrounded, for working out other points. */
+function exactPoint(angle: number, radius: number): Point {
+  const a = (angle * Math.PI) / 180
+  return { x: DIAL.cx + radius * Math.cos(a), y: DIAL.cy + radius * Math.sin(a) }
+}
+
 /** The point `radius` from the dial's center at `angle` degrees, rounded to hundredths. */
 export function pointAt(angle: number, radius: number): Point {
-  const a = (angle * Math.PI) / 180
-  return { x: round(DIAL.cx + radius * Math.cos(a)), y: round(DIAL.cy + radius * Math.sin(a)) }
+  const p = exactPoint(angle, radius)
+  return { x: round(p.x), y: round(p.y) }
 }
 
 /** An SVG path along the circle of `radius`, clockwise from angle `from` to angle `to`. */
@@ -142,4 +153,154 @@ export function skyBackground(sunrise: number, sunset: number): string {
   return `conic-gradient(from 90deg, ${skyStops(sunrise, sunset)
     .map((stop) => `${stop.color} ${round(stop.at * 100)}%`)
     .join(', ')})`
+}
+
+/**
+ * The big dial's own measurements: the parts of SunCircleView the app draws only above the card's size (size > 160),
+ * in points of the same 160-point box. The browser scales them with everything else, by 2.25 at 360.
+ */
+export const DETAIL = {
+  /** The home-time arrow runs round a circle at 0.70 × the radius, the departure sweep round one at 0.85 ×. */
+  arrowRadius: DIAL.radius * 0.7,
+  sweepRadius: DIAL.radius * 0.85,
+  arrowhead: 5,
+  /** How far each side of the arrowhead turns off the arc, in degrees. */
+  arrowheadSpread: 25,
+  homeIcon: 10,
+  plane: 10,
+  sweepPlane: 8,
+  /** The departure plane sits 2 points beyond the departure triangle. */
+  planeRadius: DIAL.radius + DIAL.marker + 2,
+} as const
+
+/** An angle wrapped into 0 up to 360, like the app's (a - b + 360).truncatingRemainder(dividingBy: 360). */
+const turn = (degrees: number) => ((degrees % 360) + 360) % 360
+
+/**
+ * An SVG path round the circle of `radius` from angle `from`, turning `sweep` degrees: clockwise when it's positive,
+ * counterclockwise when negative. It goes in pieces of at most half a turn, so laps of a day or more draw over each
+ * other as the app's do.
+ */
+export function turnPath(from: number, sweep: number, radius: number): string {
+  const r = round(radius)
+  const start = pointAt(from, radius)
+  const direction = sweep < 0 ? -1 : 1
+  let path = `M${start.x} ${start.y}`
+  let at = from
+  let left = Math.abs(sweep)
+  while (left > 0.001) {
+    const piece = Math.min(left, 180)
+    at += direction * piece
+    const end = pointAt(at, radius)
+    path += `A${r} ${r} 0 0 ${direction > 0 ? 1 : 0} ${end.x} ${end.y}`
+    left -= piece
+  }
+  return path
+}
+
+/** The home-time arrow's arc, and the arrowhead that leads it. */
+export interface Arrow {
+  arc: string
+  head: string
+}
+
+/**
+ * The home-time arrow, drawn `progress` (0 to 1) of the way round the 0.70 circle from home's time to the pilot's:
+ * clockwise when the pilot is ahead, counterclockwise when behind (HomeTimeArcShape, HomeTimeArrowheadShape).
+ */
+export function homeArrow(home: number, pilot: number, ahead: boolean, progress: number): Arrow | null {
+  if (progress <= 0) return null
+  const sweep = (ahead ? turn(pilot - home) : -turn(home - pilot)) * progress
+  const end = home + sweep
+  const tip = exactPoint(end, DETAIL.arrowRadius)
+  // The sides run back from the tip, 25° either side of straight back along the arc.
+  const back = end + (ahead ? 90 : -90) + 180
+  const side = (offset: number) => {
+    const a = ((back + offset) * Math.PI) / 180
+    return `${round(tip.x + DETAIL.arrowhead * Math.cos(a))} ${round(tip.y + DETAIL.arrowhead * Math.sin(a))}`
+  }
+  return {
+    arc: turnPath(home, sweep, DETAIL.arrowRadius),
+    head: `M${round(tip.x)} ${round(tip.y)}L${side(DETAIL.arrowheadSpread)}L${side(-DETAIL.arrowheadSpread)}Z`,
+  }
+}
+
+export interface SweepInput {
+  /** The dial's angles for now, the scheduled departure and the actual one. */
+  now: number
+  scheduled: number
+  actual: number
+  /** Hours from now to the scheduled departure and to the actual one. */
+  hoursToScheduled: number
+  hoursToActual: number
+  /** How far the sweep has drawn, 0 to 1. */
+  progress: number
+}
+
+export interface Sweep {
+  /** The dashed full laps, one a day, when the departure is more than a day ahead. */
+  laps: string | null
+  /** The solid part, up to the scheduled time at most. */
+  solid: string | null
+  /** The red part, from the scheduled time to the actual one when that's later. */
+  delay: string | null
+  /** The angle of the leading end, where the plane rides. */
+  tip: number
+}
+
+/**
+ * The departure sweep round the 0.85 circle, clockwise from now and `progress` of the way to the actual departure,
+ * cut into the pieces the app's DepartureArcShape instances draw. Each full day ahead is a lap. The red piece is
+ * empty unless the actual time is past the scheduled one, so an early departure has none, as in the app.
+ */
+export function departureSweep(s: SweepInput): Sweep {
+  const total = Math.floor(s.hoursToActual / 24) * 360 + turn(s.actual - s.now)
+  const laps = Math.floor(Math.max(0, s.hoursToScheduled) / 24) * 360
+  const toScheduled = laps + turn(s.scheduled - s.now)
+  const drawn = total * s.progress
+  /** What's drawn of the piece that starts `offset` degrees round and runs at most `cap`, or null when that's nothing. */
+  const piece = (offset: number, cap: number) => {
+    const start = Math.min(drawn, offset)
+    const length = Math.min(drawn - start, cap)
+    return length > 0.001 ? turnPath(s.now + start, length, DETAIL.sweepRadius) : null
+  }
+  const overDay = s.hoursToActual > 24
+  return {
+    laps: overDay ? piece(0, laps) : null,
+    solid: overDay ? piece(laps, toScheduled - laps) : piece(0, toScheduled),
+    delay: piece(toScheduled, Infinity),
+    tip: s.now + drawn,
+  }
+}
+
+/** The small triangle just outside the circle at the departure time: the noon marker, turned to point at the center. */
+export function departureMarkerPath(angle: number): string {
+  const tip = pointAt(angle, DIAL.radius)
+  const base = exactPoint(angle, DIAL.radius + DIAL.marker)
+  // Half the base, across the radius: the app's perpendicular (-sin, cos).
+  const a = (angle * Math.PI) / 180
+  const dx = -Math.sin(a) * DIAL.markerHalfWidth
+  const dy = Math.cos(a) * DIAL.markerHalfWidth
+  return `M${tip.x} ${tip.y}L${round(base.x + dx)} ${round(base.y + dy)}L${round(base.x - dx)} ${round(base.y - dy)}Z`
+}
+
+/** A wedge from the center out to the circle, clockwise from angle `from` to angle `to`: the shared daylight's fill. */
+export function wedgePath(from: number, to: number): string {
+  const a = pointAt(from, DIAL.radius)
+  const b = pointAt(to, DIAL.radius)
+  return `M${DIAL.cx} ${DIAL.cy}L${a.x} ${a.y}A${DIAL.radius} ${DIAL.radius} 0 ${turn(to - from) > 180 ? 1 : 0} 1 ${b.x} ${b.y}Z`
+}
+
+/** Where a plane icon goes: the corner of its box, and its turn in degrees about the box's center. */
+export interface PlaneSpot {
+  corner: Point
+  rotate: number
+}
+
+/**
+ * A plane icon of `size` centered on the circle of `radius` at `angle`, pointing clockwise along it. Phosphor's plane
+ * points up, so it turns angle + 180; the app's SF Symbol points right and turns angle + 90.
+ */
+export function planeSpot(angle: number, radius: number, size: number): PlaneSpot {
+  return { corner: cornerFor(pointAt(angle, radius), size), rotate: round(turn(angle + 180)) }
 }
