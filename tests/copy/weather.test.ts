@@ -22,7 +22,7 @@ describe('weatherVisual', () => {
     [[1], 'Mostly Clear', 'Sun', 'orange'],
     [[2], 'Partly Cloudy', 'CloudSun', 'orange'],
     [[3], 'Cloudy', 'Cloud', 'gray'],
-    [[45, 48], 'Foggy', 'CloudFog', 'gray'],
+    [[45, 48], 'Fog', 'CloudFog', 'gray'],
     [[51, 53, 55], 'Drizzle', 'CloudRain', 'blue'],
     [[56, 57], 'Freezing Drizzle', 'CloudRain', 'blue'],
     [[61, 63, 80, 81], 'Rain', 'CloudRain', 'blue'],
@@ -31,7 +31,7 @@ describe('weatherVisual', () => {
     [[71], 'Flurries', 'CloudSnow', 'cyan'],
     [[73, 77, 85], 'Snow', 'CloudSnow', 'cyan'],
     [[75, 86], 'Heavy Snow', 'CloudSnow', 'cyan'],
-    [[95, 96, 99], 'Thunderstorms', 'CloudLightning', 'yellow'],
+    [[95, 96, 99], 'Thunderstorm', 'CloudLightning', 'yellow'],
   ])('codes %j read "%s" with %s in %s', (codes, words, icon, color) => {
     for (const code of codes) expect(weatherVisual(code, true)).toEqual({ words, icon, color })
   })
@@ -51,14 +51,17 @@ describe('weatherVisual', () => {
 })
 
 describe('temperatureText', () => {
-  it('rounds to whole degrees and adds the degree sign, like the app', () => {
+  it('rounds to whole degrees as the app’s weather format does, halves to the even number, and adds the degree sign', () => {
     expect(temperatureText(41.2)).toBe('41°')
-    expect(temperatureText(40.5)).toBe('41°')
+    expect(temperatureText(40.5)).toBe('40°')
+    expect(temperatureText(41.5)).toBe('42°')
     expect(temperatureText(14.44)).toBe('14°')
     expect(temperatureText(-3.6)).toBe('-4°')
+    expect(temperatureText(-3.5)).toBe('-4°')
   })
 
-  it('never shows minus zero', () => {
-    expect(temperatureText(-0.4)).toBe('0°')
+  it('keeps the minus sign just below zero, as the app does', () => {
+    expect(temperatureText(-0.4)).toBe('-0°')
+    expect(temperatureText(0.4)).toBe('0°')
   })
 })

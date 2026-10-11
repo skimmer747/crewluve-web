@@ -17,8 +17,8 @@ const CONDITIONS: Record<WeatherCode, [words: string, sky: Sky]> = {
   1: ['Mostly Clear', 'clear'],
   2: ['Partly Cloudy', 'partly'],
   3: ['Cloudy', 'cloudy'],
-  45: ['Foggy', 'fog'],
-  48: ['Foggy', 'fog'],
+  45: ['Fog', 'fog'],
+  48: ['Fog', 'fog'],
   51: ['Drizzle', 'rain'],
   53: ['Drizzle', 'rain'],
   55: ['Drizzle', 'rain'],
@@ -38,9 +38,9 @@ const CONDITIONS: Record<WeatherCode, [words: string, sky: Sky]> = {
   82: ['Heavy Rain', 'rain'],
   85: ['Snow', 'snow'],
   86: ['Heavy Snow', 'snow'],
-  95: ['Thunderstorms', 'storm'],
-  96: ['Thunderstorms', 'storm'],
-  99: ['Thunderstorms', 'storm'],
+  95: ['Thunderstorm', 'storm'],
+  96: ['Thunderstorm', 'storm'],
+  99: ['Thunderstorm', 'storm'],
 }
 
 /** The sky's icon and color: sun orange, moon indigo, clouds and fog gray, rain blue, snow cyan, lightning yellow. */
@@ -70,7 +70,13 @@ export function weatherVisual(code: WeatherCode, isDay: boolean): WeatherVisual 
   return { words, icon, color }
 }
 
-/** "41°": rounded, with no unit letter, as the app's narrow weather format shows it. */
+/**
+ * Whole degrees the way the app's weather format writes them: halves round to the even number (40.5 is 40), and a
+ * reading just below zero keeps its minus sign ("-0"). Browsers without roundingMode round halves up instead.
+ */
+const WHOLE_DEGREES = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0, useGrouping: false, roundingMode: 'halfEven' } as Intl.NumberFormatOptions)
+
+/** "41°": whole degrees with no unit letter, as the app's narrow weather format shows them. */
 export function temperatureText(degrees: number): string {
-  return `${Math.round(degrees)}°`
+  return `${WHOLE_DEGREES.format(degrees)}°`
 }
