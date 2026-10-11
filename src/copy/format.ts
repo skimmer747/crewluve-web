@@ -91,11 +91,16 @@ export function delayText(minutes: number): string {
   return h > 0 ? hours : mins
 }
 
-/** "1:00pm" (12-hour, lowercase, no space: Crewluve "h:mma") or "13:00" ("HH:mm"). */
-export function clockText(ms: number, timeZone: string, h24: boolean): string {
+/** The time in `timeZone` as "8:12" plus `am` or `pm`, or as "08:12" in 24-hour: what the clock formats below share. */
+function clock(ms: number, timeZone: string, h24: boolean, am: string, pm: string): string {
   const { hour, minute } = zonedParts(ms, timeZone)
   if (h24) return `${pad2(hour)}:${pad2(minute)}`
-  return `${hour % 12 === 0 ? 12 : hour % 12}:${pad2(minute)}${hour < 12 ? 'am' : 'pm'}`
+  return `${hour % 12 === 0 ? 12 : hour % 12}:${pad2(minute)}${hour < 12 ? am : pm}`
+}
+
+/** "1:00pm" (12-hour, lowercase, no space: Crewluve "h:mma") or "13:00" ("HH:mm"). */
+export function clockText(ms: number, timeZone: string, h24: boolean): string {
+  return clock(ms, timeZone, h24, 'am', 'pm')
 }
 
 /**
@@ -114,16 +119,12 @@ export function clockWithDayText(ms: number, now: number, timeZone: string, h24:
 
 /** The location card's clock: "9:14 AM", with iOS's narrow no-break space before AM, or "09:14" (DateFormatter's short time). */
 export function shortTimeText(ms: number, timeZone: string, h24: boolean): string {
-  const { hour, minute } = zonedParts(ms, timeZone)
-  if (h24) return `${pad2(hour)}:${pad2(minute)}`
-  return `${hour % 12 === 0 ? 12 : hour % 12}:${pad2(minute)}\u202F${hour < 12 ? 'AM' : 'PM'}`
+  return clock(ms, timeZone, h24, '\u202FAM', '\u202FPM')
 }
 
 /** A sun dial label: "8:12a" or "6:41p" (SunCircleView.formatTime, "h:mma" with a and p), or "08:12" in 24-hour. */
 export function dialTimeText(ms: number, timeZone: string, h24: boolean): string {
-  const { hour, minute } = zonedParts(ms, timeZone)
-  if (h24) return `${pad2(hour)}:${pad2(minute)}`
-  return `${hour % 12 === 0 ? 12 : hour % 12}:${pad2(minute)}${hour < 12 ? 'a' : 'p'}`
+  return clock(ms, timeZone, h24, 'a', 'p')
 }
 
 /** {T}: "1:00pm EST" or "13:00 EST" (formattedLocalTime). */
