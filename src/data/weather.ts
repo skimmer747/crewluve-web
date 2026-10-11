@@ -64,17 +64,30 @@ export function parseWeather(body: unknown): Weather | null {
   return { temperature, code, isDay: isDay === 1 }
 }
 
+/** How long to wait for Open-Meteo. fetch never gives up by itself, and a stalled request would hold up every later refresh. */
+export const WEATHER_TIMEOUT_MS = 10_000
+
 /**
- * The current weather from Open-Meteo, or null when it can't be had. A plain GET that sends no cookies and no referrer,
- * and that the browser never caches (slice 2B1 §6, §7). Tests pass their own `fetch`; the parameter keeps that name so
- * the read-only scan still checks this call.
+ * The current weather from Open-Meteo, or null when it can't be had within 10 seconds. A plain GET that sends no cookies
+ * and no referrer, and that the browser never caches (slice 2B1 §6, §7). Tests pass their own `fetch`; the parameter
+ * keeps that name so the read-only scan still checks this call.
  */
 export async function fetchWeather(lat: number, lng: number, unit: TempUnit, fetch: typeof globalThis.fetch = globalThis.fetch): Promise<Weather | null> {
+  // A timer and an AbortController rather than AbortSignal.timeout, which iOS 15 lacks. Aborting stops a stalled body too.
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), WEATHER_TIMEOUT_MS)
   try {
-    const res = await fetch(weatherUrl(lat, lng, unit), { cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer' })
+    const res = await fetch(weatherUrl(lat, lng, unit), {
+      cache: 'no-store',
+      credentials: 'omit',
+      referrerPolicy: 'no-referrer',
+      signal: controller.signal,
+    })
     return res.ok ? parseWeather(await res.json()) : null
   } catch {
     return null
+  } finally {
+    clearTimeout(timer)
   }
 }
 

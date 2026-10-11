@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fetchWeather, loadLiveWeather, parseWeather, tempUnitFor, weatherUrl } from '../../src/data/weather'
+import { fetchWeather, loadLiveWeather, parseWeather, tempUnitFor, WEATHER_TIMEOUT_MS, weatherUrl } from '../../src/data/weather'
 
 afterEach(() => {
+  vi.useRealTimers()
   vi.unstubAllGlobals()
 })
 
@@ -61,9 +62,35 @@ describe('fetchWeather', () => {
   it('sends a plain GET that is never cached and carries no cookies or referrer, and returns the weather', async () => {
     const { fetch, calls } = fakeFetch({ body: reply({ temperature_2m: 41.2, weather_code: 3, is_day: 1 }) })
     expect(await fetchWeather(61.1744, -149.9983, 'fahrenheit', fetch)).toEqual({ temperature: 41.2, code: 3, isDay: true })
-    expect(calls).toEqual([
-      { url: weatherUrl(61.1744, -149.9983, 'fahrenheit'), init: { cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer' } },
-    ])
+    expect(calls.map((c) => c.url)).toEqual([weatherUrl(61.1744, -149.9983, 'fahrenheit')])
+    // Exactly these options: no method, no body, nothing else. This holds even if the scan stopped recognizing the call.
+    const init = calls[0].init!
+    expect(Object.keys(init).sort()).toEqual(['cache', 'credentials', 'referrerPolicy', 'signal'])
+    expect(init).toMatchObject({ cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer' })
+    expect(init.signal).toBeInstanceOf(AbortSignal)
+  })
+
+  it('gives up after 10 seconds, so a stalled request never holds up the next refresh', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    // Like a real fetch that never answers: it rejects only when its signal aborts.
+    const stalled = ((_input: RequestInfo | URL, init?: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(new DOMException('The operation was aborted.', 'AbortError')))
+      })) as typeof globalThis.fetch
+    const answer = fetchWeather(61.17, -150, 'celsius', stalled)
+    await vi.advanceTimersByTimeAsync(WEATHER_TIMEOUT_MS - 1)
+    let settled = false
+    void answer.then(() => (settled = true))
+    await Promise.resolve()
+    expect(settled).toBe(false)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(await answer).toBeNull()
+  })
+
+  it('stops its 10-second timer once the answer is in', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    await fetchWeather(61.17, -150, 'celsius', fakeFetch({ body: reply({ temperature_2m: 5, weather_code: 3, is_day: 1 }) }).fetch)
+    expect(vi.getTimerCount()).toBe(0)
   })
 
   it.each([
@@ -77,12 +104,12 @@ describe('fetchWeather', () => {
 })
 
 describe('loadLiveWeather', () => {
-  it('fetches at the airport’s coordinates, in the visitor’s unit', async () => {
+  it.each(['fahrenheit', 'celsius'] as const)('fetches at the airport’s coordinates, in the visitor’s unit: %s', async (unit) => {
     const { fetch, calls } = fakeFetch({ body: reply({ temperature_2m: 5.1, weather_code: 3, is_day: 1 }) })
     vi.stubGlobal('fetch', fetch)
-    const weather = await loadLiveWeather({ code: 'ANC', lat: 61.1744, lng: -149.9983, tz: 'America/Anchorage', unit: 'celsius' })
+    const weather = await loadLiveWeather({ code: 'ANC', lat: 61.1744, lng: -149.9983, tz: 'America/Anchorage', unit })
     expect(weather).toEqual({ temperature: 5.1, code: 3, isDay: true })
-    expect(calls.map((c) => c.url)).toEqual([weatherUrl(61.1744, -149.9983, 'celsius')])
+    expect(calls.map((c) => c.url)).toEqual([weatherUrl(61.1744, -149.9983, unit)])
   })
 })
 
