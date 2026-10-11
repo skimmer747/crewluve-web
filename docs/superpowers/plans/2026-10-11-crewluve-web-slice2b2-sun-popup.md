@@ -4625,11 +4625,11 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ### Task 20: Merge and release (controller, asks first)
 
-- [ ] **Step 1: Final review**
+- [x] **Step 1: Final review**
 
 Run a final whole-branch code review of `main..slice2b2`, and fix what it raises test-first.
 
-- [ ] **Step 2: Merge**
+- [x] **Step 2: Merge**
 
 Use superpowers:finishing-a-development-branch. Ask the user one question about how to merge `slice2b2` into `main`.
 
@@ -4726,3 +4726,5 @@ Update the project memory with the new tip and what's next: the Part A follow-up
 - a narrow 320 × 568 phone.
 
 There were no nudges: the shadow stays at the spec's 20 px, and the clouds and fog as built. Night couldn't be shown live, since every demo place was in daylight; it uses the dark set the test keeps identical to the page's. No iOS 15 device was to hand.
+
+**Merge (Task 20, 2026-10-11):** the final review's re-check said "Ready to merge? Yes", and the user said to merge once it passed. `slice2b2` was fast-forwarded into `main` (`997e7ee..4ac02bd`, 39 commits) and deleted. On `main`: 1613 tests in 70 files, `tsc` and the build pass. The push to GitHub, which redeploys the site, waits for the user's own yes.
