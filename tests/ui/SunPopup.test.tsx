@@ -119,19 +119,12 @@ describe('SunPopup', () => {
 })
 
 describe('SunPopup: opening and closing', () => {
-  it('moves focus to the close button and stops the page scrolling, then puts both back', async () => {
-    const opener = document.createElement('button')
-    document.body.append(opener)
-    opener.focus()
+  it('moves focus to the close button and stops the page scrolling, then lets it scroll again', () => {
     const { unmount } = render(popup())
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Close' }))
     expect(document.body.style.overflow).toBe('hidden')
     unmount()
     expect(document.body.style.overflow).toBe('')
-    // Focus goes back just after the page stops being inert, at the end of the render that closes the popup.
-    await new Promise((resolve) => setTimeout(resolve))
-    expect(document.activeElement).toBe(opener)
-    opener.remove()
   })
 
   it.each([

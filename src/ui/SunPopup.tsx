@@ -64,8 +64,7 @@ export function SunPopup(p: SunPopupProps) {
   latestClose.current = close
 
   useEffect(() => {
-    // Focus moves to the close button and comes back to whatever opened the popup; the page behind doesn't scroll.
-    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    // Focus moves to the close button, and the page behind doesn't scroll. The screen hands focus back to the dial.
     closeButton.current?.focus()
     const overflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -82,11 +81,6 @@ export function SunPopup(p: SunPopupProps) {
       document.removeEventListener('keydown', onKey)
       clearTimeout(timer.current)
       document.body.style.overflow = overflow
-      // Preact takes the popup away before it makes the page usable again, and nothing in an inert page can take
-      // focus, so focus goes back once this render is done.
-      setTimeout(() => {
-        if (opener?.isConnected) opener.focus()
-      })
     }
   }, [])
 

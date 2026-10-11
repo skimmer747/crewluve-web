@@ -123,8 +123,10 @@ describe('LocationCard', () => {
   it('makes the dial a button that opens the sun popup when the screen gives it one', () => {
     const onOpenSun = vi.fn()
     render(<LocationCard airport="ANC" now={NOW} homeTz={NY} h24={false} airports={testAirports} weather={cloudy} onOpenSun={onOpenSun} />)
-    fireEvent.click(screen.getByRole('button', { name: /^Sunrise .+, sunset .+, daytime in Anchorage\. Opens sun details\.$/ }))
+    const dial = screen.getByRole('button', { name: /^Sunrise .+, sunset .+, daytime in Anchorage\. Opens sun details\.$/ })
+    fireEvent.click(dial)
     expect(onOpenSun).toHaveBeenCalledTimes(1)
+    expect(onOpenSun).toHaveBeenCalledWith(dial)
   })
 
   it('leaves the dial out when the sun neither rises nor sets that day, but keeps the time', () => {

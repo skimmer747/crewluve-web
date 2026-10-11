@@ -347,7 +347,8 @@
 }
 
 /* Opening: the backdrop and the card fade in while the dial grows from half size, on SwiftUI's
-   spring(response: 0.5, dampingFraction: 0.7), sampled every 0.1 s: a little past full size, then back. */
+   spring(response: 0.5, dampingFraction: 0.7), sampled every 0.1 s: a little past full size, then back. The dial
+   fades in with the card rather than on its own, so it isn't faded twice. */
 .sun-popup-backdrop,
 .sun-popup-card {
   animation: sun-popup-fade 0.6s linear;
@@ -375,19 +376,15 @@
 @keyframes sun-popup-zoom {
   0% {
     transform: scale(0.5);
-    opacity: 0;
   }
   17% {
     transform: scale(0.712);
-    opacity: 0.423;
   }
   33% {
     transform: scale(0.937);
-    opacity: 0.874;
   }
   50% {
     transform: scale(1.017);
-    opacity: 1;
   }
   67% {
     transform: scale(1.02);
@@ -400,7 +397,7 @@
   }
 }
 
-/* Closing: 0.2 s, ease-out, back to nothing. */
+/* Closing: 0.2 s, ease-out, back to nothing, the dial shrinking to half size as it goes. */
 .sun-popup.closing .sun-popup-backdrop,
 .sun-popup.closing .sun-popup-card {
   opacity: 0;
@@ -408,9 +405,8 @@
 }
 
 .sun-popup.closing .sun-dial.big {
-  opacity: 0;
   transform: scale(0.5);
-  transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+  transition: transform 0.2s ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {

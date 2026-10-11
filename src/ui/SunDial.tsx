@@ -20,10 +20,12 @@ interface DialBase {
 }
 
 /**
- * SunCircleView's size setting: 160 on the location card, where `onOpen` makes the dial a button that opens the popup;
- * 360 in the popup, which draws the big dial's own layers from `detail` (the app's size > 160).
+ * SunCircleView's size setting: 160 on the location card, where `onOpen` makes the dial a button that opens the popup
+ * and is handed that button, for focus to come back to; 360 in the popup, which draws the big dial's own layers from
+ * `detail` (the app's size > 160).
  */
-export type SunDialProps = DialBase & ({ size?: 160; onOpen?: () => void; detail?: never } | { size: 360; detail: DialDetail; onOpen?: never })
+export type SunDialProps = DialBase &
+  ({ size?: 160; onOpen?: (dial: HTMLElement) => void; detail?: never } | { size: 360; detail: DialDetail; onOpen?: never })
 
 /**
  * The 24-hour sun dial: SunCircleView with the parts the app draws at each size (slice 2B1 §5, slice 2B2 §5). Screen
@@ -120,9 +122,16 @@ export function SunDial(props: SunDialProps) {
       </div>
     )
   }
-  if (props.onOpen) {
+  const open = props.onOpen
+  if (open) {
     return (
-      <button type="button" class="sun-dial" aria-label={`${sunDialLabel(sun, now, timeZone, h24, city)}. Opens sun details.`} aria-haspopup="dialog" onClick={props.onOpen}>
+      <button
+        type="button"
+        class="sun-dial"
+        aria-label={`${sunDialLabel(sun, now, timeZone, h24, city)}. Opens sun details.`}
+        aria-haspopup="dialog"
+        onClick={(e) => open(e.currentTarget)}
+      >
         {drawing}
       </button>
     )

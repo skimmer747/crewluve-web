@@ -130,11 +130,13 @@ describe('bigDialLayers: the departure', () => {
     expect(late.sweep.delay).not.toBeNull()
   })
 
-  it('treats a departure under 15 minutes off as on time, counting down and sweeping cyan to its actual time', () => {
+  it('treats a departure under 15 minutes off as on time at its actual time: marks, countdown and a cyan sweep', () => {
     const actual = scheduled + 10 * MINUTE
     const slightly = layers({ ...detail, departure: { scheduled, actual } }).departure!
     expect([slightly.delay, slightly.tone, slightly.countdown]).toEqual([null, 'on-time', '5h30m'])
-    expect(slightly.label.text).toBe('3:25a')
+    expect(slightly.label.text).toBe('3:35a')
+    expect(slightly.hand).toEqual(pointAt(at(actual), 42))
+    expect(slightly.marker).toBe(departureMarkerPath(at(actual)))
     expect(slightly.sweep).toEqual(
       departureSweep({ now: at(now), scheduled: at(actual), actual: at(actual), hoursToScheduled: 5.5, hoursToActual: 5.5, progress: 1 }),
     )

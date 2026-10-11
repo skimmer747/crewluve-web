@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks'
+import { useEffect, useRef, useState } from 'preact/hooks'
 import { arrivalWhenText, leaveWhenText, tripDepartsText } from '../copy/format'
 import { safeNarrative } from '../copy/narrative'
 import { arrivalCard, leaveCard, statusVisual } from '../copy/visuals'
@@ -41,6 +41,9 @@ export interface StatusScreenProps {
 export function StatusScreen(p: StatusScreenProps) {
   const { snap } = p
   const [sunOpen, setSunOpen] = useState(false)
+  /** The card's dial, which opened the popup: focus goes back to it afterwards. */
+  const dial = useRef<HTMLElement | null>(null)
+  const wasOpen = useRef(false)
   const spans = safeNarrative(snap, { now: p.now, viewerTz: p.viewerTz, h24: p.h24, airports: p.airports })
   const airport = snap.status.airport
   const facts = showsLocationCard(snap) ? locationFacts(airport, p.now, p.airports, p.weather) : null
@@ -50,6 +53,12 @@ export function StatusScreen(p: StatusScreenProps) {
     if (sunOpen && !dialShown) setSunOpen(false)
   }, [sunOpen, dialShown])
   const open = sunOpen && dialShown
+  // Focus goes back to the dial once the popup has closed. This runs after the render that lifts `inert` from <main>,
+  // since nothing in an inert page can take focus. A dial that went away (at takeoff) is skipped.
+  useEffect(() => {
+    if (wasOpen.current && !open && dial.current?.isConnected) dial.current.focus()
+    wasOpen.current = open
+  }, [open])
   const flight = snap.nextFlight
   return (
     <>
@@ -66,7 +75,10 @@ export function StatusScreen(p: StatusScreenProps) {
             h24={p.h24}
             airports={p.airports}
             weather={p.weather}
-            onOpenSun={() => setSunOpen(true)}
+            onOpenSun={(button) => {
+              dial.current = button
+              setSunOpen(true)
+            }}
           />
         )}
         {snap.upcomingTrip && (

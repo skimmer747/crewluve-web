@@ -24,8 +24,8 @@ export interface LocationCardProps {
   h24: boolean
   airports: AirportIndex
   weather: Weather | null
-  /** Opens the sun popup: the dial becomes a button (slice 2B2 §3). */
-  onOpenSun?: () => void
+  /** Opens the sun popup: the dial becomes a button, and is handed to it for focus to come back to (slice 2B2 §3). */
+  onOpenSun?: (dial: HTMLElement) => void
 }
 
 /**

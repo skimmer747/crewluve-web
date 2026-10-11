@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, fireEvent, render, screen } from '@testing-library/preact'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { demoRaw, demoRawForScene, DEMO_SCENES, type DemoScene } from '../../src/data/demo'
 import type { Weather } from '../../src/data/weather'
@@ -10,6 +10,9 @@ import { EmptyState } from '../../src/ui/EmptyState'
 import type { FooterProps } from '../../src/ui/Footer'
 import { StatusScreen } from '../../src/ui/StatusScreen'
 import { testAirports } from '../fixtures/airports'
+import { sharedDaylight } from '../../src/time/sharedDaylight'
+import { sunTimes } from '../../src/time/sun'
+import { hourAngle, wedgePath } from '../../src/ui/sunDialGeometry'
 import { A, at, engineFor } from '../fixtures/engine'
 import { stubAnimationFrames } from '../fixtures/ui'
 
@@ -308,6 +311,54 @@ describe('StatusScreen sun popup (slice 2B2)', () => {
     const main = container.querySelector('main')!
     expect(main.getAttribute('aria-hidden')).toBeNull()
     expect(main.hasAttribute('inert')).toBe(false)
+  })
+
+  it('returns focus to the dial once the popup has closed, though a click never focused it', async () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce'), media: query }))
+    render(turnAt())
+    openDial()
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Close' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    await act(() => {})
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: /\. Opens sun details\.$/ }))
+  })
+
+  it('counts down to the next flight’s estimated start, and marks it late from its scheduled one', () => {
+    const now = at(180)
+    const snap = makeSnapshot(e.schedule, e.legs, now, NY)
+    const flight = snap.nextFlight!
+    const late = { ...snap, nextFlight: { ...flight, start: flight.schedStart + 40 * 60_000 } }
+    render(
+      <StatusScreen snap={late} now={now} viewerTz={NY} homeTz={NY} h24={false} airports={testAirports} weather={rockford} demo={false}
+        celebrateKey={0} footer={footer(now)} />,
+    )
+    openDial()
+    expect(screen.getByRole('img', { name: /Next departure .+, 40 minutes late, in .+\.$/ })).toBeTruthy()
+  })
+
+  it('works out the shared daylight from the pilot’s home airport', () => {
+    // The demo pilot lives in Lexington and is based in Louisville; Rockford is an hour behind.
+    const now = at(180)
+    const { container } = render(turnAt())
+    openDial()
+    const rockfordSun = sunTimes(now, 42.1954, -89.0972, 'America/Chicago')!
+    const lexingtonSun = sunTimes(now, 38.0365, -84.6059, NY)!
+    const [span] = sharedDaylight(rockfordSun, lexingtonSun, NY)
+    expect(container.querySelector('.sun-shared-wedge')!.getAttribute('d')).toBe(wedgePath(hourAngle(span.start), hourAngle(span.end)))
+  })
+
+  it('closes by itself when the place has no sun times, and shows the page again', () => {
+    const { container, rerender } = render(turnAt())
+    openDial()
+    // The same snapshot, moved to Utqiaġvik in midwinter, where the sun doesn't rise.
+    const now = Date.UTC(2026, 11, 21, 20)
+    const snap = makeSnapshot(e.schedule, e.legs, at(180), NY)
+    rerender(
+      <StatusScreen snap={{ ...snap, status: { ...snap.status, airport: 'BRW' } }} now={now} viewerTz={NY} homeTz={NY} h24={false}
+        airports={testAirports} weather={rockford} demo={false} celebrateKey={0} footer={footer(now)} />,
+    )
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(container.querySelector('main')!.getAttribute('aria-hidden')).toBeNull()
   })
 
   it('closes by itself when the dial goes away at takeoff, and stays closed when it comes back', () => {

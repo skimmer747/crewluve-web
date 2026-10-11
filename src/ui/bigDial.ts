@@ -131,7 +131,8 @@ export function bigDialLayers(sun: SunTimes, now: number, timeZone: string, h24:
   if (detail.departure && turns.departureDays != null) {
     const { scheduled, actual } = detail.departure
     const offset = departureOffset(detail.departure)
-    // A departure under 15 minutes off counts as on time, so its sweep runs cyan all the way to the actual time.
+    // A departure under 15 minutes off counts as on time at its actual time: its marks sit there, and its sweep runs
+    // cyan all the way to it. Otherwise the cyan marks show the scheduled time and the red ones the actual time.
     const due = offset == null ? actual : scheduled
     const sweep = departureSweep({
       now: nowAngle,
@@ -142,8 +143,8 @@ export function bigDialLayers(sun: SunTimes, now: number, timeZone: string, h24:
       progress: moment.departure.progress,
     })
     departure = {
-      ...marksAt(scheduled, timeZone, h24),
-      marker: departureMarkerPath(dialAngle(scheduled, timeZone)),
+      ...marksAt(due, timeZone, h24),
+      marker: departureMarkerPath(dialAngle(due, timeZone)),
       delay: offset == null ? null : marksAt(actual, timeZone, h24),
       sweep,
       rider: planeSpot(sweep.tip, DETAIL.sweepRadius, DETAIL.sweepPlane),
