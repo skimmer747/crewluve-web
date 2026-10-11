@@ -175,6 +175,32 @@ describe('useWeather', () => {
     expect(load.mock.calls.map(([place]) => place.code)).toEqual(['ANC', 'SDF'])
   })
 
+  it('shows an answer that lands after going away and back to its airport', async () => {
+    const answers: Array<(weather: Weather) => void> = []
+    const load = vi.fn<WeatherLoader>(() => new Promise<Weather | null>((resolve) => answers.push(resolve)))
+    const { rerender } = render(<Probe place={ANC} load={load} />)
+    rerender(<Probe place={SDF} load={load} />)
+    rerender(<Probe place={ANC} load={load} />)
+    await act(async () => answers[0](cloudy(41)))
+    await flush()
+    expect(shown()).toBe('41°')
+    expect(load.mock.calls.map(([place]) => place.code)).toEqual(['ANC', 'SDF'])
+  })
+
+  it('shows an airport’s old weather at once on a return after 15 minutes, then fetches it again', async () => {
+    const { load, calls } = countingLoader()
+    const { rerender } = render(<Probe place={ANC} load={load} />)
+    await flush()
+    rerender(<Probe place={SDF} load={load} />)
+    await flush()
+    await advance(WEATHER_REFRESH_MS + 1)
+    rerender(<Probe place={ANC} load={load} />)
+    expect(shown()).toBe('41°')
+    await flush()
+    expect(shown()).toBe('44°')
+    expect(calls).toEqual(['ANC|fahrenheit', 'SDF|fahrenheit', 'SDF|fahrenheit', 'ANC|fahrenheit'])
+  })
+
   it('stops its timer and listener when it unmounts', async () => {
     const remove = vi.spyOn(document, 'removeEventListener')
     const { load } = countingLoader()

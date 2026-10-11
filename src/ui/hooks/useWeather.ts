@@ -15,11 +15,22 @@ export function useWeather(place: WeatherPlace | null, load: WeatherLoader, refr
   const pending = useRef(new Set<string>())
   const [, setVersion] = useState(0)
   const key = place ? `${place.code}|${place.unit}` : null
+  // What's on screen now, and whether the screen is still up: an answer redraws when it's for the airport shown,
+  // even one the visitor left and came back to while the answer was on its way.
+  const shown = useRef(key)
+  shown.current = key
+  const mounted = useRef(true)
+  useEffect(
+    () => () => {
+      mounted.current = false
+    },
+    [],
+  )
 
   useEffect(() => {
-    // This runs again whenever the airport or unit changes, so `place` and `load` here always belong to `key`.
+    // This runs again whenever the airport or unit changes, so `place` here always belongs to `key`. The loader is
+    // read at the same moment; it stays the same for the life of a screen.
     if (!place || !key) return
-    let alive = true
     const refresh = (force: boolean) => {
       const entry = kept.current.get(key)
       if (pending.current.has(key) || (!force && entry && Date.now() - entry.at < refreshMs)) return
@@ -29,7 +40,7 @@ export function useWeather(place: WeatherPlace | null, load: WeatherLoader, refr
         .then((weather) => {
           pending.current.delete(key)
           kept.current.set(key, { weather, at: Date.now() })
-          if (alive) setVersion((v) => v + 1)
+          if (mounted.current && shown.current === key) setVersion((v) => v + 1)
         })
     }
     refresh(false)
@@ -41,7 +52,6 @@ export function useWeather(place: WeatherPlace | null, load: WeatherLoader, refr
     }
     document.addEventListener('visibilitychange', onReturn)
     return () => {
-      alive = false
       clearInterval(tick)
       document.removeEventListener('visibilitychange', onReturn)
     }
