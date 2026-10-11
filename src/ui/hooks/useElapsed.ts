@@ -8,6 +8,8 @@ export function useElapsed(running: boolean): number {
   const [elapsed, setElapsed] = useState(0)
   useEffect(() => {
     if (!running) return
+    // A new run counts from zero, not from where the last one stopped.
+    setElapsed(0)
     let start: number | null = null
     let raf = 0
     const tick = (now: number) => {

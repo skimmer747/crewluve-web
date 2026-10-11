@@ -53,7 +53,8 @@ export interface DialTurns {
   still: boolean
 }
 
-const NOTHING: TurnState = { progress: 0, opacity: 1, middle: 0 }
+/** A turn that draws nothing, shared by every moment, so it can't be changed. */
+const NOTHING: TurnState = Object.freeze({ progress: 0, opacity: 1, middle: 0 })
 
 /** The state of a turn `ms` after it started, for an arc that draws in over `drawMs`. */
 function turnAt(ms: number, drawMs: number): TurnState {

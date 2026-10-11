@@ -1,20 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { bigDialBase, bigDialLayers, bigDialTurns, type DialDetail } from '../../src/ui/bigDial'
 import type { DialMoment } from '../../src/ui/dialTimeline'
-import {
-  arcPath,
-  cornerFor,
-  departureMarkerPath,
-  departureSweep,
-  DETAIL,
-  dialAngle,
-  homeArrow,
-  hourAngle,
-  labelAt,
-  planeSpot,
-  pointAt,
-  wedgePath,
-} from '../../src/ui/sunDialGeometry'
+import { departureMarkerPath, departureSweep, DETAIL, homeArrow, planeSpot, wedgePath } from '../../src/ui/bigDialGeometry'
+import { arcPath, cornerFor, dialAngle, hourAngle, labelAt, pointAt } from '../../src/ui/sunDialGeometry'
 import { DAY, HOUR, MINUTE } from '../../src/time/zoned'
 
 const ANC = 'America/Anchorage'

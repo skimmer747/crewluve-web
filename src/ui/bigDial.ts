@@ -7,25 +7,18 @@ import type { SunTimes } from '../time/sun'
 import { DAY, HOUR } from '../time/zoned'
 import type { DialMoment, DialTurns, TurnState } from './dialTimeline'
 import {
-  arcPath,
-  cornerFor,
   departureMarkerPath,
   departureSweep,
   DETAIL,
-  DIAL,
-  dialAngle,
   homeArrow,
-  hourAngle,
-  labelAt,
   planeSpot,
-  pointAt,
   wedgePath,
   type Arrow,
   type PlaneSpot,
-  type Point,
   type Sweep,
   type SweepInput,
-} from './sunDialGeometry'
+} from './bigDialGeometry'
+import { arcPath, cornerFor, DIAL, dialAngle, hourAngle, labelAt, pointAt, type Point } from './sunDialGeometry'
 
 /** What the popup's big dial knows beyond the card's dial (slice 2B2 §5, §8). */
 export interface DialDetail {

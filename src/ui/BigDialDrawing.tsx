@@ -1,6 +1,7 @@
 import type { BigDialLayers } from './bigDial'
 import { Icon } from './Icon'
-import { DETAIL, DIAL, type PlaneSpot } from './sunDialGeometry'
+import { DETAIL, type PlaneSpot } from './bigDialGeometry'
+import { DIAL } from './sunDialGeometry'
 
 /*
  * The drawing of the big dial's own layers (slice 2B2 §5.1, §5.2), which SunDial puts in at the popup's size in the

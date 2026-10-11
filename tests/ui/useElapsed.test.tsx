@@ -25,6 +25,17 @@ describe('useElapsed', () => {
     expect(frames.pending).toBe(1)
   })
 
+  it('starts each new run from zero, not from where the last one stopped', async () => {
+    const frames = stubAnimationFrames()
+    const { rerender } = render(<Clock running />)
+    await frames.frame(1000)
+    await frames.frame(1400)
+    expect(screen.getByText('400')).toBeTruthy()
+    rerender(<Clock running={false} />)
+    rerender(<Clock running />)
+    expect(screen.getByText('0')).toBeTruthy()
+  })
+
   it('asks for no frames while it isn’t running, and stops when the component goes away', async () => {
     const frames = stubAnimationFrames()
     const { rerender, unmount } = render(<Clock running={false} />)
