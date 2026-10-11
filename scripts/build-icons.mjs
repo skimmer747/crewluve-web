@@ -12,7 +12,7 @@ const { version } = JSON.parse(readFileSync(resolve(phosphorDir, 'package.json')
 
 // Component name -> Phosphor file stem. The first block maps the SF Symbols Crewluve uses on these
 // cards (spec §4.1, and the slice 2A trip cards); the second maps AirlineBranding's airline symbols (spec §6.10);
-// the third adds the weather and sun dial symbols of the slice 2B1 location card.
+// the third adds the weather and sun dial symbols of the slice 2B1 location card; the fourth, the slice 2B2 sun popup's.
 const ICONS = {
   House: 'house', Airplane: 'airplane', Car: 'car', ArrowsClockwise: 'arrows-clockwise', Bed: 'bed',
   Buildings: 'buildings', ClockCountdown: 'clock-countdown', Lightning: 'lightning', BookOpen: 'book-open',
@@ -28,6 +28,8 @@ const ICONS = {
 
   Moon: 'moon', CloudSun: 'cloud-sun', CloudMoon: 'cloud-moon', CloudFog: 'cloud-fog', CloudRain: 'cloud-rain',
   CloudSnow: 'cloud-snow', CloudLightning: 'cloud-lightning',
+
+  XCircle: 'x-circle', SunHorizon: 'sun-horizon', MapPinArea: 'map-pin-area',
 }
 
 const lines = []

@@ -28,4 +28,8 @@ describe('ICON_PATHS', () => {
       expect(ICON_PATHS).toHaveProperty(name)
     }
   })
+
+  it('has the sun popup’s close, sunrise and sunset, and place icons', () => {
+    for (const name of ['XCircle', 'SunHorizon', 'MapPinArea']) expect(ICON_PATHS).toHaveProperty(name)
+  })
 })
