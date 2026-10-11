@@ -78,6 +78,8 @@ const SPEC_COLORS: Array<[name: string, light: string, dark: string]> = [
   ['--teal', '#00C3D0', '#00D2E0'],
   ['--cyan', '#00C0E8', '#3CD3FE'],
   ['--indigo', '#6155F5', '#6D7CFF'],
+  // Part A follow-ups spec §3.2: the trip card's progress track, the gray at 20% like the app's Color.gray.opacity(0.2).
+  ['--bar-track', 'rgba(142,142,147,.2)', 'rgba(142,142,147,.2)'],
 ]
 
 describe('tokens.css', () => {
@@ -153,6 +155,15 @@ describe('cards.css', () => {
       expect(first, `${r.head} needs a plain font-size before its container-unit one`).toBeGreaterThan(0)
       expect(CONTAINER_UNIT.test(sizes[first - 1]), `${r.head}: the font-size just before the container-unit one must be plain`).toBe(false)
     }
+  })
+})
+
+describe('trips.css', () => {
+  const top = blocks(css('trips'))
+  const background = (head: string) => declarations(find(top, head)?.body ?? '').find(([prop]) => prop === 'background')?.[1]
+
+  it('draws the progress track in --bar-track, so it can follow the high-contrast gray', () => {
+    expect(background('.trip-bar')).toBe('var(--bar-track)')
   })
 })
 

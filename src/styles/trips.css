@@ -110,11 +110,11 @@
   font-weight: 600;
 }
 
-/* Progress bar: 10 px, the --gray token (#8e8e93) at 20% for the track, as Color.gray.opacity(0.2), the same in both modes; blue fill. */
+/* Progress bar: 10 px, the gray at 20% for the track (--bar-track, as Color.gray.opacity(0.2)); blue fill. */
 .trip-bar {
   height: 10px;
   border-radius: 5px;
-  background: rgba(142, 142, 147, 0.2);
+  background: var(--bar-track);
   overflow: hidden;
 }
 
