@@ -227,12 +227,6 @@ describe('sunPopup.css', () => {
     expect(rule('.sun-dial.big')).toEqual(expect.arrayContaining([['width', '100%'], ['height', '0'], ['padding-bottom', '100%']]))
   })
 
-  it('sizes the middle’s text in the dial’s 160-point drawing: 10 and 7 points, 22.5 px and 15.75 px at 360', () => {
-    const fontSize = (head: string) => parseFloat(rule(head).find(([prop]) => prop === 'font-size')![1])
-    expect(fontSize('.sun-middle-big') * (360 / DIAL.size)).toBe(22.5)
-    expect(fontSize('.sun-middle-small') * (360 / DIAL.size)).toBe(15.75)
-  })
-
   it('dims the page with black at 30%', () => {
     expect(rule('.sun-popup-backdrop')).toContainEqual(['background', 'rgba(0, 0, 0, 0.3)'])
   })
@@ -248,6 +242,21 @@ describe('sunPopup.css', () => {
 
   it('closes in 0.2 s, ease-out', () => {
     expect(rule('.sun-popup.closing .sun-popup-backdrop, .sun-popup.closing .sun-popup-card')).toContainEqual(['transition', 'opacity 0.2s ease-out'])
+  })
+})
+
+describe('bigDial.css', () => {
+  const rule = (head: string) => declarations(find(rulesIn(css('bigDial')), head)!.body)
+
+  it('sizes the middle’s text in the dial’s 160-point drawing: 10 and 7 points, 22.5 px and 15.75 px at 360', () => {
+    const fontSize = (head: string) => parseFloat(rule(head).find(([prop]) => prop === 'font-size')![1])
+    expect(fontSize('.sun-middle-big') * (360 / DIAL.size)).toBe(22.5)
+    expect(fontSize('.sun-middle-small') * (360 / DIAL.size)).toBe(15.75)
+  })
+
+  it('dashes the departure’s laps like the night arc, and draws the delay in red', () => {
+    expect(rule('.sun-sweep-laps')).toContainEqual(['stroke-dasharray', '4 3'])
+    expect(rule('.sun-sweep-delay')).toContainEqual(['stroke', 'var(--red)'])
   })
 })
 

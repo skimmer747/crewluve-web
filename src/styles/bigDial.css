@@ -1,0 +1,141 @@
+/* The big sun dial's own layers (slice 2B2 §5), drawn by BigDialDrawing.tsx. They're in the dial's 160-point
+   drawing, so they scale with it, by 2.25 at the popup's 360. */
+.sun-shared-wedge {
+  fill: var(--yellow);
+  fill-opacity: 0.15;
+}
+
+.sun-shared {
+  fill: none;
+  stroke: #ffffff;
+  stroke-opacity: 0.8;
+  stroke-width: 3.75;
+  stroke-linecap: round;
+}
+
+.sun-hand.departure {
+  stroke: var(--cyan);
+  stroke-opacity: 0.4;
+}
+
+.sun-hand.delay {
+  stroke: var(--red);
+  stroke-opacity: 0.4;
+}
+
+.sun-home-line {
+  stroke: var(--green);
+  stroke-opacity: 0.6;
+  stroke-width: 0.8;
+  stroke-dasharray: 4 3;
+}
+
+.sun-departure-marker {
+  fill: var(--cyan);
+  fill-opacity: 0.4;
+}
+
+.sun-house {
+  color: var(--green);
+}
+
+.sun-plane.departure,
+.sun-plane.on-time {
+  color: var(--cyan);
+}
+
+.sun-plane.delay,
+.sun-plane.late {
+  color: var(--red);
+}
+
+.sun-plane.early {
+  color: var(--green);
+}
+
+.sun-time.departure {
+  fill: var(--cyan);
+}
+
+.sun-time.delay {
+  fill: var(--red);
+}
+
+/* The home-time arrow: blue when the pilot is ahead, orange when behind, at 70%. */
+.sun-arrow.ahead {
+  color: var(--blue);
+}
+
+.sun-arrow.behind {
+  color: var(--orange);
+}
+
+.sun-arrow-arc {
+  fill: none;
+  stroke: currentColor;
+  stroke-opacity: 0.7;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.sun-arrow-head {
+  fill: currentColor;
+  fill-opacity: 0.7;
+}
+
+/* The departure sweep: cyan at 70%, dashed for each full day, red at 80% past the scheduled time. */
+.sun-sweep path {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.sun-sweep-laps,
+.sun-sweep-solid {
+  stroke: var(--cyan);
+  stroke-opacity: 0.7;
+}
+
+.sun-sweep-laps {
+  stroke-dasharray: 4 3;
+}
+
+.sun-sweep-delay {
+  stroke: var(--red);
+  stroke-opacity: 0.8;
+}
+
+/* The middle: 10-point semibold over 7-point medium, rounded, in the turn's color. */
+.sun-dial .sun-middle text {
+  font-family: var(--font-rounded);
+}
+
+.sun-middle-big {
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.sun-middle-small {
+  font-size: 7px;
+  font-weight: 500;
+}
+
+.sun-middle.ahead {
+  fill: var(--blue);
+}
+
+.sun-middle.behind {
+  fill: var(--orange);
+}
+
+.sun-middle.on-time {
+  fill: var(--cyan);
+}
+
+.sun-middle.late {
+  fill: var(--red);
+}
+
+.sun-middle.early {
+  fill: var(--green);
+}
