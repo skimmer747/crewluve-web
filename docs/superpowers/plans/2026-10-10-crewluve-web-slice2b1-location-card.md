@@ -407,8 +407,8 @@ describe('sunDialLabel', () => {
   const ANC = 'America/Anchorage'
 
   it('reads the sunrise, the sunset and whether it’s day or night there', () => {
-    expect(sunDialLabel(sun, Date.UTC(2026, 9, 10, 17), ANC, false, 'Anchorage')).toBe('Sunrise 8:12 AM, sunset 6:41 PM, daytime in Anchorage')
-    expect(sunDialLabel(sun, Date.UTC(2026, 9, 10, 15), ANC, false, 'Anchorage')).toBe('Sunrise 8:12 AM, sunset 6:41 PM, nighttime in Anchorage')
+    expect(sunDialLabel(sun, Date.UTC(2026, 9, 10, 17), ANC, false, 'Anchorage')).toBe('Sunrise 8:12\u202FAM, sunset 6:41\u202FPM, daytime in Anchorage')
+    expect(sunDialLabel(sun, Date.UTC(2026, 9, 10, 15), ANC, false, 'Anchorage')).toBe('Sunrise 8:12\u202FAM, sunset 6:41\u202FPM, nighttime in Anchorage')
   })
 
   it('uses 24-hour times when the visitor does', () => {
@@ -1876,7 +1876,7 @@ const num = (el: Element | null, name: string) => Number(el!.getAttribute(name))
 describe('SunDial', () => {
   it('is one image to screen readers, named with the sun times and whether it’s day', () => {
     const { container } = render(dial(MORNING))
-    expect(screen.getByRole('img', { name: 'Sunrise 8:12 AM, sunset 6:41 PM, daytime in Anchorage' })).toBeTruthy()
+    expect(screen.getByRole('img', { name: 'Sunrise 8:12\u202FAM, sunset 6:41\u202FPM, daytime in Anchorage' })).toBeTruthy()
     expect(container.querySelector('svg')!.getAttribute('aria-hidden')).toBe('true')
   })
 
@@ -1919,7 +1919,7 @@ describe('SunDial', () => {
     const now = container.querySelector('.sun-now')!
     expect(iconNameOf(now.querySelector('svg'))).toBe('Moon')
     expect(now.getAttribute('filter')).toBeNull()
-    expect(screen.getByRole('img').getAttribute('aria-label')).toBe('Sunrise 8:12 AM, sunset 6:41 PM, nighttime in Anchorage')
+    expect(screen.getByRole('img').getAttribute('aria-label')).toBe('Sunrise 8:12\u202FAM, sunset 6:41\u202FPM, nighttime in Anchorage')
   })
 })
 ```
@@ -2342,7 +2342,7 @@ describe('LocationCard', () => {
     reduceMotion()
     const { container } = render(card('ANC', cloudy))
     expect(container.querySelector('.time-label')!.textContent).toBe('Current time:')
-    expect(container.querySelector('.time-value')!.textContent).toBe('9:14 AM')
+    expect(container.querySelector('.time-value')!.textContent).toBe('9:14\u202FAM')
     expect(container.querySelector('.time-diff .sr-only')!.textContent).toBe('4 hours behind you')
     expect(container.querySelector('.time-diff [aria-hidden="true"]')!.textContent).toBe('4h behind you')
   })
@@ -2365,7 +2365,7 @@ describe('LocationCard', () => {
   it('leaves the dial out when the sun neither rises nor sets that day, but keeps the time', () => {
     const { container } = render(card('BRW', null, { now: Date.UTC(2026, 11, 21, 20) })) // Utqiaġvik in midwinter
     expect(container.querySelector('.sun-dial')).toBeNull()
-    expect(container.querySelector('.time-value')!.textContent).toBe('11:00 AM')
+    expect(container.querySelector('.time-value')!.textContent).toBe('11:00\u202FAM')
   })
 
   it('shows only "Unknown Location" when nobody can tell where the pilot is', () => {
@@ -3154,15 +3154,15 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Files:**
 - Modify (only if nudges are needed): `src/styles/location.css`
 
-- [ ] **Step 1: Build and open the preview**
+- [x] **Step 1: Build and open the preview**
 
 Run `npm run build`, then start or reuse the `crewluve-preview` server from `.claude/launch.json` (port 5181) in the browser pane.
 
-- [ ] **Step 2: Screenshot the demo scenes**
+- [x] **Step 2: Screenshot the demo scenes**
 
 At the mobile preset (375 × 812), in light and dark, open `/?demo=1&scene=` with `delayed` (Anchorage, 41° Cloudy), `home` (Lexington, same time as you), `layover` (Miami, Partly Cloudy) and `flying` (no card). The weather's day or night follows the real time of day at each airport.
 
-- [ ] **Step 3: Compare with the app**
+- [x] **Step 3: Compare with the app**
 
 Compare each screenshot with `standardLocationView` and `SunCircleView` in `PilotStatusView.swift`. Check:
 - the text sizes and weights: city 20 px semibold, temperature 20 px bold, time 20 px bold blue, difference 12 px;
@@ -3173,7 +3173,7 @@ Compare each screenshot with `standardLocationView` and `SunCircleView` in `Pilo
 
 Fix any differences in `location.css`, then take the screenshots again.
 
-- [ ] **Step 4: Check narrow phones**
+- [x] **Step 4: Check narrow phones**
 
 At 320 px wide, check that nothing scrolls sideways and the dial shrinks. The scratch build showed two overlaps that the app shares at these widths:
 - the sunrise label can touch long weather words ("Partly Cloudy") at 375 px;
@@ -3181,7 +3181,7 @@ At 320 px wide, check that nothing scrolls sideways and the dial shrinks. The sc
 
 Show them to the user in Step 5 rather than changing the layout on our own.
 
-- [ ] **Step 5: Ask the user to sign off**
+- [x] **Step 5: Ask the user to sign off**
 
 Show the user the screenshots and ask one question: "Looks right (Recommended)" or "Change something". Apply their notes, then show them again.
 
@@ -3247,3 +3247,19 @@ Update the project memory with the new tip and what's next: Part B2, the sun dia
 
 - **Build (2026-10-11):** the user chose "I build, helpers review". The controller built Tasks 1–15 test-first from the printed blocks, in commits `d8daf16` through `02d2714`. The code matches the blocks exactly, and the suite ends at 1352 tests in 59 files.
   - **One wording difference:** in the `.tsx` tests (Tasks 9, 11, 12 and 13), a missing module fails with `Failed to resolve import "…" … Does the file exist?` instead of `Cannot find module`. It's the same failure.
+- **Hidden characters:** several printed test blocks held the narrow no-break space (U+202F) as a raw, invisible character. The code and this file now write it as the visible escape `\u202F`. It's the same string at runtime (`6edd855`, `2a9aa05`).
+- **Reviews:** fresh helpers reviewed Batch A. Auto mode then blocked the two new reviewer launches for Batch B ("Auto-Mode Bypass"). The user chose to send Batches B, C and D to the Batch A reviewers by message instead.
+- **Batch A spec review fixes.** The code matched the plan; these points came from the spec:
+  - `1ffe81c`: WeatherKit's words are "Fog" and "Thunderstorm", not "Foggy" and "Thunderstorms". Temperatures round like the app's format: halves go to the even number (40.5 shows 40°), and just below zero shows "-0°".
+  - `3b77f9c`: Apple's Fahrenheit regions are US, PR, BS, BZ, KY and PW, replacing the spec's first list. The request adds `cache: 'no-store'`, and a test covers the browser-language default.
+  - `640d085`: the spec records all of these, plus what Open-Meteo sees: the browser's own headers go with the request too.
+- **Batch A code review fixes.** Verdict: with fixes, nothing critical.
+  - `650d3c6`: the weather request gives up after 10 seconds (`WEATHER_TIMEOUT_MS`). Without that, one stalled request would have held up that airport's refreshes for good, because the hook skips a refresh while one is pending. The test now pins the exact request options, and both units go through `loadLiveWeather`.
+  - `3cfa7c5`: southern-hemisphere sun rows (Sydney in summer and winter, São Paulo), and a check that one local day gives exactly one answer. The 2-minute allowance stays, as the spec says.
+  - `6edd855`: `timeDifferenceText` is gone; nothing used it, and `TimeDifferenceLine` draws that wording. Also added: a test for "behind" with leftover minutes, and a note on sharing `delayText`.
+  - `619c6cc`: one private `clock()` helper behind `clockText`, `shortTimeText` and `dialTimeText`.
+- **Batch B spec review:** compliant. Its notes became `1d06b88`:
+  - The hook redraws when an answer lands for the airport on screen, even one the visitor left and came back to.
+  - The comment about `load` is now accurate.
+  - A new test covers going back to an airport after 15 minutes.
+- **Task 16 (2026-10-11):** the user signed off on the look ("Looks right") from five screenshots: Anchorage by day and at night, home in Lexington at night, Miami in dark mode, and a 320 px phone. They chose to keep the app's two narrow-phone overlaps. Step 6, live weather, waits until after release.
