@@ -5,6 +5,12 @@ import type { Weather, WeatherLoader, WeatherPlace } from '../../data/weather'
 export const WEATHER_REFRESH_MS = 15 * 60_000
 
 /**
+ * The 15-minute tick fetches weather that's at least 14 minutes old. The timer starts before the first answer lands,
+ * so a strict 15 would skip a tick; anything fresher came from a return to the page just now.
+ */
+const TICK_GRACE_MS = 60_000
+
+/**
  * The current weather at `place`, or null while it loads or when there's none (slice 2B1 §6). Results stay in memory
  * for each airport and unit. A new airport fetches at once, unless it was fetched less than 15 minutes ago. Then it
  * fetches every 15 minutes while the page is visible, and on a return to the page once its weather is stale. A
@@ -28,14 +34,17 @@ export function useWeather(place: WeatherPlace | null, load: WeatherLoader, refr
   )
 
   useEffect(() => {
-    // This runs again whenever the airport or unit changes, so `place` here always belongs to `key`. The loader is
-    // read at the same moment; it stays the same for the life of a screen.
+    // This runs again whenever the airport or unit changes, so `place` here always belongs to `key`. `place` and `load`
+    // stay out of the dependencies on purpose: the screen passes a new but equal place every second, and its loader
+    // never changes.
     if (!place || !key) return
-    const refresh = (force: boolean) => {
+    /** Fetches unless the weather is younger than `maxAge` or a request for it is already out. */
+    const refresh = (maxAge: number) => {
       const entry = kept.current.get(key)
-      if (pending.current.has(key) || (!force && entry && Date.now() - entry.at < refreshMs)) return
+      if (pending.current.has(key) || (entry && Date.now() - entry.at < maxAge)) return
       pending.current.add(key)
-      void load(place)
+      // Called inside a promise's executor, so a loader that throws at once counts as a failure like any other.
+      void new Promise<Weather | null>((resolve) => resolve(load(place)))
         .catch(() => null)
         .then((weather) => {
           pending.current.delete(key)
@@ -43,12 +52,12 @@ export function useWeather(place: WeatherPlace | null, load: WeatherLoader, refr
           if (mounted.current && shown.current === key) setVersion((v) => v + 1)
         })
     }
-    refresh(false)
+    refresh(refreshMs)
     const tick = setInterval(() => {
-      if (document.visibilityState !== 'hidden') refresh(true)
+      if (document.visibilityState !== 'hidden') refresh(refreshMs - TICK_GRACE_MS)
     }, refreshMs)
     const onReturn = () => {
-      if (document.visibilityState === 'visible') refresh(false)
+      if (document.visibilityState === 'visible') refresh(refreshMs)
     }
     document.addEventListener('visibilitychange', onReturn)
     return () => {

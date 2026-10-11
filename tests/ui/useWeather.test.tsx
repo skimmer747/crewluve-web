@@ -61,6 +61,11 @@ function Probe({ place, load }: { place: WeatherPlace | null; load: WeatherLoade
 }
 const shown = () => screen.getByTestId('weather').textContent
 
+/** Like ScheduleScreen, which builds an equal but new place on every render. */
+function FreshPlace({ load }: { load: WeatherLoader }) {
+  return <Probe place={{ ...ANC }} load={load} />
+}
+
 describe('useWeather', () => {
   it('shows nothing until the weather comes, then the weather', async () => {
     const { load, calls } = countingLoader()
@@ -199,6 +204,60 @@ describe('useWeather', () => {
     await flush()
     expect(shown()).toBe('44°')
     expect(calls).toEqual(['ANC|fahrenheit', 'SDF|fahrenheit', 'SDF|fahrenheit', 'ANC|fahrenheit'])
+  })
+
+  it('asks for nothing while hidden, though the screen hands it a new but equal place every render', async () => {
+    const { load, calls } = countingLoader()
+    const { rerender } = render(<FreshPlace load={load} />)
+    await flush()
+    setVisibility('hidden')
+    for (let minute = 1; minute <= 16; minute++) {
+      await advance(60_000)
+      rerender(<FreshPlace load={load} />)
+    }
+    await flush()
+    expect(calls).toHaveLength(1)
+  })
+
+  it('asks for nothing when the visitor leaves the page, even with stale weather', async () => {
+    const { load, calls } = countingLoader()
+    render(<Probe place={ANC} load={load} />)
+    await flush()
+    setVisibility('hidden')
+    await advance(WEATHER_REFRESH_MS + 1)
+    await act(async () => {
+      fireEvent(document, new Event('visibilitychange'))
+    })
+    await flush()
+    expect(calls).toHaveLength(1)
+  })
+
+  it('skips the 15-minute tick that comes just after a return to the page fetched', async () => {
+    const { load, calls } = countingLoader()
+    render(<Probe place={ANC} load={load} />)
+    await flush()
+    setVisibility('hidden')
+    await advance(29 * 60_000)
+    await returnToPage()
+    expect(calls).toHaveLength(2)
+    await advance(60_000)
+    expect(calls).toHaveLength(2)
+    await advance(WEATHER_REFRESH_MS)
+    expect(calls).toHaveLength(3)
+  })
+
+  it('treats a loader that throws at once as a failure, and tries again at the next refresh', async () => {
+    let tries = 0
+    const load: WeatherLoader = () => {
+      tries += 1
+      if (tries === 1) throw new Error('broken')
+      return Promise.resolve(cloudy(41))
+    }
+    render(<Probe place={ANC} load={load} />)
+    await flush()
+    expect(shown()).toBe('none')
+    await advance(WEATHER_REFRESH_MS)
+    expect(shown()).toBe('41°')
   })
 
   it('stops its timer and listener when it unmounts', async () => {
