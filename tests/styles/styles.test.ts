@@ -168,8 +168,12 @@ describe('location.css', () => {
     expect(declarations(find(top, '.time-diff')!.body)).toContainEqual(['margin', '0 0 0 24px'])
   })
 
-  it('never lets the dial, which overlaps the text, catch a tap', () => {
-    expect(declarations(find(top, '.sun-dial')!.body)).toContainEqual(['pointer-events', 'none'])
+  it('lets the dial take a tap now that it opens the sun popup, with no button look', () => {
+    expect(declarations(find(top, '.sun-dial')!.body).find(([prop]) => prop === 'pointer-events')).toBeUndefined()
+    const button = declarations(find(top, 'button.sun-dial')!.body)
+    expect(button).toContainEqual(['background', 'none'])
+    expect(button).toContainEqual(['border', '0'])
+    expect(button).toContainEqual(['padding', '0'])
   })
 
   it('places the sky circle where the dial’s geometry draws the circle', () => {

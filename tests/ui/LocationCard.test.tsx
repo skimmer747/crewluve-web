@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, render, screen } from '@testing-library/preact'
+import { cleanup, fireEvent, render, screen } from '@testing-library/preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { demoRaw } from '../../src/data/demo'
 import type { Weather } from '../../src/data/weather'
@@ -118,6 +118,13 @@ describe('LocationCard', () => {
   it('puts the sun dial in the corner, named for the city', () => {
     render(card('ANC', cloudy))
     expect(screen.getByRole('img').getAttribute('aria-label')).toMatch(/^Sunrise .+, sunset .+, daytime in Anchorage$/)
+  })
+
+  it('makes the dial a button that opens the sun popup when the screen gives it one', () => {
+    const onOpenSun = vi.fn()
+    render(<LocationCard airport="ANC" now={NOW} homeTz={NY} h24={false} airports={testAirports} weather={cloudy} onOpenSun={onOpenSun} />)
+    fireEvent.click(screen.getByRole('button', { name: /^Sunrise .+, sunset .+, daytime in Anchorage\. Opens sun details\.$/ }))
+    expect(onOpenSun).toHaveBeenCalledTimes(1)
   })
 
   it('leaves the dial out when the sun neither rises nor sets that day, but keeps the time', () => {

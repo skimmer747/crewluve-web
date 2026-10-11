@@ -154,7 +154,17 @@
   align-self: start;
   width: min(160px, 42vw);
   height: min(160px, 42vw);
-  pointer-events: none;
+}
+
+/* On the card the dial is a button that opens the sun popup, as the app's dial takes a tap (slice 2B2 §3): it keeps
+   the dial's look, with no gray flash on iOS. */
+button.sun-dial {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* The sky: the 84 px circle (radius 42, center 2 px below the middle) at 25% opacity. */
