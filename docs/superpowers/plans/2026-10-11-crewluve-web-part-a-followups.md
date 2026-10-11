@@ -737,14 +737,14 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 Use superpowers:finishing-a-development-branch. Ask the user one question about how to merge `parta-followups` into `main`.
 
-- [ ] **Step 2: Release, only with a fresh yes**
+- [x] **Step 2: Release, only with a fresh yes**
 
 Ask before pushing `main`; the push redeploys crewluve.crewlu.net. After the "Deploy to GitHub Pages" run succeeds:
 - open https://crewluve.crewlu.net/?demo=1 and check that `read_console_messages` with `onlyErrors: true` shows nothing, and that the demo made no network requests beyond the page's own files;
 - run Task 6's script on the live page and check that `getComputedStyle(document.documentElement).getPropertyValue('--blue')` reads `#1e6ef4` in light mode, or `#5cb8ff` in dark;
 - check with `fetch('/data/airports.json')` that the row for VPS reads "Destin/Fort Walton Beach".
 
-- [ ] **Step 3: Update the memory**
+- [x] **Step 3: Update the memory**
 
 Update the project memory with the new tip and what's next: Part C, the in-flight map.
 
@@ -792,3 +792,8 @@ Update the project memory with the new tip and what's next: Part C, the in-fligh
 - **Totals:** after the review follow-ups, the suite is 1660 tests in 70 files.
 - **Re-check:** the code-quality reviewer re-checked `18781ea..c4ca9df` and it passed. `ecbcdd3` takes two of its wording notes.
 - **Merge:** the user chose to merge into `main` locally. After the re-check, `main` fast-forwarded to `ecbcdd3`, and the merged result passed all three gates with 1660 tests. The branch is deleted.
+- **Release:** with the user's yes, `main` was pushed (`1169262..43b3f55`), and deploy run 38174080382 succeeded. It showed the known warnings: Node 20 actions, and ubuntu-latest moving to Ubuntu 26 on 2026-10-19. On the live demo:
+  - the stylesheet has the `prefers-contrast` rules;
+  - the default blue is unchanged, and Task 6's script turns it to `#1e6ef4`;
+  - `/data/airports.json` has the four app names;
+  - there are no console errors and no requests beyond the site's own files.
