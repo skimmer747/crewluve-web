@@ -208,6 +208,55 @@ describe('location.css', () => {
   })
 })
 
+describe('sunPopup.css', () => {
+  const top = blocks(css('sunPopup'))
+  const rule = (head: string) => declarations(find(rulesIn(css('sunPopup')), head)!.body)
+
+  it('makes the card up to 360 px wide with a 28 px corner radius, leaving 8 px of screen around it', () => {
+    expect(rule('.sun-popup-card')).toEqual(expect.arrayContaining([['width', 'min(360px, 100%)'], ['border-radius', '28px']]))
+    expect(rule('.sun-popup').find(([prop]) => prop === 'padding')?.[1]).toMatch(/^max\(8px, env\(safe-area-inset-top\)\)/)
+  })
+
+  it('keeps the big dial square at the card’s full width, without aspect-ratio, which Safari 14 lacks', () => {
+    expect(rule('.sun-dial.big')).toEqual(expect.arrayContaining([['width', '100%'], ['height', '0'], ['padding-bottom', '100%']]))
+  })
+
+  it('dims the page with black at 30%', () => {
+    expect(rule('.sun-popup-backdrop')).toContainEqual(['background', 'rgba(0, 0, 0, 0.3)'])
+  })
+
+  it('turns off the zoom, the fades and the spring back for people who prefer reduced motion', () => {
+    const media = find(top, '@media (prefers-reduced-motion: reduce)')
+    expect(media).toBeDefined()
+    const inside = blocks(media!.body)
+    expect(declarations(find(inside, '.sun-popup-backdrop, .sun-popup-card, .sun-popup .sun-dial.big')!.body)).toContainEqual(['animation', 'none'])
+    const still = find(inside, '.sun-popup-card, .sun-popup.closing .sun-popup-backdrop, .sun-popup.closing .sun-popup-card, .sun-popup.closing .sun-dial.big')
+    expect(declarations(still!.body)).toContainEqual(['transition', 'none'])
+  })
+
+  it('closes in 0.2 s, ease-out', () => {
+    expect(rule('.sun-popup.closing .sun-popup-backdrop, .sun-popup.closing .sun-popup-card')).toContainEqual(['transition', 'opacity 0.2s ease-out'])
+  })
+})
+
+describe('backdrop blurs', () => {
+  it('come with the -webkit- name first, which Safari needs before version 18', () => {
+    let blurs = 0
+    for (const name of STYLESHEETS) {
+      for (const r of rulesIn(css(name))) {
+        const props = declarations(r.body).map(([prop]) => prop)
+        props.forEach((prop, i) => {
+          if (prop === 'backdrop-filter') {
+            expect(props[i - 1], `${name}.css ${r.head}: backdrop-filter needs -webkit-backdrop-filter just before it`).toBe('-webkit-backdrop-filter')
+            blurs++
+          }
+        })
+      }
+    }
+    expect(blurs).toBeGreaterThanOrEqual(2) // the cards' glass and the sun popup's backdrop
+  })
+})
+
 describe('full-height blocks', () => {
   it('follow each min-height: 100vh with min-height: 100dvh, so the iOS toolbar does not push content off screen', () => {
     let pairs = 0
