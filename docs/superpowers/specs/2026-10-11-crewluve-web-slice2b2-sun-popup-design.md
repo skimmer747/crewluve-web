@@ -92,7 +92,7 @@ The card's dial grows a size setting, as the app's `SunCircleView` has one. The 
 ### 5.3 Labels and the screen reader
 
 - Every label scales from the card's size. At 360 that's "Noon" at 18 px and the time labels at 20.25 px.
-- The big dial is one image to screen readers, with a description like this: "Sunrise 8:30 AM, sunset 7:03 PM, nighttime in Anchorage, 4 hours behind you. Next departure 3:25 AM, in 5 hours 20 minutes."
+- The big dial is one image to screen readers, with a description like this: "Sunrise 8:30 AM, sunset 7:03 PM, nighttime in Anchorage, 4 hours behind you. Next departure 3:25 AM, in 5 hours, 20 minutes."
   - The departure time is the actual one. It adds ", 40 minutes late" or ", 20 minutes early" for a delay or an early departure.
   - Parts that don't apply are left out.
 
