@@ -15,6 +15,10 @@ const NOAA: Array<[name: string, lat: number, lng: number, timeZone: string, at:
   // Cologne on both sides of the end of summer time, at 03:00 on 25 October 2026.
   ['CGN', 50.8659, 7.1427, 'Europe/Berlin', '2026-10-24T10:00:00Z', '2026-10-24T06:09:40Z', '2026-10-24T16:21:30Z'],
   ['CGN', 50.8659, 7.1427, 'Europe/Berlin', '2026-10-25T10:00:00Z', '2026-10-25T06:11:26Z', '2026-10-25T16:19:29Z'],
+  // The southern hemisphere: Sydney in its summer and winter, and São Paulo.
+  ['SYD', -33.9461, 151.1772, 'Australia/Sydney', '2026-12-21T01:00:00Z', '2026-12-20T18:40:41Z', '2026-12-21T09:05:35Z'],
+  ['SYD', -33.9461, 151.1772, 'Australia/Sydney', '2026-06-21T02:00:00Z', '2026-06-20T21:00:19Z', '2026-06-21T06:53:43Z'],
+  ['GRU', -23.4356, -46.4731, 'America/Sao_Paulo', '2026-12-21T15:00:00Z', '2026-12-21T08:16:40Z', '2026-12-21T21:51:23Z'],
 ]
 
 const ms = (iso: string) => Date.parse(iso)
@@ -33,11 +37,12 @@ describe('sunTimes', () => {
     near(narita.sunrise, '2026-10-10T20:41:24Z')
     near(narita.sunset, '2026-10-11T08:09:09Z')
     // Kiritimati keeps UTC+14 at 157°W: one minute after midnight and one minute before the next both give 10 October.
-    for (const at of ['2026-10-09T10:01:00Z', '2026-10-10T09:59:00Z']) {
-      const kiritimati = sunTimes(ms(at), 1.9863, -157.35, 'Pacific/Kiritimati')!
-      near(kiritimati.sunrise, '2026-10-09T16:14:06Z')
-      near(kiritimati.sunset, '2026-10-10T04:18:59Z')
-    }
+    const early = sunTimes(ms('2026-10-09T10:01:00Z'), 1.9863, -157.35, 'Pacific/Kiritimati')!
+    const late = sunTimes(ms('2026-10-10T09:59:00Z'), 1.9863, -157.35, 'Pacific/Kiritimati')!
+    near(early.sunrise, '2026-10-09T16:14:06Z')
+    near(early.sunset, '2026-10-10T04:18:59Z')
+    // Every moment of one local day gives exactly the same times.
+    expect(late).toEqual(early)
   })
 
   it('has no sunrise or sunset in polar night or polar day', () => {
