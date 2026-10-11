@@ -67,8 +67,7 @@ export function SunPopup(p: SunPopupProps) {
   useEffect(() => {
     // Focus moves to the close button, and the page behind doesn't scroll. The screen hands focus back to the dial.
     closeButton.current?.focus()
-    const overflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    const unlock = lockPageScroll()
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault()
@@ -81,7 +80,7 @@ export function SunPopup(p: SunPopupProps) {
     return () => {
       document.removeEventListener('keydown', onKey)
       clearTimeout(timer.current)
-      document.body.style.overflow = overflow
+      unlock()
     }
   }, [])
 
@@ -215,6 +214,21 @@ export function SunPopup(p: SunPopupProps) {
       </section>
     </div>
   )
+}
+
+/**
+ * Holds the page still behind the popup, and returns what lets it go. The body is fixed where it was: iOS before 16
+ * still scrolls a page by touch when its body only has overflow: hidden. The page goes back to the same place after.
+ */
+function lockPageScroll(): () => void {
+  const { style } = document.body
+  const y = window.scrollY
+  const saved = { position: style.position, top: style.top, width: style.width, overflow: style.overflow }
+  Object.assign(style, { position: 'fixed', top: `${-y}px`, width: '100%', overflow: 'hidden' })
+  return () => {
+    Object.assign(style, saved)
+    window.scrollTo(0, y)
+  }
 }
 
 /** Tab and Shift-Tab go round the popup's buttons and links instead of leaving it. */

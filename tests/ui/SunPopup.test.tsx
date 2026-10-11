@@ -37,6 +37,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   vi.useRealTimers()
+  vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
 
@@ -119,12 +120,18 @@ describe('SunPopup', () => {
 })
 
 describe('SunPopup: opening and closing', () => {
-  it('moves focus to the close button and stops the page scrolling, then lets it scroll again', () => {
+  it('moves focus to the close button and holds the page still where it was, then puts it back', () => {
+    // The body is fixed in place, since iOS before 16 still scrolls a page whose body has overflow: hidden.
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 120 })
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    const body = () => [document.body.style.position, document.body.style.top, document.body.style.width, document.body.style.overflow]
     const { unmount } = render(popup())
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Close' }))
-    expect(document.body.style.overflow).toBe('hidden')
+    expect(body()).toEqual(['fixed', '-120px', '100%', 'hidden'])
     unmount()
-    expect(document.body.style.overflow).toBe('')
+    expect(body()).toEqual(['', '', '', ''])
+    expect(scrollTo).toHaveBeenCalledWith(0, 120)
+    delete (window as { scrollY?: unknown }).scrollY
   })
 
   it.each([
