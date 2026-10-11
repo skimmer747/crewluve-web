@@ -8,6 +8,8 @@ import type { Departure } from '../engine/snapshot'
 import { moonPhase } from '../time/moon'
 import { isDaytime, sunTimes } from '../time/sun'
 import { cssColor } from './colors'
+import { useDragToClose } from './hooks/useDragToClose'
+import { useModalDialog } from './hooks/useModalDialog'
 import { Icon } from './Icon'
 import type { DialFacts } from './locationFacts'
 import { MoonPhaseIcon } from './MoonPhaseIcon'
@@ -18,8 +20,6 @@ import { WeatherCredit } from './WeatherCredit'
 
 /** Closing fades everything out over 0.2 s, as the app's dismissView does, before the popup goes. */
 export const CLOSE_MS = 200
-/** A drag down further than this closes the popup; a shorter one springs back. */
-export const DRAG_CLOSE_PX = 100
 
 export interface SunPopupProps {
   /** Where the pilot is, with the zone and sun times the dial needs: the screen opens the popup only then. */
@@ -49,9 +49,6 @@ export function SunPopup(p: SunPopupProps) {
   const [still] = useState(prefersReducedMotion)
   const [closing, setClosing] = useState(false)
   const closed = useRef(false)
-  const [drag, setDrag] = useState(0)
-  const [dragging, setDragging] = useState(false)
-  const dragFrom = useRef<number | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const close = () => {
@@ -61,29 +58,11 @@ export function SunPopup(p: SunPopupProps) {
     setClosing(true)
     timer.current = setTimeout(p.onClose, CLOSE_MS)
   }
-  // The keyboard listener lives as long as the popup, so it reaches the newest close through a ref.
-  const latestClose = useRef(close)
-  latestClose.current = close
-
-  useEffect(() => {
-    // Focus moves to the close button, and the page behind doesn't scroll. The screen hands focus back to the dial.
-    closeButton.current?.focus()
-    const unlock = lockPageScroll()
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        latestClose.current()
-      } else if (e.key === 'Tab' && card.current) {
-        keepFocusInside(card.current, e)
-      }
-    }
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('keydown', onKey)
-      clearTimeout(timer.current)
-      unlock()
-    }
-  }, [])
+  useEffect(() => () => clearTimeout(timer.current), [])
+  // Focus on the close button, Tab kept inside, Escape to close, the page held still. The screen hands focus back to the dial.
+  useModalDialog(card, closeButton, close)
+  // Dragging the top of the card down: past 100 px it closes, otherwise it springs back.
+  const drag = useDragToClose(close)
 
   // Worked out when the time or the place changes, not on every render: a drag re-renders the popup at each pointer
   // move, and the big dial works itself out again whenever `sun` or `detail` is a new object. The screen's facts only
@@ -97,46 +76,20 @@ export function SunPopup(p: SunPopupProps) {
   const detail = useMemo(() => ({ homeTz: p.homeTz, homeSun, departure: p.departure, still }), [p.homeTz, homeSun, p.departure, still])
   const day = isDaytime(p.now, sun)
 
-  // Dragging the top of the card down: past 100 px it closes, otherwise it springs back.
-  const onPointerDown = (e: PointerEvent) => {
-    if (e.target instanceof Element && e.target.closest('button')) return
-    dragFrom.current = e.clientY
-    setDragging(true)
-    const grab = e.currentTarget as Element
-    if (grab.setPointerCapture) grab.setPointerCapture(e.pointerId)
-  }
-  const onPointerMove = (e: PointerEvent) => {
-    if (dragFrom.current != null) setDrag(Math.max(0, e.clientY - dragFrom.current))
-  }
-  const endDrag = (e: PointerEvent, release: boolean) => {
-    if (dragFrom.current == null) return
-    const moved = e.clientY - dragFrom.current
-    dragFrom.current = null
-    setDragging(false)
-    if (release && moved > DRAG_CLOSE_PX) close()
-    else setDrag(0)
-  }
-
   return (
     <div class={closing ? 'sun-popup closing' : 'sun-popup'}>
       <div class="sun-popup-backdrop" onClick={close} />
       <section
         ref={card}
-        class={`sun-popup-card glass${day ? '' : ' force-dark'}${dragging ? ' dragging' : ''}`}
+        class={`sun-popup-card glass${day ? '' : ' force-dark'}${drag.dragging ? ' dragging' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        style={drag ? { transform: `translateY(${drag}px)` } : undefined}
+        style={drag.offset ? { transform: `translateY(${drag.offset}px)` } : undefined}
       >
         {p.weather && !still && <WeatherBackdrop kind={weatherAnimation(p.weather.code, day)} night={!day} />}
         <div class="sun-popup-scroll">
-          <div
-            class="sun-popup-grab"
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={(e) => endDrag(e, true)}
-            onPointerCancel={(e) => endDrag(e, false)}
-          >
+          <div class="sun-popup-grab" {...drag.handlers}>
             <div class="sun-popup-handle" />
             <div class="sun-popup-head">
               <Icon name="MapPin" size={20} color="var(--red)" />
@@ -208,33 +161,4 @@ export function SunPopup(p: SunPopupProps) {
       </section>
     </div>
   )
-}
-
-/**
- * Holds the page still behind the popup, and returns what lets it go. The body is fixed where it was: iOS before 16
- * still scrolls a page by touch when its body only has overflow: hidden. The page goes back to the same place after.
- */
-function lockPageScroll(): () => void {
-  const { style } = document.body
-  const y = window.scrollY
-  const saved = { position: style.position, top: style.top, width: style.width, overflow: style.overflow }
-  Object.assign(style, { position: 'fixed', top: `${-y}px`, width: '100%', overflow: 'hidden' })
-  return () => {
-    Object.assign(style, saved)
-    window.scrollTo(0, y)
-  }
-}
-
-/** Tab and Shift-Tab go round the popup's buttons and links instead of leaving it. */
-function keepFocusInside(container: HTMLElement, e: KeyboardEvent) {
-  const stops = [...container.querySelectorAll<HTMLElement>('button, a[href]')]
-  if (stops.length === 0) return
-  const first = stops[0]
-  const last = stops[stops.length - 1]
-  const active = document.activeElement
-  const outside = !(active instanceof Node) || !container.contains(active)
-  if (e.shiftKey ? outside || active === first : outside || active === last) {
-    e.preventDefault()
-    ;(e.shiftKey ? last : first).focus()
-  }
 }
