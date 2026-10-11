@@ -3,7 +3,7 @@ import { cleanup, render, screen } from '@testing-library/preact'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { Span } from '../../src/copy/narrative'
 import type { Visual } from '../../src/copy/visuals'
-import { cssColor } from '../../src/ui/colors'
+import { cssColor, cssFill } from '../../src/ui/colors'
 import { Icon } from '../../src/ui/Icon'
 import { NarrativeCard } from '../../src/ui/NarrativeCard'
 import { ProgressRing } from '../../src/ui/ProgressRing'
@@ -17,6 +17,19 @@ describe('cssColor', () => {
     expect(cssColor('ups')).toBe('var(--ups)')
     expect(cssColor('secondary')).toBe('var(--text-2)')
     expect(cssColor('#002666')).toBe('#002666')
+  })
+})
+
+describe('cssFill', () => {
+  it('puts the readable fill first for a named color, and falls back to the color itself', () => {
+    for (const token of ['green', 'blue', 'red', 'orange', 'purple', 'gray', 'cyan', 'indigo', 'yellow', 'ups'] as const) {
+      expect(cssFill(token)).toBe(`var(--fill-${token}, var(--${token}))`)
+    }
+  })
+
+  it('leaves a brand hex and the secondary color as cssColor gives them', () => {
+    expect(cssFill('#002666')).toBe('#002666')
+    expect(cssFill('secondary')).toBe('var(--text-2)')
   })
 })
 

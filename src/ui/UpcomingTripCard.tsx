@@ -4,7 +4,7 @@ import { routeLabel } from '../copy/trips'
 import { delayBadge, LINE_TRIP_BADGE, type BadgeVisual } from '../copy/visuals'
 import type { AirportIndex } from '../data/airports'
 import type { UpcomingTrip } from '../engine/trips'
-import { cssColor } from './colors'
+import { cssFill } from './colors'
 import { Icon } from './Icon'
 
 interface UpcomingTripCardProps {
@@ -51,10 +51,10 @@ export function UpcomingTripCard({ trip, now, timeZone, h24, airports }: Upcomin
   )
 }
 
-/** A capsule badge: white text and icon on the badge's color. */
+/** A capsule badge: white text and icon on the badge's color, or its readable fill under Increase Contrast in dark mode. */
 function Badge({ badge }: { badge: BadgeVisual }) {
   return (
-    <span class="badge" style={{ background: cssColor(badge.color) }}>
+    <span class="badge" style={{ background: cssFill(badge.color) }}>
       <Icon name={badge.icon} size={11} />
       {badge.label}
     </span>

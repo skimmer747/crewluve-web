@@ -232,6 +232,10 @@ describe('cards.css', () => {
       expect(CONTAINER_UNIT.test(sizes[first - 1]), `${r.head}: the font-size just before the container-unit one must be plain`).toBe(false)
     }
   })
+
+  it('draws the sign-in button on the readable fill behind its white text', () => {
+    expect(declarations(find(top, '.primary')!.body)).toContainEqual(['background', 'var(--fill-blue, var(--blue))'])
+  })
 })
 
 describe('trips.css', () => {
@@ -240,6 +244,16 @@ describe('trips.css', () => {
 
   it('draws the progress track in --bar-track, so it can follow the high-contrast gray', () => {
     expect(background('.trip-bar')).toBe('var(--bar-track)')
+  })
+
+  it.each([
+    ['.blend-0', 'blue', 'cyan'],
+    ['.blend-1', 'purple', 'pink'],
+    ['.blend-2', 'orange', 'yellow'],
+    ['.blend-3', 'teal', 'green'],
+    ['.blend-4', 'indigo', 'purple'],
+  ])('%s blends %s into %s, through the readable fills behind white text', (head, from, to) => {
+    expect(background(head)).toBe(`linear-gradient(to right, var(--fill-${from}, var(--${from})), var(--fill-${to}, var(--${to})))`)
   })
 })
 

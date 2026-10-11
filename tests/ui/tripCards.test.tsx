@@ -54,12 +54,12 @@ describe('UpcomingTripCard', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Upcoming trip' }).classList.contains('sr-only')).toBe(true)
   })
 
-  it('colors the badges: blue Line Trip, orange Delayed, green Early', () => {
+  it('colors the badges: blue Line Trip, orange Delayed, green Early, through the readable fills behind white text', () => {
     const { rerender } = render(card(trip({ delayMinutes: 40 })))
-    expect((screen.getByText('Line Trip') as HTMLElement).style.background).toBe('var(--blue)')
-    expect((screen.getByText('Delayed') as HTMLElement).style.background).toBe('var(--orange)')
+    expect((screen.getByText('Line Trip') as HTMLElement).style.background).toBe('var(--fill-blue, var(--blue))')
+    expect((screen.getByText('Delayed') as HTMLElement).style.background).toBe('var(--fill-orange, var(--orange))')
     rerender(card(trip({ delayMinutes: -20 })))
-    expect((screen.getByText('Early') as HTMLElement).style.background).toBe('var(--green)')
+    expect((screen.getByText('Early') as HTMLElement).style.background).toBe('var(--fill-green, var(--green))')
   })
 
   it('says "1 day" for a one-day trip, and uses 24-hour time when asked', () => {
