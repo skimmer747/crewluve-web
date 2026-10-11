@@ -11,7 +11,7 @@ import { DemoBanner } from './DemoBanner'
 import { FallbackCard } from './FallbackCard'
 import { Footer, type FooterProps } from './Footer'
 import { LocationCard, showsLocationCard } from './LocationCard'
-import { locationFacts } from './locationFacts'
+import { locationFacts, showsDial } from './locationFacts'
 import { NarrativeCard } from './NarrativeCard'
 import { SunPopup } from './SunPopup'
 import { Title, titleFor } from './Title'
@@ -22,7 +22,7 @@ export interface StatusScreenProps {
   snap: Snapshot
   now: number
   viewerTz: string
-  /** The pilot's home time zone, for the card subtitles. */
+  /** The family's home time zone: for the card subtitles, the location card's time difference and the popup's home clock. */
   homeTz: string
   h24: boolean
   airports: AirportIndex
@@ -46,8 +46,10 @@ export function StatusScreen(p: StatusScreenProps) {
   const wasOpen = useRef(false)
   const spans = safeNarrative(snap, { now: p.now, viewerTz: p.viewerTz, h24: p.h24, airports: p.airports })
   const airport = snap.status.airport
+  // The place, worked out here for the popup and for when it may be open, by the card's own rule for its dial.
   const facts = showsLocationCard(snap) ? locationFacts(airport, p.now, p.airports, p.weather) : null
-  const dialShown = airport != null && facts?.tz != null && facts.sun != null
+  const dialFacts = facts && showsDial(facts) ? facts : null
+  const dialShown = dialFacts != null
   // The popup closes by itself when the dial goes away: at takeoff, or when the sun neither rises nor sets.
   useEffect(() => {
     if (sunOpen && !dialShown) setSunOpen(false)
@@ -87,9 +89,9 @@ export function StatusScreen(p: StatusScreenProps) {
         {snap.tripProgress && <TripProgressCard progress={snap.tripProgress} airports={p.airports} />}
         <Footer {...p.footer} />
       </main>
-      {open && airport && (
+      {open && dialFacts && (
         <SunPopup
-          airport={airport}
+          facts={dialFacts}
           now={p.now}
           homeTz={p.homeTz}
           homeAirport={snap.pilot.effHome}

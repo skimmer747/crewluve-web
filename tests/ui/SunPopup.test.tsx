@@ -2,6 +2,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/preact'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Weather } from '../../src/data/weather'
+import { locationFacts, showsDial } from '../../src/ui/locationFacts'
 import { CLOSE_MS, SunPopup, type SunPopupProps } from '../../src/ui/SunPopup'
 import { HOUR, MINUTE } from '../../src/time/zoned'
 import { testAirports } from '../fixtures/airports'
@@ -13,19 +14,14 @@ const DAYTIME = Date.UTC(2026, 9, 10, 21, 14) // 1:14 PM in Anchorage
 const cloudy: Weather = { temperature: 41.2, code: 3, isDay: false }
 const scheduled = NIGHT + 5 * HOUR + 20 * MINUTE
 
-const props = (over: Partial<SunPopupProps> = {}): SunPopupProps => ({
-  airport: 'ANC',
-  now: NIGHT,
-  homeTz: NY,
-  homeAirport: 'LEX',
-  h24: false,
-  airports: testAirports,
-  weather: cloudy,
-  departure: { scheduled, actual: scheduled },
-  onClose: () => {},
-  ...over,
-})
-const popup = (over: Partial<SunPopupProps> = {}) => <SunPopup {...props(over)} />
+/** The popup in Anchorage, as the screen would draw it: the place's facts are worked out for the time and weather given. */
+const props = (over: Partial<Omit<SunPopupProps, 'facts'>> = {}): SunPopupProps => {
+  const base = { now: NIGHT, homeTz: NY, homeAirport: 'LEX', h24: false, airports: testAirports, weather: cloudy, departure: { scheduled, actual: scheduled }, onClose: () => {}, ...over }
+  const facts = locationFacts('ANC', base.now, testAirports, base.weather)
+  if (!showsDial(facts)) throw new Error('Anchorage should have sun times')
+  return { ...base, facts }
+}
+const popup = (over: Partial<Omit<SunPopupProps, 'facts'>> = {}) => <SunPopup {...props(over)} />
 const reduceMotion = () => vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce'), media: query }))
 const text = (container: Element, selector: string) => container.querySelector(selector)!.textContent
 

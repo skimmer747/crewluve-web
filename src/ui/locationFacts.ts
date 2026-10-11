@@ -17,6 +17,14 @@ export interface LocationFacts {
   visual: WeatherVisual | null
 }
 
+/** The facts once the place has what the sun dial needs: its zone and today's sun times. */
+export type DialFacts = LocationFacts & { tz: string; sun: SunTimes }
+
+/** Whether the location card shows its sun dial, and so whether the sun popup can be open. */
+export function showsDial(facts: LocationFacts): facts is DialFacts {
+  return facts.tz != null && facts.sun != null
+}
+
 export function locationFacts(airport: string | null, now: number, airports: AirportIndex, weather: Weather | null): LocationFacts {
   const info = airports.get(airport)
   const tz = airports.tz(airport)

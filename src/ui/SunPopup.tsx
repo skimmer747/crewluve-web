@@ -9,11 +9,12 @@ import { moonPhase } from '../time/moon'
 import { isDaytime, sunTimes } from '../time/sun'
 import { cssColor } from './colors'
 import { Icon } from './Icon'
-import { locationFacts } from './locationFacts'
+import type { DialFacts } from './locationFacts'
 import { MoonPhaseIcon } from './MoonPhaseIcon'
 import { prefersReducedMotion } from './motion'
 import { SunDial } from './SunDial'
 import { WeatherBackdrop } from './WeatherBackdrop'
+import { WeatherCredit } from './WeatherCredit'
 
 /** Closing fades everything out over 0.2 s, as the app's dismissView does, before the popup goes. */
 export const CLOSE_MS = 200
@@ -21,8 +22,8 @@ export const CLOSE_MS = 200
 export const DRAG_CLOSE_PX = 100
 
 export interface SunPopupProps {
-  /** Where the pilot is. */
-  airport: string
+  /** Where the pilot is, with the zone and sun times the dial needs: the screen opens the popup only then. */
+  facts: DialFacts
   now: number
   /** The family's time zone. */
   homeTz: string
@@ -85,15 +86,15 @@ export function SunPopup(p: SunPopupProps) {
   }, [])
 
   // Worked out when the time or the place changes, not on every render: a drag re-renders the popup at each pointer
-  // move, and the big dial works itself out again whenever `sun` or `detail` is a new object.
-  const { city, tz, sun, visual } = useMemo(() => locationFacts(p.airport, p.now, p.airports, p.weather), [p.airport, p.now, p.airports, p.weather])
+  // move, and the big dial works itself out again whenever `sun` or `detail` is a new object. The screen's facts only
+  // change when it renders.
+  const { city, tz, sun, visual } = p.facts
   const homeSun = useMemo(() => {
     const home = p.airports.get(p.homeAirport)
     const homeZone = p.airports.tz(p.homeAirport)
     return home && homeZone ? sunTimes(p.now, home.lat, home.lng, homeZone) : null
   }, [p.homeAirport, p.now, p.airports])
   const detail = useMemo(() => ({ homeTz: p.homeTz, homeSun, departure: p.departure, still }), [p.homeTz, homeSun, p.departure, still])
-  if (!tz || !sun) return null
   const day = isDaytime(p.now, sun)
 
   // Dragging the top of the card down: past 100 px it closes, otherwise it springs back.
@@ -201,14 +202,7 @@ export function SunPopup(p: SunPopupProps) {
               <Icon name="MapPinArea" size={17} color="var(--red)" />
               <span>In {city}</span>
             </p>
-            {p.weather && (
-              <p class="weather-credit sun-popup-credit">
-                <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">
-                  Weather: Open-Meteo
-                  <span class="sr-only"> (opens in a new tab)</span>
-                </a>
-              </p>
-            )}
+            {p.weather && <WeatherCredit class="sun-popup-credit" />}
           </div>
         </div>
       </section>

@@ -6,9 +6,10 @@ import type { Weather } from '../data/weather'
 import type { Snapshot } from '../engine/snapshot'
 import { cssColor } from './colors'
 import { Icon } from './Icon'
-import { locationFacts } from './locationFacts'
+import { locationFacts, showsDial } from './locationFacts'
 import { SunDial } from './SunDial'
 import { TimeDifferenceLine } from './TimeDifferenceLine'
+import { WeatherCredit } from './WeatherCredit'
 
 /** The app shows the location card in every status but flying, where Part C's map will go (slice 2B1 §3). */
 export function showsLocationCard(snap: Snapshot): boolean {
@@ -33,7 +34,8 @@ export interface LocationCardProps {
  * from home's, with the sun dial in the upper right. With no airport it's just "Unknown Location", as in the app.
  */
 export function LocationCard({ airport, now, homeTz, h24, airports, weather, onOpenSun }: LocationCardProps) {
-  const { city, flag, tz, sun, visual } = locationFacts(airport, now, airports, weather)
+  const facts = locationFacts(airport, now, airports, weather)
+  const { city, flag, tz, visual } = facts
   return (
     <section class="card glass location">
       <div class="location-body">
@@ -50,12 +52,7 @@ export function LocationCard({ airport, now, homeTz, h24, airports, weather, onO
                 <span class="weather-temp">{temperatureText(weather.temperature)}</span>
                 <span class="weather-words">{visual.words}</span>
               </p>
-              <p class="weather-credit">
-                <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">
-                  Weather: Open-Meteo
-                  <span class="sr-only"> (opens in a new tab)</span>
-                </a>
-              </p>
+              <WeatherCredit />
             </>
           ) : (
             <p class="weather-row weather-none">
@@ -74,7 +71,7 @@ export function LocationCard({ airport, now, homeTz, h24, airports, weather, onO
           </div>
         )}
       </div>
-      {sun && tz && <SunDial sun={sun} now={now} timeZone={tz} h24={h24} city={city} onOpen={onOpenSun} />}
+      {showsDial(facts) && <SunDial sun={facts.sun} now={now} timeZone={facts.tz} h24={h24} city={city} onOpen={onOpenSun} />}
     </section>
   )
 }

@@ -341,8 +341,10 @@ describe('StatusScreen sun popup (slice 2B2)', () => {
     const now = at(180)
     const { container } = render(turnAt())
     openDial()
-    const rockfordSun = sunTimes(now, 42.1954, -89.0972, 'America/Chicago')!
-    const lexingtonSun = sunTimes(now, 38.0365, -84.6059, NY)!
+    const rockford = testAirports.get('RFD')!
+    const lexington = testAirports.get('LEX')!
+    const rockfordSun = sunTimes(now, rockford.lat, rockford.lng, 'America/Chicago')!
+    const lexingtonSun = sunTimes(now, lexington.lat, lexington.lng, NY)!
     const [span] = sharedDaylight(rockfordSun, lexingtonSun, NY)
     expect(container.querySelector('.sun-shared-wedge')!.getAttribute('d')).toBe(wedgePath(hourAngle(span.start), hourAngle(span.end)))
   })
