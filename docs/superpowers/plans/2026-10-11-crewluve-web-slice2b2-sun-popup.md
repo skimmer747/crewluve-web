@@ -4633,11 +4633,11 @@ Run a final whole-branch code review of `main..slice2b2`, and fix what it raises
 
 Use superpowers:finishing-a-development-branch. Ask the user one question about how to merge `slice2b2` into `main`.
 
-- [ ] **Step 3: Release, only with a fresh yes**
+- [x] **Step 3: Release, only with a fresh yes**
 
 Ask before pushing `main`; the push redeploys crewluve.crewlu.net. After the "Deploy to GitHub Pages" run succeeds, open https://crewluve.crewlu.net/?demo=1&scene=delayed and tap the dial. Confirm the popup opens and closes, that `read_console_messages` with `onlyErrors: true` shows nothing, and that the demo made no network requests beyond the page's own files.
 
-- [ ] **Step 4: Update the memory**
+- [x] **Step 4: Update the memory**
 
 Update the project memory with the new tip and what's next: the Part A follow-ups (high-contrast colors, now also for the popup's small text, and city names), then Part C, the in-flight map.
 
@@ -4728,3 +4728,11 @@ Update the project memory with the new tip and what's next: the Part A follow-up
 There were no nudges: the shadow stays at the spec's 20 px, and the clouds and fog as built. Night couldn't be shown live, since every demo place was in daylight; it uses the dark set the test keeps identical to the page's. No iOS 15 device was to hand.
 
 **Merge (Task 20, 2026-10-11):** the final review's re-check said "Ready to merge? Yes", and the user said to merge once it passed. `slice2b2` was fast-forwarded into `main` (`997e7ee..4ac02bd`, 39 commits) and deleted. On `main`: 1613 tests in 70 files, `tsc` and the build pass. The push to GitHub, which redeploys the site, waits for the user's own yes.
+
+**Release (Task 20, 2026-10-11):** with the user's yes, `main` was pushed (`5a404b1..1169262`). The "Deploy to GitHub Pages" run 38165399360 succeeded: build and deploy. On https://crewluve.crewlu.net/?demo=1&scene=delayed:
+- the dial is a button, and a real click opened the popup, named "Anchorage", with focus on Close, `<main>` inert and the body fixed;
+- the description read "Next departure 3:50 PM, 40 minutes late, in 4 hours, 59 minutes.";
+- Escape closed it, with focus back on the dial;
+- there were no console errors, and the demo requested only the site's own files.
+
+The run's notices were a Node 20 deprecation for `actions/deploy-pages@v4` and the coming Ubuntu 26 runner change; neither failed anything.
