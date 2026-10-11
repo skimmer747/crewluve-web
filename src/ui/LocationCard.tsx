@@ -5,7 +5,7 @@ import { temperatureText, weatherVisual } from '../copy/weather'
 import type { AirportIndex } from '../data/airports'
 import type { Weather } from '../data/weather'
 import type { Snapshot } from '../engine/snapshot'
-import { sunTimes } from '../time/sun'
+import { isDaytime, sunTimes } from '../time/sun'
 import { cssColor } from './colors'
 import { Icon } from './Icon'
 import { SunDial } from './SunDial'
@@ -37,7 +37,9 @@ export function LocationCard({ airport, now, homeTz, h24, airports, weather }: L
   const flag = countryFlag(info?.country)
   const tz = airports.tz(airport)
   const sun = info && tz ? sunTimes(now, info.lat, info.lng, tz) : null
-  const visual = weather ? weatherVisual(weather.code, weather.isDay) : null
+  // Day or night comes from the card's own sun times, so the weather icon always agrees with the dial, as the app's two
+  // do. Open-Meteo's is_day is the fallback where the sun neither rises nor sets that day.
+  const visual = weather ? weatherVisual(weather.code, sun ? isDaytime(now, sun) : weather.isDay) : null
   return (
     <section class="card glass location">
       <div class="location-body">

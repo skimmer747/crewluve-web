@@ -67,11 +67,24 @@ describe('LocationCard', () => {
     expect(width(container.querySelector('.weather-none svg'))).toBe('17')
   })
 
-  it('shows a moon for a clear night', () => {
-    const { container } = render(card('LEX', { temperature: 58, code: 0, isDay: false }))
-    const icon = container.querySelector('.weather-row svg') as SVGElement
-    expect(iconNameOf(icon)).toBe('Moon')
-    expect(icon.style.color).toBe('var(--indigo)')
+  it('takes day or night for the weather icon from the sun times, so it always agrees with the dial', () => {
+    const icon = () => container.querySelector('.weather-row svg') as SVGElement
+    // 10:05 pm in Lexington, though the weather's own is_day still says day.
+    const { container, rerender } = render(card('LEX', { temperature: 58, code: 0, isDay: true }, { now: Date.UTC(2026, 9, 11, 2, 5) }))
+    expect(iconNameOf(icon())).toBe('Moon')
+    expect(icon().style.color).toBe('var(--indigo)')
+    // 1:14 pm, though is_day says night.
+    rerender(card('LEX', { temperature: 58, code: 0, isDay: false }))
+    expect(iconNameOf(icon())).toBe('Sun')
+  })
+
+  it('falls back to the weather’s own day or night where the sun neither rises nor sets', () => {
+    const midwinter = Date.UTC(2026, 11, 21, 20) // Utqiaġvik
+    const icon = () => container.querySelector('.weather-row svg')
+    const { container, rerender } = render(card('BRW', { temperature: -8, code: 0, isDay: false }, { now: midwinter }))
+    expect(iconNameOf(icon())).toBe('Moon')
+    rerender(card('BRW', { temperature: -8, code: 0, isDay: true }, { now: midwinter }))
+    expect(iconNameOf(icon())).toBe('Sun')
   })
 
   it('shows a plane and the airport code while there’s no weather', () => {
