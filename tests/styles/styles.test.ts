@@ -186,6 +186,21 @@ describe('tokens.css: Increase Contrast', () => {
     for (const set of [lightDefault, darkDefault, light]) expect([...set.keys()].filter((name) => name.startsWith('--fill-'))).toEqual([])
   })
 
+  it('changes only the system colors, the secondary text, the track and the glass, never the background, the text or UPS', () => {
+    const changed = [...HIGH_CONTRAST.map(([name]) => name), '--glass-fill', '--glass-edge'].sort()
+    expect([...light.keys()].sort()).toEqual(changed)
+    expect([...dark.keys()].sort()).toEqual([...changed, ...FILLS.map((color) => `--fill-${color}`)].sort())
+  })
+
+  it('defines the fills in no other stylesheet', () => {
+    const elsewhere = STYLESHEETS.filter((name) => name !== 'tokens').flatMap((name) =>
+      rulesIn(css(name))
+        .filter((r) => declarations(r.body).some(([prop]) => prop.startsWith('--fill-')))
+        .map((r) => `${name}.css ${r.head}`),
+    )
+    expect(elsewhere).toEqual([])
+  })
+
   it('makes the glass more solid, with a stronger edge of the same color', () => {
     const rgba = (value = '') => /^rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)$/.exec(value)?.slice(1).map(Number) ?? []
     for (const [hc, base] of [[light, lightDefault], [dark, darkDefault]]) {
