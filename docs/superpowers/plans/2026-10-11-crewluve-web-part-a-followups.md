@@ -779,7 +779,7 @@ Update the project memory with the new tip and what's next: Part C, the in-fligh
 - **Look check (Task 6):** the user saw side-by-side screenshots of the built branch, today's look beside Increase Contrast, and said "Looks right". They covered the main screen in light and dark, the badge and pill in dark, the popup by day and at night, and the longest name. There was no tuning, so there's no tuning commit.
   - The browser pane sometimes hands back the previous frame right after a script changes the page. Taking a small throwaway screenshot first, then the real one, gets the current frame.
 - **Spec review:** passed, and its own 26 deliberate breaks were all caught. From its notes, `1e4e62e` adds two tests:
-  - the high-contrast sets change only what spec §3.2 lists, never `--bg`, `--text` or `--ups`;
+  - the high-contrast sets change only what spec §5 lists, never `--bg`, `--text` or `--ups`;
   - no stylesheet but `tokens.css` defines a fill.
 - **Code-quality review, which was also the final review:** "Ready to merge? Yes", with nothing Critical or Important. It checked the cascade in headless Chrome against the built CSS of both base and head. `9f6b79d` makes its minor changes:
   - the order test also checks the high-contrast blocks against the plain dark block (moving that block to the end passed before);
@@ -787,6 +787,6 @@ Update the project memory with the new tip and what's next: Part C, the in-fligh
   - one custom-properties helper at the top of `styles.test.ts` replaces three copies;
   - `cssFill` builds its fallback with `cssColor`, with the same output.
 - **Left as they are, by design:**
-  - The weather animation reads its colors when the popup opens. Switching Increase Contrast while it's open recolors it only on the next opening, as with light and dark.
+  - The weather animation reads its colors when the popup opens, and again when day turns to night or the weather changes. Switching Increase Contrast while it's open recolors it only at one of those moments, as with light and dark.
   - The pills' 9 px subtitles stay white at 85% like the app's. On the fills that reaches 3.6:1 or more rather than 4.5:1, and spec §3.2 now says so.
 - **Totals:** after the review follow-ups, the suite is 1660 tests in 70 files.
