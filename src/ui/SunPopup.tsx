@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'preact/hooks'
+import { useEffect, useId, useMemo, useRef, useState } from 'preact/hooks'
 import { shortTimeText } from '../copy/format'
 import { daylightText, moonPhaseName } from '../copy/sunDetail'
 import { temperatureText, weatherAnimation } from '../copy/weather'
@@ -85,11 +85,16 @@ export function SunPopup(p: SunPopupProps) {
     }
   }, [])
 
-  const { city, tz, sun, visual } = locationFacts(p.airport, p.now, p.airports, p.weather)
+  // Worked out when the time or the place changes, not on every render: a drag re-renders the popup at each pointer
+  // move, and the big dial works itself out again whenever `sun` or `detail` is a new object.
+  const { city, tz, sun, visual } = useMemo(() => locationFacts(p.airport, p.now, p.airports, p.weather), [p.airport, p.now, p.airports, p.weather])
+  const homeSun = useMemo(() => {
+    const home = p.airports.get(p.homeAirport)
+    const homeZone = p.airports.tz(p.homeAirport)
+    return home && homeZone ? sunTimes(p.now, home.lat, home.lng, homeZone) : null
+  }, [p.homeAirport, p.now, p.airports])
+  const detail = useMemo(() => ({ homeTz: p.homeTz, homeSun, departure: p.departure, still }), [p.homeTz, homeSun, p.departure, still])
   if (!tz || !sun) return null
-  const home = p.airports.get(p.homeAirport)
-  const homeZone = p.airports.tz(p.homeAirport)
-  const homeSun = home && homeZone ? sunTimes(p.now, home.lat, home.lng, homeZone) : null
   const day = isDaytime(p.now, sun)
 
   // Dragging the top of the card down: past 100 px it closes, otherwise it springs back.
@@ -162,7 +167,7 @@ export function SunPopup(p: SunPopupProps) {
             h24={p.h24}
             city={city}
             size={360}
-            detail={{ homeTz: p.homeTz, homeSun, departure: p.departure, still }}
+            detail={detail}
           />
           {p.weather && visual && (
             <p class="sun-popup-weather-row">

@@ -4,11 +4,15 @@ import { sunDialLabel } from '../copy/location'
 import { bigDialLabel } from '../copy/sunDetail'
 import { isDaytime, type SunTimes } from '../time/sun'
 import { bigDialBase, bigDialLayers, type DialDetail } from './bigDial'
-import { BigDialHands, BigDialTop } from './BigDialLayers'
+import { BigDialHands, BigDialTop } from './BigDialDrawing'
 import { dialMoment } from './dialTimeline'
 import { useElapsed } from './hooks/useElapsed'
 import { Icon } from './Icon'
 import { arcPath, cornerFor, dialAngle, DIAL, glowBands, labelAt, markerPath, pointAt, skyBackground, tickAt } from './sunDialGeometry'
+
+/** The triangles that point at noon and midnight: the same on every dial. */
+const NOON_MARKER = markerPath(270)
+const MIDNIGHT_MARKER = markerPath(90)
 
 interface DialBase {
   sun: SunTimes
@@ -54,6 +58,10 @@ export function SunDial(props: SunDialProps) {
       icon,
       corner: cornerFor(hand, icon),
       sky: skyBackground(rise, set),
+      dayArc: arcPath(rise, set, DIAL.radius),
+      nightArc: arcPath(set, rise, DIAL.radius),
+      bands: glowBands(rise, set).map((band) => ({ kind: band.kind, d: arcPath(band.from, band.to, DIAL.radius) })),
+      ticks: [rise, set].map(tickAt),
       labels: [
         { at: labelAt(rise), text: dialTimeText(sun.sunrise, timeZone, h24) },
         { at: labelAt(set), text: dialTimeText(sun.sunset, timeZone, h24) },
@@ -64,7 +72,7 @@ export function SunDial(props: SunDialProps) {
       base: detail ? bigDialBase(sun, now, timeZone, h24, detail) : null,
     }
   }, [sun, now, timeZone, h24, city, detail])
-  const { rise, set, risePoint, setPoint, hand, day, icon, corner, labels, base } = fixed
+  const { risePoint, setPoint, hand, day, icon, corner, labels, base } = fixed
   const r = DIAL.radius
   // The loop runs only on the big dial, when it has a turn to show and motion is welcome.
   const turns = base?.turns
@@ -99,18 +107,17 @@ export function SunDial(props: SunDialProps) {
           </filter>
         </defs>
         {big?.home?.shared.map((span, i) => <path key={i} class="sun-shared-wedge" d={span.wedge} />)}
-        <path class="sun-day" d={arcPath(rise, set, r)} stroke={`url(#${id}-day)`} />
-        <path class="sun-night" d={arcPath(set, rise, r)} stroke={`url(#${id}-night)`} />
-        {glowBands(rise, set).map((band, i) => (
-          <path key={i} class={`sun-band ${band.kind}`} d={arcPath(band.from, band.to, r)} />
+        <path class="sun-day" d={fixed.dayArc} stroke={`url(#${id}-day)`} />
+        <path class="sun-night" d={fixed.nightArc} stroke={`url(#${id}-night)`} />
+        {fixed.bands.map((band, i) => (
+          <path key={i} class={`sun-band ${band.kind}`} d={band.d} />
         ))}
         {big?.home?.shared.map((span, i) => <path key={i} class="sun-shared" d={span.arc} />)}
-        {[rise, set].map((angle, i) => {
-          const tick = tickAt(angle)
-          return <line key={i} class="sun-tick" x1={tick.from.x} y1={tick.from.y} x2={tick.to.x} y2={tick.to.y} />
-        })}
-        <path class="sun-marker" d={markerPath(270)} />
-        <path class="sun-marker" d={markerPath(90)} />
+        {fixed.ticks.map((tick, i) => (
+          <line key={i} class="sun-tick" x1={tick.from.x} y1={tick.from.y} x2={tick.to.x} y2={tick.to.y} />
+        ))}
+        <path class="sun-marker" d={NOON_MARKER} />
+        <path class="sun-marker" d={MIDNIGHT_MARKER} />
         <line class="sun-hand" x1={DIAL.cx} y1={DIAL.cy} x2={hand.x} y2={hand.y} />
         {big && <BigDialHands layers={big} />}
         <g

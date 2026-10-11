@@ -111,11 +111,14 @@ export interface BigDialLayers {
   departure: DepartureLayers | null
 }
 
-/** Which turns of the loop apply now: home's while the clocks differ, the departure's while its actual time is ahead. */
-export function bigDialTurns(now: number, timeZone: string, detail: DialDetail): DialTurns {
+/**
+ * Which turns of the loop apply now: home's while the clocks differ, the departure's while its actual time is ahead.
+ * `difference` is the pilot's clock against home's, for callers that have it already.
+ */
+export function bigDialTurns(now: number, timeZone: string, detail: DialDetail, difference = timeDifference(now, timeZone, detail.homeTz)): DialTurns {
   const leaves = detail.departure?.actual
   return {
-    home: timeDifference(now, timeZone, detail.homeTz).direction !== 'same',
+    home: difference.direction !== 'same',
     departureDays: leaves != null && leaves > now ? (leaves - now) / DAY : null,
     still: detail.still,
   }
@@ -133,7 +136,8 @@ function marksAt(ms: number, timeZone: string, h24: boolean): DepartureMarks {
 
 /** What the big dial draws beyond the card's dial that doesn't move, at `now`. */
 export function bigDialBase(sun: SunTimes, now: number, timeZone: string, h24: boolean, detail: DialDetail): BigDialBase {
-  const turns = bigDialTurns(now, timeZone, detail)
+  const difference = timeDifference(now, timeZone, detail.homeTz)
+  const turns = bigDialTurns(now, timeZone, detail, difference)
   const nowAngle = dialAngle(now, timeZone)
   let home: HomeBase | null = null
   if (turns.home) {
@@ -147,7 +151,7 @@ export function bigDialBase(sun: SunTimes, now: number, timeZone: string, h24: b
         wedge: wedgePath(hourAngle(span.start), hourAngle(span.end)),
         arc: arcPath(hourAngle(span.start), hourAngle(span.end), DIAL.radius),
       })),
-      ...hourDifference(timeDifference(now, timeZone, detail.homeTz)),
+      ...hourDifference(difference),
     }
   }
   let departure: DepartureBase | null = null

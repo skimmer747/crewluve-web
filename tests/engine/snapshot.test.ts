@@ -5,6 +5,7 @@ import { buildLegs, type Leg } from '../../src/engine/legs'
 import { buildSchedule } from '../../src/engine/normalize'
 import { departureOffset, makeSnapshot } from '../../src/engine/snapshot'
 import type { Schedule } from '../../src/engine/types'
+import { MINUTE } from '../../src/time/zoned'
 import { A, at, engineFor } from '../fixtures/engine'
 
 const NY = 'America/New_York'
@@ -488,13 +489,12 @@ describe('the trip cards (slice 2A)', () => {
 
 describe('departureOffset', () => {
   const scheduled = Date.UTC(2026, 9, 11, 11, 25)
-  const minute = 60_000
   it('counts a departure as late or early only at 15 minutes or more either way (slice 1 decision 9)', () => {
-    expect(departureOffset({ scheduled, actual: scheduled + 40 * minute })).toBe(40)
-    expect(departureOffset({ scheduled, actual: scheduled - 20 * minute })).toBe(-20)
-    expect(departureOffset({ scheduled, actual: scheduled + 14 * minute })).toBeNull()
-    expect(departureOffset({ scheduled, actual: scheduled + 15 * minute })).toBe(15)
-    expect(departureOffset({ scheduled, actual: scheduled - 14 * minute })).toBeNull()
-    expect(departureOffset({ scheduled, actual: scheduled - 15 * minute })).toBe(-15)
+    expect(departureOffset({ scheduled, actual: scheduled + 40 * MINUTE })).toBe(40)
+    expect(departureOffset({ scheduled, actual: scheduled - 20 * MINUTE })).toBe(-20)
+    expect(departureOffset({ scheduled, actual: scheduled + 14 * MINUTE })).toBeNull()
+    expect(departureOffset({ scheduled, actual: scheduled + 15 * MINUTE })).toBe(15)
+    expect(departureOffset({ scheduled, actual: scheduled - 14 * MINUTE })).toBeNull()
+    expect(departureOffset({ scheduled, actual: scheduled - 15 * MINUTE })).toBe(-15)
   })
 })

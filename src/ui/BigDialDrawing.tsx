@@ -3,8 +3,8 @@ import { Icon } from './Icon'
 import { DETAIL, DIAL, type PlaneSpot } from './sunDialGeometry'
 
 /*
- * The big dial's own layers (slice 2B2 §5.1, §5.2), drawn by SunDial at the popup's size in the app's order: the hands
- * under the sun, and the top layers over it.
+ * The drawing of the big dial's own layers (slice 2B2 §5.1, §5.2), which SunDial puts in at the popup's size in the
+ * app's order: the hands under the sun, and the top layers over it. `bigDial.ts` works out what they show.
  */
 
 /** The big dial's hands under the sun: the departure's, the delay's, home's dashed line, and the departure triangle. */

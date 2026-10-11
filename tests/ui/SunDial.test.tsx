@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, render, screen } from '@testing-library/preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { SunTimes } from '../../src/time/sun'
 import type { DialDetail } from '../../src/ui/bigDial'
 import { SunDial } from '../../src/ui/SunDial'
 import { arcPath, cornerFor, departureMarkerPath, dialAngle, glowBands, labelAt, markerPath, pointAt, skyBackground, tickAt } from '../../src/ui/sunDialGeometry'
@@ -289,6 +290,20 @@ describe('SunDial at 360', () => {
     await frames.frame(1000 + 3100 + 400)
     expect(formatToParts).not.toHaveBeenCalled()
     expect(format).not.toHaveBeenCalled()
+  })
+
+  it.each<[string, Partial<{ sun: SunTimes; timeZone: string; city: string; h24: boolean; detail: DialDetail }>]>([
+    ['sun times', { sun: { sunrise: sun.sunrise + HOUR, sunset: sun.sunset } }],
+    ['time zone', { timeZone: 'America/Los_Angeles' }],
+    ['city', { city: 'Ted Stevens' }],
+    ['clock style', { h24: true }],
+    ['detail', { detail: { ...detail, departure: { scheduled, actual: scheduled + 40 * MINUTE } } }],
+  ])('works the dial out again when its %s change, even at the same moment', (_what, change) => {
+    const props = { sun, now: NIGHT, timeZone: ANC, h24: false, city: 'Anchorage', detail }
+    const { rerender } = render(<SunDial {...props} size={360} />)
+    const before = screen.getByRole('img').getAttribute('aria-label')
+    rerender(<SunDial {...props} {...change} size={360} />)
+    expect(screen.getByRole('img').getAttribute('aria-label')).not.toBe(before)
   })
 
   it('asks for no frames when nothing moves', () => {
