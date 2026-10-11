@@ -91,11 +91,11 @@ The tests check the results against NOAA Solar Calculator times, worked out sepa
   - The latitude and longitude are the airport's, from the airport list, rounded to 2 decimals.
   - It's a plain GET with `cache: 'no-store'`, `credentials: 'omit'` and `referrerPolicy: 'no-referrer'`. Besides the URL, only the headers every browser sends go with it.
 - **Units:** Fahrenheit where Apple's weather format, which the app uses, gives it: the US, Puerto Rico, the Bahamas, Belize, the Cayman Islands and Palau (US, PR, BS, BZ, KY, PW). The region is read with `Intl.Locale(navigator.language).maximize()`. Everyone else gets Celsius.
-- **Rounding:** the temperature shows as whole degrees, as "41°", rounded like the app's format. Halves round to the even number (40.5 shows 40°), and a reading just below zero shows "-0°".
+- **Rounding:** the temperature shows as whole degrees, as "41°", rounded like the app's format. Halves round to the even number (40.5 shows 40°), and a reading just below zero shows "-0°". Browsers without `roundingMode` (Safari before 15.4, Chrome before 106, Firefox before 116) round halves away from zero instead.
 - **Parsing:** the reply is checked for finite numbers and a known code. Anything else counts as no weather. No text from the reply is ever shown; the words come from the site's own table.
-- **Freshness:** results are kept in memory for each airport and unit for 15 minutes, like the app's cache. The site fetches again when the pilot's airport changes, every 15 minutes (unless a return to the page has just fetched), and when the page becomes visible again with stale weather. A request that takes more than 10 seconds counts as a failure. A failure shows the plane-and-code row and tries again at the next refresh, so it never retries rapidly. Nothing is stored on the device; `no-store` keeps the reply out of the browser's cache too.
+- **Freshness:** results are kept in memory for each airport and unit for 15 minutes, like the app's cache. The site fetches again when the pilot's airport changes, when the page becomes visible again with stale weather, and, while the page is visible, once the weather turns 15 minutes old. It checks once a minute, so the weather is never more than about 16 minutes old. A request that takes more than 10 seconds counts as a failure. A failure shows the plane-and-code row and tries again at the next refresh, so it never retries rapidly. Nothing is stored on the device; `no-store` keeps the reply out of the browser's cache too.
 
-**Weather codes to words and icons** (`src/copy/weather.ts`): Open-Meteo's WMO codes map to the app's wording (Apple's condition names). The icon and color come from the site's Phosphor set. At night, clear-sky codes get moon icons (`is_day`).
+**Weather codes to words and icons** (`src/copy/weather.ts`): Open-Meteo's WMO codes map to the app's wording (Apple's condition names). The icon and color come from the site's Phosphor set. At night, clear and partly cloudy skies get moon icons. Day or night comes from the card's own sun times, so the icon always agrees with the dial. Open-Meteo's `is_day` is the fallback where the sun neither rises nor sets that day.
 
 | Codes | Words | Icon (day / night) |
 |---|---|---|
@@ -140,6 +140,8 @@ The Phosphor icon set (`scripts/build-icons.mjs`) gains Moon, CloudSun, CloudMoo
 7. The dial isn't tappable until Part B2.
 8. A difference under an hour reads "30m ahead of you", as the app's other two styles write it. The app's odometer shows "0h 30m".
 9. During ground transport the card shows, with the departure city, as it does for a drive. Slice 1 gave ground legs their own status instead of "In Flight" (its deliberate difference 9). The app counts them as flights, so it shows its in-flight map there.
+10. The odometer counts up again when the difference changes, after a new city or a clock change. The app's view counts only when it first appears.
+11. The weather icon takes day or night from the site's sun times, as the dial does; the app takes both from WeatherKit. Either way, the two always agree.
 
 ## 9. Testing
 
@@ -168,12 +170,13 @@ The Phosphor icon set (`scripts/build-icons.mjs`) gains Moon, CloudSun, CloudMoo
 | 6 | The time difference compares with home's zone, and only the default odometer animation is copied. | Design (Part A precedent) |
 | 7 | Flags come from the app's own 74-country list. | Design (copying the app) |
 | 8 | The weather's words, rounding and units follow Apple's weather format as the app uses it: "Fog" and "Thunderstorm"; halves to the even number, with "-0°"; Fahrenheit for US, PR, BS, BZ, KY and PW. | Batch A spec review, 2026-10-11 |
-| 9 | The weather request is never cached (`no-store`) and gives up after 10 seconds. The 15-minute refresh skips weather a return to the page has just fetched. | Batch A and B reviews, 2026-10-11 |
+| 9 | The weather request is never cached (`no-store`) and gives up after 10 seconds. A visible page checks once a minute and fetches when the weather turns 15 minutes old. | Batch A and B reviews, and the final review, 2026-10-11 |
 | 10 | During ground transport the card shows, as for a drive (§8 item 9), following slice 1's decision to give ground legs their own status. | Batch C spec review, 2026-10-11 |
+| 11 | The weather icon's day or night comes from the card's sun times, with `is_day` as the fallback, so it always agrees with the dial (§8 item 11). | Final review, 2026-10-11 |
 
 ## 11. Roadmap
 
-1. Part A follow-ups: high-contrast colors, and city names from the app's table (Part A spec §13).
+1. Part A follow-ups: high-contrast colors, and city names from the app's table (Part A spec §13). The high-contrast pass also covers this card's small text: the dial's 8 and 9 px labels, the 11 px credit, and the 12 px orange numbers.
 2. **Part B2:** the sun dial popup.
 3. Part C: the in-flight map.
 4. Slice 3: the Schedule page.

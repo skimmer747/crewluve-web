@@ -17,7 +17,7 @@
 **Setup and gates**
 - **Branch:** work on `slice2b1` in the main project folder. Run `git switch -c slice2b1` from an up-to-date `main`. Don't use git worktrees; auto mode blocked a worktree builder during slice 1.
 - **Working directory:** run every command from the project root, `~/Dev/Crewluve Website`. Quote it in shells, since it has a space.
-- **Gates:** `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass before every commit that touches code. The suite was 1110 tests in 48 files before this plan; it ends at 1352 tests in 59 files.
+- **Gates:** `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass before every commit that touches code. The suite was 1110 tests in 48 files before this plan. The printed tasks end at 1352 tests in 59 files; after the review fixes, the branch has 1409.
 - **Commit trailer:** end every commit message with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 
 **How the printed code was checked**
@@ -62,6 +62,8 @@
 | Tests | create and modify | Eleven new test files, plus additions to seven existing ones and to the airport fixture |
 
 ---
+> **The printed code below is the code as first built.** The review fixes have changed about ten of these files since, and the Execution notes at the end list each change by commit. To rebuild, start from the branch, not from these blocks.
+
 ### Task 1: Sun times
 
 **Files:**
@@ -3237,7 +3239,7 @@ Update the project memory with the new tip and what's next: Part B2, the sun dia
 | §4 The card: header, flag, weather row and its fallback, current time, time difference and odometer | 2 (clock), 3 (difference), 6 (weather words), 8 (flags), 12 (odometer), 13 (card) |
 | §5 The sun dial | 2 (labels), 3 (screen-reader label), 10 (geometry), 11 (dial), 13 (styles, polar days) |
 | §6 Data: sun times, weather request, units, parsing, freshness, codes, colors, icons, time difference, demo | 1, 3, 4, 5, 6, 7, 9 |
-| §7 Security and privacy | 5 (plain GET, no cookies or referrer, the read-only scan), 7 (demo offline), 15 (CSP) |
+| §7 Security and privacy | 5 (plain GET, no cookies or referrer, the read-only scan), 7 (demo offline), 14 (the demo or live loader), 15 (CSP) |
 | §8 Deliberate differences | 1 (1), 5–6 (2), 2 and 11 (3), 12 (4), 13 (5: no quick status), 13–14 (6), 11 (7), 3 (8), 13 (9: ground transport, pinned by the `showsLocationCard` test) |
 | §9 Testing | Every task, then 16 |
 
@@ -3297,4 +3299,11 @@ Update the project memory with the new tip and what's next: Part B2, the sun dia
   - the difference is measured from home, not from the visitor's zone;
   - the card honors 24-hour time.
   - Not taken: moving `weatherPlace` next to `showsLocationCard`. It works where it is.
+- **Final whole-branch review:** "Ready to merge? Yes", with nothing Critical or Important.
+  - It ran the live path against Open-Meteo for ANC, CGN and HKG in both units, and the demo in WebKit under the real CSP.
+  - The suite passes unchanged under `TZ=Pacific/Kiritimati` in German and `TZ=America/Adak` in British English.
+  - Its two behavior points became `990315d` and `e573407`:
+    - A visible page now checks once a minute and fetches when the weather turns 15 minutes old. The old 15-minute timer, anchored where the airport was set, could leave weather about 29 minutes old. `TICK_GRACE_MS` is gone.
+    - The weather icon takes day or night from the card's sun times, so it always agrees with the dial. Open-Meteo's `is_day` is the fallback in polar day or night.
+  - Its doc points: spec §6 (freshness, older browsers' rounding, day or night), §8 items 10–11, §10 rows 9 and 11, §11 (the card's small text joins the high-contrast follow-up), the test count, a pointer before Task 1, and Task 14 in the coverage table.
 - **Task 16 (2026-10-11):** the user signed off on the look ("Looks right") from five screenshots: Anchorage by day and at night, home in Lexington at night, Miami in dark mode, and a 320 px phone. They chose to keep the app's two narrow-phone overlaps. Step 6, live weather, waits until after release.
