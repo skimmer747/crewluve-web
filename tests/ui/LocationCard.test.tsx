@@ -71,7 +71,7 @@ describe('LocationCard', () => {
     reduceMotion()
     const { container } = render(card('ANC', cloudy))
     expect(container.querySelector('.time-label')!.textContent).toBe('Current time:')
-    expect(container.querySelector('.time-value')!.textContent).toBe('9:14 AM')
+    expect(container.querySelector('.time-value')!.textContent).toBe('9:14\u202FAM')
     expect(container.querySelector('.time-diff .sr-only')!.textContent).toBe('4 hours behind you')
     expect(container.querySelector('.time-diff [aria-hidden="true"]')!.textContent).toBe('4h behind you')
   })
@@ -94,7 +94,7 @@ describe('LocationCard', () => {
   it('leaves the dial out when the sun neither rises nor sets that day, but keeps the time', () => {
     const { container } = render(card('BRW', null, { now: Date.UTC(2026, 11, 21, 20) })) // Utqiaġvik in midwinter
     expect(container.querySelector('.sun-dial')).toBeNull()
-    expect(container.querySelector('.time-value')!.textContent).toBe('11:00 AM')
+    expect(container.querySelector('.time-value')!.textContent).toBe('11:00\u202FAM')
   })
 
   it('shows only "Unknown Location" when nobody can tell where the pilot is', () => {

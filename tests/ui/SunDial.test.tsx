@@ -20,7 +20,7 @@ const num = (el: Element | null, name: string) => Number(el!.getAttribute(name))
 describe('SunDial', () => {
   it('is one image to screen readers, named with the sun times and whether it’s day', () => {
     const { container } = render(dial(MORNING))
-    expect(screen.getByRole('img', { name: 'Sunrise 8:12 AM, sunset 6:41 PM, daytime in Anchorage' })).toBeTruthy()
+    expect(screen.getByRole('img', { name: 'Sunrise 8:12\u202FAM, sunset 6:41\u202FPM, daytime in Anchorage' })).toBeTruthy()
     expect(container.querySelector('svg')!.getAttribute('aria-hidden')).toBe('true')
   })
 
@@ -63,6 +63,6 @@ describe('SunDial', () => {
     const now = container.querySelector('.sun-now')!
     expect(iconNameOf(now.querySelector('svg'))).toBe('Moon')
     expect(now.getAttribute('filter')).toBeNull()
-    expect(screen.getByRole('img').getAttribute('aria-label')).toBe('Sunrise 8:12 AM, sunset 6:41 PM, nighttime in Anchorage')
+    expect(screen.getByRole('img').getAttribute('aria-label')).toBe('Sunrise 8:12\u202FAM, sunset 6:41\u202FPM, nighttime in Anchorage')
   })
 })
