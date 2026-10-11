@@ -3262,6 +3262,15 @@ Update the project memory with the new tip and what's next: Part B2, the sun dia
   - The hook redraws when an answer lands for the airport on screen, even one the visitor left and came back to.
   - The comment about `load` is now accurate.
   - A new test covers going back to an airport after 15 minutes.
+- **Batch B code review:** verdict "with fixes (one test)". It also confirmed that every Batch A fix holds. Its points became:
+  - `3552b8a`: a test for a night longer than 12 hours, the Important item. Also tests for short-day twilight and the navy after a sunset just before 6 pm. `pointAt` now rounds every coordinate, and `arcPath` the radius.
+  - `017f1e8`, for the hook:
+    - The 15-minute tick fetches weather at least 14 minutes old (`TICK_GRACE_MS`) instead of always. A return to the page at minute 29 is no longer followed by another fetch at minute 30.
+    - The loader runs inside a promise's executor, so an instant throw counts as a failure.
+    - New tests: a new but equal place on every render, as the screen passes it, and leaving the page.
+  - `bbbfd62`: a test for a stalled reply body, the 10-second value pinned, and the rounding comment corrected (halves go away from zero).
+  - `f20f036`: the sun and moon icon sizes and the Noon label's position are pinned.
+  - Not taken: lazy initial values for the hook's refs. They would save one small allocation a second.
 - **Batch C spec review:** compliant. The reviewer rendered the app's own SunCircleView and card layout with SwiftUI, beside the site's in WebKit, and found them aligned to about a pixel. Its points became `1c6c979`:
   - The style rule for the dial's drawing is now `.sun-dial > svg`. `.sun-dial svg` also matched the sun or moon icon nested inside, which Firefox may stretch to the whole box.
   - The dial is lifted with `top: -6px` instead of a margin, so the card keeps the app's height: 192 px plus the border, where it had been 6 px shorter.
