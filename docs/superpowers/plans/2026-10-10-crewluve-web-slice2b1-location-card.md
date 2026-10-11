@@ -3276,5 +3276,16 @@ Update the project memory with the new tip and what's next: Part B2, the sun dia
   - The dial is lifted with `top: -6px` instead of a margin, so the card keeps the app's height: 192 px plus the border, where it had been 6 px shorter.
   - A polar-day case joins the polar-night one.
   - It also noted that the card shows during ground transport, where the app shows its in-flight map. That follows slice 1's decision to give ground legs their own status, so it's recorded as spec §8 item 9 and not changed.
+- **Batch C code review:** verdict "with fixes (tests only)". It also confirmed every Batch B fix holds, and that the dial's inline sky style and its `url(#…)` ids work under the real CSP. Its points became:
+  - `57e3f46`:
+    - The icon's corner is rounded after subtracting (`cornerFor`).
+    - The credit link has hidden words, "(opens in a new tab)".
+    - `TICK_GRACE_MS` is exported and tested against `WEATHER_TIMEOUT_MS`.
+    - The card's icon sizes are pinned.
+  - `0f6c16a`:
+    - The reviewer's tests for the dial's wiring: the sky, labels, ticks, triangles, bands, hand, icon and ids. Nine wiring mistakes used to pass, among them a swapped sky and swapped labels.
+    - Tests for the odometer's timing, a fresh roll for each hour, and a count that holds steady.
+    - Style tests for the number colors, the 24 px indent and `pointer-events: none`, and a check of the sky circle against `DIAL`.
+  - Ground transport was already pinned in `baacc21`.
 - **Batch D spec review:** compliant. The reviewer ran the built site in WebKit with its real CSP. In the demo scenes the only request was `/data/airports.json`: no Open-Meteo call and no CSP violation. Its doc notes led to rows 8–10 of spec §10, a corrected row 2, item 9 in the coverage table, and a `showsLocationCard` test for every status.
 - **Task 16 (2026-10-11):** the user signed off on the look ("Looks right") from five screenshots: Anchorage by day and at night, home in Lexington at night, Miami in dark mode, and a 320 px phone. They chose to keep the app's two narrow-phone overlaps. Step 6, live weather, waits until after release.
