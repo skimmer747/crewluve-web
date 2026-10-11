@@ -119,15 +119,18 @@ describe('SunPopup: opening and closing', () => {
   it('moves focus to the close button and holds the page still where it was, then puts it back', () => {
     // The body is fixed in place, since iOS before 16 still scrolls a page whose body has overflow: hidden.
     Object.defineProperty(window, 'scrollY', { configurable: true, value: 120 })
-    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
-    const body = () => [document.body.style.position, document.body.style.top, document.body.style.width, document.body.style.overflow]
-    const { unmount } = render(popup())
-    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Close' }))
-    expect(body()).toEqual(['fixed', '-120px', '100%', 'hidden'])
-    unmount()
-    expect(body()).toEqual(['', '', '', ''])
-    expect(scrollTo).toHaveBeenCalledWith(0, 120)
-    delete (window as { scrollY?: unknown }).scrollY
+    try {
+      const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+      const body = () => [document.body.style.position, document.body.style.top, document.body.style.width, document.body.style.overflow]
+      const { unmount } = render(popup())
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Close' }))
+      expect(body()).toEqual(['fixed', '-120px', '100%', 'hidden'])
+      unmount()
+      expect(body()).toEqual(['', '', '', ''])
+      expect(scrollTo).toHaveBeenCalledWith(0, 120)
+    } finally {
+      delete (window as { scrollY?: unknown }).scrollY
+    }
   })
 
   it.each([
@@ -190,6 +193,17 @@ describe('SunPopup: opening and closing', () => {
     expect(card.style.transform).toBe('')
     expect(container.querySelector('.sun-popup')!.classList.contains('closing')).toBe(false)
     expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('doesn’t make the dial work itself out again on each move of a drag', () => {
+    const { container } = render(popup())
+    const grab = container.querySelector('.sun-popup-grab')!
+    fireEvent.pointerDown(grab, { clientY: 100, pointerId: 1 })
+    const formatToParts = vi.spyOn(Intl.DateTimeFormat.prototype, 'formatToParts')
+    for (const y of [110, 120, 130, 140, 150]) fireEvent.pointerMove(grab, { clientY: y, pointerId: 1 })
+    // Each move redraws the popup, whose own four times (two clocks, sunrise and sunset) take one each. The dial's
+    // angles, labels and description, about 30 more, wait for the next second.
+    expect(formatToParts.mock.calls.length).toBeLessThanOrEqual(5 * 4)
   })
 
   it('never drags up, and never starts a drag on the close button', async () => {
