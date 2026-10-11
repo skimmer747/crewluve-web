@@ -4571,17 +4571,17 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Files:**
 - Modify (only if nudges are needed): `src/styles/sunPopup.css`
 
-- [ ] **Step 1: Build and open the preview**
+- [x] **Step 1: Build and open the preview**
 
 Run `npm run build`, then start or reuse the `crewluve-preview` server from `.claude/launch.json` (port 5181) in the browser pane.
 
-- [ ] **Step 2: Open the popup in the demo scenes**
+- [x] **Step 2: Open the popup in the demo scenes**
 
 At the mobile preset (375 × 812), open `/?demo=1&scene=delayed` (Anchorage, a 40-minute delay) and `/?demo=1&scene=turn` (Rockford), and tap the dial. The demo scenes run on the real clock, so day or night follows the real time at each airport; check one scene in daylight and one at night, or come back later for the other.
 
 The browser pane can hold back CSS animations while it's hidden. If a screenshot catches the popup half faded, run `document.getAnimations().forEach((a) => a.finish())` in the page first.
 
-- [ ] **Step 3: Compare with the app and the mockups**
+- [x] **Step 3: Compare with the app and the mockups**
 
 Compare with `SunCircleDetailView.swift`, the big-size parts of `SunCircleView`, and the mockups approved on 2026-10-11. Check:
 - the card: handle, header, clocks, dial, weather, divider, rows and credit, with the spec's sizes and gaps;
@@ -4595,22 +4595,22 @@ Compare with `SunCircleDetailView.swift`, the big-size parts of `SunCircleView`,
 
 Two overlaps come from the app's own layout, so show them rather than fix them: the departure and delay labels can touch near the top of the dial, and "Noon" can sit under the departure plane.
 
-- [ ] **Step 4: Check the controls**
+- [x] **Step 4: Check the controls**
 
 - Tab to the dial and press Enter, then Space: the popup opens with focus on the close button.
 - Tab goes round the close button and the credit link only.
 - Escape, the close button and the backdrop close it, and focus goes back to the dial.
 - Dragging the handle down more than 100 px closes it; a shorter drag springs back.
 
-- [ ] **Step 5: Check narrow and short screens**
+- [x] **Step 5: Check narrow and short screens**
 
 At 320 × 568, the card leaves 8 px of screen on each side, the dial fills its width, the contents scroll inside the card, and nothing scrolls sideways.
 
-- [ ] **Step 6: Ask the user to sign off**
+- [x] **Step 6: Ask the user to sign off**
 
 Show the user the screenshots and ask one question: "Looks right (Recommended)" or "Change something". Apply their notes, then show them again.
 
-- [ ] **Step 7: Run the gates and commit any nudges**
+- [x] **Step 7: Run the gates and commit any nudges**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -4718,3 +4718,11 @@ Update the project memory with the new tip and what's next: the Part A follow-up
 - **Left as is:** home's sun times are recomputed each second, not once a day; the popup's `detail` changes every second anyway, because the screen rebuilds the departure.
 - **Review process:** for the re-check and the final review, I gave both reviewers the same frozen copy, and their deliberate breaks overlapped for a few minutes. The final reviewer re-ran its checks on a clean copy. Separate copies from now on.
 - The suite is 1613 tests in 70 files.
+
+**Look check (Task 19, 2026-10-11):** the user signed off ("Looks right") on screenshots and the live preview:
+- the light card by day on a light phone;
+- the departure sweep with a red delay;
+- the dark card by day on a dark phone;
+- a narrow 320 × 568 phone.
+
+There were no nudges: the shadow stays at the spec's 20 px, and the clouds and fog as built. Night couldn't be shown live, since every demo place was in daylight; it uses the dark set the test keeps identical to the page's. No iOS 15 device was to hand.
