@@ -4710,3 +4710,11 @@ Update the project memory with the new tip and what's next: the Part A follow-up
 - **Reshaped for one job per file:** `useModalDialog` and `useDragToClose` (the Tab trap now covers any focusable, and focus moves in a layout effect), `WeatherCredit`, `bigDialGeometry.ts`, `BigDialDrawing.tsx` (renamed from `BigDialLayers.tsx`, which shared its name with a type), and `bigDial.css`.
 - **Small fixes:** `useElapsed` starts each run from zero; the timeline's shared do-nothing turn is frozen; `arcPath` uses the shared angle wrap; `bigDialBase` works out the time difference once; the engine test uses `MINUTE`; and the screen's `homeTz` comment names everything that uses it.
 - The suite is 1606 tests in 70 files.
+
+**Final whole-branch review (`997e7ee..054a828`):** ready to merge after the look check, with nothing above Minor. The fixes (`9ff5dd8`, `76b090c`):
+- Tests now hold the drag fix (a drag's moves may cost only the popup's own four times), the popup's memo keys, the drag strip's `touch-action`, the single fade and the drag's exact 100 px boundary. The scroll-lock test cleans up in a `finally`.
+- The screen works out the place's facts once, and the card takes them as a prop instead of working them out again.
+- Spec §9's module list names the files the reviews added.
+- **Left as is:** home's sun times are recomputed each second, not once a day; the popup's `detail` changes every second anyway, because the screen rebuilds the departure.
+- **Review process:** for the re-check and the final review, I gave both reviewers the same frozen copy, and their deliberate breaks overlapped for a few minutes. The final reviewer re-ran its checks on a clean copy. Separate copies from now on.
+- The suite is 1613 tests in 70 files.

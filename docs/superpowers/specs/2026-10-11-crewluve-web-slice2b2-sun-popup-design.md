@@ -169,11 +169,15 @@ They play behind the whole card, copying `WeatherBackgroundView`. Each is drawn 
   - shared daylight;
   - the popup's words: daylight, the time difference, the countdown, moon names, and the big dial's description;
   - the weather-to-animation table;
-  - the loop's timeline;
+  - the big dial's geometry, its layers and their drawing;
+  - the loop's timeline, and its animation-frame clock;
   - the particle formulas;
   - the weather backdrop (the canvas);
-  - the popup itself;
-  - its stylesheet.
+  - the place's facts, shared by the screen, the card and the popup;
+  - the popup itself, with a modal-dialog hook and a drag-to-close hook;
+  - the Open-Meteo credit, shared by the card and the popup;
+  - stylesheets for the popup and for the big dial's layers.
+- **The departure and its 15-minute rule** live in the engine beside the threshold, and the snapshot's own delay uses them.
 - **Colors:** a dark set the popup can switch to at night. A test keeps it identical to the page's own dark colors.
 - **Icons:** `XCircle`, `SunHorizon` and `MapPinArea` join the Phosphor set.
 
