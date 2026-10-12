@@ -283,6 +283,12 @@ describe('cards.css', () => {
     )
   })
 
+  it('lets touches through the link’s cover, so the trip card’s route still scrolls, and keeps taps from flashing grey', () => {
+    expect(declarations(find(top, '.schedule-link::after')!.body)).toContainEqual(['pointer-events', 'none'])
+    expect(declarations(find(top, '.linked')!.body)).toEqual(expect.arrayContaining([['cursor', 'pointer'], ['-webkit-tap-highlight-color', 'transparent']]))
+    expect(declarations(find(top, '.view-schedule')!.body)).toContainEqual(['-webkit-tap-highlight-color', 'transparent'])
+  })
+
   it('rings the whole card while its link has keyboard focus, and only fades a pressed card for reduced motion', () => {
     expect(declarations(find(top, '.schedule-link:focus::after')!.body)).toContainEqual(['box-shadow', '0 0 0 2px var(--blue)'])
     const media = find(top, '@media (prefers-reduced-motion: reduce)')!

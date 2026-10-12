@@ -74,6 +74,15 @@ describe('the cards that open the schedule (slice 3A §3.1)', () => {
     expect(onOpen.mock.calls).toEqual([['leave']])
   })
 
+  it('opens the schedule from a tap anywhere on the card, once, as the app’s card button does', () => {
+    const onOpen = vi.fn()
+    render(leaveCard(onOpen))
+    fireEvent.click(screen.getByRole('heading', { level: 2 }))
+    expect(onOpen.mock.calls).toEqual([['leave']])
+    fireEvent.click(screen.getByRole('link', { name: 'Schedule' }))
+    expect(onOpen.mock.calls).toEqual([['leave'], ['leave']])
+  })
+
   it('gives the ~N days card and the upcoming trip card the same link, the trip card’s after its delay badge', () => {
     render(<FallbackCard daysRemaining={2} link={{ name: 'fallback', onOpen: () => {} }} />)
     expect(screen.getByRole('link', { name: 'Schedule' }).getAttribute('data-schedule-link')).toBe('fallback')
@@ -88,17 +97,18 @@ describe('the cards that open the schedule (slice 3A §3.1)', () => {
     expect(container.querySelector('section')!.className).toBe('card glass trip-card linked')
   })
 
-  it('presses the card in while a pointer holds the link, and lets go when it lifts, leaves or turns into a scroll', () => {
+  it('presses the card in while a pointer holds any part of it, and lets go when it lifts, leaves or turns into a scroll', () => {
     const { container } = render(leaveCard(() => {}))
     const card = container.querySelector('section')!
-    const link = screen.getByRole('link', { name: 'Schedule' })
-    for (const end of ['pointerUp', 'pointerLeave', 'pointerCancel'] as const) {
-      fireEvent.pointerDown(link, { button: 0 })
-      expect(card.className).toBe('card glass countdown linked pressed')
-      fireEvent[end](link)
-      expect(card.className).toBe('card glass countdown linked')
+    for (const part of [screen.getByRole('heading', { level: 2 }), screen.getByRole('link', { name: 'Schedule' })]) {
+      for (const end of ['pointerUp', 'pointerLeave', 'pointerCancel'] as const) {
+        fireEvent.pointerDown(part, { button: 0 })
+        expect(card.className).toBe('card glass countdown linked pressed')
+        fireEvent[end](card)
+        expect(card.className).toBe('card glass countdown linked')
+      }
     }
-    fireEvent.pointerDown(link, { button: 2 })
+    fireEvent.pointerDown(card, { button: 2 })
     expect(card.className).toBe('card glass countdown linked')
   })
 })

@@ -300,10 +300,12 @@
   text-decoration: none;
 }
 
-/* A card that opens the schedule (slice 3A §3.1). Its link's area covers the whole card, and the card presses in as the
-   app's CardButtonStyle does: to 97% and 85% while held, springing back over about 0.3 s. */
+/* A card that opens the schedule (slice 3A §3.1). A tap anywhere on it opens the schedule, and it presses in as the
+   app's CardButtonStyle does: to 97% and 85% while held, springing back over about 0.3 s. No grey flash on iOS. */
 .linked {
   position: relative;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   transition: transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1), opacity 0.3s ease-out;
 }
 
@@ -319,15 +321,17 @@
   color: var(--text-2);
 }
 
+/* The link's cover is the whole card, for the focus ring that goes round it. Touches pass through it, so the trip
+   card's route still scrolls. */
 .schedule-link::after {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: 20px;
+  pointer-events: none;
 }
 
-/* The focus ring goes round the whole card. Safari before 15.4 has no :focus-visible, drops the last rule, and keeps
-   the ring; it doesn't focus a link that's clicked. */
+/* Safari before 15.4 has no :focus-visible, drops the last rule, and keeps the ring. */
 .schedule-link:focus {
   outline: none;
 }
@@ -348,6 +352,7 @@
   padding: 16px;
   color: var(--text);
   text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .view-schedule-text {

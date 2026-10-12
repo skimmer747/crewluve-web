@@ -9,9 +9,9 @@ export function fallbackText(daysRemaining: number): string {
 
 /** The way into the schedule is `link`: a chevron, and the whole card as a link (slice 3A §3.1). */
 export function FallbackCard({ daysRemaining, link }: { daysRemaining: number; link?: ScheduleLinkProps }) {
-  const { linked, chevron } = useScheduleLink(link)
+  const { linked, card, chevron } = useScheduleLink(link)
   return (
-    <section class={`card glass countdown${linked}`}>
+    <section class={`card glass countdown${linked}`} {...card}>
       <div class="countdown-head">
         <Icon name="House" size={28} color="var(--green)" />
         <h2>Back Home In</h2>

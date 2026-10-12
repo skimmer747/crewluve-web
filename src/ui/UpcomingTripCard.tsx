@@ -22,9 +22,9 @@ interface UpcomingTripCardProps {
 /** UpcomingTripCard: the type badge, departure and length, a delay badge when late or early, then the route dots. */
 export function UpcomingTripCard({ trip, now, timeZone, h24, airports, link }: UpcomingTripCardProps) {
   const last = trip.route.length - 1
-  const { linked, chevron } = useScheduleLink(link)
+  const { linked, card, chevron } = useScheduleLink(link)
   return (
-    <section class={`card glass trip-card${linked}`}>
+    <section class={`card glass trip-card${linked}`} {...card}>
       {/* The app's card has no title; screen-reader users jumping between headings still land here. */}
       <h2 class="sr-only">Upcoming trip</h2>
       <div class="trip-head">

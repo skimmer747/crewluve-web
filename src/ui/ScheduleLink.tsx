@@ -19,17 +19,17 @@ export interface ScheduleLinkProps {
  * Opens the schedule on this page for a plain click, as the app's buttons do. A click with a modifier key, or with
  * another button, is left to the browser, which opens the page's address in a new tab or window.
  */
-export function openOnPlainClick(e: MouseEvent, open: () => void): void {
+function openOnPlainClick(e: MouseEvent, open: () => void): void {
   if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
   e.preventDefault()
   open()
 }
 
 /**
- * Whether a pointer is holding a link down, for the app's CardButtonStyle: pressed from the moment it goes down, let
+ * Whether a pointer is holding a card down, for the app's CardButtonStyle: pressed from the moment it goes down, let
  * go when it lifts, leaves, or turns into a scroll (slice 3A §3.1).
  */
-export function usePressed() {
+function usePressed() {
   const [pressed, setPressed] = useState(false)
   const release = () => setPressed(false)
   return {
@@ -46,18 +46,31 @@ export function usePressed() {
 }
 
 /**
- * A card's way into the schedule (PilotStatusView.scheduleLink, slice 3A §3.1). `chevron` ends the card's top row: a
- * link whose area covers the whole card, so a tap anywhere on it opens the schedule. `linked` is the card's extra
- * classes, with "pressed" while a pointer holds it. Without `link`, the card stays as it was.
+ * A card's way into the schedule (PilotStatusView.scheduleLink, slice 3A §3.1). Without `link`, the card stays as it was.
+ * - `card` goes on the card: a tap anywhere on it opens the schedule, as the app's card button does, and pressing it
+ *   presses the card in. A swipe makes no click, so the trip card's route still scrolls.
+ * - `chevron` ends the card's top row: the link keyboards and screen readers use. Its focus ring goes round the card.
+ * - `linked` is the card's extra classes, with "pressed" while a pointer holds it.
  */
-export function useScheduleLink(link: ScheduleLinkProps | undefined): { linked: string; chevron: JSX.Element | null } {
+export function useScheduleLink(link: ScheduleLinkProps | undefined): {
+  linked: string
+  card: JSX.HTMLAttributes<HTMLElement>
+  chevron: JSX.Element | null
+} {
   const { pressed, handlers } = usePressed()
-  if (!link) return { linked: '', chevron: null }
+  if (!link) return { linked: '', card: {}, chevron: null }
+  const open = () => link.onOpen(link.name)
   return {
     linked: pressed ? ' linked pressed' : ' linked',
+    card: {
+      // A click on the chevron is the link's own.
+      onClick: (e: MouseEvent) => {
+        if (!(e.target instanceof Element && e.target.closest('a'))) openOnPlainClick(e, open)
+      },
+      ...handlers,
+    },
     chevron: (
-      <a class="schedule-link" href={SCHEDULE_HASH} data-schedule-link={link.name}
-        onClick={(e) => openOnPlainClick(e, () => link.onOpen(link.name))} {...handlers}>
+      <a class="schedule-link" href={SCHEDULE_HASH} data-schedule-link={link.name} onClick={(e) => openOnPlainClick(e, open)}>
         <span class="sr-only">Schedule</span>
         <Chevron />
       </a>

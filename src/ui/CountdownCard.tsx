@@ -24,9 +24,9 @@ export interface CountdownCardProps {
 export function CountdownCard({ title, icon, color, target, now, subtitle, celebrate = false, celebrateKey = 0, link }: CountdownCardProps) {
   const css = cssColor(color)
   const parts = cardCountdown(target - now)
-  const { linked, chevron } = useScheduleLink(link)
+  const { linked, card, chevron } = useScheduleLink(link)
   return (
-    <section class={`card glass countdown${linked}`}>
+    <section class={`card glass countdown${linked}`} {...card}>
       <div class="countdown-head">
         <Icon name={icon} size={28} color={css} />
         <h2>{title}</h2>
