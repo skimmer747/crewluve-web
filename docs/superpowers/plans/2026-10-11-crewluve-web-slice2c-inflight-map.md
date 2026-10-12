@@ -17,7 +17,7 @@
 **Setup and gates**
 - **Branch:** work on `slice2c` in the main project folder. Run `git switch -c slice2c` from `main`. Don't use git worktrees; auto mode blocked a worktree builder during slice 1.
 - **Working directory:** run every command from the project root, `~/Dev/Crewluve Website`. Quote it in shells, since it has a space.
-- **Gates:** `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass before every commit that touches code. The suite is 1660 tests in 70 files before this plan, and 1810 tests in 79 files after the printed tasks. The review fixes took it to 1848 (see the Execution notes). The read-only scan (`tests/data/readOnly.test.ts`) adds one test for each new file in `src/`, so the totals grow a little faster than the task counts below.
+- **Gates:** `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass before every commit that touches code. The suite is 1660 tests in 70 files before this plan, and 1810 tests in 79 files after the printed tasks. The review fixes took it to 1849 (see the Execution notes). The read-only scan (`tests/data/readOnly.test.ts`) adds one test for each new file in `src/`, so the totals grow a little faster than the task counts below.
 - **Commit trailer:** end every commit message with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - **Narrow no-break spaces:** the site writes "9:14 AM" with U+202F before AM. Test files spell it `\u202F`, as the printed blocks do. If an editor or tool turns it into the raw character, change it back.
 
@@ -3246,7 +3246,7 @@ Update the project memory with the new tip and what's next: slice 3, the Schedul
 
 ## Done when
 
-- `npx vitest run`, `npx tsc --noEmit` and `npm run build` are all green, with 1848 tests in 79 files (1810 from the printed tasks, plus the review fixes).
+- `npx vitest run`, `npx tsc --noEmit` and `npm run build` are all green, with 1849 tests in 79 files (1810 from the printed tasks, plus the review fixes).
 - While the pilot is in the air, the in-flight card takes the location card's place, with the map, the banner and the info bar. Its flight number opens the tracking popup (Tasks 1–12).
 - The user has signed off on the look (Task 13), and the card is live on crewluve.crewlu.net, released with the user's yes (Task 14).
 
@@ -3320,6 +3320,7 @@ Update the project memory with the new tip and what's next: slice 3, the Schedul
   - the info bar's colors are `--info-bar-*`, so they don't read like the trip card's `--bar-track`.
 - Task 7, tests: an airline code with more than letters and digits still opens the popup, with no links (`9eddcc1`).
 - The spec now says the popup closes by itself at landing (§6), and that with neither zone known the info bar's arrow shows alone, as in the app (§5.2). The summary lines at the top of this plan and its "Done when" now point to the final count.
+- The re-check passed. From it, style tests now also pin the info bar's tint and the fallback map's sky, and the tracking number's comment says when it falls back (`adcb2db`).
 
 **Left for later:**
 - **The two popups' shared code:** the tracking popup copies the sun popup's closing logic, and the status screen holds two copies of the open-and-focus-return state. Shared hooks would remove both copies.
@@ -3328,4 +3329,4 @@ Update the project memory with the new tip and what's next: slice 3, the Schedul
 - These three belong together, best before slice 3 adds more popups.
 - **Longitude's spelling:** `GeoPoint` spells it `lon`, where the airport list and `sun.ts` use `lng`.
 - **One source for the delay:** `inFlightFacts` works out the delay with the same `departureOffset` as the snapshot's `delay`; reading `snap.delay` would keep the banner and the sentence in step by construction. They agree today.
-- **Suite:** 1848 tests in 79 files.
+- **Suite:** 1849 tests in 79 files.
