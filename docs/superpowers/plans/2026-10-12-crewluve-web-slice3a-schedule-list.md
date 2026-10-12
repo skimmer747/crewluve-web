@@ -90,7 +90,7 @@ Last, `ScheduleScreen` becomes `PilotPages`, which shows one page or the other.
 - Modify: `scripts/build-icons.mjs`, `src/icons/iconPaths.ts`
 - Test: `tests/icons/iconPaths.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 In `tests/icons/iconPaths.test.ts`, add this test after the in-flight card's:
 
@@ -100,12 +100,12 @@ In `tests/icons/iconPaths.test.ts`, add this test after the in-flight card's:
   })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/icons/iconPaths.test.ts`
 Expected: FAIL in 1 test (`1 failed | 6 passed (7)`) with `AssertionError: expected { …(59) } to have property "Seat"`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `scripts/build-icons.mjs`, end the comment above `ICONS` with the sixth group:
 
@@ -135,12 +135,12 @@ npm run icons
 
 Expected: `wrote 61 icons to …/src/icons/iconPaths.ts`. `git diff src/icons/iconPaths.ts` shows two added lines, `Seat` and `ClockCounterClockwise`, and no other change.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/icons/iconPaths.test.ts`
 Expected: PASS, 7 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1874 tests in 82 files after this task.
 
@@ -159,7 +159,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/engine/types.ts`, `src/engine/normalize.ts`
 - Test: `tests/engine/normalize.test.ts`, `tests/fixtures/legs.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/engine/normalize.test.ts`, import `enteredAirline`:
 
@@ -212,12 +212,12 @@ and this one in the `buildSchedule` block, just before "drops jumpseats that dup
   })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/engine/normalize.test.ts`
 Expected: FAIL in 2 tests (`2 failed | 54 passed (56)`): `TypeError: enteredAirline is not a function`, and `expected [ [ '5X', undefined ], …(1) ] to deeply equal [ [ '5X', null ], [ null, null ] ]`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/engine/types.ts`, add the field after `airline` in `Move`:
 
@@ -271,12 +271,12 @@ In `tests/fixtures/legs.ts`, give the `flight` fixture the field after `airline`
 
 `airline` stays as it was, so nothing on the status page changes. The list needs the code as entered for its titles ("AA1234", a jumpseat's "2961"), and to tell a jumpseat entered with an airline from one the site only guesses is UPS.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/engine/normalize.test.ts`
 Expected: PASS, 56 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1876 tests in 82 files after this task.
 
@@ -295,7 +295,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/copy/schedule.ts`
 - Test: `tests/copy/schedule.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/copy/schedule.test.ts`:
 
@@ -391,12 +391,12 @@ describe('legClock', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/copy/schedule.test.ts`
 Expected: FAIL with `Error: Cannot find module '../../src/copy/schedule' imported from 'tests/copy/schedule.test.ts'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/copy/schedule.ts`:
 
@@ -473,12 +473,12 @@ export function legClock(start: number, end: number, now: number, moment: LegMom
 
 The formats are the app's `formattedDuration`, which `TimelineRowView`, its `CountdownText` and `TimeGapView` each carry. The times reuse the site's `clockText`, so 24-hour devices get 24-hour times, and `zoneAbbr` at each instant.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/copy/schedule.test.ts`
 Expected: PASS, 23 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1900 tests in 83 files after this task.
 
@@ -497,7 +497,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/ui/scheduleFacts.ts`
 - Test: `tests/ui/scheduleFacts.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/scheduleFacts.test.ts`:
 
@@ -610,12 +610,12 @@ describe('rowLook: drives, reserve and events (slice 3A §4.5, §4.6)', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/scheduleFacts.test.ts`
 Expected: FAIL with `Error: Cannot find module '../../src/ui/scheduleFacts' imported from 'tests/ui/scheduleFacts.test.ts'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/scheduleFacts.ts`:
 
@@ -744,12 +744,12 @@ function endsAtHome(leg: Leg, home: string | null): boolean {
 
 The three fixes to the app (spec decision 2) are the `base` case, `moveLook`'s airline for trip flights, and its car for ground transport. `where` asks the airport list for a city itself, since the list's `city()` falls back to the code, and the app writes "at SDF" when it has no city.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/scheduleFacts.test.ts`
 Expected: PASS, 15 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1916 tests in 84 files after this task.
 
@@ -768,7 +768,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/ui/scheduleFacts.ts`
 - Test: `tests/ui/scheduleFacts.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/ui/scheduleFacts.test.ts`, change the imports:
 
@@ -875,12 +875,12 @@ describe('openingDay (slice 3A §4.11)', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/scheduleFacts.test.ts`
 Expected: FAIL in 9 tests (`9 failed | 15 passed (24)`), with `TypeError: scheduleDays is not a function` and the like.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/ui/scheduleFacts.ts`, change the imports:
 
@@ -962,12 +962,12 @@ export function openingDay(days: readonly ScheduleDay[], now: number, timeZone: 
 
 `openingDay` copies the app's first scroll: the next leg's day comes first, even while another leg is happening, as `EventTimelineView` does when it opens.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/scheduleFacts.test.ts`
 Expected: PASS, 24 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1925 tests in 84 files after this task.
 
@@ -987,7 +987,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/ui/CountdownCard.tsx`, `src/ui/FallbackCard.tsx`, `src/ui/UpcomingTripCard.tsx`, `src/styles/cards.css`
 - Test: `tests/ui/scheduleLinks.test.tsx`, `tests/styles/styles.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/ui/scheduleLinks.test.tsx`:
 
@@ -1115,12 +1115,12 @@ In `tests/styles/styles.test.ts`, add these tests at the end of the `cards.css` 
   })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/scheduleLinks.test.tsx tests/styles/styles.test.ts`
 Expected: FAIL. The new test file can't load (`Failed to resolve import "../../src/ui/Chevron"`), and the two style tests fail (`2 failed | 139 passed (141)`) with `Cannot read properties of undefined (reading 'body')`: the rules aren't there yet.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/Chevron.tsx`:
 
@@ -1399,12 +1399,12 @@ In `src/styles/cards.css`, replace the reduced-motion block near the end with th
 }
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/scheduleLinks.test.tsx tests/styles/styles.test.ts`
 Expected: PASS, 147 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1935 tests in 85 files after this task.
 
@@ -1423,7 +1423,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/data/demo.ts`, `src/ui/ScheduleLink.tsx`, `src/ui/StatusScreen.tsx`, `src/styles/cards.css`
 - Test: `tests/ui/scheduleLinks.test.tsx`, `tests/ui/StatusScreen.test.tsx`, `tests/data/demoScenes.test.ts`, `tests/styles/styles.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/ui/scheduleLinks.test.tsx`, change the imports:
 
@@ -1574,12 +1574,12 @@ In `tests/styles/styles.test.ts`, add this test at the end of the `cards.css` bl
   })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/StatusScreen.test.tsx tests/ui/scheduleLinks.test.tsx tests/styles/styles.test.ts tests/data/demoScenes.test.ts`
 Expected: FAIL in 11 tests (`11 failed | 243 passed (254)`). The status page has no links yet (`expected [] to deeply equal [ 'leave', 'trip' ]`), `ViewScheduleLink` isn't there, the `nothing-ahead` scene doesn't exist, and the View Schedule rules are missing.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/data/demo.ts`, add the scene to `DemoScene`:
 
@@ -1785,12 +1785,12 @@ In `src/styles/cards.css`, add the View Schedule rules after the links' focus ru
 
 Without `onOpenSchedule`, the status page has no links into the schedule. That's how 3C will show it beside the schedule on wide screens, as the app's iPad does.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/StatusScreen.test.tsx tests/ui/scheduleLinks.test.tsx tests/styles/styles.test.ts tests/data/demoScenes.test.ts`
 Expected: PASS, 257 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1950 tests in 85 files after this task.
 
@@ -1810,7 +1810,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/main.tsx`
 - Test: `tests/ui/TimelineRow.test.tsx`, `tests/styles/styles.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/ui/TimelineRow.test.tsx`:
 
@@ -1968,12 +1968,12 @@ describe('schedule.css', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/TimelineRow.test.tsx tests/styles/styles.test.ts`
 Expected: FAIL. The new test file can't load (`Failed to resolve import "../../src/ui/TimelineRow"`), and the eight `schedule.css` tests fail (`8 failed | 142 passed (150)`) with `ENOENT: no such file or directory, open '…/src/styles/schedule.css'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/TimelineRow.tsx`:
 
@@ -2279,12 +2279,12 @@ In `src/main.tsx`, import the stylesheet after `inFlight.css`:
 import './styles/schedule.css'
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/TimelineRow.test.tsx tests/styles/styles.test.ts`
 Expected: PASS, 155 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1964 tests in 86 files after this task.
 
@@ -2304,7 +2304,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/styles/tokens.css`, `src/styles/schedule.css`
 - Test: `tests/ui/SchedulePage.test.tsx`, `tests/styles/styles.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/ui/SchedulePage.test.tsx`:
 
@@ -2465,12 +2465,12 @@ and add these tests at the start of the `schedule.css` block, just before "lays 
   })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/SchedulePage.test.tsx tests/styles/styles.test.ts`
 Expected: FAIL. The new test file can't load (`Failed to resolve import "../../src/ui/SchedulePage"`), and four style tests fail (`4 failed | 150 passed (154)`): `--bar-fill` isn't defined, and the bar and heading rules aren't there.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/SchedulePage.tsx`:
 
@@ -2729,12 +2729,12 @@ In `src/styles/schedule.css`, replace the first line, its comment, with the page
 
 The heading's sticky `top` is the bar's 60 px height. The stuck heading is worked out once a frame while the page scrolls, as the app's 20-point rule: the last heading within 20 px of the bar.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/SchedulePage.test.tsx tests/styles/styles.test.ts`
 Expected: PASS, 162 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1977 tests in 87 files after this task.
 
@@ -2753,7 +2753,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/ui/hooks/useSchedulePage.ts`
 - Test: `tests/ui/useSchedulePage.test.tsx`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/useSchedulePage.test.tsx`:
 
@@ -2868,12 +2868,12 @@ describe('useSchedulePage (slice 3A §3.3)', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/useSchedulePage.test.tsx`
 Expected: FAIL with `Error: Failed to resolve import "../../src/ui/hooks/useSchedulePage" from "tests/ui/useSchedulePage.test.tsx". Does the file exist?`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/hooks/useSchedulePage.ts`:
 
@@ -2946,12 +2946,12 @@ export function useSchedulePage() {
 
 Opening uses `history.pushState`, so it doesn't fire `hashchange` and the browser doesn't try to scroll to an element named "schedule". `history.state` survives a reload, so after a reload the back button still steps back through history.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/useSchedulePage.test.tsx`
 Expected: PASS, 7 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1985 tests in 88 files after this task.
 
@@ -2971,7 +2971,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/ui/Root.tsx`
 - Test: `tests/ui/useWeather.test.tsx`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Rename the loader's tests:
 
@@ -3033,12 +3033,12 @@ describe('PilotPages: the status page and the Schedule page (slice 3A §3.3)', (
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/PilotPages.test.tsx`
 Expected: FAIL with `Error: Failed to resolve import "../../src/ui/PilotPages" from "tests/ui/PilotPages.test.tsx". Does the file exist?`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Rename the loader:
 
@@ -3124,12 +3124,12 @@ with this:
 
 Older specs and plans in `docs/` still say `ScheduleScreen`. They record the history, so leave them.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/PilotPages.test.tsx`
 Expected: PASS, 15 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1988 tests in 88 files after this task.
 
@@ -3232,4 +3232,48 @@ Update the project memory with the new tip and what's next: Slice 3B, the month 
 
 ## Execution notes
 
-(Add notes here as the build goes: where the code had to differ from a printed block, and why.)
+**Build, 2026-10-12**
+- Tasks 1–11 were built on `slice3a` in the main folder from this plan's own blocks (`scratchpad/s3a/drive.py`), test first.
+  - Each Step 2 failed and each Step 4 passed as printed.
+  - All 36 files came out identical to the scratch copy: `4fbac43`..`966cc16`, 1988 tests in 88 files.
+
+**Reviews**
+- **Launching them:**
+  - Auto mode blocked the first reviewer. With the user's OK, a retry launched batch A's spec and code-quality reviewers.
+  - Auto mode then blocked both batch B launches ("Auto-Mode Bypass", "Data Exfiltration"). The user chose to hand batch B to the same two reviewers by message, each with a fresh frozen copy.
+- **Batch A:** the spec review found the code matched, with Minor points only. The code-quality review said "yes, with fixes": two tests §8 asks for.
+- **Batch B:** the spec review found it matched, with Minor points. The code-quality review said ready to merge after three fixes:
+  - the trip card's route couldn't scroll under the link's cover;
+  - Safari drops the day lists' role;
+  - there was a backdrop blur on every row.
+
+**Changes after the reviews** (spec decisions 9 and 10)
+- `5341ea5`: events keep their location as entered, so titles read "Sim at Training Center", as in the app.
+- `35b1549`: day headings come from calendar day numbers, times go through `timeWithZone`, and "less than a minute" is spoken at the very end.
+- `8067ec8`:
+  - one rule for drives home;
+  - titles through `flightNumberText`;
+  - `Gap`, `isHappening`, and an order-free `nextLegId`;
+  - tests for the daylight-saving change, training at home, home as the base, the opening day in the visitor's zone, and the first of two happening legs.
+- `c6111d2`: each row's look and times are worked out once per leg, and the next leg has no home hint.
+- `611c081`: `role="list"`, heading labels, focus before the scroll, the stuck heading before the first paint, and 12 px at the bottom.
+- `53021ca`:
+  - focus before the scroll on return;
+  - Forward and an edited address remember the status page's scroll;
+  - only the schedule's history entry stops the browser restoring a scroll.
+- `8c450da`: the whole card takes the tap and its press, and the link's cover lets touches through, so the trip card's route scrolls. No grey flash on iOS.
+- `e9ba8c5`: gaps spoken, "Up next" in capitals through CSS, no backdrop blur on rows, the ring's square sized to its row, and style pins.
+- `26b2e1a`: a test for the visitor's zone and clock.
+- `af6bb6f`: the stuck heading's band is solid, so a row sliding under it doesn't show through.
+- `0df43ff`, `8bb573a`, `f539282`: the README and the spec.
+- **Checks:**
+  - deliberate breaks against batch A's fixes caught 9 of 9, and against the zone test 2 of 2;
+  - in the browser, the route takes touches, Back and Forward restore scroll and focus, and there are no console errors;
+  - the suite is 2011 tests in 88 files.
+
+**Left for later**
+- `memo` on rows, so a tick touches only the rows whose clock changes. The per-leg work is already memoized.
+- A check in Safari on an iPhone:
+  - the ring's masks and the sticky bar's blur;
+  - VoiceOver on the lists, the headings and the gaps;
+  - the focus ring after a return in Safari before 15.4.
