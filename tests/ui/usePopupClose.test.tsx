@@ -39,11 +39,20 @@ function Popup({ onClose }: { onClose: () => void }) {
 }
 
 const reduceMotion = () => vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce'), media: query }))
-/** Where the opening has every part when the close comes: partway faded in, and springing up from half size. */
-const midOpening = () =>
-  vi.spyOn(window, 'getComputedStyle').mockImplementation(
-    () => ({ getPropertyValue: (name: string) => (name === 'transform' ? 'matrix(0.8, 0, 0, 0.8, 0, 0)' : '0.42') }) as unknown as CSSStyleDeclaration,
-  )
+/**
+ * Where the opening has every part when the close comes: partway faded in, and springing up from half size. With its
+ * animation off, a part is at rest instead, as in a browser. Returns each read, noting whether the animation was on.
+ */
+const midOpening = () => {
+  const reads: Array<{ el: Element; animating: boolean }> = []
+  vi.spyOn(window, 'getComputedStyle').mockImplementation((el) => {
+    const animating = (el as HTMLElement).style.getPropertyValue('animation') !== 'none'
+    reads.push({ el, animating })
+    const value = (name: string) => (name === 'transform' ? (animating ? 'matrix(0.8, 0, 0, 0.8, 0, 0)' : 'none') : animating ? '0.42' : '1')
+    return { getPropertyValue: value } as unknown as CSSStyleDeclaration
+  })
+  return reads
+}
 const held = (el: HTMLElement) => ['opacity', 'transform', 'animation'].map((name) => el.style.getPropertyValue(name))
 
 describe('usePopupClose', () => {
@@ -87,8 +96,14 @@ describe('usePopupClose', () => {
     const { container } = render(<Popup onClose={() => {}} />)
     const backdrop = container.querySelector<HTMLElement>('.backdrop')!
     const card = container.querySelector<HTMLElement>('.card')!
-    midOpening()
+    const reads = midOpening()
     closeNow()
+    // Each part is read while its opening runs, then read again with the animation off: that style recalculation is
+    // what makes a browser start the close from the held values (§3.3).
+    expect([backdrop, card].map((part) => reads.filter((read) => read.el === part).map((read) => read.animating))).toEqual([
+      [true, false],
+      [true, false],
+    ])
     // Held: what each part's opening animates, inline, with the animation off. Nothing else is touched.
     expect(held(backdrop)).toEqual(['0.42', '', 'none'])
     expect(held(card)).toEqual(['0.42', 'matrix(0.8, 0, 0, 0.8, 0, 0)', 'none'])

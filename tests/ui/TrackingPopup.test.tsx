@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { trackingLinks } from '../../src/copy/tracking'
 import { POPUP_CLOSE_MS } from '../../src/ui/hooks/usePopupClose'
 import { TrackingPopup } from '../../src/ui/TrackingPopup'
-import { iconNameOf } from '../fixtures/ui'
+import { heldProperties, iconNameOf } from '../fixtures/ui'
 
 afterEach(() => {
   cleanup()
@@ -93,13 +93,13 @@ describe('TrackingPopup', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
-  it('starts a close from wherever the opening has the backdrop and the card', () => {
+  it('starts a close from wherever the opening has the backdrop (its opacity) and the card (its opacity and size)', () => {
     const { container } = render(popup())
     const close = screen.getByRole('button', { name: 'Close' })
-    const read = vi.spyOn(window, 'getComputedStyle')
+    const held = heldProperties()
     fireEvent.click(close)
-    const parts = ['.tracking-backdrop', '.tracking-card'].map((selector) => container.querySelector(selector))
-    expect(parts.map((part) => read.mock.calls.some(([el]) => el === part))).toEqual([true, true])
+    const parts = ['.tracking-backdrop', '.tracking-card'].map((selector) => held.get(container.querySelector(selector)!))
+    expect(parts).toEqual([['opacity'], ['opacity', 'transform']])
   })
 
   it('closes at once for visitors who ask for reduced motion', () => {

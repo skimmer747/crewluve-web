@@ -34,6 +34,24 @@ export function stubAnimationFrames() {
   }
 }
 
+/**
+ * What a popup's close holds of each part (popup follow-ups §3.3): the properties it reads first from each element's
+ * computed style, before it turns the opening off and reads again. Undo it with vi.restoreAllMocks() in afterEach.
+ */
+export function heldProperties(): Map<Element, string[]> {
+  const first = new Map<Element, string[]>()
+  vi.spyOn(window, 'getComputedStyle').mockImplementation((el) => {
+    const names: string[] = []
+    if (!first.has(el)) first.set(el, names)
+    const value = (name: string) => {
+      names.push(name)
+      return ''
+    }
+    return { getPropertyValue: value } as unknown as CSSStyleDeclaration
+  })
+  return first
+}
+
 /** The text a sighted visitor sees: everything except the screen-reader-only words. */
 export function visibleText(el: Element): string {
   const copy = el.cloneNode(true) as Element

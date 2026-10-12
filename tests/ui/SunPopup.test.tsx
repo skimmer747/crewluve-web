@@ -12,7 +12,7 @@ import { hourAngle } from '../../src/ui/sunDialGeometry'
 import { SunPopup, type SunPopupProps } from '../../src/ui/SunPopup'
 import { HOUR, MINUTE } from '../../src/time/zoned'
 import { testAirports } from '../fixtures/airports'
-import { iconNameOf, stubAnimationFrames } from '../fixtures/ui'
+import { heldProperties, iconNameOf, stubAnimationFrames } from '../fixtures/ui'
 
 const NY = 'America/New_York'
 const NIGHT = Date.UTC(2026, 9, 11, 6, 5) // 10:05 PM in Anchorage, 2:05 AM in New York
@@ -193,13 +193,13 @@ describe('SunPopup: opening and closing', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
-  it('starts a close from wherever the opening has the backdrop, the card and the big dial', () => {
+  it('starts a close from wherever the opening has the backdrop and the card (their opacity) and the big dial (its size)', () => {
     const { container } = render(popup())
     const close = screen.getByRole('button', { name: 'Close' })
-    const read = vi.spyOn(window, 'getComputedStyle')
+    const held = heldProperties()
     fireEvent.click(close)
-    const parts = ['.sun-popup-backdrop', '.sun-popup-card', '.sun-dial.big'].map((selector) => container.querySelector(selector))
-    expect(parts.map((part) => read.mock.calls.some(([el]) => el === part))).toEqual([true, true, true])
+    const parts = ['.sun-popup-backdrop', '.sun-popup-card', '.sun-dial.big'].map((selector) => held.get(container.querySelector(selector)!))
+    expect(parts).toEqual([['opacity'], ['opacity'], ['transform']])
   })
 
   it('closes from where the drag left the card, without moving it', async () => {
