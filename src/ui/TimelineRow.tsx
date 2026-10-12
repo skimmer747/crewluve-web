@@ -1,4 +1,4 @@
-import { gapText, legClock, type LegMoment } from '../copy/schedule'
+import { gapSpoken, gapText, legClock, type LegMoment } from '../copy/schedule'
 import type { Leg } from '../engine/legs'
 import { cssColor } from './colors'
 import { Icon } from './Icon'
@@ -18,7 +18,7 @@ export interface TimelineRowProps {
 /**
  * One leg in the list (TimelineRowView, slice 3A §4.4–4.9): its icon in a circle of its color, its title, times and
  * right-hand column on glass, with the edge and tag of the leg happening now, the next leg, or a leg ending at home.
- * The gap before it comes first: a dashed line and a label, which screen readers skip since the times say it (§4.10).
+ * The gap before it comes first: a dashed line and a label, which screen readers hear in words (§4.10).
  */
 export function TimelineRow({ leg, look, times, moment, now, gap }: TimelineRowProps) {
   const clock = legClock(leg.start, leg.end, now, moment)
@@ -26,9 +26,10 @@ export function TimelineRow({ leg, look, times, moment, now, gap }: TimelineRowP
   return (
     <li class="leg-item">
       {gap && (
-        <div class={`leg-gap leg-gap-${gap.kind}`} aria-hidden="true">
-          <span class="leg-gap-line" />
-          {gapText(gap.kind, gap.ms)}
+        <div class={`leg-gap leg-gap-${gap.kind}`}>
+          <span class="leg-gap-line" aria-hidden="true" />
+          <span class="leg-gap-text" aria-hidden="true">{gapText(gap.kind, gap.ms)}</span>
+          <span class="sr-only">{gapSpoken(gap.kind, gap.ms)}</span>
         </div>
       )}
       <div class={`leg glass${edge}${look.homeward ? ' homeward' : ''}`} style={{ '--leg': cssColor(look.color) }}>
@@ -49,7 +50,8 @@ export function TimelineRow({ leg, look, times, moment, now, gap }: TimelineRowP
           <span class="leg-clock-value" aria-hidden="true">{clock.value}</span>
           <span class="sr-only">{clock.spoken}</span>
         </span>
-        {moment === 'next' && <span class="up-next">UP NEXT</span>}
+        {/* In capitals through CSS, so screen readers say the words rather than spell them. */}
+        {moment === 'next' && <span class="up-next">Up next</span>}
         {/* The app's hint: "Up next event" on the next leg, which its UP NEXT tag says here, else this one. */}
         {look.homeward && moment !== 'next' && <span class="sr-only">Arriving at home airport</span>}
       </div>

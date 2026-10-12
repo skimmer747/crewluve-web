@@ -7,7 +7,7 @@ import { rowLook, type Gap } from '../../src/ui/scheduleFacts'
 import { TimelineRow } from '../../src/ui/TimelineRow'
 import { testAirports } from '../fixtures/airports'
 import { drive, flight, H, pilot, place } from '../fixtures/legs'
-import { iconNameOf } from '../fixtures/ui'
+import { iconNameOf, visibleText } from '../fixtures/ui'
 
 afterEach(cleanup)
 
@@ -41,6 +41,7 @@ describe('TimelineRow (slice 3A §4.4–4.9)', () => {
     expect(text('.leg-title')).toBe('UPS2961: RFD → SDF')
     expect(text('.leg-times')).toBe('6:15am edt – 7:45am edt')
     expect([text('.leg-clock-label'), text('.leg-clock-value'), text('.leg-clock .sr-only')]).toEqual(['Duration', '1h 30m', 'Duration 1 hour, 30 minutes'])
+    expect([...card.querySelectorAll('.leg-clock-label, .leg-clock-value')].map((s) => s.getAttribute('aria-hidden'))).toEqual(['true', 'true'])
     expect(card.querySelector('.up-next')).toBeNull()
     expect(card.querySelector('.leg-icon')!.className).toBe('leg-icon')
   })
@@ -59,7 +60,7 @@ describe('TimelineRow (slice 3A §4.4–4.9)', () => {
     const ring = card.querySelector('.leg-ring')!
     expect(ring.getAttribute('aria-hidden')).toBe('true')
     expect(ring.querySelector('.leg-ring-turn')).not.toBeNull()
-    expect(text('.up-next')).toBe('UP NEXT')
+    expect(text('.up-next')).toBe('Up next')
     expect([text('.leg-clock-label'), text('.leg-clock-value')]).toEqual(['Starts in', '1:15:00'])
     expect(card.querySelector('.leg-icon')!.className).toBe('leg-icon')
   })
@@ -79,15 +80,15 @@ describe('TimelineRow (slice 3A §4.4–4.9)', () => {
     expect([...card.querySelectorAll('.sr-only')].map((s) => s.textContent)).not.toContain('Arriving at home airport')
   })
 
-  it('puts the gap before the row as a dashed line and its label, hidden from screen readers', () => {
+  it('puts the gap before the row, a dashed line and its label, with the label in words for screen readers', () => {
     const layover = place('layover', 'ONT', T0 + 10, T0 + 30)
     const { container } = row(layover, 'other', at(40), { kind: 'layover', ms: 2 * H })
     const item = container.querySelector('li')!
     const gap = item.firstElementChild!
     expect(gap.className).toBe('leg-gap leg-gap-layover')
-    expect(gap.getAttribute('aria-hidden')).toBe('true')
-    expect(gap.textContent).toBe('Layover 2h')
-    expect(gap.querySelector('.leg-gap-line')).not.toBeNull()
+    expect(visibleText(gap)).toBe('Layover 2h')
+    expect([gap.querySelector('.leg-gap-line'), gap.querySelector('.leg-gap-text')].map((s) => s!.getAttribute('aria-hidden'))).toEqual(['true', 'true'])
+    expect(gap.querySelector('.sr-only')!.textContent).toBe('Layover, 2 hours')
     expect(gap.nextElementSibling!.className).toBe('leg glass')
     cleanup()
     expect(row(layover, 'other', at(40)).container.querySelector('.leg-gap')).toBeNull()

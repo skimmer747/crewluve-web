@@ -289,6 +289,13 @@ describe('cards.css', () => {
     expect(declarations(find(top, '.view-schedule')!.body)).toContainEqual(['-webkit-tap-highlight-color', 'transparent'])
   })
 
+  it('draws the chevrons in the secondary color, springs the press back over 0.3 s, and hides the ring after a click', () => {
+    expect(declarations(find(top, '.schedule-link')!.body)).toContainEqual(['color', 'var(--text-2)'])
+    expect(declarations(find(top, '.view-schedule .chevron')!.body)).toEqual([['color', 'var(--text-2)']])
+    expect(declarations(find(top, '.linked')!.body).find(([prop]) => prop === 'transition')?.[1]).toMatch(/^transform 0\.3s .*, opacity 0\.3s/)
+    expect(declarations(find(top, '.schedule-link:focus:not(:focus-visible)::after')!.body)).toEqual([['box-shadow', 'none']])
+  })
+
   it('rings the whole card while its link has keyboard focus, and only fades a pressed card for reduced motion', () => {
     expect(declarations(find(top, '.schedule-link:focus::after')!.body)).toContainEqual(['box-shadow', '0 0 0 2px var(--blue)'])
     const media = find(top, '@media (prefers-reduced-motion: reduce)')!
@@ -645,6 +652,33 @@ describe('schedule.css', () => {
     expect(declarations(find(reduced, '.leg-ring')!.body)).toEqual([['opacity', '0.6']])
     expect(declarations(find(reduced, '.leg-ring-turn')!.body)).toEqual(expect.arrayContaining([['animation', 'none'], ['background', 'var(--cyan)']]))
     expect(declarations(find(reduced, '.leg-icon.pulsing .icon')!.body)).toEqual([['animation', 'none']])
+  })
+
+  it('draws the rows and headings without a backdrop blur: they sit on the page’s plain color, and each blur costs Safari a layer', () => {
+    expect(rule('.leg.glass')).toEqual([['-webkit-backdrop-filter', 'none'], ['backdrop-filter', 'none']])
+    expect(rule('.day-heading').map(([prop]) => prop)).not.toContain('backdrop-filter')
+  })
+
+  it('turns the ring on a square a fifth wider than its row, which covers the row whatever its width', () => {
+    expect(rule('.leg-ring-turn')).toEqual(expect.arrayContaining([['width', '120%'], ['padding-top', '120%'], ['transform', 'translate(-50%, -50%)']]))
+  })
+
+  it('writes the UP NEXT tag in capitals with CSS, and pins the right-hand column’s weights and colors', () => {
+    expect(rule('.up-next')).toEqual(expect.arrayContaining([['padding', '3px 8px'], ['text-transform', 'uppercase']]))
+    expect(rule('.leg-happening .leg-clock-value')).toEqual([['font-weight', '600'], ['color', 'var(--leg)']])
+    expect(rule('.leg-next .leg-clock-label, .leg-next .leg-clock-value')).toEqual([['color', 'var(--cyan)']])
+    expect(rule('.leg-next .leg-clock-value')).toEqual([['font-weight', '600']])
+  })
+
+  it('spaces the list as the app does, slides rows under the headings and headings under the bar, and pulses once a second', () => {
+    expect(rule('.day-legs')).toContainEqual(['gap', '6px'])
+    expect(rule('.leg-text')).toContainEqual(['gap', '3px'])
+    expect(rule('.schedule-days')).toEqual([['padding', '12px 0']])
+    expect(rule('.schedule-empty')).toContainEqual(['padding', '32px'])
+    expect(rule('.schedule-bar')).toContainEqual(['z-index', '2'])
+    expect(rule('.day-heading')).toContainEqual(['z-index', '1'])
+    expect(rule('.leg-icon.pulsing .icon')).toEqual([['animation', 'leg-pulse 1s ease-in-out infinite']])
+    expect(rule('.leg-gap-line')).toContainEqual(['background', 'repeating-linear-gradient(to bottom, var(--gap) 0 4px, transparent 4px 8px)'])
   })
 
   it('masks the ring to its 2 px band, with the -webkit- names first for Safari 14', () => {

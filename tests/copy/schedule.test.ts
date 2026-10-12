@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dayHeading, gapText, legClock, legDuration, legTimes } from '../../src/copy/schedule'
+import { dayHeading, gapSpoken, gapText, legClock, legDuration, legTimes } from '../../src/copy/schedule'
 import { DAY } from '../../src/time/zoned'
 
 const NY = 'America/New_York'
@@ -63,6 +63,11 @@ describe('gapText', () => {
     expect(gapText('layover', 3 * H + 10 * M)).toBe('Layover 3h 10m')
     expect(gapText('gap', 85 * M)).toBe('Gap 1h 25m')
     expect(gapText('gap', 26 * H)).toBe('Gap 1d 2h')
+  })
+
+  it('says a gap in words for screen readers, as VoiceOver reads the app’s', () => {
+    expect(gapSpoken('layover', 2 * H)).toBe('Layover, 2 hours')
+    expect(gapSpoken('gap', 85 * M)).toBe('Gap, 1 hour, 25 minutes')
   })
 })
 

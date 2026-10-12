@@ -51,8 +51,6 @@
   margin: 0;
   padding: 12px 0 2px;
   background: var(--bar-fill);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  backdrop-filter: blur(20px) saturate(180%);
   font-size: 12px;
   line-height: 16px;
   font-weight: 600;
@@ -111,7 +109,8 @@
   line-height: 16px;
 }
 
-/* A row: a gap line, if any, then the leg on glass. */
+/* A row: a gap line, if any, then the leg on glass. The rows sit on the page's plain color, where a backdrop blur shows
+   nothing and costs Safari a layer each, so they have none. */
 .leg-item {
   display: flex;
   flex-direction: column;
@@ -125,6 +124,11 @@
   gap: 12px;
   padding: 10px 12px;
   border-radius: 14px;
+}
+
+.leg.glass {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 /* The 36 px circle: the leg's color at 20% behind its 15 px icon. */
@@ -238,7 +242,8 @@
 }
 
 /* The next leg's ring (RotatingGradientBorder): a 2 px band, masked out of a cyan and blue conic gradient that turns
-   once every 4 s; the mask's alpha fades its second half to 30%. The -webkit- names come first, for Safari 14. */
+   once every 4 s; the mask's alpha fades its second half to 30%. The -webkit- names come first, for Safari 14. The
+   gradient turns on a square a fifth wider than the row, which covers the row at every angle. */
 .leg-ring {
   position: absolute;
   inset: 0;
@@ -256,9 +261,9 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 1000px;
-  height: 1000px;
-  margin: -500px 0 0 -500px;
+  width: 120%;
+  padding-top: 120%;
+  transform: translate(-50%, -50%);
   background: conic-gradient(var(--cyan), var(--blue), var(--cyan), var(--blue), var(--cyan));
   -webkit-mask-image: conic-gradient(#000, #000, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3), #000);
   mask-image: conic-gradient(#000, #000, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3), #000);
@@ -266,8 +271,12 @@
 }
 
 @keyframes leg-turn {
+  from {
+    transform: translate(-50%, -50%) rotate(0);
+  }
+
   to {
-    transform: rotate(1turn);
+    transform: translate(-50%, -50%) rotate(1turn);
   }
 }
 
@@ -283,6 +292,7 @@
   font-size: 11px;
   line-height: 13px;
   font-weight: 700;
+  text-transform: uppercase;
 }
 
 /* A gap: its dashed line under the icons' centers (12 px in, then 18), and its label at 11 px. */

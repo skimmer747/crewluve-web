@@ -6,7 +6,7 @@ import { DAY } from '../../src/time/zoned'
 import { SchedulePage } from '../../src/ui/SchedulePage'
 import { testAirports } from '../fixtures/airports'
 import { drive, duty, flight, H, pilot, place } from '../fixtures/legs'
-import { stubAnimationFrames } from '../fixtures/ui'
+import { stubAnimationFrames, visibleText } from '../fixtures/ui'
 
 afterEach(() => {
   cleanup()
@@ -65,7 +65,7 @@ describe('SchedulePage (slice 3A §4)', () => {
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Today', 'Tomorrow', 'Saturday, Oct 17'])
     expect([...container.querySelectorAll('.schedule-day')].map((d) => (d as HTMLElement).dataset.day)).toEqual([THU, THU + 1, THU + 2].map(String))
     expect(rowsOf(container).map((rows) => rows.length)).toEqual([2, 2, 1])
-    expect([...container.querySelectorAll('.leg-gap')].map((g) => g.textContent)).toEqual(['Gap 1h'])
+    expect([...container.querySelectorAll('.leg-gap')].map((g) => visibleText(g))).toEqual(['Gap 1h'])
     expect(container.querySelector('.day-pill')!.className).toBe('day-pill today')
     expect(container.querySelectorAll('ol.day-legs > li').length).toBe(5)
   })

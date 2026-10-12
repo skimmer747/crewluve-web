@@ -49,6 +49,11 @@ export function gapText(kind: GapKind, ms: number): string {
   return `${GAP_LABELS[kind]} ${legDuration(ms, false)}`
 }
 
+/** A gap's label in words, for screen readers, as VoiceOver reads the app's: "Layover, 3 hours, 10 minutes". */
+export function gapSpoken(kind: GapKind, ms: number): string {
+  return `${GAP_LABELS[kind]}, ${spokenDuration(ms)}`
+}
+
 /** Where a leg stands: happening now, the next to start, or neither (TimelineRowView's isActive and showUpNext). */
 export type LegMoment = 'happening' | 'next' | 'other'
 
