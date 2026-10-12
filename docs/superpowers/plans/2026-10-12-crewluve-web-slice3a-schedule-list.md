@@ -3182,7 +3182,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ### Task 13: Merge and release (controller, asks first)
 
-- [ ] **Step 1: Merge**
+- [x] **Step 1: Merge**
 
 Use superpowers:finishing-a-development-branch. Ask the user one question about how to merge `slice3a` into `main`.
 
@@ -3285,6 +3285,10 @@ Update the project memory with the new tip and what's next: Slice 3B, the month 
   - `079b23d`: the spec's wording.
 - **Not tested:** the stuck heading being set before the first paint. happy-dom runs both kinds of effect together, so a test can't tell them apart.
 - **Look check (Task 12):** the user said "Looks right" to the sheet of eight screenshots, light and dark, at 375 and 320 px. The suite is 2013 tests in 88 files.
+
+**Merge (Task 13, Step 1)**
+- The user chose "Merge into main locally". `main` hadn't moved since the branch was cut, so it fast-forwarded to `508e0d4`, and the branch is deleted.
+- On the merged `main`: 2013 tests in 88 files; tsc and build clean. The build makes `index-C6qfB3m4.js` and `index-CDVxmr-i.css`.
 
 **Left for later**
 - `memo` on rows, so a tick touches only the rows whose clock changes. The per-leg work is already memoized.
