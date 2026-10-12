@@ -32,4 +32,10 @@ describe('ICON_PATHS', () => {
   it('has the sun popup’s close, sunrise and sunset, and place icons', () => {
     for (const name of ['XCircle', 'SunHorizon', 'MapPinArea']) expect(ICON_PATHS).toHaveProperty(name)
   })
+
+  it('has the in-flight card’s timer, distance and early-departure icons, and the tracking popup’s', () => {
+    for (const name of ['Timer', 'ArrowsLeftRight', 'CheckCircle', 'Broadcast', 'GpsFix', 'ArrowSquareOut']) {
+      expect(ICON_PATHS).toHaveProperty(name)
+    }
+  })
 })
