@@ -3278,4 +3278,18 @@ Update the project memory with the new tip and what's next: slice 3, the Schedul
 
 ## Execution notes
 
-(Add notes here as the build goes: where the code had to differ from a printed block, and why.)
+**Build, 2026-10-11**
+- The controller applied the printed blocks task by task with the replay tools, on branch `slice2c` from `53fd2ff`. Every Step 2 failed as printed, every Step 4 passed with its count, and the gates passed after every task. The suite ended at 1810 tests in 79 files (`370f88d`), and the 30 files matched the scratch build byte for byte.
+- Task 1: `@phosphor-icons/core` 2.1.1 was copied into `node_modules` from the scratch copy rather than installed by `npm run icons`, so nothing was downloaded. `node scripts/build-icons.mjs` wrote the 59 icons, and `package-lock.json` didn't change.
+
+**Batch A spec review: four minor findings, fixed; the re-check passed**
+- Tasks 1 and 9, the distance icon: the app draws `arrow.left.and.right`, one arrow with a head at each end. Phosphor's `arrows-left-right` is two stacked arrows. It's now `arrows-horizontal`, as `ArrowsHorizontal`, in the icon script, the icon file, `FlightMap.tsx` and their tests, and spec §8 is reworded (`1add504`).
+- Tasks 3 and 4, test gaps: three rules could be broken without a test failing. They were the plane's heading within 1 px of landing (and nothing tested takeoff), the sky's right-edge stop, and widening evenly on both sides. New or extended tests now catch each (`dcedfc2`).
+- Task 6, from the review's code-quality note: `tracking.ts` held a second copy of the 15 airline pairs. `airlines.ts` now reverses its one table, as the app's FlightTrackingHelper does, and exports `airlineIcao`, which `tracking.ts` uses (`c30ba7f`).
+
+**Batch B spec review: five minor findings, fixed**
+- Task 9, the layers: the app draws the plane over the airports' labels, but the site drew the labels over the plane. That showed for about the first and last sixth of each flight. The plane is now a second SVG, `svg.flight-map-plane`, laid over the airports' columns.
+- Task 9, the glows: the route's glow now follows the line's own fade at half strength, as the app's shadow does. Its blur covers the whole map, so a route running straight up the map keeps its glow. Spec §4.4 and §8 are reworded (`75be342`).
+- Task 10: Phosphor's location arrow points up and to the left, so it's mirrored to point up and to the right like the app's `location.fill`. When only the departure's zone is known, screen readers now hear the departure's city with its time; with no zone, there's no time and no label. Spec §5.2 and §10 item 5 are reworded (`afe230a`).
+- Tasks 9–11, tests: the popup's link test no longer makes the test browser try to open FlightAware. Style tests now pin the text colors, the glows, the link tints, the backdrop and the closing timings (`55816a0`).
+- Suite: 1838 tests in 79 files.
