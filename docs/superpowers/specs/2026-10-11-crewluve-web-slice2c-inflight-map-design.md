@@ -39,7 +39,8 @@ It copies `FlightRouteMapView.swift` line for line, except where §10 says other
 
 ### 4.3 The sky
 
-- **Daylight at each end:** the sun's altitude at the departure airport at the departure time, and at the arrival airport at the arrival time (§7). Above −0.833° counts as daylight. The altitude uses the app's own low-precision formula.
+- **Daylight at each end:** the sun's altitude at the departure airport at the departure time, and at the arrival airport at the arrival time (§7). Above −0.833° counts as daylight, as in the app.
+- **The altitude** comes from the site's own sun module: the NOAA formulas behind the location card's sunrise and sunset. The app's formula is wrong by up to two hours, so the site doesn't copy it (§10, item 8).
 - **Both ends the same:** a top-to-bottom gradient of the day pair or the night pair.
 - **Ends that differ:** a left-to-right gradient. It uses only the first color of each pair: the left airport's color on the left, the right airport's on the right.
   - **The transition:** the app samples the flight every 5 minutes along its route. At the first sample whose daylight differs from the one before, it calls that progress (i − 0.5) / n the sunrise or sunset point.
@@ -182,7 +183,7 @@ Everything comes from what the site already has; there are no new requests.
 - **Pure modules for the math, each ported from the app with its tests:**
   - the great circle, the box, the antimeridian and the projection;
   - the sky's colors and stops;
-  - the sun's altitude and the sunrise or sunset point;
+  - the sun's altitude, added to the site's sun module beside sunrise and sunset, and the sunrise or sunset point along the route;
   - the plane's position and heading;
   - the distance, the duration and the labels;
   - the callsign and the tracking links.
@@ -207,6 +208,10 @@ Everything comes from what the site already has; there are no new requests.
 5. **The map has a spoken description.** The app's has none.
 6. **There's no map during ground transport,** where the location card shows (B1 §8 item 9).
 7. **"EARLY DEP" uses a check in a circle,** since the site's icon set has no clock with a check badge.
+8. **The sun's position comes from the site's own sun module,** the NOAA formulas behind the location card's sunrise and sunset (decision 9).
+   - **The app's error:** its map has its own formula, whose equation-of-time term is wrong. Its day and night run up to about two hours early or late, depending on the season.
+   - **The evidence:** run unchanged, the app's code puts Louisville's sunrise on 15 October 2026 at 10:02 AM, and on 15 March at 5:56 AM. The US Naval Observatory says 7:52 AM and 7:54 AM.
+   - **Where it shows:** the site and the app differ only within about two hours of sunrise or sunset.
 
 ## 11. Increase Contrast
 
@@ -225,7 +230,8 @@ The Part A follow-ups' rule applies: a color that's a system color in the app fo
 - **The math (unit tests),** against the app's formulas and cases worked by hand:
   - the great circle: its ends, its middle, and two airports at the same place;
   - the box and the projection, including a route across the antimeridian (Anchorage–Tokyo) and a north–south route that gets widened;
-  - the sun's altitude at known times, and the daylight threshold;
+  - the sun's altitude: at solar noon on the solstice, at midnight, and its sunrise and sunset crossings for Louisville. The crossings are checked against the US Naval Observatory's times for 15 October and 15 March 2026, within 2 minutes;
+  - the daylight threshold, the midnight sun and the polar night;
   - the sunrise or sunset point, its stops at the edges, and flights of 30 minutes or less;
   - the plane's position and heading, near both ends;
   - the distance (Anchorage–Louisville, 2,706 nm), the durations "5:00" and "45m", the delay texts, the labels in 12- and 24-hour modes, and the spoken description;
@@ -257,6 +263,7 @@ The Part A follow-ups' rule applies: a color that's a system color in the app fo
 | 6 | Times follow the 24-hour setting. | User, 2026-10-11 |
 | 7 | FlightRadar24 opens its website. | User, 2026-10-11 |
 | 8 | The popup copies the app as mocked up, with its text exactly ("Flight status & history"). | User, 2026-10-11 |
+| 9 | The map's day and night come from the site's own sun module, not the app's formula, which is wrong by up to two hours. | User, 2026-10-11 |
 
 ## 14. Roadmap
 
