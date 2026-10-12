@@ -22,6 +22,8 @@ export interface Move {
   schedEnd: number
   /** Airline code; company flights resolve to '5X' (UPS). */
   airline: string | null
+  /** The airline code as the pilot entered it, trimmed and in upper case, or null: `airline` without the UPS guess. */
+  enteredAirline: string | null
   /** Digits only; null for placeholders such as XXXX, CML, GND. */
   number: string | null
   deadhead: boolean

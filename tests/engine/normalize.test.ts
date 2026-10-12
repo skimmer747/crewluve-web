@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { RawBuilder } from '../../src/data/rowBuilder'
 import {
-  buildSchedule, classifyManualEvent, effectiveTimes, normalizeFlightNumber, parseInstant, pickPilot,
+  buildSchedule, classifyManualEvent, effectiveTimes, enteredAirline, normalizeFlightNumber, parseInstant, pickPilot,
   resolveAirline, toIata, trainingTitle,
 } from '../../src/engine/normalize'
 
@@ -42,6 +42,14 @@ describe('flight numbers and airlines', () => {
     expect(resolveAirline(null, '2961', true)).toBeNull()
     expect(resolveAirline(null, 'XXXX', false)).toBeNull()
     expect(resolveAirline(null, null, false)).toBeNull()
+  })
+
+  it('keeps the airline code as entered, trimmed and in upper case, or null when blank', () => {
+    expect(enteredAirline(' dl ')).toBe('DL')
+    expect(enteredAirline('5X')).toBe('5X')
+    expect(enteredAirline('  ')).toBeNull()
+    expect(enteredAirline(null)).toBeNull()
+    expect(enteredAirline(undefined)).toBeNull()
   })
 })
 
@@ -172,6 +180,21 @@ describe('buildSchedule', () => {
     expect(s.commutes).toEqual([
       { id: 'c-home', from: 'SDF', to: 'LEX', toHome: true, start: A + 380 * M, end: A + 450 * M, schedEnd: A + 410 * M, sourceTripId: 't1' },
     ])
+  })
+
+  it('keeps the airline as entered beside the airline each flight and jumpseat resolves to (slice 3A §5.2)', () => {
+    const flights = s.trips[0].dutyPeriods[0].flights
+    expect(flights.map((f) => [f.airline, f.enteredAirline])).toEqual([['5X', null], [null, null]])
+    expect(s.jumpseats.map((j) => [j.airline, j.enteredAirline])).toEqual([['5X', null]])
+    const entered = buildSchedule(
+      new RawBuilder(A).pilot('Alex', 'SDF', 'LEX')
+        .trip('t2', { dutyPeriods: [{ start: 0, end: 300, flights: [{ dep: 'SDF', arr: 'ATL', out: 60, in: 150, number: '1234', airline: ' aa ', commercialDh: true }] }] })
+        .jumpseat('j2', 'SDF', 'MCO', 400, 500, { airline: 'dl', number: '1230' })
+        .build(),
+      A,
+    )
+    expect(entered.trips[0].dutyPeriods[0].flights[0]).toMatchObject({ airline: 'AA', enteredAirline: 'AA' })
+    expect(entered.jumpseats[0]).toMatchObject({ airline: 'DL', enteredAirline: 'DL' })
   })
 
   it('drops jumpseats that duplicate a trip deadhead', () => {

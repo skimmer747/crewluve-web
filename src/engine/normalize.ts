@@ -42,12 +42,17 @@ export function normalizeFlightNumber(raw: string | null | undefined): string | 
   return s.replace(/^0+(?=\d)/, '')
 }
 
+/** The airline code as the pilot entered it, trimmed and in upper case, or null when it's blank. */
+export function enteredAirline(airlineCode: string | null | undefined): string | null {
+  return (airlineCode ?? '').trim().toUpperCase() || null
+}
+
 /**
  * The airline code, or '5X' (UPS) for a company flight: no code and an all-digit number.
  * Pass `notCompanyFlight` for rows that are never UPS flights: ground transport and commercial tickets.
  */
 export function resolveAirline(airlineCode: string | null | undefined, rawNumber: string | null | undefined, notCompanyFlight: boolean): string | null {
-  const code = (airlineCode ?? '').trim().toUpperCase()
+  const code = enteredAirline(airlineCode)
   if (code) return code
   if (!notCompanyFlight && /^\d+$/.test((rawNumber ?? '').trim())) return '5X' // PartnerStatusGenerator.swift:321-325
   return null
@@ -149,6 +154,7 @@ export function buildSchedule(raw: RawSchedule, now: number): Schedule {
     jumpseats.push({
       id: j.id, tripId: null, dep, arr, ...times,
       airline: resolveAirline(j.airline_code, j.flight_number, j.is_commercial_deadhead === true), // a ticket is never a UPS flight
+      enteredAirline: enteredAirline(j.airline_code),
       number: normalizeFlightNumber(j.flight_number),
       deadhead: true,
       ground: false,
@@ -214,6 +220,7 @@ function toMove(row: FlightRow, tripId: string, now: number): Move | null {
     arr,
     ...times,
     airline: resolveAirline(row.airline_code, row.flight_number, ground || row.is_commercial_deadhead === true), // a ticket is never a UPS flight
+    enteredAirline: enteredAirline(row.airline_code),
     number: normalizeFlightNumber(row.flight_number),
     deadhead: row.is_dh === true || row.is_commercial_deadhead === true || rawNumber === 'CML',
     ground,

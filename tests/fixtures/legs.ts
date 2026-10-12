@@ -19,6 +19,7 @@ export function flight(dep: string, arr: string, start: number, end: number, tri
     schedStart: start * H,
     schedEnd: end * H,
     airline: tripId ? '5X' : 'DL',
+    enteredAirline: tripId ? null : 'DL',
     number: '100',
     deadhead: !tripId,
     ground: false,
