@@ -12,8 +12,12 @@ const look = (leg: Leg, who = commuter) => rowLook(leg, who, testAirports)
 
 describe('scheduleLegs', () => {
   it('lists every leg but the report time, which Duty never sends the app (slice 3A §4.2)', () => {
-    const legs = [place('report', 'SDF', 0, 1), flight('SDF', 'RFD', 1, 2), place('turn', 'RFD', 2, 3), drive('SDF', 'LEX', true, 4, 5)]
-    expect(scheduleLegs(legs).map((l) => l.kind)).toEqual(['flight', 'turn', 'drive'])
+    const legs = [
+      place('report', 'SDF', 0, 1), flight('SDF', 'RFD', 1, 2), place('turn', 'RFD', 2, 3), flight('RFD', 'ONT', 3, 4),
+      place('layover', 'ONT', 4, 5), place('base', 'SDF', 5, 6), place('home', 'LEX', 6, 7), drive('SDF', 'LEX', true, 7, 8),
+      duty('reserve', 'RSV-A', 'SDF', 8, 9),
+    ]
+    expect(scheduleLegs(legs).map((l) => l.kind)).toEqual(['flight', 'turn', 'flight', 'layover', 'base', 'home', 'drive', 'reserve'])
   })
 })
 
@@ -27,6 +31,11 @@ describe('rowLook: flights and jumpseats (slice 3A §4.5, §4.6)', () => {
     expect(look(ticket)).toEqual({ title: 'AA1234: SDF → ATL', icon: airlineIcon('AA'), color: airlineColor('AA'), homeward: false })
     const fedex = flight('MEM', 'IND', 0, 1, 'T1', { airline: 'FX', enteredAirline: 'FX', number: '1407' })
     expect(look(fedex)).toEqual({ title: 'FX1407: MEM → IND', icon: airlineIcon('FX'), color: airlineColor('FX'), homeward: false })
+  })
+
+  it('writes an airline entered as 5X as the status page does, UPS, and a placeholder number as just the route', () => {
+    expect(look(flight('SDF', 'RFD', 0, 1, 'T1', { airline: '5X', enteredAirline: '5X', number: '2961' })).title).toBe('UPS2961: SDF → RFD')
+    expect(look(flight('SDF', 'ATL', 0, 1, 'T1', { airline: 'AA', enteredAirline: 'AA', number: null, deadhead: true })).title).toBe('SDF → ATL')
   })
 
   it('shows a trip flight with no airline as a blue airplane, with its number alone or just its route', () => {
@@ -55,6 +64,8 @@ describe('rowLook: flights and jumpseats (slice 3A §4.5, §4.6)', () => {
     expect(look(flight('ATL', 'LEX', 0, 1, null)).homeward).toBe(true)
     expect(look(flight('LEX', 'SDF', 0, 1)).homeward).toBe(false)
     expect(look(flight('SDF', 'LEX', 0, 1), pilot(null, null)).homeward).toBe(false)
+    // With no home airport set, home is the base.
+    expect(look(flight('ATL', 'SDF', 0, 1), pilot(null, 'SDF')).homeward).toBe(true)
   })
 })
 
@@ -81,15 +92,21 @@ describe('rowLook: stops (slice 3A §4.5, §4.6)', () => {
 })
 
 describe('rowLook: drives, reserve and events (slice 3A §4.5, §4.6)', () => {
-  it('names a drive by its direction and route, green when it ends at home', () => {
+  it('names and colors a drive by the site’s one rule for a drive home, the status page’s', () => {
     expect(look(drive('SDF', 'LEX', true, 0, 1))).toEqual({ title: 'Driving home: SDF → LEX', icon: 'Car', color: 'green', homeward: true })
     expect(look(drive('LEX', 'SDF', false, 0, 1))).toEqual({ title: 'Driving to work: LEX → SDF', icon: 'Car', color: 'blue', homeward: false })
+    // The rule decides, wherever the drive ends: a drive home to a city that's no longer home is still a drive home.
+    expect(look(drive('SDF', 'CVG', true, 0, 1))).toEqual({ title: 'Driving home: SDF → CVG', icon: 'Car', color: 'green', homeward: true })
+    expect(look(drive('SDF', 'LEX', false, 0, 1))).toEqual({ title: 'Driving to work: SDF → LEX', icon: 'Car', color: 'blue', homeward: false })
   })
 
   it('labels reserve and hot standby with where they are', () => {
     expect(look(duty('reserve', 'RSV-A', 'SDF', 0, 1))).toEqual({ title: 'RSV-A in Louisville', icon: 'ClockCountdown', color: 'red', homeward: false })
     expect(look(duty('reserve', 'RSV-A', 'XYZ', 0, 1)).title).toBe('RSV-A at XYZ')
     expect(look(duty('reserve', 'RSV-A', null, 0, 1)).title).toBe('RSV-A')
+    // A place that isn't an airport reads as entered; a code the site reads, such as SDFZ for SDF, by its city.
+    expect(look({ ...duty('reserve', 'RSV-A', null, 0, 1), location: 'Crew Room' }).title).toBe('RSV-A at Crew Room')
+    expect(look({ ...duty('reserve', 'RSV-A', 'SDF', 0, 1), location: 'SDFZ' }).title).toBe('RSV-A in Louisville')
     expect(look(duty('hotStandby', 'Hot Standby', 'SDF', 0, 1))).toEqual({ title: 'Hot Standby in Louisville', icon: 'Lightning', color: 'orange', homeward: false })
   })
 
@@ -98,6 +115,14 @@ describe('rowLook: drives, reserve and events (slice 3A §4.5, §4.6)', () => {
     expect(look(duty('training', 'CQ Training', 'SDF', 0, 1))).toEqual({ title: 'CQ Training in Louisville', icon: 'Buildings', color: 'blue', homeward: false })
     expect(look(duty('event', 'Recurrent', 'ATL', 0, 1))).toEqual({ title: 'Recurrent in Atlanta', icon: 'BookOpen', color: 'purple', homeward: false })
     expect(look(duty('training', 'CQ Training', null, 0, 1))).toEqual({ title: 'CQ Training', icon: 'BookOpen', color: 'purple', homeward: false })
+    expect(look(duty('training', 'CQ Training', 'LEX', 0, 1))).toEqual({ title: 'CQ Training in Lexington', icon: 'House', color: 'green', homeward: true })
+    expect(look({ ...duty('event', 'Sim', null, 0, 1), location: 'Training Center' })).toEqual({
+      title: 'Sim at Training Center', icon: 'BookOpen', color: 'purple', homeward: false,
+    })
+    // With no home airport set, home is the base, so training at base is training at home.
+    expect(look(duty('training', 'CQ Training', 'SDF', 0, 1), pilot(null, 'SDF'))).toEqual({
+      title: 'CQ Training in Louisville', icon: 'House', color: 'green', homeward: true,
+    })
   })
 
   it('never marks reserve or hot standby at home as ending there, as the app doesn’t', () => {
@@ -125,6 +150,14 @@ describe('scheduleDays (slice 3A §4.3)', () => {
     ])
   })
 
+  it('counts days across the change back to standard time', () => {
+    const at = (day: number, hour: number, minute = 0) => Date.UTC(2026, 10, day, hour, minute) / H
+    const sat = flight('SDF', 'RFD', at(1, 3, 30), at(1, 5)) // 11:30pm EDT Saturday 31 October
+    const sun = flight('RFD', 'SDF', at(2, 4, 30), at(2, 5)) // 11:30pm EST Sunday 1 November
+    const mon = flight('SDF', 'ATL', at(2, 5, 30), at(2, 7)) // 12:30am EST Monday 2 November
+    expect(scheduleDays([sat, sun, mon], NY).map((d) => d.day)).toEqual([THU + 16, THU + 17, THU + 18])
+  })
+
   it('counts the days in the visitor’s zone', () => {
     const days = scheduleDays([thuFlight, overnight, pastMidnight, friFlight], 'America/Los_Angeles')
     expect(days.map((d) => [d.day, d.legs.length])).toEqual([[THU, 3], [THU + 1, 1]])
@@ -139,6 +172,7 @@ describe('nextLegId and legMoment (slice 3A §4.9)', () => {
     expect(nextLegId(legs, 2 * H)).toBe(legs[2].id)
     expect(nextLegId(legs, 2.5 * H)).toBe(legs[2].id)
     expect(nextLegId(legs, 5 * H)).toBeNull()
+    expect(nextLegId([legs[2], legs[1], legs[0]], 0.5 * H)).toBe(legs[0].id)
   })
 
   it('says a leg is happening from its start to its end, both included, and marks only the next leg as next', () => {
@@ -175,6 +209,16 @@ describe('openingDay (slice 3A §4.11)', () => {
 
   it('opens at the next leg’s day, even while another leg is happening', () => {
     expect(openingDay(scheduleDays([thuFlight, layover, satFlight], NY), at(8), NY)).toBe(THU + 2)
+  })
+
+  it('counts the opening day in the visitor’s zone', () => {
+    const lateSat = flight('SDF', 'RFD', T0 + 69.5, T0 + 71) // 9:30pm Saturday in New York, 1:30am Sunday in UTC
+    expect(openingDay(scheduleDays([thuFlight, lateSat], NY), at(8), NY)).toBe(THU + 2)
+  })
+
+  it('opens at the first happening leg’s day when two are happening', () => {
+    const fri = duty('event', 'Sim', 'RFD', T0 + 25, T0 + 50)
+    expect(openingDay(scheduleDays([thuFlight, layover, fri], NY), at(26), NY)).toBe(THU)
   })
 
   it('opens at the happening leg’s day when no leg is next', () => {

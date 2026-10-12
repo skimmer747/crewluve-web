@@ -1,5 +1,6 @@
 import { airlineColor, airlineIcon } from '../copy/airlines'
 import type { ColorToken } from '../copy/colors'
+import { flightNumberText } from '../copy/flight'
 import type { GapKind, LegMoment } from '../copy/schedule'
 import type { AirportIndex } from '../data/airports'
 import type { Leg, MoveLeg } from '../engine/legs'
@@ -34,7 +35,8 @@ export function rowLook(leg: Leg, pilot: Pilot, airports: AirportIndex): RowLook
     case 'home':
       return { title: 'Home', icon: 'House', color: 'green', homeward }
     case 'base':
-      // The app shows "On Duty" with a grey clock here; the site says what the status page says (decision 2).
+      // The app shows "On Duty" with a grey clock here. The site says what the status page says, with its buildings, in
+      // the list's blue for things at base (decision 2).
       return { title: `At base in ${airports.city(leg.airport) ?? leg.airport}`, icon: 'Buildings', color: 'blue', homeward }
     case 'drive':
       return {
@@ -44,12 +46,12 @@ export function rowLook(leg: Leg, pilot: Pilot, airports: AirportIndex): RowLook
         homeward,
       }
     case 'reserve':
-      return { title: labelled(leg.title, leg.airport, airports), icon: 'ClockCountdown', color: 'red', homeward }
+      return { title: labelled(leg.title, leg.airport, leg.location, airports), icon: 'ClockCountdown', color: 'red', homeward }
     case 'hotStandby':
-      return { title: labelled(leg.title, leg.airport, airports), icon: 'Lightning', color: 'orange', homeward }
+      return { title: labelled(leg.title, leg.airport, leg.location, airports), icon: 'Lightning', color: 'orange', homeward }
     case 'training':
     case 'event': {
-      const title = labelled(leg.title, leg.airport, airports)
+      const title = labelled(leg.title, leg.airport, leg.location, airports)
       if (homeward) return { title, icon: 'House', color: 'green', homeward }
       if (leg.airport != null && leg.airport === pilot.base) return { title, icon: 'Buildings', color: 'blue', homeward }
       return { title, icon: 'BookOpen', color: 'purple', homeward }
@@ -60,37 +62,28 @@ export function rowLook(leg: Leg, pilot: Pilot, airports: AirportIndex): RowLook
   }
 }
 
-/** "UPS2961: RFD → SDF", or just "RFD → SDF" when there's no usable flight number. */
+/**
+ * The airline a row goes by: a trip flight's as the site works it out, UPS for a company flight, as the status page
+ * does; a jumpseat's as entered for it, as in the app (§4.6).
+ */
+const rowAirline = (leg: MoveLeg) => (leg.kind === 'jumpseat' ? leg.enteredAirline : leg.airline)
+
+/**
+ * "UPS2961: RFD → SDF", "GND: SDF → IND" for ground transport, or just "RFD → SDF" when there's no usable flight
+ * number. The flight is written as on the in-flight card (flightNumberText), in the form of Duty's formatFlightNumber.
+ */
 function moveTitle(leg: MoveLeg): string {
   const route = `${leg.dep} → ${leg.arr}`
-  const flight = flightLabel(leg)
+  const flight = leg.ground ? 'GND' : flightNumberText(rowAirline(leg), leg.number)
   return flight ? `${flight}: ${route}` : route
 }
 
-/**
- * The flight as Duty writes it for the app (PartnerStatusGenerator.formatFlightNumber): "GND" for ground transport;
- * the airline as entered and the number, "AA1234"; "UPS2961" for a company flight; else a jumpseat's number alone.
- */
-function flightLabel(leg: MoveLeg): string | null {
-  if (leg.ground) return 'GND'
-  if (leg.number == null) return null
-  if (leg.enteredAirline) return `${leg.enteredAirline}${leg.number}`
-  if (leg.kind === 'flight' && leg.airline === '5X') return `UPS${leg.number}`
-  return leg.number
-}
-
-/**
- * A trip flight goes by the airline the site works out, as the status page does; a jumpseat by the airline entered
- * for it, else the app's green seat. Ground transport is the status page's blue car.
- */
+/** The airline's icon and color, the app's green seat for a jumpseat without one, or the status page's blue car for ground transport. */
 function moveLook(leg: MoveLeg): { icon: IconName; color: ColorToken } {
   if (leg.ground) return { icon: 'Car', color: 'blue' }
-  if (leg.kind === 'jumpseat') {
-    return leg.enteredAirline
-      ? { icon: airlineIcon(leg.enteredAirline), color: airlineColor(leg.enteredAirline) }
-      : { icon: 'Seat', color: 'green' }
-  }
-  return { icon: airlineIcon(leg.airline), color: airlineColor(leg.airline) }
+  const airline = rowAirline(leg)
+  if (leg.kind === 'jumpseat' && !airline) return { icon: 'Seat', color: 'green' }
+  return { icon: airlineIcon(airline), color: airlineColor(airline) }
 }
 
 /** "in Louisville" when the airport list has its city, else "at SDF", as the app picks the leg's city or its code. */
@@ -99,20 +92,28 @@ function where(airport: string, airports: AirportIndex): string {
   return city ? `in ${city}` : `at ${airport}`
 }
 
-/** "RSV-A in Louisville", "RSV-A at XYZ", or the label alone when there's no airport. */
-function labelled(label: string, airport: string | null, airports: AirportIndex): string {
-  return airport ? `${label} ${where(airport, airports)}` : label
+/**
+ * "RSV-A in Louisville" when the airport list has the city; else "at" the place as entered, an airport's code or free
+ * text such as "Training Center", as the app writes it; else the label alone.
+ */
+function labelled(label: string, airport: string | null, location: string | null, airports: AirportIndex): string {
+  const city = airport ? airports.get(airport)?.city : undefined
+  if (city) return `${label} in ${city}`
+  const place = location ?? airport
+  return place ? `${label} at ${place}` : label
 }
 
-/** The app's isHomebound: a flight, jumpseat or drive that lands at home, or training or another event there. */
+/**
+ * The app's isHomebound: a flight or jumpseat that lands at home, or training or another event there. A drive goes by
+ * the site's one rule for a drive home, its direction or its destination, as the status page does (§4.9).
+ */
 function endsAtHome(leg: Leg, home: string | null): boolean {
+  if (leg.kind === 'drive') return leg.toHome
   if (!home) return false
   switch (leg.kind) {
     case 'flight':
     case 'jumpseat':
       return leg.arr === home
-    case 'drive':
-      return leg.to === home
     case 'training':
     case 'event':
       return leg.airport === home
@@ -140,19 +141,30 @@ export function scheduleDays(legs: readonly Leg[], timeZone: string): ScheduleDa
   return days
 }
 
-/** The next leg to start: the first that hasn't begun (EventTimelineView.upNextLegID). `legs` are in start order. */
+/** Whether a leg is happening at `now`: from its start to its end, both included (TimelineRowView's isActive). */
+export const isHappening = (leg: Leg, now: number) => leg.start <= now && now <= leg.end
+
+/** The next leg to start: the soonest that hasn't begun, the first of them on a tie (EventTimelineView.upNextLegID). */
 export function nextLegId(legs: readonly Leg[], now: number): string | null {
-  return legs.find((l) => l.start > now)?.id ?? null
+  let next: Leg | null = null
+  for (const leg of legs) if (leg.start > now && (!next || leg.start < next.start)) next = leg
+  return next?.id ?? null
 }
 
-/** Where a leg stands at `now`: happening from its start to its end, both included, the next leg, or neither (§4.9). */
+/** Where a leg stands at `now`: happening, the next leg, or neither (§4.9). */
 export function legMoment(leg: Leg, now: number, nextId: string | null): LegMoment {
-  if (leg.start <= now && now <= leg.end) return 'happening'
+  if (isHappening(leg, now)) return 'happening'
   return leg.id === nextId ? 'next' : 'other'
 }
 
-/** The gap before `next`, named by it, when it starts a minute or more after `prev` ends (TimeGapView, §4.10). */
-export function gapBefore(prev: Leg, next: Leg): { kind: GapKind; ms: number } | null {
+/** A gap between two legs of a day, named by the leg after it (TimeGapView). */
+export interface Gap {
+  kind: GapKind
+  ms: number
+}
+
+/** The gap before `next` when it starts a minute or more after `prev` ends (§4.10). */
+export function gapBefore(prev: Leg, next: Leg): Gap | null {
   const ms = next.start - prev.end
   if (ms < 60_000) return null
   return { kind: next.kind === 'home' || next.kind === 'turn' || next.kind === 'layover' ? next.kind : 'gap', ms }
@@ -164,7 +176,7 @@ export function gapBefore(prev: Leg, next: Leg): { kind: GapKind; ms: number } |
  */
 export function openingDay(days: readonly ScheduleDay[], now: number, timeZone: string): number | null {
   const legs = days.flatMap((d) => d.legs)
-  const leg = legs.find((l) => l.start > now) ?? legs.find((l) => l.start <= now && now <= l.end)
+  const leg = legs.find((l) => l.start > now) ?? legs.find((l) => isHappening(l, now))
   const target = calendarDay(leg?.start ?? now, timeZone)
   return days.some((d) => d.day === target) ? target : null
 }
