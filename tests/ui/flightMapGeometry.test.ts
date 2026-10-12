@@ -42,7 +42,7 @@ describe('greatCirclePoint', () => {
   })
 
   it('gives the start for two airports at the same place', () => {
-    expect(greatCirclePoint(SDF, SDF, 0.5)).toBe(SDF)
+    expect(greatCirclePoint(SDF, SDF, 0.5)).toEqual(SDF)
   })
 })
 
@@ -92,6 +92,14 @@ describe('mapBounds', () => {
     expect(b.lonOffset).toBe(360)
     const xs = routePoints(ANC, NRT).map((p) => project(p, b, W).x)
     expect(xs.every((x, i) => i === 0 || x < xs[i - 1])).toBe(true) // Anchorage on the right, heading west
+  })
+
+  it('boxes a route across the antimeridian in those longitudes, padded by 15%', () => {
+    const lons = routePoints(ANC, NRT).map((p) => (p.lon < 0 ? p.lon + 360 : p.lon))
+    const [lon0, lon1] = [Math.min(...lons), Math.max(...lons)]
+    const b = mapBounds(ANC, NRT)
+    expect(b.minLon).toBeCloseTo(lon0 - (lon1 - lon0) * 0.15, 9)
+    expect(b.maxLon).toBeCloseTo(lon1 + (lon1 - lon0) * 0.15, 9)
   })
 })
 

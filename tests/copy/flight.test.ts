@@ -78,5 +78,6 @@ describe('flightMapLabel', () => {
     expect(flightMapLabel({ from: 'Louisville', to: 'Rockford', nm: 312, durationMs: 90 * MINUTE, progress: null })).toBe(
       'Flight from Louisville to Rockford, 312 nautical miles, 1 hour, 30 minutes',
     )
+    expect(flightMapLabel({ from: 'ANC', to: 'ANC', nm: 1, durationMs: 0, progress: null })).toBe('Flight from ANC to ANC, 1 nautical mile')
   })
 })

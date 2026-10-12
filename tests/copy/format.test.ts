@@ -112,6 +112,9 @@ describe('clock times', () => {
     expect(mapAirportTimeText(Date.UTC(2026, 9, 12, 18, 40), NY, false)).toBe('MO 2:40PM')
     expect(mapAirportTimeText(Date.UTC(2026, 9, 12, 13, 40), 'America/Anchorage', true)).toBe('MO 05:40')
     expect(mapAirportTimeText(Date.UTC(2026, 9, 11, 4, 5), NY, false)).toBe('SU 12:05AM')
+    // The airport's own weekday, where it isn't UTC's: a night flight out of New York, a morning in Tokyo.
+    expect(mapAirportTimeText(Date.UTC(2026, 9, 12, 3, 0), NY, false)).toBe('SU 11:00PM')
+    expect(mapAirportTimeText(Date.UTC(2026, 9, 11, 20, 0), 'Asia/Tokyo', false)).toBe('MO 5:00AM')
   })
 
   it('adds the zone for {T}', () => {
