@@ -43,14 +43,16 @@
   padding: 12px 0;
 }
 
-/* A day's heading sticks under the bar while its legs scroll past, and the next day's pushes it up. */
+/* A day's heading sticks under the bar while its legs scroll past, and the next day's pushes it up. Its band is the
+   bar's color laid over the page's: the same shade, but solid, as a backdrop blur on every heading costs Safari a
+   layer each, and without one a row sliding under would show through. */
 .day-heading {
   position: sticky;
   top: 60px;
   z-index: 1;
   margin: 0;
   padding: 12px 0 2px;
-  background: var(--bar-fill);
+  background: linear-gradient(var(--bar-fill), var(--bar-fill)), var(--bg);
   font-size: 12px;
   line-height: 16px;
   font-weight: 600;

@@ -606,7 +606,8 @@ describe('schedule.css', () => {
   it('keeps the bar at the top and each day’s heading stuck just under it, both over iOS’s bar material', () => {
     expect(rule('.schedule-bar')).toEqual(expect.arrayContaining([['position', 'sticky'], ['top', '0'], ['height', '60px'], ['background', 'var(--bar-fill)']]))
     expect(rule('.day-heading')).toEqual(expect.arrayContaining([
-      ['position', 'sticky'], ['top', '60px'], ['padding', '12px 0 2px'], ['background', 'var(--bar-fill)'],
+      // The bar's color over the page's: the same shade, solid, so a row sliding under the heading doesn't show through.
+      ['position', 'sticky'], ['top', '60px'], ['padding', '12px 0 2px'], ['background', 'linear-gradient(var(--bar-fill), var(--bar-fill)), var(--bg)'],
       ['font-size', '12px'], ['font-weight', '600'], ['text-transform', 'uppercase'],
     ]))
     expect(rule('.schedule-back')).toEqual([['width', '44px'], ['height', '44px']])
