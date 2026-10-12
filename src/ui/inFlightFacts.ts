@@ -29,7 +29,7 @@ export interface InFlightFacts {
   delayMinutes: number | null
   /** The info bar's flight number in the pilot's Duty app's form, or null without digits. */
   flightNumber: string | null
-  /** The popup's header: the airline's ICAO code and the digits, or the info bar's text when there's no airline. */
+  /** The popup's header: the airline's ICAO code and the digits, or the info bar's text when there's no such form. */
   trackingNumber: string | null
   /** The tracking sites' pages, or null when there's no tracking flight number. */
   links: TrackingLinks | null

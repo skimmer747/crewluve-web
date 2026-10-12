@@ -323,6 +323,7 @@ describe('inFlight.css', () => {
     const box = top.filter((b) => b.head === '.flight-map').flatMap((b) => declarations(b.body))
     expect(box).toEqual(expect.arrayContaining([['position', 'relative'], ['height', '200px'], ['overflow', 'hidden']]))
     expect(rule('.flight-airport')).toEqual(expect.arrayContaining([['position', 'absolute'], ['transform', 'translate(-50%, -50%)']]))
+    expect(top.filter((b) => b.head === '.inflight-bar').flatMap((b) => declarations(b.body))).toContainEqual(['background', 'var(--info-bar-fill)'])
   })
 
   it('glows the route through its own fade at half strength, with no stroke color over the line’s gradient', () => {
@@ -375,6 +376,7 @@ describe('inFlight.css', () => {
     ['.flight-distance', 'color', 'var(--map-text)'],
     ['.flight-plane-icon', 'fill', 'var(--map-text)'],
     ['.flight-map-fallback', 'color', 'var(--map-text-2)'],
+    ['.flight-map-fallback', 'background', 'linear-gradient(var(--map-day-1), var(--map-day-2))'],
     ['.inflight-number', 'color', 'var(--info-bar-text)'],
     ['.inflight-number', 'text-decoration-color', 'var(--info-bar-underline)'],
     ['.inflight-status', 'color', 'var(--info-bar-text-2)'],
