@@ -65,7 +65,8 @@ The other two "Left for later" items stay for another time: longitude's spelling
 - **If neither card is there,** the page's title, for example "Where's Alex?".
 - **What people notice:**
   - Screen readers read the heading out, so it's clear what changed.
-  - The headings take focus from code only (`tabindex="-1"`), so Tab doesn't stop on them.
+  - The headings can take focus (`tabindex="-1"`) but stay out of the Tab order, so Tab doesn't stop on them.
+  - Focus moves to the heading without scrolling the page. Safari before 15 ignores that and may scroll to the heading if it's out of view.
   - Mouse and touch users see no change: the headings show no focus ring, even in Safari before 15.4, which has no `:focus-visible`.
 
 ### 4.3 Timing

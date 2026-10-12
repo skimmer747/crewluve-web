@@ -1,10 +1,13 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/preact'
 import { useRef } from 'preact/hooks'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { usePopupOpener } from '../../src/ui/hooks/usePopupOpener'
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.restoreAllMocks()
+})
 
 /**
  * A screen reduced to one popup: the button that opens it while its subject is there, a heading for focus to fall back
@@ -62,12 +65,15 @@ describe('usePopupOpener', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
-  it('sends focus to what took the place of its button, when the button went with the subject', async () => {
+  it('sends focus to what took the place of its button, without scrolling to it, when the button went with the subject', async () => {
     const { rerender } = render(<Screen subject />)
     openIt()
+    const heading = screen.getByRole('heading', { name: 'In its place' })
+    const focus = vi.spyOn(heading, 'focus')
     rerender(<Screen subject={false} />)
     await act(() => {})
-    expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'In its place' }))
+    expect(document.activeElement).toBe(heading)
+    expect(focus).toHaveBeenCalledWith({ preventScroll: true })
   })
 
   it('moves no focus when it never opened', async () => {

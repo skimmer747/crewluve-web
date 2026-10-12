@@ -13,9 +13,13 @@ export function usePopupOpener(available: boolean, fallback: () => HTMLElement |
   useEffect(() => {
     if (wanted && !available) setWanted(false)
   }, [wanted, available])
-  // This runs after the render that lifts `inert` from <main>, since nothing in an inert page can take focus.
+  // This runs after the render that lifts `inert` from <main>, since nothing in an inert page can take focus. The
+  // fallback takes focus without scrolling the page to it (Safari before 15 scrolls anyway).
   useEffect(() => {
-    if (wasOpen.current && !open) (opener.current?.isConnected ? opener.current : fallback())?.focus()
+    if (wasOpen.current && !open) {
+      if (opener.current?.isConnected) opener.current.focus()
+      else fallback()?.focus({ preventScroll: true })
+    }
     wasOpen.current = open
   }, [open])
   return {
