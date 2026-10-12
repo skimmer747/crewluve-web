@@ -158,12 +158,12 @@ It copies `FlightTrackingPopupView.swift`, as in the mockup approved on 2026-10-
   - **Two links**, each in a row: a 20 px icon in a 32 px column, then the name (17 px semibold) over a caption (12 px, secondary color), then a 15 px "opens elsewhere" icon in the secondary color. Each row has 14 px padding and a 14 px radius.
     - **FlightRadar24**, "Live tracking map": a broadcast icon, on blue at 12% with blue text. It links to `https://fr24.com/{callsign}`.
     - **FlightAware**, "Flight status & history": a GPS-fix icon, on orange at 12% with orange text. It links to `https://www.flightaware.com/live/flight/{callsign}`.
-  - The links open in a new tab with `rel="noopener noreferrer"`, so the tracking sites aren't told which page sent the visitor.
-- **The callsign**, as in the app's `FlightTrackingHelper`:
-  1. Take spaces out of the flight number. The prefix is everything before the first digit, and the number is the rest.
-  2. **ICAO prefix:** the IATA airline code is swapped for its ICAO code. The map is 5X→UPS, FX→FDX, AA→AAL, DL→DAL, UA→UAL, WN→SWA, B6→JBU, NK→NKS, F9→FFT, AS→ASA, HA→HAL, OO→SKW, YX→RPA, MQ→ENY and OH→PSA.
-  3. **The callsign** is that prefix and the number, in capitals: "UPS2962", "DAL1235". The header shows the same prefix and number without changing their case.
-  4. A flight number with no prefix, or no digits, gets no links. The popup then shows only its header and "Track this flight", as the app does.
+  - The links open in a new tab with `rel="noopener noreferrer"`, so the tracking sites aren't told which page sent the visitor. Following one closes the popup, as the app's buttons do. Screen readers hear "(opens in a new tab)".
+- **The callsign**, with the app's `FlightTrackingHelper` airline codes:
+  1. **The ICAO airline:** the site has the airline and the digits apart, so it swaps the airline's IATA code for its ICAO code directly. The map is 5X→UPS, FX→FDX, AA→AAL, DL→DAL, UA→UAL, WN→SWA, B6→JBU, NK→NKS, F9→FFT, AS→ASA, HA→HAL, OO→SKW, YX→RPA, MQ→ENY and OH→PSA. Codes it doesn't map stay as they are.
+  2. **The callsign** is that code and the digits, in capitals: "UPS2962", "DAL1235". The popup's header shows it too.
+  3. **No links:** without an airline or digits, or when the result holds anything but letters and digits, there are no links. The popup then shows only its header (the info bar's flight number) and "Track this flight", as the app does.
+  4. **The app's way:** it splits its flight number at the first digit instead, which misses airline codes with a digit in them. B6 reads "B61234" there and "JBU1234" on the site (§10, item 9).
 
 ## 7. Data
 
@@ -205,13 +205,14 @@ Everything comes from what the site already has; there are no new requests.
 2. **The delay banner** shows only at 15 minutes or more off schedule, as everywhere on the site. The app shows any delay.
 3. **Times follow the site's 24-hour setting.** The app's map labels are always 12-hour.
 4. **FlightRadar24 opens its website.** The app tries the FlightRadar24 app first. On an iPhone with that app installed, the website may hand over to it.
-5. **The map has a spoken description.** The app's has none.
+5. **Screen readers get more than in the app:** the map's spoken description, an "In flight" heading for the card, and "Time in Louisville" before the info bar's time.
 6. **There's no map during ground transport,** where the location card shows (B1 §8 item 9).
 7. **"EARLY DEP" uses a check in a circle,** since the site's icon set has no clock with a check badge.
 8. **The sun's position comes from the site's own sun module,** the NOAA formulas behind the location card's sunrise and sunset (decision 9).
    - **The app's error:** its map has its own formula, whose equation-of-time term is wrong. Its day and night run up to about two hours early or late, depending on the season.
    - **The evidence:** run unchanged, the app's code puts Louisville's sunrise on 15 October 2026 at 10:02 AM, and on 15 March at 5:56 AM. The US Naval Observatory says 7:52 AM and 7:54 AM.
    - **Where it shows:** the site and the app differ only within about two hours of sunrise or sunset.
+9. **The tracking flight number is built from the airline and the digits,** which the site has apart. The app splits its flight number at the first digit, so airline codes with a digit in them (B6, F9, 5X) never reach its ICAO table. The difference shows only for those airlines.
 
 ## 11. Increase Contrast
 
@@ -235,7 +236,7 @@ The Part A follow-ups' rule applies: a color that's a system color in the app fo
   - the sunrise or sunset point, its stops at the edges, and flights of 30 minutes or less;
   - the plane's position and heading, near both ends;
   - the distance (Anchorage–Louisville, 2,706 nm), the durations "5:00" and "45m", the delay texts, the labels in 12- and 24-hour modes, and the spoken description;
-  - the callsigns and links, including no prefix or no digits.
+  - the tracking flight numbers and links, including airline codes with a digit in them, no airline, no digits, and anything but letters and digits.
 - **The card (component tests):**
   - It shows in flight and on a jumpseat, and not during ground transport or on the ground. It's in the location card's place.
   - The map draws the route, the arrow, both airports and the plane, or the fallback when an airport is unknown.
