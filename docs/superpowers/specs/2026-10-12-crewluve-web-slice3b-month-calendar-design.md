@@ -39,7 +39,9 @@ Status: approved in brainstorming on 2026-10-12. Slice 3A, the Schedule page and
 ### 3.4 The list's box
 
 - **Fills the rest of the column**, 16 px from its sides, with 12 px above the first day and below the last (3A §4.1), plus the phone's bottom safe area.
-- **Day headings stick to the top of the box** (3A §4.3), with the same pills and solid band. The stuck heading is the last one within 20 px of the box's top.
+- **Day headings stick to the very top of the box** (3A §4.3), with the same pills and solid band. The stuck heading is the last one within 20 px of the box's top.
+  - A sticky heading stops short of its scroll box's padding, and rows would show in the gap. So the box has no padding at the top; a list inside it keeps the 12 px (decision 8).
+- **It doesn't scroll sideways.** A code near a week's right edge, or an arrow's tap area, can't make it (decision 8).
 - **Its edges are plain cuts.** The app softens them with iOS 26's scroll edge effect.
 - **The keyboard can scroll it:** the box takes Tab focus, named "Legs", so the arrow keys and Page Down scroll it.
 
@@ -64,7 +66,7 @@ One row, in this order:
 - **Space,** a third.
 - **›**, the next month's arrow, named "Next month".
 
-Each arrow takes taps over a 44 px square centered on it, without making the row taller.
+Each arrow takes taps over a 44 px square around it, within the column's 16 px sides, without making the row taller (decision 8).
 
 ### 4.3 The weekday letters
 
@@ -241,7 +243,7 @@ Copied from `EventTimelineView` and `TripCalendarView` (decision 5).
   - the list's box;
   - headings stick at the box's top.
 - **`src/styles/tokens.css`:** the six tokens of §4.8.
-- **The demo, `src/data/demo.ts`:** in the `driver` variant, a later trip rests at base between two duty periods, so the light SDF bar can be seen. The scenes' moments on the main trip don't move.
+- **The demo, `src/data/demo.ts`:** the third trip rests 16 hours at base, SDF, before a new third duty period, so the light SDF bar can be seen. Both variants fly the same trips, so both rest there. The `nothing-ahead` scene moves after the longer trip; no other scene moves.
 
 ## 7. Security and privacy
 
@@ -315,6 +317,7 @@ Nothing new: no requests, storage or scripts. The content security policy is unc
 | 5 | The behavior in §5, copying the app, including a row tap scrolling its day to the top. | User, 2026-10-12 |
 | 6 | The build in §6, with a rest at base added to the demo. | User, 2026-10-12 |
 | 7 | "Too short" is a window under 500 px tall; the bar takes the page's plain color; a tap on the selected day scrolls again; the time line is measured as the bars are; the arrows take 44 px of taps. | Design, from decisions 1, 3 and 5 |
+| 8 | The list's box has no padding at the top, so the headings stick at its very top, and it doesn't scroll sideways; the arrows' tap areas stay within the column's sides. | Design, from the browser check while planning |
 
 ## 11. Roadmap
 
