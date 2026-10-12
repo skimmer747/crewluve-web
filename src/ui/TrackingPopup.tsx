@@ -9,8 +9,8 @@ import { prefersReducedMotion } from './motion'
 export const TRACKING_CLOSE_MS = 200
 
 export interface TrackingPopupProps {
-  /** The header: the airline's ICAO code and the digits ("UPS2962"). */
-  flightNumber: string
+  /** The header: the flight as the tracking sites know it ("UPS2962"), or the info bar's number when it has no such form. */
+  trackingNumber: string
   /** The tracking sites' pages. Without them the popup has only its header and "Track this flight", as the app's. */
   links: TrackingLinks | null
   /** Called once the popup has finished closing. */
@@ -21,7 +21,7 @@ export interface TrackingPopupProps {
  * The tracking popup (slice 2C §6): FlightTrackingPopupView, with links to the flight on FlightRadar24 and FlightAware.
  * The screen draws it outside <main> and hides the page from screen readers while it's open.
  */
-export function TrackingPopup({ flightNumber, links, onClose }: TrackingPopupProps) {
+export function TrackingPopup({ trackingNumber, links, onClose }: TrackingPopupProps) {
   const titleId = useId()
   const card = useRef<HTMLElement>(null)
   const closeButton = useRef<HTMLButtonElement>(null)
@@ -48,7 +48,7 @@ export function TrackingPopup({ flightNumber, links, onClose }: TrackingPopupPro
         <div class="tracking-head">
           <Icon name="Airplane" size={17} color="var(--blue)" />
           <h2 id={titleId} class="tracking-number">
-            {flightNumber}
+            {trackingNumber}
           </h2>
           <button ref={closeButton} type="button" class="tracking-close" aria-label="Close" onClick={close}>
             <Icon name="XCircle" size={22} />

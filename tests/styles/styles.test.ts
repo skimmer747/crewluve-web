@@ -345,10 +345,10 @@ describe('inFlight.css', () => {
 
   // Slice 2C §5.2: the info bar's fixed colors, light and dark.
   it.each([
-    ['--bar-text', 'rgb(10%,15%,25%)', '#ffffff'],
-    ['--bar-text-2', 'rgb(30%,38%,50%)', 'var(--gray)'],
-    ['--bar-underline', 'rgba(10%,15%,25%,.3)', 'rgba(255,255,255,.3)'],
-    ['--bar-fill', 'rgba(65%,78%,90%,.6)', 'rgba(8%,12%,25%,.6)'],
+    ['--info-bar-text', 'rgb(10%,15%,25%)', '#ffffff'],
+    ['--info-bar-text-2', 'rgb(30%,38%,50%)', 'var(--gray)'],
+    ['--info-bar-underline', 'rgba(10%,15%,25%,.3)', 'rgba(255,255,255,.3)'],
+    ['--info-bar-fill', 'rgba(65%,78%,90%,.6)', 'rgba(8%,12%,25%,.6)'],
   ])('%s is the info bar’s color, light and dark', (name, lightValue, darkValue) => {
     expect(normalize(customProperties(find(top, '.inflight-bar')?.body).get(name))).toBe(normalize(lightValue))
     expect(normalize(customProperties(find(blocks(dark?.body ?? ''), '.inflight-bar')?.body).get(name))).toBe(normalize(darkValue))
@@ -375,11 +375,11 @@ describe('inFlight.css', () => {
     ['.flight-distance', 'color', 'var(--map-text)'],
     ['.flight-plane-icon', 'fill', 'var(--map-text)'],
     ['.flight-map-fallback', 'color', 'var(--map-text-2)'],
-    ['.inflight-number', 'color', 'var(--bar-text)'],
-    ['.inflight-number', 'text-decoration-color', 'var(--bar-underline)'],
-    ['.inflight-status', 'color', 'var(--bar-text-2)'],
-    ['.inflight-time', 'color', 'var(--bar-text)'],
-    ['.inflight-code', 'color', 'var(--bar-text-2)'],
+    ['.inflight-number', 'color', 'var(--info-bar-text)'],
+    ['.inflight-number', 'text-decoration-color', 'var(--info-bar-underline)'],
+    ['.inflight-status', 'color', 'var(--info-bar-text-2)'],
+    ['.inflight-time', 'color', 'var(--info-bar-text)'],
+    ['.inflight-code', 'color', 'var(--info-bar-text-2)'],
   ])('%s takes its %s from %s', (head, prop, value) => {
     expect(rule(head)).toContainEqual([prop, value])
   })

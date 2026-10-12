@@ -135,7 +135,7 @@ export function StatusScreen(p: StatusScreenProps) {
         />
       )}
       {tracking && flying?.trackingNumber && (
-        <TrackingPopup flightNumber={flying.trackingNumber} links={flying.links} onClose={() => setTrackingOpen(false)} />
+        <TrackingPopup trackingNumber={flying.trackingNumber} links={flying.links} onClose={() => setTrackingOpen(false)} />
       )}
     </>
   )

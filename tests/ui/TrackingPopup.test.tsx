@@ -13,7 +13,7 @@ afterEach(() => {
 })
 
 const links = trackingLinks('5X', '2962')
-const popup = (onClose = () => {}, withLinks = true) => <TrackingPopup flightNumber="UPS2962" links={withLinks ? links : null} onClose={onClose} />
+const popup = (onClose = () => {}, withLinks = true) => <TrackingPopup trackingNumber="UPS2962" links={withLinks ? links : null} onClose={onClose} />
 const reduceMotion = () => vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce'), media: query }))
 
 describe('TrackingPopup', () => {

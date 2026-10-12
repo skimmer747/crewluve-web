@@ -16,10 +16,10 @@
 
 /* The info bar's own colors, fixed in the app too (§5.2). Colors come before the dark block that overrides them. */
 .inflight-bar {
-  --bar-text: rgb(10%, 15%, 25%);
-  --bar-text-2: rgb(30%, 38%, 50%);
-  --bar-underline: rgba(10%, 15%, 25%, 0.3);
-  --bar-fill: rgba(65%, 78%, 90%, 0.6);
+  --info-bar-text: rgb(10%, 15%, 25%);
+  --info-bar-text-2: rgb(30%, 38%, 50%);
+  --info-bar-underline: rgba(10%, 15%, 25%, 0.3);
+  --info-bar-fill: rgba(65%, 78%, 90%, 0.6);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -36,10 +36,10 @@
   }
 
   .inflight-bar {
-    --bar-text: #ffffff;
-    --bar-text-2: var(--gray);
-    --bar-underline: rgba(255, 255, 255, 0.3);
-    --bar-fill: rgba(8%, 12%, 25%, 0.6);
+    --info-bar-text: #ffffff;
+    --info-bar-text-2: var(--gray);
+    --info-bar-underline: rgba(255, 255, 255, 0.3);
+    --info-bar-fill: rgba(8%, 12%, 25%, 0.6);
   }
 }
 
@@ -250,7 +250,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 10px 16px;
-  background: var(--bar-fill);
+  background: var(--info-bar-fill);
 }
 
 .inflight-flight {
@@ -271,9 +271,9 @@
   font-size: 18px;
   line-height: 1.2;
   font-weight: 800;
-  color: var(--bar-text);
+  color: var(--info-bar-text);
   text-decoration: underline;
-  text-decoration-color: var(--bar-underline);
+  text-decoration-color: var(--info-bar-underline);
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -281,7 +281,7 @@
   font-size: 11px;
   line-height: 1.2;
   font-weight: 500;
-  color: var(--bar-text-2);
+  color: var(--info-bar-text-2);
 }
 
 .inflight-arrival {
@@ -301,7 +301,7 @@
   line-height: 1.2;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: var(--bar-text);
+  color: var(--info-bar-text);
 }
 
 /* Phosphor's location arrow points up and to the left; the app's location.fill points up and to the right. */
@@ -313,7 +313,7 @@
   font-size: 10px;
   line-height: 1.2;
   font-weight: 500;
-  color: var(--bar-text-2);
+  color: var(--info-bar-text-2);
 }
 
 /* The tracking popup (§6): it covers the page, centering the card with at least 16 px of screen around it. */
