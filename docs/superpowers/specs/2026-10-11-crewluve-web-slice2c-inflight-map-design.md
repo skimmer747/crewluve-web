@@ -150,7 +150,7 @@ It copies `FlightTrackingPopupView.swift`, as in the mockup approved on 2026-10-
 - **Opening:**
   - The flight number opens it, by tap, click, Enter or Space.
   - The page behind is dimmed (black at 30%, over a blur) and hidden from screen readers.
-  - The card springs in from half size and transparent, and fades and shrinks back out in 0.2 s. Visitors who ask for reduced motion get a plain fade.
+  - The card springs in from half size and transparent, and fades and shrinks back out in 0.2 s. Visitors who ask for reduced motion see it appear and go at once, as the sun popup does.
 - **Closing:** the ✕ button, a tap outside the card, or Escape. Focus goes back to the flight number.
 - **The card:** up to 340 px wide, 20 px padding, 16 px between rows, frosted, with a 28 px radius. It's a dialog named by its heading.
   - **The header:** a blue plane icon, then the flight number in its ICAO form, 20 px bold. On the right is a close button: a 22 px gray ✕ in a circle, labelled "Close".
