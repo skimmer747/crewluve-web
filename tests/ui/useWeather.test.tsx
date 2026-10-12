@@ -61,7 +61,7 @@ function Probe({ place, load }: { place: WeatherPlace | null; load: WeatherLoade
 }
 const shown = () => screen.getByTestId('weather').textContent
 
-/** Like ScheduleScreen, which builds an equal but new place on every render. */
+/** Like PilotPages, which builds an equal but new place on every render. */
 function FreshPlace({ load }: { load: WeatherLoader }) {
   return <Probe place={{ ...ANC }} load={load} />
 }

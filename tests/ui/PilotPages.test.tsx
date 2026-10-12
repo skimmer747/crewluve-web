@@ -5,9 +5,12 @@ import { demoRawForScene } from '../../src/data/demo'
 import { RawBuilder } from '../../src/data/rowBuilder'
 import type { RawSchedule } from '../../src/data/rows'
 import { tempUnitFor, type WeatherLoader } from '../../src/data/weather'
+import { buildLegs } from '../../src/engine/legs'
+import { buildSchedule } from '../../src/engine/normalize'
 import { WEATHER_REFRESH_MS } from '../../src/ui/hooks/useWeather'
 import type { ScheduleHandle } from '../../src/ui/hooks/useSchedule'
-import { ScheduleScreen } from '../../src/ui/ScheduleScreen'
+import { PilotPages } from '../../src/ui/PilotPages'
+import { scheduleLegs } from '../../src/ui/scheduleFacts'
 import { testAirports } from '../fixtures/airports'
 import { stubAnimationFrames } from '../fixtures/ui'
 
@@ -26,9 +29,9 @@ afterEach(() => {
 
 const handle = (raw: RawSchedule | null): ScheduleHandle => ({ raw, lastSuccessAt: NOW, problem: null, refreshing: false, refresh: () => {} })
 
-describe('ScheduleScreen', () => {
+describe('PilotPages', () => {
   it('renders the demo pilot on the late last leg', () => {
-    render(<ScheduleScreen schedule={handle(demoRawForScene('last-leg', NOW))} airports={testAirports} demo onSignOut={() => {}} />)
+    render(<PilotPages schedule={handle(demoRawForScene('last-leg', NOW))} airports={testAirports} demo onSignOut={() => {}} />)
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe("Where's Alex?")
     expect(screen.getByText('Demo — sample pilot')).toBeTruthy()
     expect(screen.getByText(/was delayed in/)).toBeTruthy()
@@ -37,24 +40,24 @@ describe('ScheduleScreen', () => {
   })
 
   it('shows the empty state for an account with nothing in CrewLu Cloud', () => {
-    render(<ScheduleScreen schedule={handle(new RawBuilder(NOW).build())} airports={testAirports} demo={false} onSignOut={() => {}} />)
+    render(<PilotPages schedule={handle(new RawBuilder(NOW).build())} airports={testAirports} demo={false} onSignOut={() => {}} />)
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('CrewLuve')
     expect(screen.getByText('No schedule in CrewLu Cloud yet')).toBeTruthy()
   })
 
   it('shows just the title and footer before the first schedule arrives', () => {
-    render(<ScheduleScreen schedule={handle(null)} airports={testAirports} demo={false} onSignOut={() => {}} />)
+    render(<PilotPages schedule={handle(null)} airports={testAirports} demo={false} onSignOut={() => {}} />)
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('CrewLuve')
     expect(screen.queryByText('No schedule in CrewLu Cloud yet')).toBeNull()
   })
 })
 
-describe('ScheduleScreen details', () => {
+describe('PilotPages details', () => {
   it('labels the footer button "Exit demo" in the demo and "Sign out" when live', () => {
-    const { unmount } = render(<ScheduleScreen schedule={handle(demoRawForScene('flying', NOW))} airports={testAirports} demo onSignOut={() => {}} />)
+    const { unmount } = render(<PilotPages schedule={handle(demoRawForScene('flying', NOW))} airports={testAirports} demo onSignOut={() => {}} />)
     expect(screen.getByRole('button', { name: 'Exit demo' })).toBeTruthy()
     unmount()
-    render(<ScheduleScreen schedule={handle(demoRawForScene('flying', NOW))} airports={testAirports} demo={false} onSignOut={() => {}} />)
+    render(<PilotPages schedule={handle(demoRawForScene('flying', NOW))} airports={testAirports} demo={false} onSignOut={() => {}} />)
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeTruthy()
   })
 
@@ -69,7 +72,7 @@ describe('ScheduleScreen details', () => {
         ],
       })
       .build()
-    render(<ScheduleScreen schedule={handle(raw)} airports={testAirports} demo={false} onSignOut={() => {}} />)
+    render(<PilotPages schedule={handle(raw)} airports={testAirports} demo={false} onSignOut={() => {}} />)
     // Testing Library normalizes whitespace, so the narrow space before PM reads as a plain space here.
     expect(screen.getByText(/(1:00 PM|13:00) · Ontario/)).toBeTruthy()
   })
@@ -77,7 +80,7 @@ describe('ScheduleScreen details', () => {
   it('falls back to the title and footer when the rows cannot be read', () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {})
     const unreadable = { ...new RawBuilder(NOW).build(), trips: null } as unknown as RawSchedule
-    render(<ScheduleScreen schedule={handle(unreadable)} airports={testAirports} demo={false} onSignOut={() => {}} />)
+    render(<PilotPages schedule={handle(unreadable)} airports={testAirports} demo={false} onSignOut={() => {}} />)
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('CrewLuve')
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeTruthy()
     expect(error).toHaveBeenCalled()
@@ -86,7 +89,7 @@ describe('ScheduleScreen details', () => {
 
   it('replays the celebration when the visitor comes back to the page', async () => {
     const frames = stubAnimationFrames()
-    render(<ScheduleScreen schedule={handle(demoRawForScene('last-leg', NOW))} airports={testAirports} demo onSignOut={() => {}} />)
+    render(<PilotPages schedule={handle(demoRawForScene('last-leg', NOW))} airports={testAirports} demo onSignOut={() => {}} />)
     await frames.frame(1000)
     await frames.frame(1000 + 2400)
     expect(frames.pending).toBe(0)
@@ -97,10 +100,10 @@ describe('ScheduleScreen details', () => {
   })
 })
 
-describe('ScheduleScreen location card (slice 2B1)', () => {
+describe('PilotPages location card (slice 2B1)', () => {
   it('asks for the weather where the pilot is, and shows it', async () => {
     const load = vi.fn<WeatherLoader>(async () => ({ temperature: 41, code: 3, isDay: true }))
-    render(<ScheduleScreen schedule={handle(demoRawForScene('delayed', NOW))} airports={testAirports} demo={false} onSignOut={() => {}} loadWeather={load} />)
+    render(<PilotPages schedule={handle(demoRawForScene('delayed', NOW))} airports={testAirports} demo={false} onSignOut={() => {}} loadWeather={load} />)
     expect(await screen.findByText('41°')).toBeTruthy()
     expect(load).toHaveBeenCalledWith({ code: 'ANC', lat: 61.1744, lng: -149.9983, tz: 'America/Anchorage', unit: tempUnitFor() })
   })
@@ -108,7 +111,7 @@ describe('ScheduleScreen location card (slice 2B1)', () => {
   it('stops asking for weather once the schedule empties, since the hook still runs on the empty screen', async () => {
     const load = vi.fn<WeatherLoader>(async () => ({ temperature: 41, code: 3, isDay: true }))
     const screenFor = (raw: RawSchedule) => (
-      <ScheduleScreen schedule={handle(raw)} airports={testAirports} demo={false} onSignOut={() => {}} loadWeather={load} />
+      <PilotPages schedule={handle(raw)} airports={testAirports} demo={false} onSignOut={() => {}} loadWeather={load} />
     )
     const { rerender } = render(screenFor(demoRawForScene('delayed', NOW)))
     expect(await screen.findByText('41°')).toBeTruthy()
@@ -122,7 +125,7 @@ describe('ScheduleScreen location card (slice 2B1)', () => {
   it('asks for no weather while the pilot is flying', async () => {
     const load = vi.fn<WeatherLoader>(async () => null)
     const { container } = render(
-      <ScheduleScreen schedule={handle(demoRawForScene('flying', NOW))} airports={testAirports} demo={false} onSignOut={() => {}} loadWeather={load} />,
+      <PilotPages schedule={handle(demoRawForScene('flying', NOW))} airports={testAirports} demo={false} onSignOut={() => {}} loadWeather={load} />,
     )
     await act(async () => {})
     expect(load).not.toHaveBeenCalled()
@@ -132,7 +135,7 @@ describe('ScheduleScreen location card (slice 2B1)', () => {
   it('shows the demo’s made-up weather without touching the network', async () => {
     const fetch = vi.fn()
     vi.stubGlobal('fetch', fetch)
-    render(<ScheduleScreen schedule={handle(demoRawForScene('delayed', NOW))} airports={testAirports} demo onSignOut={() => {}} />)
+    render(<PilotPages schedule={handle(demoRawForScene('delayed', NOW))} airports={testAirports} demo onSignOut={() => {}} />)
     expect(await screen.findByText('Cloudy')).toBeTruthy()
     expect(fetch).not.toHaveBeenCalled()
   })
@@ -140,8 +143,45 @@ describe('ScheduleScreen location card (slice 2B1)', () => {
   it('asks Open-Meteo when live', async () => {
     const fetch = vi.fn(async (_url: string) => ({ ok: true, json: async () => ({ current: { temperature_2m: 41, weather_code: 3, is_day: 1 } }) }))
     vi.stubGlobal('fetch', fetch)
-    render(<ScheduleScreen schedule={handle(demoRawForScene('delayed', NOW))} airports={testAirports} demo={false} onSignOut={() => {}} />)
+    render(<PilotPages schedule={handle(demoRawForScene('delayed', NOW))} airports={testAirports} demo={false} onSignOut={() => {}} />)
     expect(await screen.findByText('41°')).toBeTruthy()
     expect(fetch.mock.calls[0][0]).toMatch(/^https:\/\/api\.open-meteo\.com\/v1\/forecast\?latitude=61\.17&longitude=-150\.00&/)
+  })
+})
+
+describe('PilotPages: the status page and the Schedule page (slice 3A §3.3)', () => {
+  /** Lets the browser's history events arrive: happy-dom sends popstate a moment after history.back(). */
+  const settle = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 20)))
+  beforeEach(() => history.replaceState(null, '', '/'))
+  afterEach(() => history.replaceState(null, '', '/'))
+
+  it('opens the schedule from a card, and its back button brings the status page back', async () => {
+    render(<PilotPages schedule={handle(demoRawForScene('home', NOW))} airports={testAirports} demo onSignOut={() => {}} />)
+    fireEvent.click(screen.getAllByRole('link', { name: 'Schedule' })[0])
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Schedule')
+    expect(location.hash).toBe('#schedule')
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    await settle()
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe("Where's Alex?")
+    expect(location.hash).toBe('')
+  })
+
+  it('opens straight at the schedule from its address, listing every leg but the report time', () => {
+    history.replaceState(null, '', '/#schedule')
+    const raw = demoRawForScene('home', NOW)
+    const { container } = render(<PilotPages schedule={handle(raw)} airports={testAirports} demo onSignOut={() => {}} />)
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Schedule')
+    const all = buildLegs(buildSchedule(raw, NOW))
+    expect(all.some((l) => l.kind === 'report')).toBe(true)
+    expect(container.querySelectorAll('.leg').length).toBe(scheduleLegs(all).length)
+  })
+
+  it('shows the screens it always has at the schedule’s address while there’s nothing to list', () => {
+    history.replaceState(null, '', '/#schedule')
+    render(<PilotPages schedule={handle(null)} airports={testAirports} demo={false} onSignOut={() => {}} />)
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('CrewLuve')
+    cleanup()
+    render(<PilotPages schedule={handle(new RawBuilder(NOW).build())} airports={testAirports} demo={false} onSignOut={() => {}} />)
+    expect(screen.getByText('No schedule in CrewLu Cloud yet')).toBeTruthy()
   })
 })

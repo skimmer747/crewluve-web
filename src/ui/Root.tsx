@@ -7,7 +7,7 @@ import type { RawSchedule } from '../data/rows'
 import { reportOnce } from '../reportOnce'
 import { useAirports } from './hooks/useAirports'
 import { useSchedule } from './hooks/useSchedule'
-import { ScheduleScreen } from './ScheduleScreen'
+import { PilotPages } from './PilotPages'
 import { SignIn } from './SignIn'
 
 /** ?demo=1 shows the sample pilot with no network calls; otherwise sign in to CrewLu Cloud. */
@@ -30,7 +30,7 @@ function DemoApp({ scene }: { scene: DemoScene }) {
   })
   if (!airports) return null
   return (
-    <ScheduleScreen schedule={schedule} airports={airports} demo onSignOut={() => { window.location.href = window.location.pathname }} />
+    <PilotPages schedule={schedule} airports={airports} demo onSignOut={() => { window.location.href = window.location.pathname }} />
   )
 }
 
@@ -93,7 +93,7 @@ function LiveSchedule({ onSignedOut: finish }: { onSignedOut: () => void }) {
   })
   if (!airports) return null
   return (
-    <ScheduleScreen
+    <PilotPages
       schedule={schedule}
       airports={airports}
       demo={false}

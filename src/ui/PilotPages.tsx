@@ -11,13 +11,16 @@ import { EmptyState } from './EmptyState'
 import { Footer, type FooterProps } from './Footer'
 import type { ScheduleHandle } from './hooks/useSchedule'
 import { useNow } from './hooks/useNow'
+import { useSchedulePage } from './hooks/useSchedulePage'
 import { useVisibilityCount } from './hooks/useVisibilityCount'
 import { useWeather } from './hooks/useWeather'
 import { showsLocationCard } from './LocationCard'
+import { scheduleLegs } from './scheduleFacts'
+import { SchedulePage } from './SchedulePage'
 import { StatusScreen } from './StatusScreen'
 import { Title } from './Title'
 
-export interface ScheduleScreenProps {
+export interface PilotPagesProps {
   schedule: ScheduleHandle
   airports: AirportIndex
   demo: boolean
@@ -26,8 +29,11 @@ export interface ScheduleScreenProps {
   loadWeather?: WeatherLoader
 }
 
-/** Rebuilds the schedule when new rows arrive, and the snapshot every second. */
-export function ScheduleScreen({ schedule, airports, demo, onSignOut, loadWeather = demo ? loadDemoWeather : loadLiveWeather }: ScheduleScreenProps) {
+/**
+ * Rebuilds the schedule when new rows arrive, and the snapshot every second. Shows the status page, or the Schedule
+ * page when the address ends in #schedule (slice 3A §3.3); while there's nothing to show, the same screen as ever.
+ */
+export function PilotPages({ schedule, airports, demo, onSignOut, loadWeather = demo ? loadDemoWeather : loadLiveWeather }: PilotPagesProps) {
   const now = useNow()
   const celebrateKey = useVisibilityCount()
   const viewerTz = useMemo(() => viewerTimeZone(), [])
@@ -62,6 +68,9 @@ export function ScheduleScreen({ schedule, airports, demo, onSignOut, loadWeathe
   const snap = ready ? safeSnapshot(ready.s, ready.legs, now, airports.tz(ready.s.pilot.base) ?? viewerTz) : null
   // Asked for before the early return below, so the hooks run in the same order on every render.
   const weather = useWeather(weatherPlace(snap, airports, unit), loadWeather)
+  // The page the address asks for, and the legs the Schedule page lists.
+  const page = useSchedulePage()
+  const listed = useMemo(() => (ready ? scheduleLegs(ready.legs) : []), [ready])
 
   if (!snap) {
     return (
@@ -73,9 +82,13 @@ export function ScheduleScreen({ schedule, airports, demo, onSignOut, loadWeathe
     )
   }
 
+  if (page.open) {
+    return <SchedulePage legs={listed} pilot={snap.pilot} now={now} timeZone={viewerTz} h24={h24} airports={airports} onBack={page.back} />
+  }
+
   return (
     <StatusScreen snap={snap} now={now} viewerTz={viewerTz} homeTz={homeTz} h24={h24} airports={airports} weather={weather} demo={demo}
-      celebrateKey={celebrateKey} footer={footer} />
+      celebrateKey={celebrateKey} footer={footer} onOpenSchedule={page.show} />
   )
 }
 
