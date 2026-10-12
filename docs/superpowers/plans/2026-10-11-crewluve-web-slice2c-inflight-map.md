@@ -76,7 +76,7 @@
 - Regenerate: `src/icons/iconPaths.ts`
 - Test: `tests/icons/iconPaths.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 In `tests/icons/iconPaths.test.ts`, add this test after the sun popup's:
 
@@ -88,12 +88,12 @@ In `tests/icons/iconPaths.test.ts`, add this test after the sun popup's:
   })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/icons/iconPaths.test.ts`
 Expected: FAIL in 1 test, with `expected { …(53) } to have property "Timer"`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `scripts/build-icons.mjs`, end the comment above `ICONS` with the fifth group, so its last line becomes these two:
 
@@ -120,12 +120,12 @@ npm run icons
 
 Expected: `wrote 59 icons to …/src/icons/iconPaths.ts`. If `@phosphor-icons/core` 2.1.1 is already in `node_modules`, `node scripts/build-icons.mjs` does the same without npm. `git diff src/icons/iconPaths.ts` shows six added lines, `Timer`, `ArrowsLeftRight`, `CheckCircle`, `Broadcast`, `GpsFix` and `ArrowSquareOut`, and no other change. If `package-lock.json` changed, run `git checkout -- package-lock.json`.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/icons/iconPaths.test.ts`
 Expected: PASS, 6 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1661 tests in 70 files after this task.
 
@@ -146,7 +146,7 @@ The map needs daylight at any place and moment: at each airport's time, and alon
 - Modify: `src/time/sun.ts`
 - Test: `tests/time/sun.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 In `tests/time/sun.test.ts`, change the import from `src/time/sun` to:
 
@@ -220,12 +220,12 @@ describe('isSunUp', () => {
 
 The Naval Observatory's times come from `https://aa.usno.navy.mil/api/rstt/oneday` for Louisville (38.1746, −85.7382), checked on 2026-10-11.
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/time/sun.test.ts`
 Expected: FAIL in 6 tests, with `TypeError: sunAltitude is not a function`, `TypeError: isSunUp is not a function`, and `expected undefined to be -0.833` for the constant.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Add this to the end of `src/time/sun.ts`. It uses the file's private `solarPosition`, `rad` and `deg`, and its imports of `DAY` and `MINUTE`:
 
@@ -255,12 +255,12 @@ export function isSunUp(t: number, lat: number, lng: number): boolean {
 }
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/time/sun.test.ts`
 Expected: PASS, 18 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1667 tests in 70 files after this task.
 
@@ -281,7 +281,7 @@ The app's `FlightRouteMapView` math, line for line.
 - Create: `src/ui/flightMapGeometry.ts`
 - Test: `tests/ui/flightMapGeometry.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/flightMapGeometry.test.ts`:
 
@@ -463,12 +463,12 @@ describe('planePose', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/flightMapGeometry.test.ts`
 Expected: FAIL with `Error: Cannot find module '../../src/ui/flightMapGeometry'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/flightMapGeometry.ts`:
 
@@ -648,12 +648,12 @@ export function planePose(a: GeoPoint, b: GeoPoint, bounds: MapBounds, width: nu
 }
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/flightMapGeometry.test.ts`
 Expected: PASS, 20 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1688 tests in 71 files after this task.
 
@@ -672,7 +672,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/ui/flightSky.ts`
 - Test: `tests/ui/flightSky.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/flightSky.test.ts`:
 
@@ -770,12 +770,12 @@ describe('flightSky', () => {
 
 The 5-minute samples use the site's correct sun (Task 2). A westbound evening flight chases the sun, so the sunset case flies east.
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/flightSky.test.ts`
 Expected: FAIL with `Error: Cannot find module '../../src/ui/flightSky'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/flightSky.ts`:
 
@@ -843,12 +843,12 @@ export function flightSky(depDay: boolean, arrDay: boolean, depX: number, arrX: 
 }
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/flightSky.test.ts`
 Expected: PASS, 10 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1699 tests in 72 files after this task.
 
@@ -868,7 +868,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/copy/format.ts`
 - Test: `tests/copy/format.test.ts`, `tests/copy/flight.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/copy/format.test.ts`, add `mapAirportTimeText` to the import from `src/copy/format`:
 
@@ -976,12 +976,12 @@ describe('flightMapLabel', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/copy/format.test.ts tests/copy/flight.test.ts`
 Expected: FAIL: the format test with `TypeError: mapAirportTimeText is not a function`, and the flight test file with `Error: Cannot find module '../../src/copy/flight'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/copy/format.ts`, add the map's time format after `dialTimeText`. The file already imports `WEEKDAYS` and `zonedParts`:
 
@@ -1077,12 +1077,12 @@ export function flightMapLabel({ from, to, nm, durationMs, progress }: FlightMap
 }
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/copy/format.test.ts tests/copy/flight.test.ts`
 Expected: PASS, 89 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1721 tests in 73 files after this task.
 
@@ -1103,7 +1103,7 @@ The app's airline codes, applied to the airline and digits the site already has 
 - Create: `src/copy/tracking.ts`
 - Test: `tests/copy/tracking.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/copy/tracking.test.ts`:
 
@@ -1153,12 +1153,12 @@ describe('trackingLinks', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/copy/tracking.test.ts`
 Expected: FAIL with `Error: Cannot find module '../../src/copy/tracking'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/copy/tracking.ts`:
 
@@ -1202,12 +1202,12 @@ export function trackingLinks(airline: string | null, number: string | null): Tr
 }
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/copy/tracking.test.ts`
 Expected: PASS, 7 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1729 tests in 74 files after this task.
 
@@ -1226,7 +1226,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/ui/inFlightFacts.ts`
 - Test: `tests/ui/inFlightFacts.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/inFlightFacts.test.ts`:
 
@@ -1325,12 +1325,12 @@ describe('flightProgress', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/inFlightFacts.test.ts`
 Expected: FAIL with `Error: Cannot find module '../../src/ui/inFlightFacts'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/inFlightFacts.ts`:
 
@@ -1410,12 +1410,12 @@ export function flightProgress(facts: InFlightFacts, now: number): number | null
 }
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/inFlightFacts.test.ts`
 Expected: PASS, 10 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1740 tests in 75 files after this task.
 
@@ -1434,7 +1434,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/ui/hooks/useWidth.ts`
 - Test: `tests/ui/useWidth.test.tsx`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/useWidth.test.tsx`:
 
@@ -1519,12 +1519,12 @@ describe('useWidth', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/useWidth.test.tsx`
 Expected: FAIL with `Error: Failed to resolve import "../../src/ui/hooks/useWidth" from "tests/ui/useWidth.test.tsx". Does the file exist?`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/hooks/useWidth.ts`:
 
@@ -1555,12 +1555,12 @@ export function useWidth(element: RefObject<HTMLElement>, fallback: number): num
 }
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/useWidth.test.tsx`
 Expected: PASS, 5 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1746 tests in 76 files after this task.
 
@@ -1580,7 +1580,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/main.tsx`
 - Test: `tests/ui/FlightMap.test.tsx`, `tests/styles/styles.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/ui/FlightMap.test.tsx`:
 
@@ -1776,12 +1776,12 @@ describe('inFlight.css', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/FlightMap.test.tsx tests/styles/styles.test.ts`
 Expected: FAIL: neither file loads, so Vitest prints `Tests  no tests`. The map test stops at `Error: Failed to resolve import "../../src/ui/FlightMap" from "tests/ui/FlightMap.test.tsx". Does the file exist?`, and the style tests at `Error: ENOENT: no such file or directory` for `src/styles/inFlight.css`, since the new block reads the file as it is collected.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/FlightMap.tsx`:
 
@@ -2181,12 +2181,12 @@ import './styles/sunPopup.css'
 import './styles/inFlight.css'
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/FlightMap.test.tsx tests/styles/styles.test.ts`
 Expected: PASS, 120 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1767 tests in 77 files after this task.
 
@@ -2206,7 +2206,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/styles/inFlight.css`
 - Test: `tests/ui/InFlightCard.test.tsx`, `tests/styles/styles.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/ui/InFlightCard.test.tsx`:
 
@@ -2321,12 +2321,12 @@ In `tests/styles/styles.test.ts`, add these tests at the end of the `inFlight.cs
   })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/InFlightCard.test.tsx tests/styles/styles.test.ts`
 Expected: FAIL: the card test file with `Error: Failed to resolve import "../../src/ui/InFlightCard"`, and 6 style tests (`6 failed | 107 passed (113)`): the banner's fills, the bar's four colors, and light before dark.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/InFlightCard.tsx`:
 
@@ -2510,12 +2510,12 @@ and add the card's styles at the end of the file:
 
 A media query adds no weight, so a light color that came after the dark block would win in dark mode too. The look check caught exactly that, and the order test now guards it.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/InFlightCard.test.tsx tests/styles/styles.test.ts`
 Expected: PASS, 120 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1781 tests in 78 files after this task.
 
@@ -2535,7 +2535,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/styles/inFlight.css`
 - Test: `tests/ui/TrackingPopup.test.tsx`, `tests/styles/styles.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/ui/TrackingPopup.test.tsx`:
 
@@ -2655,12 +2655,12 @@ In `tests/styles/styles.test.ts`, add this test at the end of the `inFlight.css`
   })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/TrackingPopup.test.tsx tests/styles/styles.test.ts`
 Expected: FAIL: the popup test file with `Error: Failed to resolve import "../../src/ui/TrackingPopup"`, and the animation's style test (`1 failed | 113 passed (114)`).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/TrackingPopup.tsx`:
 
@@ -2928,12 +2928,12 @@ Add the popup's styles at the end of `src/styles/inFlight.css`:
 
 The app's `spring(response: 0.35, dampingFraction: 0.7)` has the same damping as the sun popup's `spring(response: 0.5, dampingFraction: 0.7)`. So it has the same shape, 0.7 times as long, and the sun popup's keyframes, sampled every 0.1 s over 0.6 s, fit it exactly at 0.42 s. The popup reuses `sun-popup-fade` and `sun-popup-zoom` at that length.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/TrackingPopup.test.tsx tests/styles/styles.test.ts`
 Expected: PASS, 122 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1791 tests in 79 files after this task.
 
@@ -2952,7 +2952,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/ui/StatusScreen.tsx`
 - Test: `tests/ui/StatusScreen.test.tsx`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add this block at the end of `tests/ui/StatusScreen.test.tsx`:
 
@@ -3036,12 +3036,12 @@ describe('StatusScreen in-flight card (slice 2C)', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/StatusScreen.test.tsx`
 Expected: FAIL in 8 of the 19 new tests (`8 failed | 56 passed (64)`). There's no in-flight card yet, so six of the card's tests can't find it, its banner or its flight number button, and the demo's `flying` and `last-leg` scenes show no card. The other 11 already pass: no card on the ground, and the ten demo scenes where the pilot isn't in the air.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/ui/StatusScreen.tsx`, import the card and its facts after the `Footer` import:
 
@@ -3137,12 +3137,12 @@ and draw the popup after the sun popup, outside `<main>`:
     </>
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/StatusScreen.test.tsx`
 Expected: PASS, 64 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1810 tests in 79 files after this task.
 
@@ -3160,11 +3160,11 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Files:**
 - Modify (only if nudges are needed): `src/styles/inFlight.css`
 
-- [ ] **Step 1: Build and open the preview**
+- [x] **Step 1: Build and open the preview**
 
 Run `npm run build`, then start or reuse the `crewluve-preview` server from `.claude/launch.json` (port 5181) in the browser pane.
 
-- [ ] **Step 2: Look at the demo's flights**
+- [x] **Step 2: Look at the demo's flights**
 
 At the mobile preset (375 × 812), in light and in dark (`resize_window` with `colorScheme`), look at:
 - `/?demo=1&scene=flying`: Louisville to Rockford, 40 minutes into an hour and a half;
@@ -3208,11 +3208,11 @@ document.getAnimations().forEach((a) => a.finish())
 
 Light or dark comes from `resize_window` with `colorScheme`; reload after switching, then run the script again. The CSP allows this: it blocks new `<style>` elements, not changes through the CSSOM.
 
-- [ ] **Step 3: Ask the user to sign off**
+- [x] **Step 3: Ask the user to sign off**
 
 Show the user side-by-side screenshots and ask one question: "Looks right (Recommended)" or "Change something". Apply their notes, then show them again.
 
-- [ ] **Step 4: Run the gates and commit any nudges**
+- [x] **Step 4: Run the gates and commit any nudges**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -3227,18 +3227,18 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ### Task 14: Merge and release (controller, asks first)
 
-- [ ] **Step 1: Merge**
+- [x] **Step 1: Merge**
 
 Use superpowers:finishing-a-development-branch. Ask the user one question about how to merge `slice2c` into `main`.
 
-- [ ] **Step 2: Release, only with a fresh yes**
+- [x] **Step 2: Release, only with a fresh yes**
 
 Ask before pushing `main`; the push redeploys crewluve.crewlu.net. After the "Deploy to GitHub Pages" run succeeds:
 - open https://crewluve.crewlu.net/?demo=1, whose default scene is in the air, and check that the in-flight card shows;
 - check that `read_console_messages` with `onlyErrors: true` shows nothing, and that the demo made no requests beyond the page's own files;
 - open the tracking popup and check its two links' addresses.
 
-- [ ] **Step 3: Update the memory**
+- [x] **Step 3: Update the memory**
 
 Update the project memory with the new tip and what's next: slice 3, the Schedule page.
 
@@ -3321,6 +3321,15 @@ Update the project memory with the new tip and what's next: slice 3, the Schedul
 - Task 7, tests: an airline code with more than letters and digits still opens the popup, with no links (`9eddcc1`).
 - The spec now says the popup closes by itself at landing (§6), and that with neither zone known the info bar's arrow shows alone, as in the app (§5.2). The summary lines at the top of this plan and its "Done when" now point to the final count.
 - The re-check passed. From it, style tests now also pin the info bar's tint and the fallback map's sky, and the tracking number's comment says when it falls back (`adcb2db`).
+
+**Merge and release (Task 14), 2026-10-11:**
+- **Merge:** the user chose "Merge into main locally", a fast-forward to `ff1c51e`. The gates were green on main, with 1849 tests in 79 files.
+- **Release:** with the user's separate yes, main was pushed. The "Deploy to GitHub Pages" run 38199666092 succeeded on its first deploy attempt.
+- **The live check:** the live site serves the same files as the local build (`index-9pYBu38L.js`, `index-D7sl2I_p.css`). On https://crewluve.crewlu.net/?demo=1:
+  - the in-flight card shows;
+  - there are no console errors, and no requests beyond the page's own files;
+  - the popup's links read `https://fr24.com/UPS2961` and `https://www.flightaware.com/live/flight/UPS2961`, each opening in a new tab with `noopener noreferrer`;
+  - Escape hands focus back to the flight number.
 
 **Left for later:**
 - **The two popups' shared code:** the tracking popup copies the sun popup's closing logic, and the status screen holds two copies of the open-and-focus-return state. Shared hooks would remove both copies.
