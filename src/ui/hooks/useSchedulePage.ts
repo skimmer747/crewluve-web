@@ -21,9 +21,17 @@ export function useSchedulePage() {
   const wasOpen = useRef(open)
 
   useEffect(() => {
-    // Each page sets its own scroll: the schedule its opening day, the status page where it was.
-    history.scrollRestoration = 'manual'
-    const follow = () => setOpen(atSchedule())
+    const follow = () => {
+      const next = atSchedule()
+      // Arriving some other way, by Forward or an edited address: the status page is where it was scrolled, as the
+      // schedule's own entry doesn't let the browser restore a scroll, and no link was taken.
+      if (next && !wasOpen.current) {
+        from.current = null
+        statusScroll.current = window.scrollY
+        history.scrollRestoration = 'manual'
+      }
+      setOpen(next)
+    }
     window.addEventListener('popstate', follow)
     window.addEventListener('hashchange', follow)
     return () => {
@@ -32,12 +40,13 @@ export function useSchedulePage() {
     }
   }, [])
 
-  // Runs once the status page is back on screen, before it's painted.
+  // Runs once the status page is back on screen, before it's painted. Focus comes first: Safari before 15 ignores
+  // preventScroll and scrolls to what takes focus, and the scroll after it puts the page back.
   useLayoutEffect(() => {
     if (wasOpen.current && !open) {
-      window.scrollTo(0, statusScroll.current)
       const link = from.current && document.querySelector<HTMLElement>(`[data-schedule-link="${from.current}"]`)
       ;(link ?? document.querySelector<HTMLElement>('h1.title'))?.focus({ preventScroll: true })
+      window.scrollTo(0, statusScroll.current)
     }
     wasOpen.current = open
   }, [open])
@@ -49,6 +58,9 @@ export function useSchedulePage() {
       from.current = name
       statusScroll.current = window.scrollY
       history.pushState({ [OPENED_HERE]: true }, '', SCHEDULE_HASH)
+      // The schedule's entry doesn't let the browser restore a scroll: the page opens at its day, and Forward finds the
+      // status page still where it was. The status page's own entry keeps the browser's restoring, for reloads.
+      history.scrollRestoration = 'manual'
       setOpen(true)
     },
     /** The schedule's own back button. */

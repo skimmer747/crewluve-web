@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/preact'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useSchedulePage } from '../../src/ui/hooks/useSchedulePage'
 
 /** The two pages, reduced to what the hook moves between: the status page's title and one link, the schedule's back button. */
@@ -34,7 +34,10 @@ beforeEach(() => {
   window.scrollTo(0, 0)
 })
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.restoreAllMocks()
+})
 
 describe('useSchedulePage (slice 3A §3.3)', () => {
   it('starts on the status page, or on the schedule when the address says so', () => {
@@ -67,6 +70,43 @@ describe('useSchedulePage (slice 3A §3.3)', () => {
     expect([location.search, location.hash]).toEqual(['?demo=1&scene=home', ''])
     expect(window.scrollY).toBe(420)
     expect(document.activeElement).toBe(screen.getByRole('link', { name: 'Schedule' }))
+    // It stepped back rather than replacing the entry, so Forward goes to the schedule again.
+    history.forward()
+    await settle()
+    expect(onSchedule()).toBe(true)
+  })
+
+  it('hands focus back before it restores the scroll, since Safari before 15 scrolls to whatever takes focus', async () => {
+    render(<Pages />)
+    fireEvent.click(screen.getByRole('link', { name: 'Schedule' }))
+    const calls: string[] = []
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => {
+      calls.push('scroll')
+    })
+    const focus = HTMLElement.prototype.focus
+    vi.spyOn(HTMLElement.prototype, 'focus').mockImplementation(function (this: HTMLElement, options?: FocusOptions) {
+      calls.push('focus')
+      focus.call(this, options)
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    await settle()
+    expect(calls).toEqual(['focus', 'scroll'])
+  })
+
+  it('remembers where the status page was when Forward brings the schedule back, with no link to hand focus to', async () => {
+    render(<Pages />)
+    window.scrollTo(0, 420)
+    fireEvent.click(screen.getByRole('link', { name: 'Schedule' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    await settle()
+    window.scrollTo(0, 900)
+    history.forward()
+    await settle()
+    expect(onSchedule()).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    await settle()
+    expect(window.scrollY).toBe(900)
+    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: "Where's Alex?" }))
   })
 
   it('follows the phone’s Back and the browser’s', async () => {
@@ -93,16 +133,31 @@ describe('useSchedulePage (slice 3A §3.3)', () => {
     expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: "Where's Alex?" }))
   })
 
-  it('follows the address when it changes to the schedule some other way', async () => {
+  it('follows the address when it changes to the schedule some other way, remembering where the status page was', async () => {
     render(<Pages />)
+    window.scrollTo(0, 700)
     location.hash = '#schedule'
     await settle()
     expect(onSchedule()).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    await settle()
+    expect(onSchedule()).toBe(false)
+    expect(window.scrollY).toBe(700)
+    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: "Where's Alex?" }))
   })
 
-  it('lets the pages set their own scroll, instead of the browser restoring it', () => {
+  it('stops the browser restoring the schedule’s scroll, and leaves the status page’s own history entry as it was', () => {
     history.scrollRestoration = 'auto'
     render(<Pages />)
+    expect(history.scrollRestoration).toBe('auto')
+    fireEvent.click(screen.getByRole('link', { name: 'Schedule' }))
     expect(history.scrollRestoration).toBe('manual')
+  })
+
+  it('stops following the address once it’s gone', () => {
+    const removed = vi.spyOn(window, 'removeEventListener')
+    const { unmount } = render(<Pages />)
+    unmount()
+    expect(removed.mock.calls.map(([type]) => type)).toEqual(expect.arrayContaining(['popstate', 'hashchange']))
   })
 })
