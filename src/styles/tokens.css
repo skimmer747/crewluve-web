@@ -20,6 +20,8 @@
   --glass-edge: rgba(0, 0, 0, 0.06);
   --glass-rim: rgba(255, 255, 255, 0.9);
   --glass-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  /* The Schedule page's bars (slice 3A §4.1): iOS's bar material over the page. */
+  --bar-fill: rgba(249, 249, 249, 0.94);
   --font: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-rounded: ui-rounded, 'SF Pro Rounded', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
@@ -44,6 +46,7 @@
     --glass-edge: rgba(255, 255, 255, 0.08);
     --glass-rim: rgba(255, 255, 255, 0.12);
     --glass-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    --bar-fill: rgba(29, 29, 29, 0.94);
   }
 }
 
@@ -69,6 +72,7 @@
   --glass-edge: rgba(255, 255, 255, 0.08);
   --glass-rim: rgba(255, 255, 255, 0.12);
   --glass-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --bar-fill: rgba(29, 29, 29, 0.94);
 }
 
 /* Increase Contrast (Part A follow-ups spec §3): Apple's high-contrast system colors, as the app gets them from iOS,

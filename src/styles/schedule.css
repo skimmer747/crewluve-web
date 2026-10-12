@@ -1,4 +1,115 @@
-/* The Schedule page (slice 3A §4). Sizes are the app's TimelineRowView and TimeGapView in points. */
+/* The Schedule page (slice 3A §4). Sizes are the app's EventTimelineView, TimelineRowView and TimeGapView in points. */
+
+/* The page: the site's column, without the status page's 24 px gaps. */
+.schedule {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 16px calc(12px + env(safe-area-inset-bottom));
+}
+
+/* The bar stays at the top: the back button, 44 px of round glass with a chevron as in iOS 26, and the title in the
+   middle, over iOS's bar material: nearly white, or dark gray in dark mode, and a little see-through. */
+.schedule-bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: 60px;
+  margin: 0 -16px;
+  padding: 0 16px;
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  background: var(--bar-fill);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+
+.schedule-back {
+  width: 44px;
+  height: 44px;
+}
+
+.schedule-title {
+  grid-column: 2;
+  margin: 0;
+  text-align: center;
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+/* The list, 12 px above and below; the page gives it its 16 px sides. */
+.schedule-days {
+  padding: 12px 0;
+}
+
+/* A day's heading sticks under the bar while its legs scroll past, and the next day's pushes it up. */
+.day-heading {
+  position: sticky;
+  top: 60px;
+  z-index: 1;
+  margin: 0;
+  padding: 12px 0 2px;
+  background: var(--bar-fill);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+/* Today's heading is a green pill, and the stuck one a yellow pill, both with black words. */
+.day-pill.today,
+.day-pill.stuck {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: #000000;
+}
+
+.day-pill.today {
+  background: var(--green);
+}
+
+.day-pill.stuck {
+  background: var(--yellow);
+}
+
+.day-legs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* No legs at all: the app's empty state. */
+.schedule-empty {
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  color: var(--text-2);
+}
+
+.schedule-empty p {
+  margin: 0;
+}
+
+.schedule-empty-title {
+  font-size: 15px;
+  line-height: 20px;
+}
+
+.schedule-empty-text {
+  font-size: 12px;
+  line-height: 16px;
+}
 
 /* A row: a gap line, if any, then the leg on glass. */
 .leg-item {

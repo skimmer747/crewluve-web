@@ -84,6 +84,8 @@ const SPEC_COLORS: Array<[name: string, light: string, dark: string]> = [
   ['--indigo', '#6155F5', '#6D7CFF'],
   // Part A follow-ups spec §3.2: the trip card's progress track, the gray at 20% like the app's Color.gray.opacity(0.2).
   ['--bar-track', 'rgba(142,142,147,.2)', 'rgba(142,142,147,.2)'],
+  // Slice 3A §4.1: the Schedule page's bars, as iOS's bar material looks over the page.
+  ['--bar-fill', 'rgba(249,249,249,.94)', 'rgba(29,29,29,.94)'],
 ]
 
 describe('tokens.css', () => {
@@ -587,6 +589,22 @@ describe('bigDial.css', () => {
 describe('schedule.css', () => {
   // Read when each test runs, so a missing file fails the tests below and not the whole file.
   const rule = (head: string) => declarations(find(rulesIn(css('schedule')), head)!.body)
+
+  it('keeps the bar at the top and each day’s heading stuck just under it, both over iOS’s bar material', () => {
+    expect(rule('.schedule-bar')).toEqual(expect.arrayContaining([['position', 'sticky'], ['top', '0'], ['height', '60px'], ['background', 'var(--bar-fill)']]))
+    expect(rule('.day-heading')).toEqual(expect.arrayContaining([
+      ['position', 'sticky'], ['top', '60px'], ['padding', '12px 0 2px'], ['background', 'var(--bar-fill)'],
+      ['font-size', '12px'], ['font-weight', '600'], ['text-transform', 'uppercase'],
+    ]))
+    expect(rule('.schedule-back')).toEqual([['width', '44px'], ['height', '44px']])
+    expect(rule('.schedule-title')).toEqual(expect.arrayContaining([['font-size', '17px'], ['font-weight', '600']]))
+  })
+
+  it('pills today’s heading in green and the stuck one in yellow, with black words', () => {
+    expect(rule('.day-pill.today, .day-pill.stuck')).toEqual(expect.arrayContaining([['padding', '4px 8px'], ['border-radius', '6px'], ['color', '#000000']]))
+    expect(rule('.day-pill.today')).toEqual([['background', 'var(--green)']])
+    expect(rule('.day-pill.stuck')).toEqual([['background', 'var(--yellow)']])
+  })
 
   it('lays a row out as TimelineRowView: 12 px apart, 10 by 12 px in, with a 14 px radius', () => {
     expect(rule('.leg')).toEqual(expect.arrayContaining([['display', 'flex'], ['gap', '12px'], ['padding', '10px 12px'], ['border-radius', '14px']]))
