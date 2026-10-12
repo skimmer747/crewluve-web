@@ -46,16 +46,20 @@ export function usePopupClose(onClose: () => void, parts: ReadonlyArray<OpeningP
 /**
  * Holds an element where its opening has it (§3.3): the animated values inline, the animation off, then a style
  * recalculation, so the browser starts the close from those values rather than from where the opening would end.
- * Returns what lets go of them. The element's other inline styles, such as a drag's offset, are left alone.
+ * Returns what lets go of them, giving back any inline value the element had before, such as a drag's offset.
  */
 function hold(el: HTMLElement, properties: ReadonlyArray<string>): () => void {
+  const had = [...properties, 'animation'].map((name) => [name, el.style.getPropertyValue(name), el.style.getPropertyPriority(name)] as const)
   const now = getComputedStyle(el)
   const values = properties.map((name) => [name, now.getPropertyValue(name)] as const)
   for (const [name, value] of values) el.style.setProperty(name, value)
   el.style.setProperty('animation', 'none')
+  // Reading a style back makes the browser recalculate, so the held values are where the closing transition starts.
   getComputedStyle(el).getPropertyValue('opacity')
   return () => {
-    for (const [name] of values) el.style.removeProperty(name)
-    el.style.removeProperty('animation')
+    for (const [name, value, priority] of had) {
+      if (value) el.style.setProperty(name, value, priority)
+      else el.style.removeProperty(name)
+    }
   }
 }

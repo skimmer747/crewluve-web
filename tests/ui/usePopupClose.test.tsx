@@ -41,14 +41,17 @@ function Popup({ onClose }: { onClose: () => void }) {
 const reduceMotion = () => vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce'), media: query }))
 /**
  * Where the opening has every part when the close comes: partway faded in, and springing up from half size. With its
- * animation off, a part is at rest instead, as in a browser. Returns each read, noting whether the animation was on.
+ * animation off, a part shows its inline value, or rests, as in a browser. Returns each read, noting whether the
+ * animation was on.
  */
 const midOpening = () => {
   const reads: Array<{ el: Element; animating: boolean }> = []
   vi.spyOn(window, 'getComputedStyle').mockImplementation((el) => {
-    const animating = (el as HTMLElement).style.getPropertyValue('animation') !== 'none'
+    const style = (el as HTMLElement).style
+    const animating = style.getPropertyValue('animation') !== 'none'
     reads.push({ el, animating })
-    const value = (name: string) => (name === 'transform' ? (animating ? 'matrix(0.8, 0, 0, 0.8, 0, 0)' : 'none') : animating ? '0.42' : '1')
+    const value = (name: string) =>
+      animating ? (name === 'transform' ? 'matrix(0.8, 0, 0, 0.8, 0, 0)' : '0.42') : style.getPropertyValue(name) || (name === 'transform' ? 'none' : '1')
     return { getPropertyValue: value } as unknown as CSSStyleDeclaration
   })
   return reads
@@ -115,13 +118,17 @@ describe('usePopupClose', () => {
     expect(held(card)).toEqual(['', '', ''])
   })
 
-  it('leaves the parts’ other inline styles alone, such as a drag’s offset', async () => {
+  it('gives the parts back the inline styles they had, such as a drag’s offset, once it lets go', async () => {
     const { container } = render(<Popup onClose={() => {}} />)
     const backdrop = container.querySelector<HTMLElement>('.backdrop')!
+    const card = container.querySelector<HTMLElement>('.card')!
     backdrop.style.transform = 'translateY(40px)'
+    card.style.transform = 'translateY(40px)'
     midOpening()
     closeNow()
+    // The card's opening drives its transform, so that's held while the closing styles go on; the backdrop's isn't.
+    expect([backdrop.style.transform, card.style.transform]).toEqual(['translateY(40px)', 'matrix(0.8, 0, 0, 0.8, 0, 0)'])
     await act(() => {})
-    expect(backdrop.style.transform).toBe('translateY(40px)')
+    expect([backdrop.style.transform, card.style.transform]).toEqual(['translateY(40px)', 'translateY(40px)'])
   })
 })
