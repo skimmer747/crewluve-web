@@ -1,6 +1,7 @@
 import type { IconName } from '../icons/iconPaths'
 import type { ColorToken } from './colors'
 
+/** FlightTrackingHelper's airline table, ICAO to IATA. It names airlines here, and read backwards it gives the tracking links. */
 const ICAO_TO_IATA: Record<string, string> = {
   UPS: '5X', FDX: 'FX', AAL: 'AA', DAL: 'DL', UAL: 'UA', SWA: 'WN', JBU: 'B6', NKS: 'NK',
   FFT: 'F9', ASA: 'AS', HAL: 'HA', SKW: 'OO', RPA: 'YX', ENY: 'MQ', PSA: 'OH',
@@ -70,7 +71,7 @@ const toHex = ([r, g, b]: [number, number, number]) =>
 
 /** The ICAO code the tracking sites use for an IATA airline code ("5X" → "UPS"), or null when the table hasn't got it. */
 export function airlineIcao(code: string): string | null {
-  return IATA_TO_ICAO[code.toUpperCase()] ?? null
+  return IATA_TO_ICAO[code.trim().toUpperCase()] ?? null
 }
 
 // In the three lookups below, a blank code (null, empty or only whitespace) means "no airline code".

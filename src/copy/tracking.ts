@@ -1,6 +1,6 @@
-import { airlineIcao } from './airlines'
-
 // The tracking popup's flight number and links (slice 2C §6), with the app's FlightTrackingHelper's airline codes.
+
+import { airlineIcao } from './airlines'
 
 /**
  * The flight as the tracking sites know it, which the popup's header shows: the airline's ICAO code and the digits,
@@ -12,8 +12,7 @@ import { airlineIcao } from './airlines'
  */
 export function trackingFlightNumber(airline: string | null, number: string | null): string | null {
   if (!airline || !number) return null
-  const code = airline.toUpperCase()
-  const sign = `${airlineIcao(code) ?? code}${number}`.toUpperCase()
+  const sign = `${airlineIcao(airline) ?? airline}${number}`.toUpperCase()
   return /^[A-Z0-9]+$/.test(sign) ? sign : null
 }
 

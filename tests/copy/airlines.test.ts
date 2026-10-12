@@ -8,7 +8,7 @@ describe('airlineName', () => {
 })
 
 describe('airlineIcao', () => {
-  it.each([['5X', 'UPS'], ['dl', 'DAL'], ['B6', 'JBU'], ['OH', 'PSA'], ['G4', null], ['UPS', null]])(
+  it.each([['5X', 'UPS'], ['dl', 'DAL'], [' b6 ', 'JBU'], ['OH', 'PSA'], ['G4', null], ['UPS', null]])(
     '%s → %s', (code, icao) => expect(airlineIcao(code)).toBe(icao),
   )
 })

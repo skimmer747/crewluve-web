@@ -6,8 +6,14 @@ export interface SunTimes {
   sunset: number
 }
 
-/** The standard sunrise and sunset zenith: the sun's center 0.833° below the horizon, for refraction and the sun's radius. */
-const ZENITH = 90.833
+/**
+ * The horizon for sunrise and sunset, and for daylight on the in-flight map as in the app: the sun's center 0.833° below
+ * the horizon, for refraction and the sun's radius.
+ */
+export const SUN_UP_ALTITUDE = -0.833
+
+/** The same horizon as a zenith angle, for the sunrise and sunset formulas. */
+const ZENITH = 90 - SUN_UP_ALTITUDE
 
 const rad = (d: number) => (d * Math.PI) / 180
 const deg = (r: number) => (r * 180) / Math.PI
@@ -64,9 +70,6 @@ export function sunTimes(t: number, lat: number, lng: number, timeZone: string):
 export function isDaytime(t: number, sun: SunTimes): boolean {
   return sun.sunrise <= t && t < sun.sunset
 }
-
-/** Daylight on the in-flight map, as in the app: the sun's center above −0.833°, the sunrise and sunset horizon above. */
-export const SUN_UP_ALTITUDE = -0.833
 
 /**
  * The sun's altitude above the horizon in degrees, at latitude `lat`, longitude `lng` (east positive) and instant `t`,

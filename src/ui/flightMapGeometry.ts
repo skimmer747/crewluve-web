@@ -16,7 +16,7 @@ export interface MapPoint {
 /** The map is 200 px tall, its drawing kept 60 px inside every edge, and the route drawn as 50 segments (§4.1, §4.2). */
 export const MAP_HEIGHT = 200
 export const MAP_PADDING = 60
-export const ROUTE_SEGMENTS = 50
+const ROUTE_SEGMENTS = 50
 /** A phone's card width, which the map uses until it has measured its own (§4.1). */
 export const DEFAULT_MAP_WIDTH = 343
 
@@ -63,7 +63,7 @@ export interface MapBounds {
 }
 
 /** A longitude in the box's terms: +360 for a negative one when the box crosses the antimeridian (normalizeLongitude). */
-export function boxLongitude(lon: number, lonOffset: number): number {
+function boxLongitude(lon: number, lonOffset: number): number {
   return lonOffset !== 0 && lon < 0 ? lon + lonOffset : lon
 }
 
