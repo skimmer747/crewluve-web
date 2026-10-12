@@ -176,6 +176,20 @@ describe('PilotPages: the status page and the Schedule page (slice 3A §3.3)', (
     expect(container.querySelectorAll('.leg').length).toBe(scheduleLegs(all).length)
   })
 
+  it('lists the times in the visitor’s own zone and clock, not the pilot’s home zone', () => {
+    const real = Intl.DateTimeFormat.prototype.resolvedOptions
+    const resolved = vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockImplementation(function (this: Intl.DateTimeFormat) {
+      return { ...real.call(this), timeZone: 'America/Los_Angeles', hourCycle: 'h23', hour12: false }
+    })
+    try {
+      history.replaceState(null, '', '/#schedule')
+      const { container } = render(<PilotPages schedule={handle(demoRawForScene('home', NOW))} airports={testAirports} demo onSignOut={() => {}} />)
+      expect(container.querySelector('.leg-times')!.textContent).toMatch(/^\d\d:\d\d pdt – \d\d:\d\d pdt$/)
+    } finally {
+      resolved.mockRestore()
+    }
+  })
+
   it('shows the screens it always has at the schedule’s address while there’s nothing to list', () => {
     history.replaceState(null, '', '/#schedule')
     render(<PilotPages schedule={handle(null)} airports={testAirports} demo={false} onSignOut={() => {}} />)
