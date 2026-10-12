@@ -27,6 +27,7 @@
 .schedule-back {
   width: 44px;
   height: 44px;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .schedule-title {

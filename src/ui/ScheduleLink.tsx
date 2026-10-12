@@ -63,9 +63,9 @@ export function useScheduleLink(link: ScheduleLinkProps | undefined): {
   return {
     linked: pressed ? ' linked pressed' : ' linked',
     card: {
-      // A click on the chevron is the link's own.
+      // A click on the chevron is the link's own, as one on any button in the card would be.
       onClick: (e: MouseEvent) => {
-        if (!(e.target instanceof Element && e.target.closest('a'))) openOnPlainClick(e, open)
+        if (!(e.target instanceof Element && e.target.closest('a, button'))) openOnPlainClick(e, open)
       },
       ...handlers,
     },

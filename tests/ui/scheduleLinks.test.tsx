@@ -97,6 +97,16 @@ describe('the cards that open the schedule (slice 3A §3.1)', () => {
     expect(container.querySelector('section')!.className).toBe('card glass trip-card linked')
   })
 
+  it('opens the schedule from a tap anywhere on the ~N days card and the trip card, its route included', () => {
+    const onOpen = vi.fn()
+    render(<FallbackCard daysRemaining={2} link={{ name: 'fallback', onOpen }} />)
+    fireEvent.click(screen.getByText('~2 days'))
+    cleanup()
+    render(<UpcomingTripCard trip={trip} now={NOW} timeZone="America/New_York" h24={false} airports={testAirports} link={{ name: 'trip', onOpen }} />)
+    fireEvent.click(screen.getByText('RFD'))
+    expect(onOpen.mock.calls).toEqual([['fallback'], ['trip']])
+  })
+
   it('presses the card in while a pointer holds any part of it, and lets go when it lifts, leaves or turns into a scroll', () => {
     const { container } = render(leaveCard(() => {}))
     const card = container.querySelector('section')!
