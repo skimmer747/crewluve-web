@@ -124,7 +124,7 @@ describe('FlightMap', () => {
   it('shows the scheduled block time and the distance under the map', () => {
     const { container } = render(<FlightMap facts={facts()} now={THIRD} h24={false} />)
     expect(container.querySelector('.flight-distance')!.textContent).toBe('5:002,706 nm')
-    expect([...container.querySelectorAll('.flight-distance svg')].map(iconNameOf)).toEqual(['Timer', 'ArrowsLeftRight'])
+    expect([...container.querySelectorAll('.flight-distance svg')].map(iconNameOf)).toEqual(['Timer', 'ArrowsHorizontal'])
   })
 
   it('leaves out the block time when it isn’t over zero', () => {

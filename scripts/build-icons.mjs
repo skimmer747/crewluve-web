@@ -32,7 +32,7 @@ const ICONS = {
 
   XCircle: 'x-circle', SunHorizon: 'sun-horizon', MapPinArea: 'map-pin-area',
 
-  Timer: 'timer', ArrowsLeftRight: 'arrows-left-right', CheckCircle: 'check-circle', Broadcast: 'broadcast',
+  Timer: 'timer', ArrowsHorizontal: 'arrows-horizontal', CheckCircle: 'check-circle', Broadcast: 'broadcast',
   GpsFix: 'gps-fix', ArrowSquareOut: 'arrow-square-out',
 }
 

@@ -190,7 +190,7 @@ Everything comes from what the site already has; there are no new requests.
 - **The map:** a Preact component drawing one SVG at the measured width, with HTML columns for the airports and the duration and distance. Its colors are CSS custom properties: the app's fixed colors as fixed values, and its system colors as the site's theme colors.
 - **The card:** a component, `InFlightCard`, that the status screen draws in the location card's place while the pilot is in the air.
 - **The popup:** a component, `TrackingPopup`, drawn after `<main>` like the sun popup. It reuses the sun popup's dialog behavior: focus, Escape, the inert page and focus returning.
-- **Icons:** the site's Phosphor icons. It already has the plane, sun, moon, warning, location arrow and ✕ in a circle. Part C adds a timer, left-right arrows, a broadcast, a GPS fix, "arrow square out" and a check in a circle.
+- **Icons:** the site's Phosphor icons. It already has the plane, sun, moon, warning, location arrow and ✕ in a circle. Part C adds a timer, a left-right arrow with a head at each end (the app's `arrow.left.and.right`), a broadcast, a GPS fix, "arrow square out" and a check in a circle.
 - **Styles:** a new stylesheet for the card and the popup, imported by `main.tsx` like the others.
 
 ## 9. Security and privacy

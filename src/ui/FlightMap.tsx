@@ -114,7 +114,7 @@ function MapDrawing({ facts, depPlace, arrPlace, nm, width, progress, h24 }: Map
           </span>
         )}
         <span class="flight-distance-part">
-          <Icon name="ArrowsLeftRight" size={10} color="var(--blue)" />
+          <Icon name="ArrowsHorizontal" size={10} color="var(--blue)" />
           {distanceText(nm)}
         </span>
       </p>

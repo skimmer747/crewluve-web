@@ -34,7 +34,7 @@ describe('ICON_PATHS', () => {
   })
 
   it('has the in-flight card’s timer, distance and early-departure icons, and the tracking popup’s', () => {
-    for (const name of ['Timer', 'ArrowsLeftRight', 'CheckCircle', 'Broadcast', 'GpsFix', 'ArrowSquareOut']) {
+    for (const name of ['Timer', 'ArrowsHorizontal', 'CheckCircle', 'Broadcast', 'GpsFix', 'ArrowSquareOut']) {
       expect(ICON_PATHS).toHaveProperty(name)
     }
   })
