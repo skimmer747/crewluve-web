@@ -106,12 +106,14 @@ describe('FlightMap', () => {
     expect([...sky.querySelectorAll('stop')].map((s) => s.getAttribute('class'))).toEqual(['flight-sky-day-1', 'flight-sky-day-2'])
   })
 
-  it('works the airports’ daylight and the sky out again when the flight’s times change', () => {
+  it('works the airports’ daylight and the sky out again when either of the flight’s times changes', () => {
     const { container, rerender } = render(<FlightMap facts={facts()} now={THIRD} h24={false} />)
-    const departureIcon = () => iconNameOf(container.querySelector('.flight-airport svg'))
-    expect(departureIcon()).toBe('Moon') // 5:40 AM in Anchorage
-    rerender(<FlightMap facts={facts({ start: OUT + 6 * HOUR, end: OUT + 11 * HOUR })} now={OUT + 7 * HOUR} h24={false} />)
-    expect(departureIcon()).toBe('Sun') // 11:40 AM
+    const icons = () => [...container.querySelectorAll('.flight-airport')].map((column) => iconNameOf(column.querySelector('svg')))
+    expect(icons()).toEqual(['Moon', 'Sun']) // 5:40 AM in Anchorage, 2:40 PM in Louisville
+    rerender(<FlightMap facts={facts({ end: OUT + 10 * HOUR })} now={THIRD} h24={false} />)
+    expect(icons()).toEqual(['Moon', 'Moon']) // a later landing, at 7:40 PM, after sunset
+    rerender(<FlightMap facts={facts({ start: OUT + 270 * MINUTE, end: OUT + 10 * HOUR })} now={THIRD} h24={false} />)
+    expect(icons()).toEqual(['Sun', 'Moon']) // a later departure, at 10:10 AM
   })
 
   it('draws the plane at its progress, turned along the route', () => {
