@@ -4,7 +4,7 @@
 .schedule {
   max-width: 480px;
   margin: 0 auto;
-  padding: 0 16px calc(12px + env(safe-area-inset-bottom));
+  padding: 0 16px env(safe-area-inset-bottom);
 }
 
 /* The bar stays at the top: the back button, 44 px of round glass with a chevron as in iOS 26, and the title in the

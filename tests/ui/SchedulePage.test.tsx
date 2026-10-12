@@ -70,6 +70,32 @@ describe('SchedulePage (slice 3A §4)', () => {
     expect(container.querySelectorAll('ol.day-legs > li').length).toBe(5)
   })
 
+  it('keeps the lists and headings for screen readers: Safari drops an unstyled list’s role, and capitals can be spelled out', () => {
+    const { container } = render(page(LEGS, at(10)))
+    expect([...container.querySelectorAll('ol.day-legs')].map((ol) => ol.getAttribute('role'))).toEqual(['list', 'list', 'list'])
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.getAttribute('aria-label'))).toEqual(['Today', 'Tomorrow', 'Saturday, Oct 17'])
+  })
+
+  it('focuses the title before it scrolls, since Safari before 15 scrolls to whatever takes focus', () => {
+    const calls: string[] = []
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => {
+      calls.push('scroll')
+    })
+    const focus = HTMLElement.prototype.focus
+    vi.spyOn(HTMLElement.prototype, 'focus').mockImplementation(function (this: HTMLElement, options?: FocusOptions) {
+      calls.push('focus')
+      focus.call(this, options)
+    })
+    render(page(LEGS, at(10)))
+    expect(calls).toEqual(['focus', 'scroll'])
+  })
+
+  it('adds no <style> elements, which the site’s content security policy would block', () => {
+    const before = document.querySelectorAll('style').length
+    render(page(LEGS, at(10)))
+    expect(document.querySelectorAll('style').length).toBe(before)
+  })
+
   it('marks the leg happening now, the next leg, and the drive home', () => {
     expect(rowsOf(render(page(LEGS, at(10))).container)).toEqual([
       ['leg glass', 'leg glass leg-happening'],
@@ -78,10 +104,10 @@ describe('SchedulePage (slice 3A §4)', () => {
     ])
   })
 
-  it('updates in place as the clock runs, without scrolling again', () => {
+  it('updates in place as the clock runs and new data arrives, without scrolling again', () => {
     const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
     const { container, rerender } = render(page(LEGS, at(10)))
-    rerender(page(LEGS, at(30.5)))
+    rerender(page([...LEGS], at(30.5)))
     expect(rowsOf(container)[1]).toEqual(['leg glass leg-happening', 'leg glass leg-next homeward'])
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Yesterday', 'Today', 'Tomorrow'])
     expect(scrollTo).toHaveBeenCalledTimes(1)
@@ -116,6 +142,18 @@ describe('SchedulePage (slice 3A §4)', () => {
     fireEvent.scroll(window)
     await frames.frame(32)
     expect(pills()).toEqual(['day-pill today', 'day-pill', 'day-pill'])
+    // 21 px below the bar is too far.
+    layOut({ headings: { [THU]: -900, [THU + 1]: 60, [THU + 2]: 81 } })
+    fireEvent.scroll(window)
+    await frames.frame(48)
+    expect(pills()).toEqual(['day-pill today', 'day-pill stuck', 'day-pill'])
+  })
+
+  it('stops listening to the page’s scrolling and resizing once it’s gone', () => {
+    const removed = vi.spyOn(window, 'removeEventListener')
+    const { unmount } = render(page(LEGS, at(10)))
+    unmount()
+    expect(removed.mock.calls.map(([type]) => type)).toEqual(expect.arrayContaining(['scroll', 'resize']))
   })
 
   it('shows the app’s empty state when there are no legs at all', () => {

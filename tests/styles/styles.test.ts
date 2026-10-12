@@ -597,6 +597,8 @@ describe('schedule.css', () => {
       ['font-size', '12px'], ['font-weight', '600'], ['text-transform', 'uppercase'],
     ]))
     expect(rule('.schedule-back')).toEqual([['width', '44px'], ['height', '44px']])
+    // The list's own 12 px is the space at the bottom, as the app's, above the home indicator's.
+    expect(rule('.schedule')).toContainEqual(['padding', '0 16px env(safe-area-inset-bottom)'])
     expect(rule('.schedule-title')).toEqual(expect.arrayContaining([['font-size', '17px'], ['font-weight', '600']]))
   })
 

@@ -52,33 +52,37 @@ export function SchedulePage({ legs, pilot, now, timeZone, h24, airports, onBack
     [days, pilot, airports, timeZone, h24],
   )
 
-  // The page appears already at its opening day, and focus goes to the title so screen readers announce the page
-  // (§3.3, §4.11). Only once: later renders leave the scroll where the visitor has it.
+  /** The day whose heading is stuck under the bar: the last heading within 20 px of it (§4.3). */
+  const stuckDay = () => {
+    const limit = bottomOf(bar.current) + STUCK_SLACK
+    let found: number | null = null
+    for (const heading of list.current?.querySelectorAll<HTMLElement>('.day-heading') ?? []) {
+      if (heading.getBoundingClientRect().top <= limit) found = Number(heading.parentElement!.dataset.day)
+    }
+    return found
+  }
+
+  // The page appears already at its opening day, with that day's heading stuck, and focus goes to the title so screen
+  // readers announce the page (§3.3, §4.11). Focus comes first: Safari before 15 ignores preventScroll and scrolls to
+  // the title, and the scroll after it puts the page right. Only once: later renders leave the scroll where it is.
   useLayoutEffect(() => {
     const day = openingDay(days, now, timeZone)
     const section = day == null ? null : list.current?.querySelector<HTMLElement>(`[data-day="${day}"]`)
-    window.scrollTo(0, section ? window.scrollY + section.getBoundingClientRect().top - bottomOf(bar.current) : 0)
     title.current?.focus({ preventScroll: true })
+    window.scrollTo(0, section ? window.scrollY + section.getBoundingClientRect().top - bottomOf(bar.current) : 0)
+    setStuck(stuckDay())
   }, [])
 
-  // The stuck heading is the last one within 20 px of the bar, checked once a frame while the page scrolls (§4.3).
+  // The stuck heading again whenever the page scrolls or resizes, once a frame, and when the days change.
   useEffect(() => {
-    const check = () => {
-      const limit = bottomOf(bar.current) + STUCK_SLACK
-      let found: number | null = null
-      for (const heading of list.current?.querySelectorAll<HTMLElement>('.day-heading') ?? []) {
-        if (heading.getBoundingClientRect().top <= limit) found = Number(heading.parentElement!.dataset.day)
-      }
-      setStuck(found)
-    }
     let frame = 0
     const soon = () => {
       if (!frame) frame = requestAnimationFrame(() => {
         frame = 0
-        check()
+        setStuck(stuckDay())
       })
     }
-    check()
+    setStuck(stuckDay())
     window.addEventListener('scroll', soon, { passive: true })
     window.addEventListener('resize', soon)
     return () => {
@@ -106,21 +110,24 @@ export function SchedulePage({ legs, pilot, now, timeZone, h24, airports, onBack
             <p class="schedule-empty-text">Schedule will appear when your pilot's Duty app sends trip details.</p>
           </div>
         ) : (
-          rows.map((d) => (
-            <section key={d.day} class="schedule-day" data-day={d.day}>
-              <h2 class="day-heading">
-                <span class={d.day === today ? 'day-pill today' : d.day === stuck ? 'day-pill stuck' : 'day-pill'}>
-                  {dayHeading(d.day, today)}
-                </span>
-              </h2>
-              <ol class="day-legs">
-                {d.legs.map((row) => (
-                  <TimelineRow key={row.leg.id} leg={row.leg} look={row.look} times={row.times} moment={legMoment(row.leg, now, nextId)} now={now}
-                    gap={row.gap} />
-                ))}
-              </ol>
-            </section>
-          ))
+          rows.map((d) => {
+            const heading = dayHeading(d.day, today)
+            return (
+              <section key={d.day} class="schedule-day" data-day={d.day}>
+                {/* Shown in capitals; the label keeps the words as written, so screen readers don't spell them out. */}
+                <h2 class="day-heading" aria-label={heading}>
+                  <span class={d.day === today ? 'day-pill today' : d.day === stuck ? 'day-pill stuck' : 'day-pill'}>{heading}</span>
+                </h2>
+                {/* Safari drops the list role from a list shown without bullets; the role puts it back. */}
+                <ol class="day-legs" role="list">
+                  {d.legs.map((row) => (
+                    <TimelineRow key={row.leg.id} leg={row.leg} look={row.look} times={row.times} moment={legMoment(row.leg, now, nextId)} now={now}
+                      gap={row.gap} />
+                  ))}
+                </ol>
+              </section>
+            )
+          })
         )}
       </div>
     </main>
