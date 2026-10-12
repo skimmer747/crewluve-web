@@ -25,7 +25,7 @@ Both popups and the screen switch to them, the closing styles turn the opening a
 - **Branch:** work on `popups` in the main project folder. Run `git switch -c popups` from `main`. Don't use git worktrees; auto mode blocked a worktree builder during slice 1.
 - **Working directory:** run every command from the project root, `~/Dev/Crewluve Website`. Quote it in shells, since it has a space.
 - **Gates:** `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass before every commit that touches code.
-  - The suite is 1849 tests in 79 files before this plan, and 1872 tests in 82 files after it.
+  - The suite is 1849 tests in 79 files before this plan, and 1872 tests in 82 files after the printed tasks. The review fixes took it to 1873 (see the Execution notes).
   - The read-only scan (`tests/data/readOnly.test.ts`) adds one test for each new file in `src/`, so the totals grow a little faster than the task counts below.
 - **Commit trailer:** end every commit message with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 
@@ -1198,7 +1198,7 @@ Update the project memory with the new tip and what's next.
 
 ## Done when
 
-- `npx vitest run`, `npx tsc --noEmit` and `npm run build` are all green, with 1872 tests in 82 files.
+- `npx vitest run`, `npx tsc --noEmit` and `npm run build` are all green, with 1873 tests in 82 files (1872 from the printed tasks, plus the review fixes).
 - A popup closed during its opening shrinks and fades back from where it was. When a popup closes by itself, focus goes to the card now in the location card's place. Both popups and the screen use the two shared hooks (Tasks 1–5).
 - The user has signed off on the look (Task 6), and it's live on crewluve.crewlu.net, released with the user's yes (Task 7).
 
@@ -1237,4 +1237,13 @@ Update the project memory with the new tip and what's next.
   - §4.2 now says the headings show no ring;
   - §5 says each heading has its own ref, rather than one shared ref;
   - §8 lists the new style test.
+- **Suite:** 1873 tests in 82 files.
+
+**Code-quality review: ready to merge and release; its minor points fixed**
+- **The review:** auto mode blocked starting a new reviewer, so at the user's choice the review went to the helper that had done Part C's final review.
+- **Task 1, the hook gives back inline values** (`c9c308f`): when the hold lets go, it now puts back any inline value a part had before, such as a drag's offset on a part whose opening also moves it. It no longer removes the value outright. The forced recalculation gets a comment, and the test's stand-in for the browser shows inline values with the animation off.
+- **Task 3, no scrolling** (`320a0a0`): focus now moves to the fallback heading without scrolling the page to it. Safari before 15 still scrolls.
+- **The spec:** §4.2 now says the headings can also be clicked into focus.
+- **Task 2, notes in the styles:** comments beside both openings say their parts and properties must stay in step with each popup's list for `usePopupClose`.
+- **Not done:** a run of the close-mid-opening check in Safari. Only Chromium has run it. The hold doesn't depend on how a browser starts a transition, and the reviewer judged it sound in WebKit and Gecko. Even if WebKit misbehaved, a close would be no worse than today's.
 - **Suite:** 1873 tests in 82 files.

@@ -448,7 +448,8 @@
 }
 
 /* Opening: the app's spring(response: 0.35, dampingFraction: 0.7) on the card's size and opacity. It's the sun popup's
-   spring shape (the same damping) at 0.35 s, so its keyframes serve at 0.42 s. */
+   spring shape (the same damping) at 0.35 s, so its keyframes serve at 0.42 s. A close during the opening holds these
+   parts and properties, as TrackingPopup lists them for usePopupClose: keep the two in step. */
 .tracking-backdrop {
   animation: sun-popup-fade 0.42s linear;
 }
