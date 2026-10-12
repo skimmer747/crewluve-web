@@ -336,6 +336,15 @@ describe('inFlight.css', () => {
       for (const rule of colored) expect(top.indexOf(rule), head).toBeLessThan(darkAt)
     }
   })
+
+  it('springs the tracking popup open on the sun popup’s keyframes at 0.42 s, and stills it for reduced motion', () => {
+    const animations = rulesIn(css('inFlight')).filter((r) => r.head === '.tracking-card').flatMap((r) => declarations(r.body)).filter(([prop]) => prop === 'animation')
+    expect(animations).toContainEqual(['animation', 'sun-popup-fade 0.42s linear, sun-popup-zoom 0.42s linear'])
+    expect(css('sunPopup')).toMatch(/@keyframes sun-popup-fade/)
+    expect(css('sunPopup')).toMatch(/@keyframes sun-popup-zoom/)
+    const still = find(top, '@media (prefers-reduced-motion: reduce)')
+    expect(declarations(find(blocks(still?.body ?? ''), '.tracking-backdrop, .tracking-card')!.body)).toContainEqual(['animation', 'none'])
+  })
 })
 
 describe('location.css', () => {

@@ -308,3 +308,164 @@
   font-weight: 500;
   color: var(--bar-text-2);
 }
+
+/* The tracking popup (§6): it covers the page, centering the card with at least 16 px of screen around it. */
+.tracking-popup {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+}
+
+/* Black at 30% over a blur of the page, as behind the sun popup. */
+.tracking-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+
+/* Up to 340 px wide, 20 px padding, 16 px between rows, frosted, with a 28 px radius. */
+.tracking-card {
+  position: relative;
+  width: min(340px, 100%);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border-radius: 28px;
+  color: var(--text);
+}
+
+.tracking-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tracking-number {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 20px;
+  line-height: 25px;
+  font-weight: 700;
+}
+
+/* The close button: a 22 px ✕ in a circle, in the secondary color. */
+.tracking-close {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  line-height: 0;
+  cursor: pointer;
+}
+
+.tracking-lead {
+  margin: 0;
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--text-2);
+}
+
+/* A link row: 14 px padding and radius, its color's text on that color at 12% (drawn behind it), 12 px between parts. */
+.tracking-link {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  text-decoration: none;
+}
+
+.tracking-link::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: currentColor;
+  opacity: 0.12;
+}
+
+.tracking-link.radar {
+  color: var(--blue);
+}
+
+.tracking-link.aware {
+  color: var(--orange);
+}
+
+.tracking-link-icon {
+  flex: none;
+  width: 32px;
+  display: flex;
+  justify-content: center;
+}
+
+.tracking-link-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tracking-link-name {
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+.tracking-link-caption {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-2);
+}
+
+.tracking-link > .icon:last-child {
+  flex: none;
+  color: var(--text-2);
+}
+
+/* Opening: the app's spring(response: 0.35, dampingFraction: 0.7) on the card's size and opacity. It's the sun popup's
+   spring shape (the same damping) at 0.35 s, so its keyframes serve at 0.42 s. */
+.tracking-backdrop {
+  animation: sun-popup-fade 0.42s linear;
+}
+
+.tracking-card {
+  animation: sun-popup-fade 0.42s linear, sun-popup-zoom 0.42s linear;
+}
+
+/* Closing: 0.2 s, ease-out, fading and shrinking back to half size. */
+.tracking-popup.closing .tracking-backdrop {
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+
+.tracking-popup.closing .tracking-card {
+  opacity: 0;
+  transform: scale(0.5);
+  transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tracking-backdrop,
+  .tracking-card {
+    animation: none;
+  }
+
+  .tracking-popup.closing .tracking-backdrop,
+  .tracking-popup.closing .tracking-card {
+    transition: none;
+  }
+}
