@@ -1218,4 +1218,23 @@ Update the project memory with the new tip and what's next.
 
 ## Execution notes
 
-(Add notes here as the build goes: where the code had to differ from a printed block, and why.)
+**Build, 2026-10-12**
+- The controller applied the printed blocks task by task with the replay tools, on branch `popups` from `301db22`.
+- Every Step 2 failed as printed, every Step 4 passed with its count, and the gates passed after every task. The suite ended at 1872 tests in 82 files (`ec945a9`).
+- The 19 files matched the scratch build byte for byte.
+
+**Look check (Task 6), 2026-10-12:** the user approved the look ("Looks right").
+- They saw a sheet of each popup closed about 0.15 s into its opening: the moment of the close, then 0.1 s later. On the live site the popup was still opening at full strength; with the new code it was shrinking away.
+- A normal close fades as before, and focus comes back to the dial or the flight number.
+
+**Spec review: one important finding and three minor, fixed; the re-check passed**
+- **Tasks 1 and 2, tests** (`40eed85`):
+  - The hold test's stand-in for the browser now reports the opening's values only while the animation is on. The test pins that each part is read while the opening runs, then again with it off.
+  - The popups' tests pin exactly which property each part holds.
+  - Each of these now fails a test: turning the animation off before reading, skipping the recalculation Safari 14 relies on, or holding the wrong property.
+- **Task 4, focus rings** (`2c8e399`): Safari before 15.4 has no `:focus-visible`, so a heading focused from code, or clicked, would show a ring. `base.css` now takes the ring off headings with `tabindex="-1"`, with a style test.
+- **The spec:**
+  - §4.2 now says the headings show no ring;
+  - §5 says each heading has its own ref, rather than one shared ref;
+  - §8 lists the new style test.
+- **Suite:** 1873 tests in 82 files.

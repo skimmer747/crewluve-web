@@ -120,7 +120,7 @@ Nothing new: no requests, storage or scripts, and the CSP is unchanged.
   - the sun popup open at takeoff: it closes, and focus goes to "In flight";
   - the sun popup open when the dial goes away: focus goes to the location card's city;
   - closing by ✕ still hands focus back to the button.
-- **Styles:** both `.closing` rules turn the opening animation off.
+- **Styles:** both `.closing` rules turn the opening animation off, and headings that take focus from code show no focus ring.
 - **Gates:** `npx vitest run`, `npx tsc --noEmit` and `npm run build`.
 - **In the browser:**
   - closing each popup mid-opening reverses from where it was, sampled frame by frame, in light and in dark;
