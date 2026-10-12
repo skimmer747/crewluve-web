@@ -1,10 +1,6 @@
-// The tracking popup's flight number and links (slice 2C §6), with the app's FlightTrackingHelper's airline codes.
+import { airlineIcao } from './airlines'
 
-/** IATA airline codes the app maps to ICAO ones, which the tracking sites use (iataToICAO). */
-const ICAO_BY_IATA: Readonly<Record<string, string>> = {
-  '5X': 'UPS', FX: 'FDX', AA: 'AAL', DL: 'DAL', UA: 'UAL', WN: 'SWA', B6: 'JBU', NK: 'NKS',
-  F9: 'FFT', AS: 'ASA', HA: 'HAL', OO: 'SKW', YX: 'RPA', MQ: 'ENY', OH: 'PSA',
-}
+// The tracking popup's flight number and links (slice 2C §6), with the app's FlightTrackingHelper's airline codes.
 
 /**
  * The flight as the tracking sites know it, which the popup's header shows: the airline's ICAO code and the digits,
@@ -17,7 +13,7 @@ const ICAO_BY_IATA: Readonly<Record<string, string>> = {
 export function trackingFlightNumber(airline: string | null, number: string | null): string | null {
   if (!airline || !number) return null
   const code = airline.toUpperCase()
-  const sign = `${ICAO_BY_IATA[code] ?? code}${number}`.toUpperCase()
+  const sign = `${airlineIcao(code) ?? code}${number}`.toUpperCase()
   return /^[A-Z0-9]+$/.test(sign) ? sign : null
 }
 

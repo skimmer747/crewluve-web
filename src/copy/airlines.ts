@@ -6,6 +6,11 @@ const ICAO_TO_IATA: Record<string, string> = {
   FFT: 'F9', ASA: 'AS', HAL: 'HA', SKW: 'OO', RPA: 'YX', ENY: 'MQ', PSA: 'OH',
 }
 
+/** The same table read backwards, as the app's FlightTrackingHelper builds its iataToICAO. */
+const IATA_TO_ICAO: Readonly<Record<string, string>> = Object.fromEntries(
+  Object.entries(ICAO_TO_IATA).map(([icao, iata]) => [iata, icao]),
+)
+
 const NAMES: Record<string, string> = {
   WN: 'Southwest', AA: 'American', DL: 'Delta', UA: 'United', B6: 'JetBlue', AS: 'Alaska', NK: 'Spirit',
   F9: 'Frontier', G4: 'Allegiant', MX: 'Breeze', HA: 'Hawaiian', XP: 'Avelo', SY: 'Sun Country',
@@ -62,6 +67,11 @@ const resolve = (code: string) => ICAO_TO_IATA[code.trim().toUpperCase()] ?? cod
 
 const toHex = ([r, g, b]: [number, number, number]) =>
   `#${[r, g, b].map((c) => Math.round(c * 255).toString(16).padStart(2, '0')).join('').toUpperCase()}` as const
+
+/** The ICAO code the tracking sites use for an IATA airline code ("5X" → "UPS"), or null when the table hasn't got it. */
+export function airlineIcao(code: string): string | null {
+  return IATA_TO_ICAO[code.toUpperCase()] ?? null
+}
 
 // In the three lookups below, a blank code (null, empty or only whitespace) means "no airline code".
 export function airlineName(code: string | null): string {
