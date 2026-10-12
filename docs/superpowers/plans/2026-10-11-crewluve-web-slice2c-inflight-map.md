@@ -3292,4 +3292,28 @@ Update the project memory with the new tip and what's next: slice 3, the Schedul
 - Task 9, the glows: the route's glow now follows the line's own fade at half strength, as the app's shadow does. Its blur covers the whole map, so a route running straight up the map keeps its glow. Spec §4.4 and §8 are reworded (`75be342`).
 - Task 10: Phosphor's location arrow points up and to the left, so it's mirrored to point up and to the right like the app's `location.fill`. When only the departure's zone is known, screen readers now hear the departure's city with its time; with no zone, there's no time and no label. Spec §5.2 and §10 item 5 are reworded (`afe230a`).
 - Tasks 9–11, tests: the popup's link test no longer makes the test browser try to open FlightAware. Style tests now pin the text colors, the glows, the link tints, the backdrop and the closing timings (`55816a0`).
-- Suite: 1838 tests in 79 files.
+- The re-check passed. Suite: 1838 tests in 79 files.
+
+**Batch A code-quality review: two test gaps and some tidying, fixed; the re-review passed**
+- Tasks 3 and 5, tests: new tests pin the box of a route across the antimeridian, and the airport's own weekday on night flights, where it isn't UTC's. Each fails when its rule is broken on purpose. A "1 nautical mile" case was added too (`a1ddada`).
+- Task 2: `ZENITH` is now `90 - SUN_UP_ALTITUDE`, one horizon for sunrise, sunset and the map's daylight, with the same value.
+- Task 6: `airlineIcao` trims like `airlines.ts`'s other lookups, and `trackingFlightNumber` trims and uppercases the code once.
+- Task 3: `ROUTE_SEGMENTS` and `boxLongitude` are no longer exported (`62122d4`, `3be6850`).
+
+**Batch B code-quality review: two important findings and some polish, fixed; the re-review passed**
+- Task 10: screen readers heard "DELAYED 40m", whose "m" can be read as meters. They now hear "Delayed 40 minutes" or "Departed 20 minutes early", worded as the sun dial says a delay. Spec §10 item 5 lists it (`6707448`).
+- Tasks 7 and 12: tests now pin that a flight without an airline still opens the tracking popup, with its header only (`c46e761`).
+- Tasks 9–12, the polish (`5e4a828`, `ae94256`):
+  - the popup's ✕ has the sun popup's 34 px tap area;
+  - the tracking card scrolls on a short screen;
+  - the duration and distance line centers with `left: 50%`;
+  - the sky's stop classes are `flight-sky-*`;
+  - tests pin that a new departure or landing time redraws the map's daylight.
+
+**Look check (Task 13), 2026-10-11:** the user approved the look ("Looks right"). They saw a sheet of both demo flights in light and dark, the tracking popup, and the Increase Contrast colors, at 375 px.
+
+**Left for later:**
+- **The two popups' shared code:** the tracking popup copies the sun popup's closing logic, and the status screen holds two copies of the open-and-focus-return state. Shared hooks would remove both copies.
+- **Closing during the opening spring:** both popups keep springing in when closed during it, and should be fixed together with the shared hooks. Best before slice 3 adds more popups.
+- **Longitude's spelling:** `GeoPoint` spells it `lon`, where the airport list and `sun.ts` use `lng`.
+- **Suite:** 1847 tests in 79 files.
