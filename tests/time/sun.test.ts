@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isDaytime, sunTimes } from '../../src/time/sun'
+import { isDaytime, isSunUp, sunAltitude, SUN_UP_ALTITUDE, sunTimes } from '../../src/time/sun'
 import { MINUTE } from '../../src/time/zoned'
 
 /**
@@ -60,5 +60,65 @@ describe('isDaytime', () => {
     expect(isDaytime(sun.sunrise, sun)).toBe(true)
     expect(isDaytime(sun.sunset - 1, sun)).toBe(true)
     expect(isDaytime(sun.sunset, sun)).toBe(false)
+  })
+})
+
+const SDF = { lat: 38.1746, lng: -85.7382 }
+
+/** The moment the sun crosses the sunrise and sunset horizon between `from` and `to`, to the second, by halving. */
+function crossing(lat: number, lng: number, from: number, to: number): number {
+  const upAtStart = isSunUp(from, lat, lng)
+  let [lo, hi] = [from, to]
+  while (hi - lo > 1000) {
+    const mid = Math.round((lo + hi) / 2)
+    if (isSunUp(mid, lat, lng) === upAtStart) lo = mid
+    else hi = mid
+  }
+  return hi
+}
+
+describe('sunAltitude', () => {
+  it('is 90° less the latitude plus the declination at solar noon on the June solstice', () => {
+    // Louisville's solar noon on 21 June 2026 is about 17:45 UTC: 90 − 38.17 + 23.44 = 75.27°.
+    expect(sunAltitude(ms('2026-06-21T17:45:00Z'), SDF.lat, SDF.lng)).toBeCloseTo(75.27, 0)
+  })
+
+  it('is as far below the horizon at local midnight', () => {
+    expect(sunAltitude(ms('2026-06-22T05:45:00Z'), SDF.lat, SDF.lng)).toBeCloseTo(-28.39, 0)
+  })
+
+  it('crosses the horizon at the US Naval Observatory’s sunrise and sunset for Louisville, within 2 minutes', () => {
+    // aa.usno.navy.mil: on 15 October 2026 the sun rises at 07:52 and sets at 19:05 EDT; on 15 March, 07:54 and 19:50.
+    for (const [rise, set] of [
+      ['2026-10-15T11:52:00Z', '2026-10-15T23:05:00Z'],
+      ['2026-03-15T11:54:00Z', '2026-03-15T23:50:00Z'],
+    ]) {
+      expect(Math.abs(crossing(SDF.lat, SDF.lng, ms(rise) - 60 * MINUTE, ms(rise) + 60 * MINUTE) - ms(rise))).toBeLessThanOrEqual(2 * MINUTE)
+      expect(Math.abs(crossing(SDF.lat, SDF.lng, ms(set) - 60 * MINUTE, ms(set) + 60 * MINUTE) - ms(set))).toBeLessThanOrEqual(2 * MINUTE)
+    }
+  })
+
+  it('crosses the horizon within a minute of sunTimes’ sunrise and sunset, its own NOAA position', () => {
+    for (const [name, lat, lng, timeZone, at] of NOAA) {
+      const sun = sunTimes(ms(at), lat, lng, timeZone)!
+      expect(Math.abs(crossing(lat, lng, sun.sunrise - 30 * MINUTE, sun.sunrise + 30 * MINUTE) - sun.sunrise), `${name} sunrise`).toBeLessThan(MINUTE)
+      expect(Math.abs(crossing(lat, lng, sun.sunset - 30 * MINUTE, sun.sunset + 30 * MINUTE) - sun.sunset), `${name} sunset`).toBeLessThan(MINUTE)
+    }
+  })
+})
+
+describe('isSunUp', () => {
+  it('counts the sun as up above −0.833°, the sunrise and sunset horizon', () => {
+    expect(SUN_UP_ALTITUDE).toBe(-0.833)
+    const rise = crossing(SDF.lat, SDF.lng, ms('2026-10-15T10:00:00Z'), ms('2026-10-15T13:00:00Z'))
+    expect(isSunUp(rise - 1000, SDF.lat, SDF.lng)).toBe(false)
+    expect(isSunUp(rise, SDF.lat, SDF.lng)).toBe(true)
+    expect(sunAltitude(rise, SDF.lat, SDF.lng)).toBeGreaterThan(SUN_UP_ALTITUDE)
+    expect(sunAltitude(rise - 1000, SDF.lat, SDF.lng)).toBeLessThanOrEqual(SUN_UP_ALTITUDE)
+  })
+
+  it('sees the midnight sun and the polar night at Utqiaġvik', () => {
+    expect(isSunUp(ms('2026-06-21T08:00:00Z'), 71.2854, -156.766)).toBe(true) // local midnight
+    expect(isSunUp(ms('2026-12-21T21:00:00Z'), 71.2854, -156.766)).toBe(false) // local noon
   })
 })

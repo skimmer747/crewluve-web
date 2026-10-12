@@ -64,3 +64,27 @@ export function sunTimes(t: number, lat: number, lng: number, timeZone: string):
 export function isDaytime(t: number, sun: SunTimes): boolean {
   return sun.sunrise <= t && t < sun.sunset
 }
+
+/** Daylight on the in-flight map, as in the app: the sun's center above −0.833°, the sunrise and sunset horizon above. */
+export const SUN_UP_ALTITUDE = -0.833
+
+/**
+ * The sun's altitude above the horizon in degrees, at latitude `lat`, longitude `lng` (east positive) and instant `t`,
+ * from the same NOAA position as sunrise and sunset (slice 2C §4.3). The in-flight map uses it for day and night. The
+ * app's map has its own formula, wrong by up to two hours, which the site doesn't copy (slice 2C §10 item 8).
+ */
+export function sunAltitude(t: number, lat: number, lng: number): number {
+  const { declination, equationOfTime } = solarPosition(t)
+  const utcMinutes = (((t % DAY) + DAY) % DAY) / MINUTE
+  let hourAngle = (utcMinutes + equationOfTime + 4 * lng) / 4 - 180
+  while (hourAngle > 180) hourAngle -= 360
+  while (hourAngle < -180) hourAngle += 360
+  const cosZenith =
+    Math.sin(rad(lat)) * Math.sin(rad(declination)) + Math.cos(rad(lat)) * Math.cos(rad(declination)) * Math.cos(rad(hourAngle))
+  return 90 - deg(Math.acos(Math.min(1, Math.max(-1, cosZenith))))
+}
+
+/** Whether the sun is up at latitude `lat`, longitude `lng` and instant `t`: above the sunrise and sunset horizon. */
+export function isSunUp(t: number, lat: number, lng: number): boolean {
+  return sunAltitude(t, lat, lng) > SUN_UP_ALTITUDE
+}
