@@ -1,4 +1,4 @@
-import { delayBannerText } from '../copy/flight'
+import { delayBannerText, spokenDelayBanner } from '../copy/flight'
 import { shortTimeText } from '../copy/format'
 import { FlightMap } from './FlightMap'
 import { Icon } from './Icon'
@@ -28,7 +28,8 @@ export function InFlightCard({ facts, now, h24, onOpenTracking }: InFlightCardPr
       {offset != null && (
         <p class={offset < 0 ? 'inflight-banner early' : 'inflight-banner late'}>
           <Icon name={offset < 0 ? 'CheckCircle' : 'Warning'} size={12} />
-          {delayBannerText(offset)}
+          <span aria-hidden="true">{delayBannerText(offset)}</span>
+          <span class="sr-only">{spokenDelayBanner(offset)}</span>
         </p>
       )}
       <div class="inflight-bar">

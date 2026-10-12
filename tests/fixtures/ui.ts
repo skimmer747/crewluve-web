@@ -34,6 +34,13 @@ export function stubAnimationFrames() {
   }
 }
 
+/** The text a sighted visitor sees: everything except the screen-reader-only words. */
+export function visibleText(el: Element): string {
+  const copy = el.cloneNode(true) as Element
+  copy.querySelectorAll('.sr-only').forEach((node) => node.remove())
+  return copy.textContent ?? ''
+}
+
 /** Which Phosphor icon an <Icon/> svg draws, found by matching its paths against the icon table. */
 export function iconNameOf(svg: Element | null): IconName | null {
   if (!svg) return null

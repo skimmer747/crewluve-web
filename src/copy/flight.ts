@@ -1,4 +1,4 @@
-import { spokenDuration } from './format'
+import { delayText, spokenDuration } from './format'
 
 /**
  * The flight number as the pilot's Duty app writes it for the family (PartnerStatusGenerator.formatFlightNumber):
@@ -33,6 +33,14 @@ export function delayBannerText(minutes: number): string {
   const m = total % 60
   const amount = h > 0 && m > 0 ? `${h}h ${m}m` : h > 0 ? `${h}h` : `${m}m`
   return `${minutes < 0 ? 'EARLY DEP' : 'DELAYED'} ${amount}`
+}
+
+/**
+ * The banner in words for screen readers, as the sun dial says a delay: "Delayed 1 hour 30 minutes" or "Departed 20
+ * minutes early", not "1h 30m", whose "m" can be read as meters.
+ */
+export function spokenDelayBanner(minutes: number): string {
+  return minutes < 0 ? `Departed ${delayText(minutes)} early` : `Delayed ${delayText(minutes)}`
 }
 
 const PROGRESS_WORDS: ReadonlyArray<[fraction: number, words: string]> = [

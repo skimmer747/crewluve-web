@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { InFlightCard } from '../../src/ui/InFlightCard'
 import type { FlightEnd, InFlightFacts } from '../../src/ui/inFlightFacts'
 import { HOUR, MINUTE } from '../../src/time/zoned'
-import { iconNameOf } from '../fixtures/ui'
+import { iconNameOf, visibleText } from '../fixtures/ui'
 
 afterEach(() => {
   cleanup()
@@ -35,12 +35,21 @@ describe('InFlightCard', () => {
   it('shows DELAYED with a warning for a late departure, and EARLY DEP with a check for an early one', () => {
     const { container, rerender } = render(card())
     const banner = () => container.querySelector('.inflight-banner')!
-    expect(banner().textContent).toBe('DELAYED 40m')
+    expect(visibleText(banner())).toBe('DELAYED 40m')
     expect(iconNameOf(banner().querySelector('svg'))).toBe('Warning')
     rerender(card({ delayMinutes: -20 }))
     expect(banner().getAttribute('class')).toBe('inflight-banner early')
-    expect(banner().textContent).toBe('EARLY DEP 20m')
+    expect(visibleText(banner())).toBe('EARLY DEP 20m')
     expect(iconNameOf(banner().querySelector('svg'))).toBe('CheckCircle')
+  })
+
+  it('says the banner in words to screen readers, so "40m" isn’t read as meters', () => {
+    const { container, rerender } = render(card())
+    const banner = () => container.querySelector('.inflight-banner')!
+    expect(banner().querySelector('[aria-hidden="true"]:not(svg)')!.textContent).toBe('DELAYED 40m')
+    expect(banner().querySelector('.sr-only')!.textContent).toBe('Delayed 40 minutes')
+    rerender(card({ delayMinutes: -20 }))
+    expect(banner().querySelector('.sr-only')!.textContent).toBe('Departed 20 minutes early')
   })
 
   it('has no banner when the flight is on time', () => {

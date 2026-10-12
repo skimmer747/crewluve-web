@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { delayBannerText, distanceText, flightDurationText, flightMapLabel, flightNumberText, progressWords } from '../../src/copy/flight'
+import { delayBannerText, distanceText, flightDurationText, flightMapLabel, flightNumberText, progressWords, spokenDelayBanner } from '../../src/copy/flight'
 import { HOUR, MINUTE } from '../../src/time/zoned'
 
 describe('flightNumberText', () => {
@@ -33,6 +33,15 @@ describe('distanceText', () => {
   it('reads nautical miles with a thousands separator', () => {
     expect(distanceText(2706)).toBe('2,706 nm')
     expect(distanceText(312)).toBe('312 nm')
+  })
+})
+
+describe('spokenDelayBanner', () => {
+  it('says the banner in words, as the sun dial says a delay', () => {
+    expect(spokenDelayBanner(40)).toBe('Delayed 40 minutes')
+    expect(spokenDelayBanner(90)).toBe('Delayed 1 hour 30 minutes')
+    expect(spokenDelayBanner(60)).toBe('Delayed 1 hour')
+    expect(spokenDelayBanner(-20)).toBe('Departed 20 minutes early')
   })
 })
 

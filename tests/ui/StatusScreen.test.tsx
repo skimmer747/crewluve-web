@@ -15,14 +15,7 @@ import { sunTimes } from '../../src/time/sun'
 import { wedgePath } from '../../src/ui/bigDialGeometry'
 import { hourAngle } from '../../src/ui/sunDialGeometry'
 import { A, at, engineFor } from '../fixtures/engine'
-import { stubAnimationFrames } from '../fixtures/ui'
-
-/** The text a sighted visitor sees: everything except the screen-reader-only words. */
-function visibleText(el: Element): string {
-  const copy = el.cloneNode(true) as Element
-  copy.querySelectorAll('.sr-only').forEach((node) => node.remove())
-  return copy.textContent ?? ''
-}
+import { stubAnimationFrames, visibleText } from '../fixtures/ui'
 
 afterEach(() => {
   cleanup()
@@ -428,8 +421,10 @@ describe('StatusScreen in-flight card (slice 2C)', () => {
     expect(renderAt(180).container.querySelector('.inflight')).toBeNull()
   })
 
-  it('shows the delayed flight’s banner', () => {
-    expect(renderAt(1700).container.querySelector('.inflight-banner')!.textContent).toBe('DELAYED 40m')
+  it('shows the delayed flight’s banner, in words for screen readers', () => {
+    const banner = renderAt(1700).container.querySelector('.inflight-banner')!
+    expect(visibleText(banner)).toBe('DELAYED 40m')
+    expect(banner.querySelector('.sr-only')!.textContent).toBe('Delayed 40 minutes')
   })
 
   it('opens the tracking popup from the flight number, after <main>, and hides the page behind it', () => {
