@@ -74,6 +74,13 @@ describe('inFlightFacts', () => {
     const facts = inFlightFacts({ ...air, status: { ...air.status, current: leg } }, testAirports)!
     expect([facts.flightNumber, facts.trackingNumber, facts.links]).toEqual([null, null, null])
   })
+
+  it('keeps the digits as the popup’s number without an airline, so the flight number still opens it, with no links', () => {
+    const air = snapAt(100)
+    const leg = flight('SDF', 'RFD', 0, 2, 'T1', { airline: null })
+    const facts = inFlightFacts({ ...air, status: { ...air.status, current: leg } }, testAirports)!
+    expect([facts.flightNumber, facts.trackingNumber, facts.links]).toEqual(['100', '100', null])
+  })
 })
 
 describe('flightProgress', () => {

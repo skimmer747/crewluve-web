@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/preact
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { demoRaw, demoRawForScene, DEMO_SCENES, type DemoScene } from '../../src/data/demo'
 import type { Weather } from '../../src/data/weather'
-import { buildLegs, type Leg } from '../../src/engine/legs'
+import { buildLegs, type Leg, type MoveLeg } from '../../src/engine/legs'
 import { buildSchedule } from '../../src/engine/normalize'
 import { makeSnapshot, safeSnapshot, type Snapshot } from '../../src/engine/snapshot'
 import { EmptyState } from '../../src/ui/EmptyState'
@@ -456,6 +456,19 @@ describe('StatusScreen in-flight card (slice 2C)', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
     rerender(screenFor(e, 300))
     expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('opens the popup with only its header for a flight without an airline, as the app does', () => {
+    const now = at(100)
+    const snap = makeSnapshot(e.schedule, e.legs, now, NY)
+    const current: MoveLeg = { ...(snap.status.current as MoveLeg), airline: null }
+    render(
+      <StatusScreen snap={{ ...snap, status: { ...snap.status, current } }} now={now} viewerTz={NY} homeTz={NY} h24={false}
+        airports={testAirports} weather={null} demo={false} celebrateKey={0} footer={footer(now)} />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '2961' }))
+    expect(screen.getByRole('dialog', { name: '2961' })).toBeTruthy()
+    expect(document.querySelector('.tracking-link')).toBeNull()
   })
 
   it('covers a jumpseat, with the airline’s ICAO code in the popup', () => {
