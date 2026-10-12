@@ -47,6 +47,7 @@ The narrative card, the days-home pill, the location card, the in-flight card an
   - The app shows it only when the pilot is home or at base, with no flight ahead and no leave-home countdown.
   - The app then has no way into the schedule at other times, for example on reserve or at training with no trip. The site's rule covers those.
   - One case goes the other way: at base with a countdown card on the page, the app shows the card and the button. The site shows only the card, since it already leads to the schedule.
+- **In the demo:** a new scene, `nothing-ahead`, is home with no trip ahead, so the demo can show the button.
 
 ### 3.3 The address and Back (decision 3)
 
@@ -68,7 +69,7 @@ The narrative card, the days-home pill, the location card, the in-flight card an
 - **The top bar** stays at the top while the page scrolls:
   - **The back button:** on the left, a 44 px round glass button with a chevron (‹) in blue. It's named "Back" for screen readers. This copies iOS 26, where the back button is a chevron in a glass circle.
   - **The title:** "Schedule", centered, 17 px, semibold. It's the page's heading.
-  - **Behind them:** the page's color, slightly see-through and blurred, so rows scroll under it as under iOS's bars.
+  - **Behind them:** iOS's bar material, so rows scroll under it as under iOS's bars. It's nearly white, or dark grey in dark mode, slightly see-through and blurred: a new color, `--bar-fill`.
 - **The list** comes next: 16 px from the column's sides, with 12 px above and below.
 - **The page has no footer.** The app's Schedule screen has no sync bar. The data keeps refreshing in the background.
 - **The demo banner** stays on the status page only, as in the app.
@@ -94,7 +95,7 @@ The narrative card, the days-home pill, the location card, the in-flight card an
   - **Today's heading** is a green pill with black text: 8 px by 4 px of padding, 6 px radius.
   - **The heading stuck at the top** is a yellow pill with black text, unless it's today's, which stays green.
   - **Other headings** have no pill and use the secondary color.
-  - **Behind each heading:** the same see-through, blurred page color as the top bar, across the list's width.
+  - **Behind each heading:** the same bar material as the top bar, across the list's width.
 - **Live:** the words follow the clock. At midnight, "Today" becomes "Yesterday".
 - **For screen readers,** each day is a heading over a list of its legs. Its words are read normally ("Thursday, Oct 16"), not in capitals.
 
@@ -269,6 +270,8 @@ The narrative card, the days-home pill, the location card, the in-flight card an
   - It also decides whether a jumpseat gets its airline's look or the seat.
   - Nothing on the status page changes.
 - **Icons:** Seat and ClockCounterClockwise join the icon list, and `npm run icons` regenerates `iconPaths.ts`.
+- **Colors:** `--bar-fill` joins `tokens.css`, in light and dark, and in the sun popup's forced-dark copy.
+- **The demo:** the `nothing-ahead` scene (§3.2).
 
 ## 6. Security and privacy
 
@@ -309,7 +312,7 @@ Nothing new: no requests, storage or scripts. The content security policy is unc
   - every duration format, and the spoken form.
 - **The status page:**
   - each card in §3.1 carries the link and the chevron;
-  - the View Schedule button shows exactly when none of them is on the page;
+  - the View Schedule button shows exactly when none of them is on the page, and in the demo's `nothing-ahead` scene;
   - the narrative, location, in-flight and trip progress cards don't link.
 - **Getting there and back:**
   - opening changes the address;
@@ -346,6 +349,7 @@ Nothing new: no requests, storage or scripts. The content security policy is unc
 | 5 | The row rules and the page's behavior in §4. | User, 2026-10-12 |
 | 6 | The back button copies iOS 26's: a chevron in a round glass button. | Design, copying the app |
 | 7 | A jumpseat goes by the airline entered for it: its airline's look with one, the green seat without. | Design, from decision 2's table |
+| 8 | The bars use iOS's bar material as a new color, `--bar-fill`, and the demo gains a `nothing-ahead` scene that shows View Schedule. | Design, from the browser check while planning |
 
 ## 10. Roadmap
 
