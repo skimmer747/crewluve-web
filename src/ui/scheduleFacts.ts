@@ -1,9 +1,11 @@
 import { airlineColor, airlineIcon } from '../copy/airlines'
 import type { ColorToken } from '../copy/colors'
+import type { GapKind, LegMoment } from '../copy/schedule'
 import type { AirportIndex } from '../data/airports'
 import type { Leg, MoveLeg } from '../engine/legs'
 import type { Pilot } from '../engine/types'
 import type { IconName } from '../icons/iconPaths'
+import { calendarDay } from '../time/zoned'
 
 /** The legs the Schedule page lists: every leg but the report time, which Duty never sends the app (slice 3A §4.2). */
 export function scheduleLegs(legs: readonly Leg[]): Leg[] {
@@ -117,4 +119,52 @@ function endsAtHome(leg: Leg, home: string | null): boolean {
     default:
       return false
   }
+}
+
+/** One day of the list: the legs that start on that calendar day in the visitor's zone (slice 3A §4.3). */
+export interface ScheduleDay {
+  /** That calendar date as days since the epoch, as calendarDay gives it. */
+  day: number
+  legs: Leg[]
+}
+
+/** The list's days in order, each with its legs by start time (EventTimelineView.groupedSections). */
+export function scheduleDays(legs: readonly Leg[], timeZone: string): ScheduleDay[] {
+  const days: ScheduleDay[] = []
+  for (const leg of [...legs].sort((a, b) => a.start - b.start)) {
+    const day = calendarDay(leg.start, timeZone)
+    const last = days[days.length - 1]
+    if (last?.day === day) last.legs.push(leg)
+    else days.push({ day, legs: [leg] })
+  }
+  return days
+}
+
+/** The next leg to start: the first that hasn't begun (EventTimelineView.upNextLegID). `legs` are in start order. */
+export function nextLegId(legs: readonly Leg[], now: number): string | null {
+  return legs.find((l) => l.start > now)?.id ?? null
+}
+
+/** Where a leg stands at `now`: happening from its start to its end, both included, the next leg, or neither (§4.9). */
+export function legMoment(leg: Leg, now: number, nextId: string | null): LegMoment {
+  if (leg.start <= now && now <= leg.end) return 'happening'
+  return leg.id === nextId ? 'next' : 'other'
+}
+
+/** The gap before `next`, named by it, when it starts a minute or more after `prev` ends (TimeGapView, §4.10). */
+export function gapBefore(prev: Leg, next: Leg): { kind: GapKind; ms: number } | null {
+  const ms = next.start - prev.end
+  if (ms < 60_000) return null
+  return { kind: next.kind === 'home' || next.kind === 'turn' || next.kind === 'layover' ? next.kind : 'gap', ms }
+}
+
+/**
+ * The day the list opens at, as the app's screen scrolls when it opens: the next leg's day, else the happening leg's,
+ * else today. Null when that day has no legs, and the list opens at the top (§4.11).
+ */
+export function openingDay(days: readonly ScheduleDay[], now: number, timeZone: string): number | null {
+  const legs = days.flatMap((d) => d.legs)
+  const leg = legs.find((l) => l.start > now) ?? legs.find((l) => l.start <= now && now <= l.end)
+  const target = calendarDay(leg?.start ?? now, timeZone)
+  return days.some((d) => d.day === target) ? target : null
 }

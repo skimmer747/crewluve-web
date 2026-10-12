@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { airlineColor, airlineIcon } from '../../src/copy/airlines'
 import type { Leg } from '../../src/engine/legs'
-import { rowLook, scheduleLegs } from '../../src/ui/scheduleFacts'
+import { DAY } from '../../src/time/zoned'
+import { gapBefore, legMoment, nextLegId, openingDay, rowLook, scheduleDays, scheduleLegs } from '../../src/ui/scheduleFacts'
 import { testAirports } from '../fixtures/airports'
-import { drive, duty, flight, pilot, place } from '../fixtures/legs'
+import { drive, duty, flight, H, pilot, place } from '../fixtures/legs'
 
 /** A commuter: home Lexington, base Louisville. */
 const commuter = pilot('LEX', 'SDF')
@@ -102,5 +103,87 @@ describe('rowLook: drives, reserve and events (slice 3A §4.5, §4.6)', () => {
   it('never marks reserve or hot standby at home as ending there, as the app doesn’t', () => {
     expect(look(duty('reserve', 'RSV-A', 'LEX', 0, 1)).homeward).toBe(false)
     expect(look(duty('hotStandby', 'Hot Standby', 'LEX', 0, 1)).homeward).toBe(false)
+  })
+})
+
+/** Midnight in New York on Thursday 15 Oct 2026, in the fixtures' hours; THU is that calendar day. */
+const T0 = Date.UTC(2026, 9, 15, 4) / H
+const THU = Date.UTC(2026, 9, 15) / DAY
+const NY = 'America/New_York'
+
+describe('scheduleDays (slice 3A §4.3)', () => {
+  const thuFlight = flight('SDF', 'RFD', T0 + 6, T0 + 7.5) // 6:00am Thursday in New York
+  const overnight = place('layover', 'RFD', T0 + 7.5, T0 + 30) // until 6:00am Friday
+  const pastMidnight = duty('event', 'Sim', 'RFD', T0 + 25, T0 + 26) // 1:00am Friday in New York, 10:00pm Thursday in Los Angeles
+  const friFlight = flight('RFD', 'SDF', T0 + 30, T0 + 31.5)
+
+  it('groups legs by the calendar day they start on, so a leg across midnight sits under its first day', () => {
+    const days = scheduleDays([friFlight, pastMidnight, overnight, thuFlight], NY)
+    expect(days.map((d) => [d.day, d.legs.map((l) => l.id)])).toEqual([
+      [THU, [thuFlight.id, overnight.id]],
+      [THU + 1, [pastMidnight.id, friFlight.id]],
+    ])
+  })
+
+  it('counts the days in the visitor’s zone', () => {
+    const days = scheduleDays([thuFlight, overnight, pastMidnight, friFlight], 'America/Los_Angeles')
+    expect(days.map((d) => [d.day, d.legs.length])).toEqual([[THU, 3], [THU + 1, 1]])
+  })
+})
+
+describe('nextLegId and legMoment (slice 3A §4.9)', () => {
+  const legs = [flight('SDF', 'RFD', 1, 2), place('turn', 'RFD', 2, 3), flight('RFD', 'SDF', 3, 4)]
+
+  it('finds the next leg: the first that hasn’t started (EventTimelineView.upNextLegID)', () => {
+    expect(nextLegId(legs, 0.5 * H)).toBe(legs[0].id)
+    expect(nextLegId(legs, 2 * H)).toBe(legs[2].id)
+    expect(nextLegId(legs, 2.5 * H)).toBe(legs[2].id)
+    expect(nextLegId(legs, 5 * H)).toBeNull()
+  })
+
+  it('says a leg is happening from its start to its end, both included, and marks only the next leg as next', () => {
+    expect(legs.map((l) => legMoment(l, 2 * H, nextLegId(legs, 2 * H)))).toEqual(['happening', 'happening', 'next'])
+    expect(legs.map((l) => legMoment(l, 2.5 * H, nextLegId(legs, 2.5 * H)))).toEqual(['other', 'happening', 'next'])
+    expect(legs.map((l) => legMoment(l, 5 * H, nextLegId(legs, 5 * H)))).toEqual(['other', 'other', 'other'])
+  })
+})
+
+describe('gapBefore (slice 3A §4.10)', () => {
+  const landed = flight('SDF', 'RFD', 1, 2)
+  const startingAt = (ms: number) => ({ ...flight('RFD', 'SDF', 3, 4), start: ms })
+
+  it('shows a gap only when the next leg starts a minute or more after one ends', () => {
+    expect(gapBefore(landed, startingAt(2 * H))).toBeNull()
+    expect(gapBefore(landed, startingAt(2 * H + 59_000))).toBeNull()
+    expect(gapBefore(landed, startingAt(2 * H + 60_000))).toEqual({ kind: 'gap', ms: 60_000 })
+    expect(gapBefore(landed, startingAt(H))).toBeNull()
+  })
+
+  it('names a gap by the leg after it (TimeGapView.gapType)', () => {
+    expect(gapBefore(landed, place('home', 'LEX', 4, 9))).toEqual({ kind: 'home', ms: 2 * H })
+    expect(gapBefore(landed, place('turn', 'RFD', 3, 4))).toEqual({ kind: 'turn', ms: H })
+    expect(gapBefore(landed, place('layover', 'RFD', 3, 9))).toEqual({ kind: 'layover', ms: H })
+    expect(gapBefore(landed, drive('RFD', 'LEX', true, 3, 4))).toEqual({ kind: 'gap', ms: H })
+  })
+})
+
+describe('openingDay (slice 3A §4.11)', () => {
+  const thuFlight = flight('SDF', 'RFD', T0 + 6, T0 + 7.5)
+  const layover = place('layover', 'RFD', T0 + 7.5, T0 + 54)
+  const satFlight = flight('RFD', 'SDF', T0 + 54, T0 + 55.5) // 6:00am Saturday
+  const at = (hours: number) => (T0 + hours) * H
+
+  it('opens at the next leg’s day, even while another leg is happening', () => {
+    expect(openingDay(scheduleDays([thuFlight, layover, satFlight], NY), at(8), NY)).toBe(THU + 2)
+  })
+
+  it('opens at the happening leg’s day when no leg is next', () => {
+    expect(openingDay(scheduleDays([thuFlight, layover], NY), at(40), NY)).toBe(THU)
+  })
+
+  it('opens at today when nothing is next or happening, and at the top when today has no legs', () => {
+    expect(openingDay(scheduleDays([thuFlight], NY), at(12), NY)).toBe(THU)
+    expect(openingDay(scheduleDays([thuFlight], NY), at(36), NY)).toBeNull()
+    expect(openingDay([], at(12), NY)).toBeNull()
   })
 })
