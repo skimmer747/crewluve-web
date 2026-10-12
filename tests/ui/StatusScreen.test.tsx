@@ -357,6 +357,27 @@ describe('StatusScreen sun popup (slice 2B2)', () => {
     expect(container.querySelector('main')!.getAttribute('aria-hidden')).toBeNull()
   })
 
+  it('sends focus to the in-flight card’s heading when the dial goes away at takeoff', async () => {
+    const { rerender } = render(turnAt())
+    openDial()
+    rerender(turnAt(100))
+    await act(() => {})
+    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 2, name: 'In flight' }))
+  })
+
+  it('sends focus to the location card’s city when the dial goes away in the polar night', async () => {
+    const { rerender } = render(turnAt())
+    openDial()
+    const now = Date.UTC(2026, 11, 21, 20)
+    const snap = makeSnapshot(e.schedule, e.legs, at(180), NY)
+    rerender(
+      <StatusScreen snap={{ ...snap, status: { ...snap.status, airport: 'BRW' } }} now={now} viewerTz={NY} homeTz={NY} h24={false}
+        airports={testAirports} weather={rockford} demo={false} celebrateKey={0} footer={footer(now)} />,
+    )
+    await act(() => {})
+    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 2, name: 'Utqiaġvik' }))
+  })
+
   it('closes by itself when the dial goes away at takeoff, and stays closed when it comes back', () => {
     const { rerender } = render(turnAt())
     openDial()
@@ -456,6 +477,14 @@ describe('StatusScreen in-flight card (slice 2C)', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
     rerender(screenFor(e, 300))
     expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('sends focus to the location card’s city when the popup closes by itself at landing', async () => {
+    const { rerender } = render(screenFor(e, 100))
+    fireEvent.click(screen.getByRole('button', { name: 'UPS2961. Opens flight tracking.' }))
+    rerender(screenFor(e, 180))
+    await act(() => {})
+    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 2, name: 'Rockford' }))
   })
 
   it('opens the popup with only its header for a flight without an airline, as the app does', () => {

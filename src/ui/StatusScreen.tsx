@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'preact/hooks'
+import { useRef } from 'preact/hooks'
 import { arrivalWhenText, leaveWhenText, tripDepartsText } from '../copy/format'
 import { safeNarrative } from '../copy/narrative'
 import { arrivalCard, leaveCard, statusVisual } from '../copy/visuals'
@@ -10,6 +10,7 @@ import { DaysHomePill } from './DaysHomePill'
 import { DemoBanner } from './DemoBanner'
 import { FallbackCard } from './FallbackCard'
 import { Footer, type FooterProps } from './Footer'
+import { usePopupOpener } from './hooks/usePopupOpener'
 import { InFlightCard } from './InFlightCard'
 import { inFlightFacts } from './inFlightFacts'
 import { LocationCard, showsLocationCard } from './LocationCard'
@@ -45,48 +46,29 @@ export interface StatusScreenProps {
  */
 export function StatusScreen(p: StatusScreenProps) {
   const { snap } = p
-  const [sunOpen, setSunOpen] = useState(false)
-  const [trackingOpen, setTrackingOpen] = useState(false)
-  /** The card's dial, which opened the popup: focus goes back to it afterwards. */
-  const dial = useRef<HTMLElement | null>(null)
-  /** The in-flight card's flight number, which opened the tracking popup: focus goes back to it afterwards. */
-  const flightNumberButton = useRef<HTMLElement | null>(null)
-  const wasOpen = useRef(false)
-  const wasTracking = useRef(false)
+  // Where focus goes when a popup closes by itself and its button went with what it showed (popup follow-ups §4.2):
+  // the heading of the card now in the location card's place, or else the page's title.
+  const titleHeading = useRef<HTMLHeadingElement>(null)
+  const locationHeading = useRef<HTMLHeadingElement>(null)
+  const inFlightHeading = useRef<HTMLHeadingElement>(null)
+  const inTheirPlace = () => [inFlightHeading.current, locationHeading.current, titleHeading.current].find((el) => el?.isConnected) ?? null
   const spans = safeNarrative(snap, { now: p.now, viewerTz: p.viewerTz, h24: p.h24, airports: p.airports })
   const airport = snap.status.airport
   // The place, worked out once for the card, the popup and when the popup may be open: the card's rule for its dial.
   const facts = showsLocationCard(snap) ? locationFacts(airport, p.now, p.airports, p.weather) : null
   const dialFacts = facts && showsDial(facts) ? facts : null
-  const dialShown = dialFacts != null
-  // The popup closes by itself when the dial goes away: at takeoff, or when the sun neither rises nor sets.
-  useEffect(() => {
-    if (sunOpen && !dialShown) setSunOpen(false)
-  }, [sunOpen, dialShown])
-  const open = sunOpen && dialShown
-  // Focus goes back to the dial once the popup has closed. This runs after the render that lifts `inert` from <main>,
-  // since nothing in an inert page can take focus. A dial that went away (at takeoff) is skipped.
-  useEffect(() => {
-    if (wasOpen.current && !open && dial.current?.isConnected) dial.current.focus()
-    wasOpen.current = open
-  }, [open])
+  // The sun popup closes by itself when the dial goes away: at takeoff, or when the sun neither rises nor sets.
+  const sun = usePopupOpener(dialFacts != null, inTheirPlace)
   // The in-flight card while the pilot is in the air; the tracking popup closes by itself when its flight number goes,
-  // at landing, and focus goes back to the flight number once it has closed, as for the dial.
+  // at landing.
   const flying = inFlightFacts(snap, p.airports)
-  const tracking = trackingOpen && flying?.trackingNumber != null
-  useEffect(() => {
-    if (trackingOpen && !tracking) setTrackingOpen(false)
-  }, [trackingOpen, tracking])
-  useEffect(() => {
-    if (wasTracking.current && !tracking && flightNumberButton.current?.isConnected) flightNumberButton.current.focus()
-    wasTracking.current = tracking
-  }, [tracking])
-  const hidden = open || tracking
+  const tracking = usePopupOpener(flying?.trackingNumber != null, inTheirPlace)
+  const hidden = sun.open || tracking.open
   const flight = snap.nextFlight
   return (
     <>
       <main class="screen" aria-hidden={hidden ? 'true' : undefined} inert={hidden || undefined}>
-        <Title text={titleFor(snap.hasName ? snap.name : null)} />
+        <Title text={titleFor(snap.hasName ? snap.name : null)} headingRef={titleHeading} />
         {p.demo && <DemoBanner />}
         <NarrativeCard spans={spans} visual={statusVisual(snap)} ring={snap.ring} />
         {snap.status.kind === 'home' ? <HomeCards {...p} /> : <AwayCard {...p} />}
@@ -98,22 +80,12 @@ export function StatusScreen(p: StatusScreenProps) {
             homeTz={p.homeTz}
             h24={p.h24}
             weather={p.weather}
-            onOpenSun={(button) => {
-              dial.current = button
-              setSunOpen(true)
-            }}
+            headingRef={locationHeading}
+            onOpenSun={sun.show}
           />
         )}
         {flying && (
-          <InFlightCard
-            facts={flying}
-            now={p.now}
-            h24={p.h24}
-            onOpenTracking={(button) => {
-              flightNumberButton.current = button
-              setTrackingOpen(true)
-            }}
-          />
+          <InFlightCard facts={flying} now={p.now} h24={p.h24} headingRef={inFlightHeading} onOpenTracking={tracking.show} />
         )}
         {snap.upcomingTrip && (
           <UpcomingTripCard trip={snap.upcomingTrip} now={p.now} timeZone={p.homeTz} h24={p.h24} airports={p.airports} />
@@ -121,7 +93,7 @@ export function StatusScreen(p: StatusScreenProps) {
         {snap.tripProgress && <TripProgressCard progress={snap.tripProgress} airports={p.airports} />}
         <Footer {...p.footer} />
       </main>
-      {open && dialFacts && (
+      {sun.open && dialFacts && (
         <SunPopup
           facts={dialFacts}
           now={p.now}
@@ -131,11 +103,11 @@ export function StatusScreen(p: StatusScreenProps) {
           airports={p.airports}
           weather={p.weather}
           departure={flight ? { scheduled: flight.schedStart, actual: flight.start } : null}
-          onClose={() => setSunOpen(false)}
+          onClose={sun.hide}
         />
       )}
-      {tracking && flying?.trackingNumber && (
-        <TrackingPopup trackingNumber={flying.trackingNumber} links={flying.links} onClose={() => setTrackingOpen(false)} />
+      {tracking.open && flying?.trackingNumber && (
+        <TrackingPopup trackingNumber={flying.trackingNumber} links={flying.links} onClose={tracking.hide} />
       )}
     </>
   )
