@@ -15,11 +15,13 @@ describe('trackingFlightNumber', () => {
 
   it('keeps an airline it has no ICAO code for, in capitals', () => {
     expect(trackingFlightNumber('xy', '12')).toBe('XY12')
+    expect(trackingFlightNumber(' xy ', '12')).toBe('XY12')
   })
 
   it('is null without an airline or without digits', () => {
     expect(trackingFlightNumber(null, '2962')).toBeNull()
     expect(trackingFlightNumber('5X', null)).toBeNull()
+    expect(trackingFlightNumber('  ', '2962')).toBeNull()
   })
 
   it('is null for anything but letters and digits, so a link can’t be turned elsewhere', () => {

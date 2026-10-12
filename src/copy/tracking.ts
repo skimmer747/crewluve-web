@@ -11,8 +11,9 @@ import { airlineIcao } from './airlines'
  * (B6, F9, 5X). The site has the airline and the digits apart, so it looks the airline up directly (§10 item 9).
  */
 export function trackingFlightNumber(airline: string | null, number: string | null): string | null {
-  if (!airline || !number) return null
-  const sign = `${airlineIcao(airline) ?? airline}${number}`.toUpperCase()
+  const code = airline?.trim()
+  if (!code || !number) return null
+  const sign = `${airlineIcao(code) ?? code}${number}`.toUpperCase()
   return /^[A-Z0-9]+$/.test(sign) ? sign : null
 }
 
