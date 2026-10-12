@@ -3147,11 +3147,11 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Files:**
 - Modify (only if nudges are needed): `src/styles/schedule.css`, `src/styles/cards.css`
 
-- [ ] **Step 1: Build and open the preview**
+- [x] **Step 1: Build and open the preview**
 
 Run `npm run build`, then start or reuse the `crewluve-preview` server from `.claude/launch.json` (port 5181) in the browser pane. Set the viewport to 375 × 600 for screenshots, so they come back sharp.
 
-- [ ] **Step 2: Take the screenshots, in light and in dark**
+- [x] **Step 2: Take the screenshots, in light and in dark**
 
 The browser pane can hand back the previous frame right after a page changes, so take a small throwaway screenshot first, then the real one.
 
@@ -3163,11 +3163,11 @@ The browser pane can hand back the previous frame right after a page changes, so
 
 Then tap a card, check that the schedule opens at the next leg's day, and go back with the page's button and with the browser's Back. Each time the status page should return where it was.
 
-- [ ] **Step 3: Ask the user to sign off**
+- [x] **Step 3: Ask the user to sign off**
 
 Put the screenshots side by side, and ask one question: "Looks right (Recommended)" or "Change something". Point out the UP NEXT tag over "Starts in", which the app's layout does too, so they can compare it with their phone. Apply their notes, then show them again.
 
-- [ ] **Step 4: Run the gates and commit any nudges**
+- [x] **Step 4: Run the gates and commit any nudges**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -3270,6 +3270,21 @@ Update the project memory with the new tip and what's next: Slice 3B, the month 
   - deliberate breaks against batch A's fixes caught 9 of 9, and against the zone test 2 of 2;
   - in the browser, the route takes touches, Back and Forward restore scroll and focus, and there are no console errors;
   - the suite is 2011 tests in 88 files.
+
+**Re-checks and the look check**
+- **Re-checks:** both reviewers re-checked `966cc16..f539282`. The spec review found the fixes do what they say; the code-quality review said "Ready to merge: yes".
+- **Their remaining Minor points, fixed:**
+  - `f8817d2`:
+    - a schedule loaded from its address sets its own scroll;
+    - the status page that replaces it goes back to the browser's restoring;
+    - after an edited address, the back button steps back.
+  - `2f1f08b`:
+    - tests for tapping the trip card's route and the "~N days" card;
+    - buttons inside a card keep their own clicks;
+    - no grey flash on the back button.
+  - `079b23d`: the spec's wording.
+- **Not tested:** the stuck heading being set before the first paint. happy-dom runs both kinds of effect together, so a test can't tell them apart.
+- **Look check (Task 12):** the user said "Looks right" to the sheet of eight screenshots, light and dark, at 375 and 320 px. The suite is 2013 tests in 88 files.
 
 **Left for later**
 - `memo` on rows, so a tick touches only the rows whose clock changes. The per-leg work is already memoized.
