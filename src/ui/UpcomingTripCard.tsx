@@ -6,6 +6,7 @@ import type { AirportIndex } from '../data/airports'
 import type { UpcomingTrip } from '../engine/trips'
 import { cssFill } from './colors'
 import { Icon } from './Icon'
+import { useScheduleLink, type ScheduleLinkProps } from './ScheduleLink'
 
 interface UpcomingTripCardProps {
   trip: UpcomingTrip
@@ -14,13 +15,16 @@ interface UpcomingTripCardProps {
   timeZone: string
   h24: boolean
   airports: AirportIndex
+  /** The way into the schedule: a chevron, and the whole card as a link (slice 3A §3.1). */
+  link?: ScheduleLinkProps
 }
 
 /** UpcomingTripCard: the type badge, departure and length, a delay badge when late or early, then the route dots. */
-export function UpcomingTripCard({ trip, now, timeZone, h24, airports }: UpcomingTripCardProps) {
+export function UpcomingTripCard({ trip, now, timeZone, h24, airports, link }: UpcomingTripCardProps) {
   const last = trip.route.length - 1
+  const { linked, chevron } = useScheduleLink(link)
   return (
-    <section class="card glass trip-card">
+    <section class={`card glass trip-card${linked}`}>
       {/* The app's card has no title; screen-reader users jumping between headings still land here. */}
       <h2 class="sr-only">Upcoming trip</h2>
       <div class="trip-head">
@@ -30,6 +34,7 @@ export function UpcomingTripCard({ trip, now, timeZone, h24, airports }: Upcomin
           <p class="trip-days">{daysText(trip.days)}</p>
         </div>
         {trip.delayMinutes != null && <Badge badge={delayBadge(trip.delayMinutes)} />}
+        {chevron}
       </div>
       {trip.route.length > 0 && (
         <div class="route">

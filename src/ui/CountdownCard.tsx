@@ -5,6 +5,7 @@ import type { IconName } from '../icons/iconPaths'
 import { Celebration } from './Celebration'
 import { cssColor } from './colors'
 import { Icon } from './Icon'
+import { useScheduleLink, type ScheduleLinkProps } from './ScheduleLink'
 
 export interface CountdownCardProps {
   title: string
@@ -15,17 +16,21 @@ export interface CountdownCardProps {
   subtitle: string | null
   celebrate?: boolean
   celebrateKey?: number
+  /** The way into the schedule: a chevron, and the whole card as a link (slice 3A §3.1). */
+  link?: ScheduleLinkProps
 }
 
 /** "Back Home In" / "Leaves Home In" card (CountdownCardView). */
-export function CountdownCard({ title, icon, color, target, now, subtitle, celebrate = false, celebrateKey = 0 }: CountdownCardProps) {
+export function CountdownCard({ title, icon, color, target, now, subtitle, celebrate = false, celebrateKey = 0, link }: CountdownCardProps) {
   const css = cssColor(color)
   const parts = cardCountdown(target - now)
+  const { linked, chevron } = useScheduleLink(link)
   return (
-    <section class="card glass countdown">
+    <section class={`card glass countdown${linked}`}>
       <div class="countdown-head">
         <Icon name={icon} size={28} color={css} />
         <h2>{title}</h2>
+        {chevron}
       </div>
       {/* Screen readers hear the label in words ("11 days, 8 hours, 39 minutes") instead of the digits and unit letters. */}
       <div class="countdown-value" role="timer" aria-label={spokenDuration(target - now)}>

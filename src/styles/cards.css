@@ -300,9 +300,53 @@
   text-decoration: none;
 }
 
+/* A card that opens the schedule (slice 3A §3.1). Its link's area covers the whole card, and the card presses in as the
+   app's CardButtonStyle does: to 97% and 85% while held, springing back over about 0.3 s. */
+.linked {
+  position: relative;
+  transition: transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1), opacity 0.3s ease-out;
+}
+
+.linked.pressed {
+  transform: scale(0.97);
+  opacity: 0.85;
+}
+
+.schedule-link {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  color: var(--text-2);
+}
+
+.schedule-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+}
+
+/* The focus ring goes round the whole card. Safari before 15.4 has no :focus-visible, drops the last rule, and keeps
+   the ring; it doesn't focus a link that's clicked. */
+.schedule-link:focus {
+  outline: none;
+}
+
+.schedule-link:focus::after {
+  box-shadow: 0 0 0 2px var(--blue);
+}
+
+.schedule-link:focus:not(:focus-visible)::after {
+  box-shadow: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .digits {
     animation: none;
+  }
+
+  .linked.pressed {
+    transform: none;
   }
 }
 

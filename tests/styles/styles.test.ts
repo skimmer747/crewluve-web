@@ -272,6 +272,20 @@ describe('cards.css', () => {
     expect(declarations(edge!.body)).toEqual([['border-width', '1px']])
     expect(top.indexOf(media!)).toBeGreaterThan(Math.max(top.indexOf(find(top, '.glass')!), top.indexOf(find(top, '.field')!)))
   })
+
+  it('lets a linked card’s chevron link cover the whole card, and presses the card in to 97% and 85% (slice 3A §3.1)', () => {
+    expect(declarations(find(top, '.linked')!.body)).toContainEqual(['position', 'relative'])
+    expect(declarations(find(top, '.linked.pressed')!.body)).toEqual([['transform', 'scale(0.97)'], ['opacity', '0.85']])
+    expect(declarations(find(top, '.schedule-link::after')!.body)).toEqual(
+      expect.arrayContaining([['content', "''"], ['position', 'absolute'], ['inset', '0']]),
+    )
+  })
+
+  it('rings the whole card while its link has keyboard focus, and only fades a pressed card for reduced motion', () => {
+    expect(declarations(find(top, '.schedule-link:focus::after')!.body)).toContainEqual(['box-shadow', '0 0 0 2px var(--blue)'])
+    const media = find(top, '@media (prefers-reduced-motion: reduce)')!
+    expect(declarations(find(blocks(media.body), '.linked.pressed')!.body)).toEqual([['transform', 'none']])
+  })
 })
 
 describe('trips.css', () => {
