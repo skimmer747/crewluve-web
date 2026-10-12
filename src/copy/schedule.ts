@@ -1,7 +1,5 @@
-import { calendarDay, MONTHS, WEEKDAYS, zoneAbbr, zonedParts } from '../time/zoned'
-import { clockText, spokenDuration } from './format'
-
-const pad2 = (n: number) => String(n).padStart(2, '0')
+import { DAY, MONTHS, WEEKDAYS } from '../time/zoned'
+import { pad2, spokenDuration, timeWithZone } from './format'
 
 /**
  * A leg's length or countdown as the app's schedule writes it (TimelineRowView and TimeGapView, formattedDuration):
@@ -21,14 +19,16 @@ export function legDuration(ms: number, withSeconds: boolean): string {
   return withSeconds ? `${minutes}:${pad2(seconds)}` : `${minutes}m`
 }
 
-/** A day's heading (EventTimelineView.sectionHeaderText): "Today", "Yesterday", "Tomorrow", or "Thursday, Oct 16". */
-export function dayHeading(ms: number, now: number, timeZone: string): string {
-  const offset = calendarDay(ms, timeZone) - calendarDay(now, timeZone)
-  if (offset === 0) return 'Today'
-  if (offset === -1) return 'Yesterday'
-  if (offset === 1) return 'Tomorrow'
-  const p = zonedParts(ms, timeZone)
-  return `${WEEKDAYS[p.weekday]}, ${MONTHS[p.month - 1].slice(0, 3)} ${p.day}`
+/**
+ * A day's heading (EventTimelineView.sectionHeaderText): "Today", "Yesterday", "Tomorrow", or "Thursday, Oct 16".
+ * `day` and `today` are calendar days in the visitor's zone, as calendarDay gives them, so it needs no time-zone work.
+ */
+export function dayHeading(day: number, today: number): string {
+  if (day === today) return 'Today'
+  if (day === today - 1) return 'Yesterday'
+  if (day === today + 1) return 'Tomorrow'
+  const date = new Date(day * DAY)
+  return `${WEEKDAYS[date.getUTCDay()]}, ${MONTHS[date.getUTCMonth()].slice(0, 3)} ${date.getUTCDate()}`
 }
 
 /**
@@ -36,8 +36,7 @@ export function dayHeading(ms: number, now: number, timeZone: string): string {
  * devices. Each time carries the abbreviation in force then; the app puts today's on both (slice 3A §4.7).
  */
 export function legTimes(start: number, end: number, timeZone: string, h24: boolean): string {
-  const at = (ms: number) => `${clockText(ms, timeZone, h24)} ${zoneAbbr(ms, timeZone).toLowerCase()}`
-  return `${at(start)} – ${at(end)}`
+  return `${timeWithZone(start, timeZone, h24).toLowerCase()} – ${timeWithZone(end, timeZone, h24).toLowerCase()}`
 }
 
 /** What names a gap between two legs: the leg after it (TimeGapView.gapType). */
@@ -64,5 +63,6 @@ export interface LegClock {
 export function legClock(start: number, end: number, now: number, moment: LegMoment): LegClock {
   const ms = moment === 'happening' ? end - now : moment === 'next' ? start - now : end - start
   const label = moment === 'happening' ? 'Ends in' : moment === 'next' ? 'Starts in' : 'Duration'
-  return { label, value: legDuration(ms, moment !== 'other'), spoken: `${label} ${spokenDuration(ms)}` }
+  // At the very end nothing is left, which is read as "less than a minute" rather than "now".
+  return { label, value: legDuration(ms, moment !== 'other'), spoken: `${label} ${spokenDuration(Math.max(ms, 1000))}` }
 }

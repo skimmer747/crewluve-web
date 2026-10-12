@@ -1,6 +1,6 @@
 import { calendarDay, MONTHS, WEEKDAYS, zoneAbbr, zonedParts } from '../time/zoned'
 
-const pad2 = (n: number) => String(n).padStart(2, '0')
+export const pad2 = (n: number) => String(n).padStart(2, '0')
 
 /** "st" | "nd" | "rd" | "th" (Crewluve ordinalSuffix). */
 export function ordinalSuffix(day: number): string {

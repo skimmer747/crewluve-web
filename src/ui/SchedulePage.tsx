@@ -96,7 +96,7 @@ export function SchedulePage({ legs, pilot, now, timeZone, h24, airports, onBack
             <section key={d.day} class="schedule-day" data-day={d.day}>
               <h2 class="day-heading">
                 <span class={d.day === today ? 'day-pill today' : d.day === stuck ? 'day-pill stuck' : 'day-pill'}>
-                  {dayHeading(d.legs[0].start, now, timeZone)}
+                  {dayHeading(d.day, today)}
                 </span>
               </h2>
               <ol class="day-legs">

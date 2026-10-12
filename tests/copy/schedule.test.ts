@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { dayHeading, gapText, legClock, legDuration, legTimes } from '../../src/copy/schedule'
+import { DAY } from '../../src/time/zoned'
 
 const NY = 'America/New_York'
 const S = 1000
@@ -14,25 +15,22 @@ describe('legDuration', () => {
     [4 * H + 30 * M, false, '4h 30m'], [4 * H, false, '4h'], [35 * M, false, '35m'], [59 * S, false, '0m'],
     [3 * H + 12 * M + 45 * S, true, '3:12:45'], [2 * H + 5 * S, true, '2:00:05'], [12 * M + 9 * S, true, '12:09'],
     [9 * S, true, '0:09'], [50 * H, true, '2d 2h'], [-5 * M, false, '0m'],
+    // Rounded down to the second, as the app's Int(interval): the clock has milliseconds.
+    [3 * H + 12 * M + 45_600, true, '3:12:45'],
   ])('%i ms, with seconds %s → %s', (ms, seconds, text) => expect(legDuration(ms, seconds)).toBe(text))
 })
 
 describe('dayHeading', () => {
-  it('names today, yesterday and tomorrow, and spells out other days (EventTimelineView.sectionHeaderText)', () => {
-    expect(dayHeading(NOON, NOON, NY)).toBe('Today')
-    expect(dayHeading(NOON - 24 * H, NOON, NY)).toBe('Yesterday')
-    expect(dayHeading(NOON + 24 * H, NOON, NY)).toBe('Tomorrow')
-    expect(dayHeading(NOON + 48 * H, NOON, NY)).toBe('Saturday, Oct 17')
-    expect(dayHeading(NOON - 72 * H, NOON, NY)).toBe('Monday, Oct 12')
-    expect(dayHeading(Date.UTC(2026, 8, 1, 16), NOON, NY)).toBe('Tuesday, Sep 1')
-  })
+  /** Thursday 15 Oct 2026 as a calendar day number (days since the epoch, as calendarDay gives it). */
+  const THU = Date.UTC(2026, 9, 15) / DAY
 
-  it('goes by the calendar day in the visitor’s zone, so 11:30pm and 12:30am are different days', () => {
-    const lateTonight = Date.UTC(2026, 9, 16, 3, 30) // 11:30pm in New York on Thursday
-    const justAfter = Date.UTC(2026, 9, 16, 4, 30) // 12:30am in New York on Friday, 11:30pm in Chicago on Thursday
-    expect(dayHeading(lateTonight, NOON, NY)).toBe('Today')
-    expect(dayHeading(justAfter, NOON, NY)).toBe('Tomorrow')
-    expect(dayHeading(justAfter, NOON, 'America/Chicago')).toBe('Today')
+  it('names today, yesterday and tomorrow, and spells out other days (EventTimelineView.sectionHeaderText)', () => {
+    expect(dayHeading(THU, THU)).toBe('Today')
+    expect(dayHeading(THU - 1, THU)).toBe('Yesterday')
+    expect(dayHeading(THU + 1, THU)).toBe('Tomorrow')
+    expect(dayHeading(THU + 2, THU)).toBe('Saturday, Oct 17')
+    expect(dayHeading(THU - 3, THU)).toBe('Monday, Oct 12')
+    expect(dayHeading(Date.UTC(2026, 8, 1) / DAY, THU)).toBe('Tuesday, Sep 1')
   })
 })
 
@@ -81,6 +79,10 @@ describe('legClock', () => {
   it('counts down to the start of the next leg, with seconds under a day', () => {
     expect(legClock(start, end, NOON - 12 * M - 9 * S, 'next')).toEqual({ label: 'Starts in', value: '12:09', spoken: 'Starts in 12 minutes' })
     expect(legClock(start, end, NOON - 50 * H, 'next')).toEqual({ label: 'Starts in', value: '2d 2h', spoken: 'Starts in 2 days, 2 hours' })
+  })
+
+  it('says less than a minute is left at the very end, not "now"', () => {
+    expect(legClock(start, end, end, 'happening')).toEqual({ label: 'Ends in', value: '0:00', spoken: 'Ends in less than a minute' })
   })
 
   it('gives every other leg its length, without seconds', () => {
