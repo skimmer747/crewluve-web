@@ -312,6 +312,19 @@ describe('inFlight.css', () => {
     expect([darkMap.get('--map-route'), darkMap.get('--map-route-middle'), darkMap.get('--map-route-edge')]).toEqual(['var(--cyan)', '0.8', '0.6'])
   })
 
+  it('ties every stop class the map draws to its color, and draws the lines unfilled, inside a 200 px positioned box', () => {
+    for (const time of ['day', 'night']) {
+      for (const n of [1, 2]) expect(rule(`.flight-sky-${time}-${n}`)).toContainEqual(['stop-color', `var(--map-${time}-${n})`])
+    }
+    for (const part of ['edge', 'middle']) {
+      expect(rule(`.flight-route-${part}`)).toEqual(expect.arrayContaining([['stop-color', 'var(--map-route)'], ['stop-opacity', `var(--map-route-${part})`]]))
+    }
+    expect(rule('.flight-route, .flight-route-glow, .flight-arrow, .flight-arrow-glow')).toEqual(expect.arrayContaining([['fill', 'none'], ['stroke-width', '3']]))
+    const box = top.filter((b) => b.head === '.flight-map').flatMap((b) => declarations(b.body))
+    expect(box).toEqual(expect.arrayContaining([['position', 'relative'], ['height', '200px'], ['overflow', 'hidden']]))
+    expect(rule('.flight-airport')).toEqual(expect.arrayContaining([['position', 'absolute'], ['transform', 'translate(-50%, -50%)']]))
+  })
+
   it('glows the route through its own fade at half strength, with no stroke color over the line’s gradient', () => {
     const glow = declarations(find(top, '.flight-route-glow')!.body)
     expect(glow).toContainEqual(['stroke-opacity', '0.5'])
