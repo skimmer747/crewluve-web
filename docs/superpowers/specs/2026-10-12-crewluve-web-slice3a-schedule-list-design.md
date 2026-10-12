@@ -59,7 +59,8 @@ The narrative card, the days-home pill, the location card, the in-flight card an
   - The page's own back button does the same. If the schedule was opened straight from its address (a bookmark or a reload), the back button goes to the status page instead of leaving the site.
 - **Bookmarks and reloads** open the schedule. Signed out, the sign-in page comes first, then the schedule.
 - **The status page comes back scrolled to where it was.** That holds however the schedule opened: from a card, by the browser's Forward, or with the address edited to `#schedule`.
-  - Only the schedule's own history entry stops the browser restoring a scroll; the site sets it each time. The status page's entry keeps the browser's own restoring, so a reload or a return from another site finds it where it was.
+  - Only the schedule's own history entries stop the browser restoring a scroll, a schedule loaded straight from its address included. The status page's entry keeps the browser's own restoring, so a reload or a return from another site finds it where it was.
+  - After an address edited to `#schedule`, the back button steps back to the status page, as after a tap.
 - **Focus:**
   - When the schedule opens, focus moves to its "Schedule" heading, so screen readers announce the new page. The heading takes focus without a focus ring, as the status page's headings do (popup follow-ups §4.2).
   - Coming back, focus returns to the card or button that opened the schedule when it's still on the page. Otherwise it goes to the status page's title.
@@ -100,7 +101,7 @@ The narrative card, the days-home pill, the location card, the in-flight card an
   - **Today's heading** is a green pill with black text: 8 px by 4 px of padding, 6 px radius.
   - **The heading stuck at the top** is a yellow pill with black text, unless it's today's, which stays green.
   - **Other headings** have no pill and use the secondary color.
-  - **Behind each heading:** the same bar material as the top bar, across the list's width.
+  - **Behind each heading:** the bar's color laid over the page's, across the list's width: the top bar's shade, but solid and without a blur. A row sliding under a stuck heading doesn't show through, and Safari isn't given a layer for every heading.
 - **Live:** the words follow the clock. At midnight, "Today" becomes "Yesterday".
 - **For screen readers,** each day is a heading over a list of its legs. Its words are read normally ("Thursday, Oct 16"), not in capitals: the heading is labelled with them.
   - Safari drops the list role from a list shown without bullets, so each list says it's a list.
@@ -132,7 +133,7 @@ The narrative card, the days-home pill, the location card, the in-flight card an
 
 - **The label** of a reserve, hot standby, training or other event is its name as the status page already has it: the reserve code ("RSV-A"), "Hot Standby", the training's name, or the event's title.
 
-- **{flight}:** written as on the in-flight card, in the form of Duty's `formatFlightNumber`:
+- **{flight}:** in the form of Duty's `formatFlightNumber`, through the in-flight card's formatter. A jumpseat goes by the airline entered for it, so one entered without an airline shows its number alone, where the in-flight card writes "UPS451":
   - a flight or jumpseat entered with its airline: the code as entered and the number, "AA1234". An airline entered as 5X reads "UPS2961", as on the status page;
   - a UPS company flight, entered without an airline: "UPS" and the number, "UPS2961";
   - ground transport: "GND";
@@ -300,7 +301,7 @@ Nothing new: no requests, storage or scripts. The content security policy is unc
   - A commercial ticket entered without an airline shows its number alone. The app writes "UPS" before it.
   - Leading zeros are dropped, as everywhere on the site: "UPS81". Duty writes the number as stored: "UPS081".
   - An airline entered as 5X reads "UPS2961", as on the status page. Duty writes "5X2961".
-- **Places:** a location the site reads as an airport shows its city. "SDFZ" reads "in Louisville", where the app writes "at SDFZ".
+- **Places:** a location the site reads as an airport shows its city. "SDFZ" reads "in Louisville", where the app writes "at SDFZ", and counts as SDF for the house and buildings icons, where the app shows a book.
 - **Drives:** a drive's words, color and home mark follow one rule, its direction or its destination being home. The app takes the words from the direction and the color from the destination, so a drive "to work" that ends at home, or "home" to a city that's no longer home, reads differently there.
 - **Inherited from the site's leg builder,** which the status page already uses:
   - a turn ends early when a flight leaves during it, as layovers do;
@@ -368,7 +369,7 @@ Nothing new: no requests, storage or scripts. The content security policy is unc
 | 7 | A jumpseat goes by the airline entered for it: its airline's look with one, the green seat without. | Design, from decision 2's table |
 | 8 | The bars use iOS's bar material as a new color, `--bar-fill`, and the demo gains a `nothing-ahead` scene that shows View Schedule. | Design, from the browser check while planning |
 | 9 | Titles use the place as entered when it isn't a known airport ("Sim at Training Center"), as the app does; a drive home follows the site's one rule; the base stop stays in the list's blue; the next leg gets no home hint, as its UP NEXT tag speaks. | Design, from the batch A reviews |
-| 10 | The whole card takes the tap and the chevron is the link, so the trip card's route still scrolls; gaps are spoken; rows have no backdrop blur; only the schedule's history entry stops scroll restoring. | Design, from the batch B reviews |
+| 10 | The whole card takes the tap and the chevron is the link, so the trip card's route still scrolls; gaps are spoken; rows and day headings have no backdrop blur, the headings' band solid; only the schedule's history entries stop scroll restoring. | Design, from the batch B reviews and the re-checks |
 
 ## 10. Roadmap
 
