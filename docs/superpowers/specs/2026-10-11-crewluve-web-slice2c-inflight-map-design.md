@@ -131,7 +131,7 @@ The map is one image with a spoken description, which the app doesn't have (§10
     - **Text, as the pilot's Duty app writes it:** "UPS2962" for company flights (airline 5X), the airline and digits for others ("DL1235"), and the digits alone without an airline.
   - **"In Flight"**, 11 px medium, in the bar's secondary color. In flight the app sets no current city, so it shows this fallback.
 - **Right**, aligned right, 2 px between lines:
-  - **The local time:** a 12 px location arrow pointing up and to the right, as the app's, then the current time, 16 px semibold with steady digits. It's in the arrival airport's zone, or the departure's when that's unknown, in the site's short format ("11:19 AM"). It updates every second.
+  - **The local time:** a 12 px location arrow pointing up and to the right, as the app's, then the current time, 16 px semibold with steady digits. It's in the arrival airport's zone, or the departure's when that's unknown, in the site's short format ("11:19 AM"). It updates every second. With neither zone known, the arrow shows alone, as in the app.
   - **The arrival code**, 10 px medium, secondary color.
 - **The bar:** 16 px padding on the sides and 10 px top and bottom, over its own background. It takes the card's 20 px radius on its bottom corners.
 - **Colors (fixed, as in the app):**
@@ -151,7 +151,7 @@ It copies `FlightTrackingPopupView.swift`, as in the mockup approved on 2026-10-
   - The flight number opens it, by tap, click, Enter or Space.
   - The page behind is dimmed (black at 30%, over a blur) and hidden from screen readers.
   - The card springs in from half size and transparent, and fades and shrinks back out in 0.2 s. Visitors who ask for reduced motion see it appear and go at once, as the sun popup does.
-- **Closing:** the ✕ button, a tap outside the card, or Escape. Focus goes back to the flight number.
+- **Closing:** the ✕ button, a tap outside the card, or Escape. Focus goes back to the flight number. The popup also closes by itself at landing, when the flight number goes.
 - **The card:** up to 340 px wide, 20 px padding, 16 px between rows, frosted, with a 28 px radius. It's a dialog named by its heading.
   - **The header:** a blue plane icon, then the flight number in its ICAO form, 20 px bold. On the right is a close button: a 22 px gray ✕ in a circle, labelled "Close".
   - **"Track this flight"**, 15 px, secondary color.

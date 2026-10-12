@@ -4,7 +4,7 @@
 
 **Goal:** While the pilot is in the air, show the Crewluve app's in-flight card in the location card's place: a drawn map of the flight, then a delay banner and an info bar. Its flight number opens a tracking popup with links to FlightRadar24 and FlightAware.
 
-**Architecture:** Pure modules port the app's math: the great circle, the box and projection, the plane, the distance, the sunrise or sunset point, and the sky. The sun's position comes from the site's own sun module, since the app's formula is wrong (spec decision 9). Further modules hold the card's words, the tracking links, and the card's facts from the snapshot. A Preact `FlightMap` draws one SVG at its measured width, with HTML labels. `InFlightCard` stacks the map, the banner and the info bar. `TrackingPopup` reuses the sun popup's dialog behavior. The status screen draws the card in the location card's place, and the popup after `<main>`. There are no new requests and no change to the CSP.
+**Architecture:** Pure modules port the app's math: the great circle, the box and projection, the plane, the distance, the sunrise or sunset point, and the sky. The sun's position comes from the site's own sun module, since the app's formula is wrong (spec decision 9). Further modules hold the card's words, the tracking links, and the card's facts from the snapshot. A Preact `FlightMap` draws an SVG at its measured width, with HTML labels over it. The review fixes put the plane in a second SVG over the labels, as the app stacks them (see the Execution notes). `InFlightCard` stacks the map, the banner and the info bar. `TrackingPopup` reuses the sun popup's dialog behavior. The status screen draws the card in the location card's place, and the popup after `<main>`. There are no new requests and no change to the CSP.
 
 **Tech Stack:** Vite 5.4, TypeScript 5.9 (strict), Preact 10, Vitest 3 with happy-dom and @testing-library/preact.
 
@@ -17,7 +17,7 @@
 **Setup and gates**
 - **Branch:** work on `slice2c` in the main project folder. Run `git switch -c slice2c` from `main`. Don't use git worktrees; auto mode blocked a worktree builder during slice 1.
 - **Working directory:** run every command from the project root, `~/Dev/Crewluve Website`. Quote it in shells, since it has a space.
-- **Gates:** `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass before every commit that touches code. The suite is 1660 tests in 70 files before this plan, and 1810 tests in 79 files after it. The read-only scan (`tests/data/readOnly.test.ts`) adds one test for each new file in `src/`, so the totals grow a little faster than the task counts below.
+- **Gates:** `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass before every commit that touches code. The suite is 1660 tests in 70 files before this plan, and 1810 tests in 79 files after the printed tasks. The review fixes took it to 1848 (see the Execution notes). The read-only scan (`tests/data/readOnly.test.ts`) adds one test for each new file in `src/`, so the totals grow a little faster than the task counts below.
 - **Commit trailer:** end every commit message with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - **Narrow no-break spaces:** the site writes "9:14 AM" with U+202F before AM. Test files spell it `\u202F`, as the printed blocks do. If an editor or tool turns it into the raw character, change it back.
 
@@ -59,7 +59,7 @@
 | `src/copy/tracking.ts` | create | The tracking flight number and the FlightRadar24 and FlightAware links |
 | `src/ui/inFlightFacts.ts` | create | The card's facts from the snapshot, and the flight's progress |
 | `src/ui/hooks/useWidth.ts` | create | An element's measured width, kept up to date |
-| `src/ui/FlightMap.tsx` | create | The map: one SVG at the measured width, with HTML labels, or the app's fallback |
+| `src/ui/FlightMap.tsx` | create | The map: an SVG at the measured width, HTML labels over it and the plane's SVG over those, or the app's fallback |
 | `src/ui/InFlightCard.tsx` | create | The card: the map, the delay banner and the info bar |
 | `src/ui/TrackingPopup.tsx` | create | The tracking popup |
 | `src/styles/inFlight.css` | create | The map's, the card's and the popup's styles and fixed colors |
@@ -3246,7 +3246,7 @@ Update the project memory with the new tip and what's next: slice 3, the Schedul
 
 ## Done when
 
-- `npx vitest run`, `npx tsc --noEmit` and `npm run build` are all green, with 1810 tests in 79 files.
+- `npx vitest run`, `npx tsc --noEmit` and `npm run build` are all green, with 1848 tests in 79 files (1810 from the printed tasks, plus the review fixes).
 - While the pilot is in the air, the in-flight card takes the location card's place, with the map, the banner and the info bar. Its flight number opens the tracking popup (Tasks 1–12).
 - The user has signed off on the look (Task 13), and the card is live on crewluve.crewlu.net, released with the user's yes (Task 14).
 
@@ -3312,8 +3312,20 @@ Update the project memory with the new tip and what's next: slice 3, the Schedul
 
 **Look check (Task 13), 2026-10-11:** the user approved the look ("Looks right"). They saw a sheet of both demo flights in light and dark, the tracking popup, and the Increase Contrast colors, at 375 px.
 
+**Final whole-branch review: ready to merge and release; its points fixed in the same round**
+- Task 9, tests: a style test now ties the sky's and the route's stop classes to their colors, and pins the lines unfilled inside the 200 px box. A renamed class or a filled line would otherwise paint black on the live card (`5043c79`).
+- Task 10: the flight number now tells screen readers what it opens, "UPS2962. Opens flight tracking.", as the sun dial says "Opens sun details." Spec §10 item 5 lists it (`82f0703`).
+- Tasks 10 and 11, names (`902e590`):
+  - the popup's prop is `trackingNumber`, since `InFlightFacts.flightNumber` is the other, Duty-form number;
+  - the info bar's colors are `--info-bar-*`, so they don't read like the trip card's `--bar-track`.
+- Task 7, tests: an airline code with more than letters and digits still opens the popup, with no links (`9eddcc1`).
+- The spec now says the popup closes by itself at landing (§6), and that with neither zone known the info bar's arrow shows alone, as in the app (§5.2). The summary lines at the top of this plan and its "Done when" now point to the final count.
+
 **Left for later:**
 - **The two popups' shared code:** the tracking popup copies the sun popup's closing logic, and the status screen holds two copies of the open-and-focus-return state. Shared hooks would remove both copies.
-- **Closing during the opening spring:** both popups keep springing in when closed during it, and should be fixed together with the shared hooks. Best before slice 3 adds more popups.
+- **Closing during the opening spring:** both popups keep springing in when closed during it.
+- **Focus when a popup closes by itself:** at landing or takeoff the button that opened it is gone, so focus falls to the page; `<main>` or the new card's heading would keep screen-reader users oriented.
+- These three belong together, best before slice 3 adds more popups.
 - **Longitude's spelling:** `GeoPoint` spells it `lon`, where the airport list and `sun.ts` use `lng`.
-- **Suite:** 1847 tests in 79 files.
+- **One source for the delay:** `inFlightFacts` works out the delay with the same `departureOffset` as the snapshot's `delay`; reading `snap.delay` would keep the banner and the sentence in step by construction. They agree today.
+- **Suite:** 1848 tests in 79 files.
