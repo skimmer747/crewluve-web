@@ -1,0 +1,228 @@
+/* The Schedule page (slice 3A §4). Sizes are the app's TimelineRowView and TimeGapView in points. */
+
+/* A row: a gap line, if any, then the leg on glass. */
+.leg-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.leg {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+
+/* The 36 px circle: the leg's color at 20% behind its 15 px icon. */
+.leg-icon {
+  position: relative;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  color: var(--leg);
+}
+
+.leg-icon::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.2;
+}
+
+.leg-icon .icon {
+  position: relative;
+}
+
+/* The leg happening now pulses its icon, as the app's .symbolEffect(.pulse). */
+.leg-icon.pulsing .icon {
+  animation: leg-pulse 1s ease-in-out infinite;
+}
+
+@keyframes leg-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.leg-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.leg-title {
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.leg-times {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-2);
+}
+
+/* The right-hand column: the label at 9 px over the time at 11 px, with steady digits. */
+.leg-clock {
+  flex: none;
+  min-width: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  text-align: right;
+}
+
+.leg-clock-label {
+  font-size: 9px;
+  line-height: 11px;
+  color: var(--text-2);
+}
+
+.leg-clock-value {
+  font-size: 11px;
+  line-height: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+
+.leg-happening .leg-clock-value {
+  font-weight: 600;
+  color: var(--leg);
+}
+
+.leg-next .leg-clock-label,
+.leg-next .leg-clock-value {
+  color: var(--cyan);
+}
+
+.leg-next .leg-clock-value {
+  font-weight: 600;
+}
+
+/* The edges: 2 px in the leg's color at 50% while it's happening, green at 50% when it ends at home. */
+.leg-happening::after,
+.leg-home::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  border: 2px solid var(--leg);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.leg-home::after,
+.leg-happening.homeward::after {
+  border-color: var(--green);
+}
+
+/* The next leg's ring (RotatingGradientBorder): a 2 px band, masked out of a cyan and blue conic gradient that turns
+   once every 4 s; the mask's alpha fades its second half to 30%. The -webkit- names come first, for Safari 14. */
+.leg-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  padding: 2px;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+.leg-ring-turn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1000px;
+  height: 1000px;
+  margin: -500px 0 0 -500px;
+  background: conic-gradient(var(--cyan), var(--blue), var(--cyan), var(--blue), var(--cyan));
+  -webkit-mask-image: conic-gradient(#000, #000, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3), #000);
+  mask-image: conic-gradient(#000, #000, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3), #000);
+  animation: leg-turn 4s linear infinite;
+}
+
+@keyframes leg-turn {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+/* The red UP NEXT tag, over the row's top right corner. */
+.up-next {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--red);
+  color: #ffffff;
+  font-size: 11px;
+  line-height: 13px;
+  font-weight: 700;
+}
+
+/* A gap: its dashed line under the icons' centers (12 px in, then 18), and its label at 11 px. */
+.leg-gap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 0 30px;
+  font-size: 11px;
+  line-height: 13px;
+  color: var(--gap);
+}
+
+.leg-gap-line {
+  flex: none;
+  width: 1px;
+  height: 20px;
+  margin-left: -0.5px;
+  background: repeating-linear-gradient(to bottom, var(--gap) 0 4px, transparent 4px 8px);
+  opacity: 0.4;
+}
+
+.leg-gap-home {
+  --gap: var(--green);
+}
+
+.leg-gap-turn {
+  --gap: var(--orange);
+}
+
+.leg-gap-layover {
+  --gap: var(--blue);
+}
+
+.leg-gap-gap {
+  --gap: var(--text-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leg-icon.pulsing .icon {
+    animation: none;
+  }
+
+  .leg-ring {
+    opacity: 0.6;
+  }
+
+  .leg-ring-turn {
+    animation: none;
+    background: var(--cyan);
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}

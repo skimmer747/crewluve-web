@@ -584,6 +584,65 @@ describe('bigDial.css', () => {
   })
 })
 
+describe('schedule.css', () => {
+  // Read when each test runs, so a missing file fails the tests below and not the whole file.
+  const rule = (head: string) => declarations(find(rulesIn(css('schedule')), head)!.body)
+
+  it('lays a row out as TimelineRowView: 12 px apart, 10 by 12 px in, with a 14 px radius', () => {
+    expect(rule('.leg')).toEqual(expect.arrayContaining([['display', 'flex'], ['gap', '12px'], ['padding', '10px 12px'], ['border-radius', '14px']]))
+  })
+
+  it('tints the 36 px icon circle with the leg’s color at 20%', () => {
+    expect(rule('.leg-icon')).toEqual(expect.arrayContaining([['width', '36px'], ['height', '36px'], ['color', 'var(--leg)']]))
+    expect(rule('.leg-icon::before')).toEqual(expect.arrayContaining([['background', 'currentColor'], ['opacity', '0.2']]))
+  })
+
+  it('sizes the title, the times and the right-hand column as the app does', () => {
+    expect(rule('.leg-title')).toEqual(expect.arrayContaining([['font-size', '15px'], ['font-weight', '600']]))
+    expect(rule('.leg-times')).toEqual(expect.arrayContaining([['font-size', '12px'], ['color', 'var(--text-2)']]))
+    expect(rule('.leg-clock')).toContainEqual(['min-width', '56px'])
+    expect(rule('.leg-clock-label')).toContainEqual(['font-size', '9px'])
+    expect(rule('.leg-clock-value')).toEqual(expect.arrayContaining([['font-size', '11px'], ['font-variant-numeric', 'tabular-nums']]))
+  })
+
+  it('edges the happening leg in its color at 50%, and a leg ending at home in green', () => {
+    expect(rule('.leg-happening::after, .leg-home::after')).toEqual(expect.arrayContaining([['border', '2px solid var(--leg)'], ['opacity', '0.5']]))
+    expect(rule('.leg-home::after, .leg-happening.homeward::after')).toEqual([['border-color', 'var(--green)']])
+  })
+
+  it('turns the next leg’s cyan and blue ring once every 4 s, and holds it still in cyan at 60% for reduced motion', () => {
+    expect(rule('.leg-ring-turn')).toEqual(expect.arrayContaining([
+      ['background', 'conic-gradient(var(--cyan), var(--blue), var(--cyan), var(--blue), var(--cyan))'],
+      ['animation', 'leg-turn 4s linear infinite'],
+    ]))
+    const reduced = rulesIn(find(blocks(css('schedule')), '@media (prefers-reduced-motion: reduce)')!.body)
+    expect(declarations(find(reduced, '.leg-ring')!.body)).toEqual([['opacity', '0.6']])
+    expect(declarations(find(reduced, '.leg-ring-turn')!.body)).toEqual(expect.arrayContaining([['animation', 'none'], ['background', 'var(--cyan)']]))
+    expect(declarations(find(reduced, '.leg-icon.pulsing .icon')!.body)).toEqual([['animation', 'none']])
+  })
+
+  it('masks the ring to its 2 px band, with the -webkit- names first for Safari 14', () => {
+    const ring = rule('.leg-ring')
+    const names = ring.map(([prop]) => prop)
+    expect(names.indexOf('-webkit-mask')).toBeLessThan(names.indexOf('mask'))
+    expect(ring).toEqual(expect.arrayContaining([['padding', '2px'], ['-webkit-mask-composite', 'xor'], ['mask-composite', 'exclude']]))
+  })
+
+  it('puts the red UP NEXT tag 6 px from the top and 8 px from the right', () => {
+    expect(rule('.up-next')).toEqual(expect.arrayContaining([
+      ['position', 'absolute'], ['top', '6px'], ['right', '8px'], ['background', 'var(--red)'], ['font-size', '11px'], ['font-weight', '700'],
+    ]))
+  })
+
+  it('lines a gap up under the icons’ centers, its line at 40% of the label’s color', () => {
+    expect(rule('.leg-gap')).toContainEqual(['padding', '0 12px 0 30px'])
+    expect(rule('.leg-gap-line')).toEqual(expect.arrayContaining([['width', '1px'], ['height', '20px'], ['opacity', '0.4']]))
+    expect([rule('.leg-gap-home'), rule('.leg-gap-turn'), rule('.leg-gap-layover'), rule('.leg-gap-gap')]).toEqual([
+      [['--gap', 'var(--green)']], [['--gap', 'var(--orange)']], [['--gap', 'var(--blue)']], [['--gap', 'var(--text-2)']],
+    ])
+  })
+})
+
 describe('backdrop blurs', () => {
   it('come with the -webkit- name first, which Safari needs before version 18', () => {
     let blurs = 0
