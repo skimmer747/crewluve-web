@@ -83,7 +83,9 @@ describe('TrackingPopup', () => {
     vi.useFakeTimers()
     const onClose = vi.fn()
     render(popup(onClose))
-    fireEvent.click(screen.getByRole('link', { name: /FlightAware/ }))
+    const link = screen.getByRole('link', { name: /FlightAware/ })
+    link.addEventListener('click', (event) => event.preventDefault()) // so the test's browser doesn't try to open the page
+    fireEvent.click(link)
     act(() => {
       vi.advanceTimersByTime(TRACKING_CLOSE_MS)
     })

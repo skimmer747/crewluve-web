@@ -292,6 +292,7 @@ describe('inFlight.css', () => {
   const dark = find(top, '@media (prefers-color-scheme: dark)')
   const light = customProperties(find(top, '.flight-map')?.body)
   const darkMap = customProperties(find(blocks(dark?.body ?? ''), '.flight-map')?.body)
+  const rule = (head: string) => declarations(find(top, head)!.body)
 
   // Slice 2C §4.3 and §4.5: FlightRouteMapView's fixed colors, as RGB fractions.
   it.each([
@@ -351,6 +352,49 @@ describe('inFlight.css', () => {
       expect(colored.length, head).toBeGreaterThan(0)
       for (const rule of colored) expect(top.indexOf(rule), head).toBeLessThan(darkAt)
     }
+  })
+
+  // Slice 2C §4.5, §4.7, §4.8 and §5.2: which of the fixed text colors each part takes.
+  it.each([
+    ['.flight-airport-code', 'color', 'var(--map-text)'],
+    ['.flight-airport-city', 'color', 'var(--map-text-2)'],
+    ['.flight-airport-time', 'color', 'var(--map-text)'],
+    ['.flight-distance', 'color', 'var(--map-text)'],
+    ['.flight-plane-icon', 'fill', 'var(--map-text)'],
+    ['.flight-map-fallback', 'color', 'var(--map-text-2)'],
+    ['.inflight-number', 'color', 'var(--bar-text)'],
+    ['.inflight-number', 'text-decoration-color', 'var(--bar-underline)'],
+    ['.inflight-status', 'color', 'var(--bar-text-2)'],
+    ['.inflight-time', 'color', 'var(--bar-text)'],
+    ['.inflight-code', 'color', 'var(--bar-text-2)'],
+  ])('%s takes its %s from %s', (head, prop, value) => {
+    expect(rule(head)).toContainEqual([prop, value])
+  })
+
+  it('draws the arrow in the route’s color glowing at 80%, the sun or moon glowing at 80%, and the plane’s blue halo and glow', () => {
+    expect(rule('.flight-arrow, .flight-arrow-glow')).toContainEqual(['stroke', 'var(--map-route)'])
+    expect(rule('.flight-arrow-glow')).toContainEqual(['stroke-opacity', '0.8'])
+    expect(rule('.flight-airport-icon > .icon:first-child')).toEqual(expect.arrayContaining([['filter', 'blur(2px)'], ['opacity', '0.8']]))
+    expect(rule('.flight-airport-icon.day')).toContainEqual(['color', 'var(--yellow)'])
+    expect(rule('.flight-airport-icon.night')).toContainEqual(['color', 'var(--blue)'])
+    expect(rule('.flight-plane-halo')).toEqual(expect.arrayContaining([['fill', 'var(--blue)'], ['fill-opacity', '0.3']]))
+    expect(rule('.flight-plane-glow')).toEqual(expect.arrayContaining([['fill', 'var(--blue)'], ['fill-opacity', '0.8']]))
+  })
+
+  it('tints each tracking link in its own color at 12%: FlightRadar24 blue, FlightAware orange', () => {
+    expect(rule('.tracking-link::before')).toEqual(expect.arrayContaining([['background', 'currentColor'], ['opacity', '0.12']]))
+    expect(rule('.tracking-link.radar')).toContainEqual(['color', 'var(--blue)'])
+    expect(rule('.tracking-link.aware')).toContainEqual(['color', 'var(--orange)'])
+  })
+
+  it('dims the page behind the popup with black at 30% over a blur, and closes in 0.2 s, ease-out, back to half size', () => {
+    expect(rule('.tracking-backdrop')).toEqual(
+      expect.arrayContaining([['background', 'rgba(0, 0, 0, 0.3)'], ['-webkit-backdrop-filter', 'blur(20px)'], ['backdrop-filter', 'blur(20px)']]),
+    )
+    expect(rule('.tracking-popup.closing .tracking-backdrop')).toEqual(expect.arrayContaining([['opacity', '0'], ['transition', 'opacity 0.2s ease-out']]))
+    expect(rule('.tracking-popup.closing .tracking-card')).toEqual(
+      expect.arrayContaining([['opacity', '0'], ['transform', 'scale(0.5)'], ['transition', 'opacity 0.2s ease-out, transform 0.2s ease-out']]),
+    )
   })
 
   it('springs the tracking popup open on the sun popup’s keyframes at 0.42 s, and stills it for reduced motion', () => {
