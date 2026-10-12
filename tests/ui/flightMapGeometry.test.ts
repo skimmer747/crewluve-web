@@ -81,9 +81,10 @@ describe('mapBounds', () => {
     expect(b.lonOffset).toBe(0)
   })
 
-  it('widens a route that runs north and south to 0.6 of its height', () => {
+  it('widens a route that runs north and south to 0.6 of its height, evenly on both sides', () => {
     const b = mapBounds(SDF, MIA)
     expect((b.maxLon - b.minLon) / (b.maxLat - b.minLat)).toBeCloseTo(0.6, 9)
+    expect((b.minLon + b.maxLon) / 2).toBeCloseTo((SDF.lon + MIA.lon) / 2, 9)
   })
 
   it('counts longitudes on from 180° for a route across the antimeridian, so it draws in one piece', () => {
@@ -163,6 +164,20 @@ describe('planePose', () => {
     expect(pose.at).toEqual(at(0.33))
     const ahead = at(0.35)
     expect(pose.heading).toBeCloseTo((Math.atan2(ahead.y - pose.at.y, ahead.x - pose.at.x) * 180) / Math.PI, 9)
+  })
+
+  it('heads toward the point 2% further on from takeoff', () => {
+    const pose = planePose(ANC, SDF, box, W, 0)
+    expect(pose.at).toEqual(at(0))
+    const ahead = at(0.02)
+    expect(pose.heading).toBeCloseTo((Math.atan2(ahead.y - pose.at.y, ahead.x - pose.at.x) * 180) / Math.PI, 9)
+  })
+
+  it('takes its heading from the point 2% behind when the point ahead is under 1 px away, just before landing', () => {
+    const pose = planePose(ANC, SDF, box, W, 0.999)
+    const [ahead, behind] = [at(1), at(0.979)]
+    expect(Math.hypot(ahead.x - pose.at.x, ahead.y - pose.at.y)).toBeLessThan(1)
+    expect(pose.heading).toBeCloseTo((Math.atan2(pose.at.y - behind.y, pose.at.x - behind.x) * 180) / Math.PI, 9)
   })
 
   it('keeps its heading at landing, from the point 2% behind', () => {

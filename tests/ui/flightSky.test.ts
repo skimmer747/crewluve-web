@@ -81,6 +81,8 @@ describe('flightSky', () => {
   it('keeps the blend inside the map at its edges', () => {
     const sky = flightSky(false, true, 0.02, 0.98, { progress: 0, sunrise: true })
     expect(sky).toMatchObject({ leftUntil: 0, rightFrom: expect.closeTo(0.095, 9) })
+    const late = flightSky(false, true, 0.02, 0.98, { progress: 1, sunrise: true })
+    expect(late).toMatchObject({ leftUntil: expect.closeTo(0.905, 9), rightFrom: 1 })
   })
 
   it('blends across the whole width without a sunrise or sunset point', () => {
