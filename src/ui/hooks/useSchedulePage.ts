@@ -21,13 +21,17 @@ export function useSchedulePage() {
   const wasOpen = useRef(open)
 
   useEffect(() => {
+    // A schedule loaded straight from its address sets its own scroll too.
+    if (wasOpen.current) history.scrollRestoration = 'manual'
     const follow = () => {
       const next = atSchedule()
       // Arriving some other way, by Forward or an edited address: the status page is where it was scrolled, as the
-      // schedule's own entry doesn't let the browser restore a scroll, and no link was taken.
+      // schedule's own entry doesn't let the browser restore a scroll, and no link was taken. The entry before this one
+      // is the status page, so it's marked as the site's own, and the back button steps back to it.
       if (next && !wasOpen.current) {
         from.current = null
         statusScroll.current = window.scrollY
+        history.replaceState({ [OPENED_HERE]: true }, '')
         history.scrollRestoration = 'manual'
       }
       setOpen(next)
@@ -70,6 +74,8 @@ export function useSchedulePage() {
         return
       }
       history.replaceState(null, '', window.location.pathname + window.location.search)
+      // This entry is the status page now, which restores its scroll as browsers do.
+      history.scrollRestoration = 'auto'
       setOpen(false)
     },
   }

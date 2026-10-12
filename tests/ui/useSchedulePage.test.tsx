@@ -144,14 +144,32 @@ describe('useSchedulePage (slice 3A §3.3)', () => {
     expect(onSchedule()).toBe(false)
     expect(window.scrollY).toBe(700)
     expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: "Where's Alex?" }))
+    // The back button stepped back, as after a tap, rather than leaving the status page in history twice.
+    history.forward()
+    await settle()
+    expect(onSchedule()).toBe(true)
   })
 
-  it('stops the browser restoring the schedule’s scroll, and leaves the status page’s own history entry as it was', () => {
+  it('stops the browser restoring the schedule’s scroll, and leaves the status page’s own history entry as it was', async () => {
     history.scrollRestoration = 'auto'
     render(<Pages />)
     expect(history.scrollRestoration).toBe('auto')
     fireEvent.click(screen.getByRole('link', { name: 'Schedule' }))
     expect(history.scrollRestoration).toBe('manual')
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    await settle()
+    expect(history.scrollRestoration).toBe('auto')
+  })
+
+  it('does the same for a schedule loaded straight from its address, and for the status page that takes its place', async () => {
+    history.replaceState(null, '', '/?demo=1&scene=home#schedule')
+    history.scrollRestoration = 'auto'
+    render(<Pages />)
+    expect(history.scrollRestoration).toBe('manual')
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    await settle()
+    expect(onSchedule()).toBe(false)
+    expect(history.scrollRestoration).toBe('auto')
   })
 
   it('stops following the address once it’s gone', () => {
