@@ -220,6 +220,12 @@ describe('tokens.css: Increase Contrast', () => {
   })
 })
 
+describe('base.css', () => {
+  it('shows no focus ring on the headings that take focus from code, which nothing presses (popup follow-ups §4.2)', () => {
+    expect(declarations(find(blocks(css('base')), "h1[tabindex='-1']:focus, h2[tabindex='-1']:focus")!.body)).toContainEqual(['outline', 'none'])
+  })
+})
+
 describe('cards.css', () => {
   const top = blocks(css('cards'))
 

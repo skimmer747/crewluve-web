@@ -66,7 +66,7 @@ The other two "Left for later" items stay for another time: longitude's spelling
 - **What people notice:**
   - Screen readers read the heading out, so it's clear what changed.
   - The headings take focus from code only (`tabindex="-1"`), so Tab doesn't stop on them.
-  - Mouse and touch users see no change.
+  - Mouse and touch users see no change: the headings show no focus ring, even in Safari before 15.4, which has no `:focus-visible`.
 
 ### 4.3 Timing
 
@@ -86,9 +86,11 @@ Focus moves after the page behind stops being inert, as today's focus return doe
   - closing by itself when what it shows goes away;
   - handing focus back afterwards (§4.2).
 - **The headings:**
-  - The two location-slot cards' headings get `tabIndex={-1}` and a ref the screen passes in. One ref serves both, since the cards never show together.
-  - The page's title gets `tabIndex={-1}` too, for the fallback.
-- **Styles:** in `sunPopup.css` and `inFlight.css`, the `.closing` rules add `animation: none`.
+  - The two location-slot cards' headings and the page's title get `tabIndex={-1}`, each with a ref the screen passes in.
+  - The screen focuses the first of them that's on the page: the in-flight card's, then the location card's, then the title's. The two cards never show together.
+- **Styles:**
+  - In `sunPopup.css` and `inFlight.css`, the `.closing` rules add `animation: none`.
+  - In `base.css`, headings that take focus from code show no focus ring.
 - **What stays:** each popup keeps its own layout. That means the sun popup's scrolling, drag-to-close and night look, and the tracking popup's links.
 
 ## 6. Security and privacy

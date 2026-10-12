@@ -40,6 +40,14 @@ button {
   font-weight: 700;
 }
 
+/* Headings that take focus from code, when a popup closes by itself (popup follow-ups §4.2), show no ring: nothing on
+   them can be pressed, and screen readers read them out. Safari before 15.4 has no :focus-visible to tell a click from
+   a key, so the ring is off for all of them. */
+h1[tabindex='-1']:focus,
+h2[tabindex='-1']:focus {
+  outline: none;
+}
+
 .icon {
   display: block;
   flex: none;
