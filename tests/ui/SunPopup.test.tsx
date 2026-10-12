@@ -6,9 +6,10 @@ import { sharedDaylight } from '../../src/time/sharedDaylight'
 import { sunTimes } from '../../src/time/sun'
 import { wedgePath } from '../../src/ui/bigDialGeometry'
 import { DRAG_CLOSE_PX } from '../../src/ui/hooks/useDragToClose'
+import { POPUP_CLOSE_MS } from '../../src/ui/hooks/usePopupClose'
 import { locationFacts, showsDial } from '../../src/ui/locationFacts'
 import { hourAngle } from '../../src/ui/sunDialGeometry'
-import { CLOSE_MS, SunPopup, type SunPopupProps } from '../../src/ui/SunPopup'
+import { SunPopup, type SunPopupProps } from '../../src/ui/SunPopup'
 import { HOUR, MINUTE } from '../../src/time/zoned'
 import { testAirports } from '../fixtures/airports'
 import { iconNameOf, stubAnimationFrames } from '../fixtures/ui'
@@ -178,7 +179,7 @@ describe('SunPopup: opening and closing', () => {
     await act(() => {})
     expect(container.querySelector('.sun-popup')!.classList.contains('closing')).toBe(true)
     expect(onClose).not.toHaveBeenCalled()
-    vi.advanceTimersByTime(CLOSE_MS)
+    vi.advanceTimersByTime(POPUP_CLOSE_MS)
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
@@ -188,8 +189,29 @@ describe('SunPopup: opening and closing', () => {
     render(popup({ onClose }))
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     fireEvent.keyDown(document, { key: 'Escape' })
-    vi.advanceTimersByTime(CLOSE_MS * 3)
+    vi.advanceTimersByTime(POPUP_CLOSE_MS * 3)
     expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('starts a close from wherever the opening has the backdrop, the card and the big dial', () => {
+    const { container } = render(popup())
+    const close = screen.getByRole('button', { name: 'Close' })
+    const read = vi.spyOn(window, 'getComputedStyle')
+    fireEvent.click(close)
+    const parts = ['.sun-popup-backdrop', '.sun-popup-card', '.sun-dial.big'].map((selector) => container.querySelector(selector))
+    expect(parts.map((part) => read.mock.calls.some(([el]) => el === part))).toEqual([true, true, true])
+  })
+
+  it('closes from where the drag left the card, without moving it', async () => {
+    const { container } = render(popup())
+    const grab = container.querySelector('.sun-popup-grab')!
+    const card = container.querySelector('.sun-popup-card') as HTMLElement
+    fireEvent.pointerDown(grab, { clientY: 100, pointerId: 1 })
+    fireEvent.pointerMove(grab, { clientY: 260, pointerId: 1 })
+    fireEvent.pointerUp(grab, { clientY: 260, pointerId: 1 })
+    await act(() => {})
+    expect(container.querySelector('.sun-popup')!.classList.contains('closing')).toBe(true)
+    expect(card.style.transform).toBe('translateY(160px)')
   })
 
   it('closes when the card is dragged down more than 100 px, following the drag', async () => {
@@ -204,7 +226,7 @@ describe('SunPopup: opening and closing', () => {
     expect(card.style.transform).toBe('translateY(160px)')
     expect(card.classList.contains('dragging')).toBe(true)
     fireEvent.pointerUp(grab, { clientY: 260, pointerId: 1 })
-    vi.advanceTimersByTime(CLOSE_MS)
+    vi.advanceTimersByTime(POPUP_CLOSE_MS)
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
@@ -215,11 +237,11 @@ describe('SunPopup: opening and closing', () => {
     const grab = container.querySelector('.sun-popup-grab')!
     fireEvent.pointerDown(grab, { clientY: 100, pointerId: 1 })
     fireEvent.pointerUp(grab, { clientY: 100 + DRAG_CLOSE_PX, pointerId: 1 })
-    vi.advanceTimersByTime(CLOSE_MS)
+    vi.advanceTimersByTime(POPUP_CLOSE_MS)
     expect(onClose).not.toHaveBeenCalled()
     fireEvent.pointerDown(grab, { clientY: 100, pointerId: 2 })
     fireEvent.pointerUp(grab, { clientY: 101 + DRAG_CLOSE_PX, pointerId: 2 })
-    vi.advanceTimersByTime(CLOSE_MS)
+    vi.advanceTimersByTime(POPUP_CLOSE_MS)
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 

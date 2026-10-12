@@ -2,7 +2,8 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { trackingLinks } from '../../src/copy/tracking'
-import { TRACKING_CLOSE_MS, TrackingPopup } from '../../src/ui/TrackingPopup'
+import { POPUP_CLOSE_MS } from '../../src/ui/hooks/usePopupClose'
+import { TrackingPopup } from '../../src/ui/TrackingPopup'
 import { iconNameOf } from '../fixtures/ui'
 
 afterEach(() => {
@@ -68,7 +69,7 @@ describe('TrackingPopup', () => {
       fireEvent.keyDown(document, { key: 'Escape' })
       expect(container.querySelector('.tracking-popup')!.getAttribute('class')).toBe('tracking-popup closing')
       act(() => {
-        vi.advanceTimersByTime(TRACKING_CLOSE_MS - 1)
+        vi.advanceTimersByTime(POPUP_CLOSE_MS - 1)
       })
       expect(onClose).not.toHaveBeenCalled()
       act(() => {
@@ -87,9 +88,18 @@ describe('TrackingPopup', () => {
     link.addEventListener('click', (event) => event.preventDefault()) // so the test's browser doesn't try to open the page
     fireEvent.click(link)
     act(() => {
-      vi.advanceTimersByTime(TRACKING_CLOSE_MS)
+      vi.advanceTimersByTime(POPUP_CLOSE_MS)
     })
     expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('starts a close from wherever the opening has the backdrop and the card', () => {
+    const { container } = render(popup())
+    const close = screen.getByRole('button', { name: 'Close' })
+    const read = vi.spyOn(window, 'getComputedStyle')
+    fireEvent.click(close)
+    const parts = ['.tracking-backdrop', '.tracking-card'].map((selector) => container.querySelector(selector))
+    expect(parts.map((part) => read.mock.calls.some(([el]) => el === part))).toEqual([true, true])
   })
 
   it('closes at once for visitors who ask for reduced motion', () => {

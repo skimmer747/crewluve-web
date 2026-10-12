@@ -256,14 +256,17 @@
   }
 }
 
-/* Closing: 0.2 s, ease-out, back to nothing, the dial shrinking to half size as it goes. */
+/* Closing: 0.2 s, ease-out, back to nothing, the dial shrinking to half size as it goes. A close during the opening
+   runs from wherever the opening had them, and the opening stays off (popup follow-ups §3). */
 .sun-popup.closing .sun-popup-backdrop,
 .sun-popup.closing .sun-popup-card {
+  animation: none;
   opacity: 0;
   transition: opacity 0.2s ease-out;
 }
 
 .sun-popup.closing .sun-dial.big {
+  animation: none;
   transform: scale(0.5);
   transition: transform 0.2s ease-out;
 }

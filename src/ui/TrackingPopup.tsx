@@ -1,12 +1,9 @@
-import { useEffect, useId, useRef, useState } from 'preact/hooks'
+import { useId, useRef } from 'preact/hooks'
 import type { TrackingLinks } from '../copy/tracking'
 import type { IconName } from '../icons/iconPaths'
 import { useModalDialog } from './hooks/useModalDialog'
+import { usePopupClose } from './hooks/usePopupClose'
 import { Icon } from './Icon'
-import { prefersReducedMotion } from './motion'
-
-/** Closing fades and shrinks the card over 0.2 s, as the app's dismissView does, before the popup goes. */
-export const TRACKING_CLOSE_MS = 200
 
 export interface TrackingPopupProps {
   /** The header: the flight as the tracking sites know it ("UPS2962"), or the info bar's number when it has no such form. */
@@ -25,25 +22,19 @@ export function TrackingPopup({ trackingNumber, links, onClose }: TrackingPopupP
   const titleId = useId()
   const card = useRef<HTMLElement>(null)
   const closeButton = useRef<HTMLButtonElement>(null)
-  const [still] = useState(prefersReducedMotion)
-  const [closing, setClosing] = useState(false)
-  const closed = useRef(false)
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-
-  const close = () => {
-    if (closed.current) return
-    closed.current = true
-    if (still) return onClose()
-    setClosing(true)
-    timer.current = setTimeout(onClose, TRACKING_CLOSE_MS)
-  }
-  useEffect(() => () => clearTimeout(timer.current), [])
+  const backdrop = useRef<HTMLDivElement>(null)
+  // The opening fades the backdrop in, and fades the card in as it springs from half size. A close during it runs from
+  // wherever they are (popup follow-ups §3).
+  const { closing, close } = usePopupClose(onClose, [
+    { find: () => backdrop.current, properties: ['opacity'] },
+    { find: () => card.current, properties: ['opacity', 'transform'] },
+  ])
   // Focus on the close button, Tab kept inside, Escape to close, the page held still. The screen hands focus back.
   useModalDialog(card, closeButton, close)
 
   return (
     <div class={closing ? 'tracking-popup closing' : 'tracking-popup'}>
-      <div class="tracking-backdrop" onClick={close} />
+      <div ref={backdrop} class="tracking-backdrop" onClick={close} />
       <section ref={card} class="tracking-card glass" role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <div class="tracking-head">
           <Icon name="Airplane" size={17} color="var(--blue)" />

@@ -424,6 +424,11 @@ describe('inFlight.css', () => {
     expect(rule('.tracking-card')).toEqual(expect.arrayContaining([['max-height', '100%'], ['overflow-y', 'auto']]))
   })
 
+  it('keeps the tracking popup’s opening off once closing starts, so a close mid-opening runs from where it was', () => {
+    expect(rule('.tracking-popup.closing .tracking-backdrop')).toContainEqual(['animation', 'none'])
+    expect(rule('.tracking-popup.closing .tracking-card')).toContainEqual(['animation', 'none'])
+  })
+
   it('springs the tracking popup open on the sun popup’s keyframes at 0.42 s, and stills it for reduced motion', () => {
     const animations = rulesIn(css('inFlight')).filter((r) => r.head === '.tracking-card').flatMap((r) => declarations(r.body)).filter(([prop]) => prop === 'animation')
     expect(animations).toContainEqual(['animation', 'sun-popup-fade 0.42s linear, sun-popup-zoom 0.42s linear'])
@@ -529,6 +534,11 @@ describe('sunPopup.css', () => {
 
   it('closes in 0.2 s, ease-out', () => {
     expect(rule('.sun-popup.closing .sun-popup-backdrop, .sun-popup.closing .sun-popup-card')).toContainEqual(['transition', 'opacity 0.2s ease-out'])
+  })
+
+  it('keeps the opening off once closing starts, so a close mid-opening runs from where it was', () => {
+    expect(rule('.sun-popup.closing .sun-popup-backdrop, .sun-popup.closing .sun-popup-card')).toContainEqual(['animation', 'none'])
+    expect(rule('.sun-popup.closing .sun-dial.big')).toContainEqual(['animation', 'none'])
   })
 })
 

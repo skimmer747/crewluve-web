@@ -457,13 +457,16 @@
   animation: sun-popup-fade 0.42s linear, sun-popup-zoom 0.42s linear;
 }
 
-/* Closing: 0.2 s, ease-out, fading and shrinking back to half size. */
+/* Closing: 0.2 s, ease-out, fading and shrinking back to half size. A close during the opening runs from wherever the
+   opening had them, and the opening stays off (popup follow-ups §3). */
 .tracking-popup.closing .tracking-backdrop {
+  animation: none;
   opacity: 0;
   transition: opacity 0.2s ease-out;
 }
 
 .tracking-popup.closing .tracking-card {
+  animation: none;
   opacity: 0;
   transform: scale(0.5);
   transition: opacity 0.2s ease-out, transform 0.2s ease-out;

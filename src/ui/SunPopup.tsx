@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'preact/hooks'
+import { useId, useMemo, useRef } from 'preact/hooks'
 import { shortTimeText } from '../copy/format'
 import { daylightText, moonPhaseName } from '../copy/sunDetail'
 import { temperatureText, weatherAnimation } from '../copy/weather'
@@ -10,16 +10,13 @@ import { isDaytime, sunTimes } from '../time/sun'
 import { cssColor } from './colors'
 import { useDragToClose } from './hooks/useDragToClose'
 import { useModalDialog } from './hooks/useModalDialog'
+import { usePopupClose } from './hooks/usePopupClose'
 import { Icon } from './Icon'
 import type { DialFacts } from './locationFacts'
 import { MoonPhaseIcon } from './MoonPhaseIcon'
-import { prefersReducedMotion } from './motion'
 import { SunDial } from './SunDial'
 import { WeatherBackdrop } from './WeatherBackdrop'
 import { WeatherCredit } from './WeatherCredit'
-
-/** Closing fades everything out over 0.2 s, as the app's dismissView does, before the popup goes. */
-export const CLOSE_MS = 200
 
 export interface SunPopupProps {
   /** Where the pilot is, with the zone and sun times the dial needs: the screen opens the popup only then. */
@@ -46,19 +43,14 @@ export function SunPopup(p: SunPopupProps) {
   const titleId = useId()
   const card = useRef<HTMLElement>(null)
   const closeButton = useRef<HTMLButtonElement>(null)
-  const [still] = useState(prefersReducedMotion)
-  const [closing, setClosing] = useState(false)
-  const closed = useRef(false)
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-
-  const close = () => {
-    if (closed.current) return
-    closed.current = true
-    if (still) return p.onClose()
-    setClosing(true)
-    timer.current = setTimeout(p.onClose, CLOSE_MS)
-  }
-  useEffect(() => () => clearTimeout(timer.current), [])
+  const backdrop = useRef<HTMLDivElement>(null)
+  // The opening fades the backdrop and the card in, and springs the big dial from half size. A close during it runs
+  // from wherever they are (popup follow-ups §3).
+  const { still, closing, close } = usePopupClose(p.onClose, [
+    { find: () => backdrop.current, properties: ['opacity'] },
+    { find: () => card.current, properties: ['opacity'] },
+    { find: () => card.current?.querySelector<HTMLElement>('.sun-dial.big'), properties: ['transform'] },
+  ])
   // Focus on the close button, Tab kept inside, Escape to close, the page held still. The screen hands focus back to the dial.
   useModalDialog(card, closeButton, close)
   // Dragging the top of the card down: past 100 px it closes, otherwise it springs back.
@@ -78,7 +70,7 @@ export function SunPopup(p: SunPopupProps) {
 
   return (
     <div class={closing ? 'sun-popup closing' : 'sun-popup'}>
-      <div class="sun-popup-backdrop" onClick={close} />
+      <div ref={backdrop} class="sun-popup-backdrop" onClick={close} />
       <section
         ref={card}
         class={`sun-popup-card glass${day ? '' : ' force-dark'}${drag.dragging ? ' dragging' : ''}`}
