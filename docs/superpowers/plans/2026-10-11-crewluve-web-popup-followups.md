@@ -69,7 +69,7 @@ Both popups and the screen switch to them, the closing styles turn the opening a
 - Create: `src/ui/hooks/usePopupClose.ts`
 - Test: `tests/ui/usePopupClose.test.tsx`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/usePopupClose.test.tsx`:
 
@@ -188,12 +188,12 @@ describe('usePopupClose', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/usePopupClose.test.tsx`
 Expected: FAIL with `Error: Failed to resolve import "../../src/ui/hooks/usePopupClose" from "tests/ui/usePopupClose.test.tsx". Does the file exist?`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/hooks/usePopupClose.ts`:
 
@@ -263,12 +263,12 @@ function hold(el: HTMLElement, properties: ReadonlyArray<string>): () => void {
 
 Why the hold: browsers haven't all started a transition from an animation's current value. So the hook writes those values inline first, with the animation off, and drops them once the closing styles are on. The transition then starts from the held values in every browser.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/usePopupClose.test.tsx`
 Expected: PASS, 5 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1855 tests in 80 files after this task.
 
@@ -287,7 +287,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/ui/SunPopup.tsx`, `src/ui/TrackingPopup.tsx`, `src/styles/sunPopup.css`, `src/styles/inFlight.css`
 - Test: `tests/ui/SunPopup.test.tsx`, `tests/ui/TrackingPopup.test.tsx`, `tests/styles/styles.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/ui/SunPopup.test.tsx`, import the shared timing after the drag's import:
 
@@ -364,12 +364,12 @@ and this one just before the tracking popup's "springs the tracking popup open o
   })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/SunPopup.test.tsx tests/ui/TrackingPopup.test.tsx tests/styles/styles.test.ts`
 Expected: FAIL in 4 tests (`4 failed | 168 passed (172)`). The two popups' "starts a close from wherever the opening has…" tests find no part read (`expected [ false, false, false ] to deeply equal [ true, true, true ]`). The two style tests find no `animation: none` in the closing rules.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/ui/SunPopup.tsx`, change the hooks import to:
 
@@ -538,12 +538,12 @@ In `src/styles/inFlight.css`, replace the tracking popup's "Closing" comment and
 }
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/SunPopup.test.tsx tests/ui/TrackingPopup.test.tsx tests/styles/styles.test.ts`
 Expected: PASS, 172 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1860 tests in 80 files after this task.
 
@@ -562,7 +562,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/ui/hooks/usePopupOpener.ts`
 - Test: `tests/ui/usePopupOpener.test.tsx`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/usePopupOpener.test.tsx`:
 
@@ -650,12 +650,12 @@ describe('usePopupOpener', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/usePopupOpener.test.tsx`
 Expected: FAIL with `Error: Failed to resolve import "../../src/ui/hooks/usePopupOpener" from "tests/ui/usePopupOpener.test.tsx". Does the file exist?`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/hooks/usePopupOpener.ts`:
 
@@ -693,12 +693,12 @@ export function usePopupOpener(available: boolean, fallback: () => HTMLElement |
 }
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/usePopupOpener.test.tsx`
 Expected: PASS, 5 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1866 tests in 81 files after this task.
 
@@ -717,7 +717,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/ui/Title.tsx`, `src/ui/LocationCard.tsx`, `src/ui/InFlightCard.tsx`
 - Test: `tests/ui/Title.test.tsx`, `tests/ui/LocationCard.test.tsx`, `tests/ui/InFlightCard.test.tsx`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/ui/Title.test.tsx`:
 
@@ -777,12 +777,12 @@ and add this test just before "shows DELAYED with a warning for a late departure
   })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/Title.test.tsx tests/ui/LocationCard.test.tsx tests/ui/InFlightCard.test.tsx`
 Expected: FAIL in 3 tests (`3 failed | 39 passed (42)`), each with `expected null to be <h…>`: no heading takes the ref yet.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/ui/Title.tsx`, add the type import at the top:
 
@@ -854,12 +854,12 @@ and hand it to the card's heading:
 
 `tabIndex={-1}` lets code focus a heading without adding it to the Tab order. Screen readers read it out when focus lands on it.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/Title.test.tsx tests/ui/LocationCard.test.tsx tests/ui/InFlightCard.test.tsx`
 Expected: PASS, 42 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1869 tests in 82 files after this task.
 
@@ -878,7 +878,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/ui/StatusScreen.tsx`
 - Test: `tests/ui/StatusScreen.test.tsx`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/ui/StatusScreen.test.tsx`, add these tests in the sun popup block, just before "closes by itself when the dial goes away at takeoff":
 
@@ -917,12 +917,12 @@ and this one in the in-flight block, just before "opens the popup with only its 
   })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/StatusScreen.test.tsx`
 Expected: FAIL in 3 tests (`3 failed | 65 passed (68)`). Focus is still on the page's body: `expected <body>…</body> to be <h2 …>`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/ui/StatusScreen.tsx`, change the hooks import to:
 
@@ -1091,12 +1091,12 @@ with this:
       )}
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/StatusScreen.test.tsx`
 Expected: PASS, 68 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 1872 tests in 82 files after this task.
 
@@ -1114,11 +1114,11 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Files:**
 - Modify (only if nudges are needed): `src/styles/sunPopup.css`, `src/styles/inFlight.css`
 
-- [ ] **Step 1: Build and open the preview**
+- [x] **Step 1: Build and open the preview**
 
 Run `npm run build`, then start or reuse the `crewluve-preview` server from `.claude/launch.json` (port 5181) in the browser pane, at the mobile preset (375 × 812).
 
-- [ ] **Step 2: Check a close during the opening, on both popups, in light and in dark**
+- [x] **Step 2: Check a close during the opening, on both popups, in light and in dark**
 
 An opening lasts under half a second, so step it with the Web Animations API rather than by eye. On `/?demo=1&scene=last-leg`, run this with `javascript_tool`. It opens the tracking popup, freezes the opening at 140 ms, closes the popup, then steps the close:
 
@@ -1156,15 +1156,15 @@ For the sun popup, do the same on `/?demo=1&scene=turn`, with these changes:
 
 Then take paused screenshots for the user: one at the moment of closing, and one 100 ms into the close. The browser pane can hand back the previous frame right after a script changes the page, so take a small throwaway screenshot first, then the real one.
 
-- [ ] **Step 3: Check that a normal close looks as it did**
+- [x] **Step 3: Check that a normal close looks as it did**
 
 Open each popup, wait a second, and close it by ✕, the backdrop and Escape. Each fades out as before, and focus goes back to the dial or the flight number.
 
-- [ ] **Step 4: Ask the user to sign off**
+- [x] **Step 4: Ask the user to sign off**
 
 Show the user the screenshots and ask one question: "Looks right (Recommended)" or "Change something". Apply their notes, then show them again.
 
-- [ ] **Step 5: Run the gates and commit any nudges**
+- [x] **Step 5: Run the gates and commit any nudges**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -1179,18 +1179,18 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ### Task 7: Merge and release (controller, asks first)
 
-- [ ] **Step 1: Merge**
+- [x] **Step 1: Merge**
 
 Use superpowers:finishing-a-development-branch. Ask the user one question about how to merge `popups` into `main`.
 
-- [ ] **Step 2: Release, only with a fresh yes**
+- [x] **Step 2: Release, only with a fresh yes**
 
 Ask before pushing `main`; the push redeploys crewluve.crewlu.net. After the "Deploy to GitHub Pages" run succeeds, check the live site:
 - the live page's files match the local build;
 - Task 6's script on https://crewluve.crewlu.net/?demo=1&scene=last-leg shows the close starting from where the opening was;
 - `read_console_messages` with `onlyErrors: true` shows nothing, and the demo makes no requests beyond the page's own files.
 
-- [ ] **Step 3: Update the memory**
+- [x] **Step 3: Update the memory**
 
 Update the project memory with the new tip and what's next.
 
@@ -1238,6 +1238,14 @@ Update the project memory with the new tip and what's next.
   - §5 says each heading has its own ref, rather than one shared ref;
   - §8 lists the new style test.
 - **Suite:** 1873 tests in 82 files.
+
+**Merge and release (Task 7), 2026-10-12**
+- **Merge:** the re-check of the code-quality fixes passed. The user chose "Merge into main locally", a fast-forward to `0cffd22`. The gates were green on main, with 1873 tests in 82 files.
+- **Release:** with the user's separate yes, main was pushed. The "Deploy to GitHub Pages" run 38273196958 succeeded on its first deploy attempt.
+- **The live check:** the live site serves the same files as the local build (`index-DBEzmAiY.js`, `index-B2e8S1fm.css`). On https://crewluve.crewlu.net/?demo=1&scene=last-leg:
+  - Task 6's script shows a close at 140 ms running from 0.88 opacity at 0.94 size to nothing at half size;
+  - focus comes back to the flight number;
+  - there are no console errors, and no requests beyond the page's own files.
 
 **Code-quality review: ready to merge and release; its minor points fixed**
 - **The review:** auto mode blocked starting a new reviewer, so at the user's choice the review went to the helper that had done Part C's final review.
