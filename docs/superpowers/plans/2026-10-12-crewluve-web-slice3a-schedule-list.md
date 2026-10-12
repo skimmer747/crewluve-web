@@ -3186,14 +3186,14 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 Use superpowers:finishing-a-development-branch. Ask the user one question about how to merge `slice3a` into `main`.
 
-- [ ] **Step 2: Release, only with a fresh yes**
+- [x] **Step 2: Release, only with a fresh yes**
 
 Ask before pushing `main`; the push redeploys crewluve.crewlu.net. After the "Deploy to GitHub Pages" run succeeds, check the live site:
 - the live page's files match the local build;
 - https://crewluve.crewlu.net/?demo=1&scene=flying#schedule opens the schedule at today, and its back button returns to the status page;
 - `read_console_messages` with `onlyErrors: true` shows nothing, and the demo makes no requests beyond the page's own files.
 
-- [ ] **Step 3: Update the memory**
+- [x] **Step 3: Update the memory**
 
 Update the project memory with the new tip and what's next: Slice 3B, the month calendar.
 
@@ -3286,9 +3286,15 @@ Update the project memory with the new tip and what's next: Slice 3B, the month 
 - **Not tested:** the stuck heading being set before the first paint. happy-dom runs both kinds of effect together, so a test can't tell them apart.
 - **Look check (Task 12):** the user said "Looks right" to the sheet of eight screenshots, light and dark, at 375 and 320 px. The suite is 2013 tests in 88 files.
 
-**Merge (Task 13, Step 1)**
-- The user chose "Merge into main locally". `main` hadn't moved since the branch was cut, so it fast-forwarded to `508e0d4`, and the branch is deleted.
-- On the merged `main`: 2013 tests in 88 files; tsc and build clean. The build makes `index-C6qfB3m4.js` and `index-CDVxmr-i.css`.
+**Merge and release (Task 13), 2026-10-12**
+- **Merge:** the user chose "Merge into main locally". `main` hadn't moved since the branch was cut, so it fast-forwarded to `508e0d4`, and the branch is deleted.
+  - On the merged `main`: 2013 tests in 88 files; tsc and build clean. The build makes `index-C6qfB3m4.js` and `index-CDVxmr-i.css`.
+- **Release:** with the user's separate yes, main was pushed (`0cffd22..af61ade`). The "Deploy to GitHub Pages" run 38307586948 succeeded, with no annotations.
+- **The live check:** the live page and its three files are byte for byte the local build. On https://crewluve.crewlu.net/?demo=1&scene=flying#schedule:
+  - the schedule opens at Today, its heading just under the bar, with focus on the title. The flight in the air shows "Ends in", and the turn in Rockford is up next;
+  - opened straight from its address, the back button goes to the status page, at the top, with focus on its title;
+  - tapped from the arrival card, the schedule gets its own history entry. The back button steps back to the status page, with focus on that card's link. Forward opens the schedule again, and the browser's Back returns with focus on the title;
+  - there are no console errors, and the demo asks only for the page, `airports.json`, and its script and styles.
 
 **Left for later**
 - `memo` on rows, so a tick touches only the rows whose clock changes. The per-leg work is already memoized.
