@@ -340,6 +340,10 @@ describe('inFlight.css', () => {
     expect(normalize(customProperties(find(blocks(dark?.body ?? ''), '.inflight-bar')?.body).get(name))).toBe(normalize(darkValue))
   })
 
+  it('turns the info bar’s location arrow to point up and to the right, as the app’s does', () => {
+    expect(declarations(find(top, '.inflight-time > .icon')!.body)).toContainEqual(['transform', 'scaleX(-1)'])
+  })
+
   it('sets every light color before the dark block, so the dark ones win in dark mode', () => {
     const darkAt = top.indexOf(dark!)
     for (const head of ['.flight-map', '.inflight-bar']) {

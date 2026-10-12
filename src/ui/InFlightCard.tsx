@@ -17,7 +17,9 @@ export interface InFlightCardProps {
  * minutes or more off, and the info bar with the flight number, "In Flight", and the arrival's local time and code.
  */
 export function InFlightCard({ facts, now, h24, onOpenTracking }: InFlightCardProps) {
-  const zone = facts.arr.timeZone ?? facts.dep.timeZone
+  // The arrival's local time, or the departure's when the arrival's zone isn't known (§5.2), named for screen readers.
+  const { arr, dep } = facts
+  const clock = arr.timeZone ? { city: arr.city, zone: arr.timeZone } : dep.timeZone ? { city: dep.city, zone: dep.timeZone } : null
   const offset = facts.delayMinutes
   return (
     <section class="card glass inflight">
@@ -41,10 +43,14 @@ export function InFlightCard({ facts, now, h24, onOpenTracking }: InFlightCardPr
         <div class="inflight-arrival">
           <p class="inflight-time">
             <Icon name="NavigationArrow" size={12} />
-            <span class="sr-only">Time in {facts.arr.city} </span>
-            {zone ? shortTimeText(now, zone, h24) : ''}
+            {clock && (
+              <>
+                <span class="sr-only">Time in {clock.city} </span>
+                {shortTimeText(now, clock.zone, h24)}
+              </>
+            )}
           </p>
-          <span class="inflight-code">{facts.arr.code}</span>
+          <span class="inflight-code">{arr.code}</span>
         </div>
       </div>
     </section>

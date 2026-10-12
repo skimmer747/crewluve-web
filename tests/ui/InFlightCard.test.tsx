@@ -71,8 +71,13 @@ describe('InFlightCard', () => {
     expect(container.querySelector('.inflight-time')!.textContent).toBe('Time in Louisville 11:20')
   })
 
-  it('falls back to the departure’s time when the arrival’s zone isn’t known', () => {
+  it('falls back to the departure’s time when the arrival’s zone isn’t known, and names its city', () => {
     const { container } = render(card({ arr: { ...SDF, timeZone: null } }))
-    expect(container.querySelector('.inflight-time')!.textContent).toBe('Time in Louisville 7:20\u202FAM') // Anchorage
+    expect(container.querySelector('.inflight-time')!.textContent).toBe('Time in Anchorage 7:20\u202FAM')
+  })
+
+  it('shows no time, and names no city for it, when neither airport’s zone is known', () => {
+    const { container } = render(card({ dep: { ...ANC, timeZone: null }, arr: { ...SDF, timeZone: null } }))
+    expect(container.querySelector('.inflight-time')!.textContent).toBe('')
   })
 })

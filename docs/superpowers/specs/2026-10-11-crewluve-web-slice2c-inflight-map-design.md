@@ -131,7 +131,7 @@ The map is one image with a spoken description, which the app doesn't have (§10
     - **Text, as the pilot's Duty app writes it:** "UPS2962" for company flights (airline 5X), the airline and digits for others ("DL1235"), and the digits alone without an airline.
   - **"In Flight"**, 11 px medium, in the bar's secondary color. In flight the app sets no current city, so it shows this fallback.
 - **Right**, aligned right, 2 px between lines:
-  - **The local time:** a 12 px location-arrow icon, then the current time, 16 px semibold with steady digits. It's in the arrival airport's zone, or the departure's when that's unknown, in the site's short format ("11:19 AM"). It updates every second.
+  - **The local time:** a 12 px location arrow pointing up and to the right, as the app's, then the current time, 16 px semibold with steady digits. It's in the arrival airport's zone, or the departure's when that's unknown, in the site's short format ("11:19 AM"). It updates every second.
   - **The arrival code**, 10 px medium, secondary color.
 - **The bar:** 16 px padding on the sides and 10 px top and bottom, over its own background. It takes the card's 20 px radius on its bottom corners.
 - **Colors (fixed, as in the app):**
@@ -205,7 +205,7 @@ Everything comes from what the site already has; there are no new requests.
 2. **The delay banner** shows only at 15 minutes or more off schedule, as everywhere on the site. The app shows any delay.
 3. **Times follow the site's 24-hour setting.** The app's map labels are always 12-hour.
 4. **FlightRadar24 opens its website.** The app tries the FlightRadar24 app first. On an iPhone with that app installed, the website may hand over to it.
-5. **Screen readers get more than in the app:** the map's spoken description, an "In flight" heading for the card, and "Time in Louisville" before the info bar's time.
+5. **Screen readers get more than in the app:** the map's spoken description, an "In flight" heading for the card, and "Time in Louisville" before the info bar's time, naming the city whose time it is.
 6. **There's no map during ground transport,** where the location card shows (B1 §8 item 9).
 7. **"EARLY DEP" uses a check in a circle,** since the site's icon set has no clock with a check badge.
 8. **The sun's position comes from the site's own sun module,** the NOAA formulas behind the location card's sunrise and sunset (decision 9).

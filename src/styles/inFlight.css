@@ -303,6 +303,11 @@
   color: var(--bar-text);
 }
 
+/* Phosphor's location arrow points up and to the left; the app's location.fill points up and to the right. */
+.inflight-time > .icon {
+  transform: scaleX(-1);
+}
+
 .inflight-code {
   font-size: 10px;
   line-height: 1.2;
