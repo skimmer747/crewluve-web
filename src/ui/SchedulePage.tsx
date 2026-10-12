@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks'
-import { dayHeading } from '../copy/schedule'
+import { dayHeading, legTimes } from '../copy/schedule'
 import type { AirportIndex } from '../data/airports'
 import type { Leg } from '../engine/legs'
 import type { Pilot } from '../engine/types'
@@ -37,6 +37,20 @@ export function SchedulePage({ legs, pilot, now, timeZone, h24, airports, onBack
   const title = useRef<HTMLHeadingElement>(null)
   const list = useRef<HTMLDivElement>(null)
   const [stuck, setStuck] = useState<number | null>(null)
+  // Each row's look, times and gap, worked out once per leg: only the clock's parts change from second to second.
+  const rows = useMemo(
+    () =>
+      days.map((d) => ({
+        day: d.day,
+        legs: d.legs.map((leg, i) => ({
+          leg,
+          look: rowLook(leg, pilot, airports),
+          times: legTimes(leg.start, leg.end, timeZone, h24),
+          gap: i > 0 ? gapBefore(d.legs[i - 1], leg) : null,
+        })),
+      })),
+    [days, pilot, airports, timeZone, h24],
+  )
 
   // The page appears already at its opening day, and focus goes to the title so screen readers announce the page
   // (§3.3, §4.11). Only once: later renders leave the scroll where the visitor has it.
@@ -85,14 +99,14 @@ export function SchedulePage({ legs, pilot, now, timeZone, h24, airports, onBack
         <h1 class="schedule-title" ref={title} tabIndex={-1}>Schedule</h1>
       </header>
       <div class="schedule-days" ref={list}>
-        {days.length === 0 ? (
+        {rows.length === 0 ? (
           <div class="schedule-empty">
             <Icon name="CalendarBlank" size={40} />
             <p class="schedule-empty-title">No schedule data</p>
             <p class="schedule-empty-text">Schedule will appear when your pilot's Duty app sends trip details.</p>
           </div>
         ) : (
-          days.map((d) => (
+          rows.map((d) => (
             <section key={d.day} class="schedule-day" data-day={d.day}>
               <h2 class="day-heading">
                 <span class={d.day === today ? 'day-pill today' : d.day === stuck ? 'day-pill stuck' : 'day-pill'}>
@@ -100,9 +114,9 @@ export function SchedulePage({ legs, pilot, now, timeZone, h24, airports, onBack
                 </span>
               </h2>
               <ol class="day-legs">
-                {d.legs.map((leg, i) => (
-                  <TimelineRow key={leg.id} leg={leg} look={rowLook(leg, pilot, airports)} moment={legMoment(leg, now, nextId)} now={now}
-                    timeZone={timeZone} h24={h24} gap={i > 0 ? gapBefore(d.legs[i - 1], leg) : null} />
+                {d.legs.map((row) => (
+                  <TimelineRow key={row.leg.id} leg={row.leg} look={row.look} times={row.times} moment={legMoment(row.leg, now, nextId)} now={now}
+                    gap={row.gap} />
                 ))}
               </ol>
             </section>

@@ -1,9 +1,9 @@
 // @vitest-environment happy-dom
 import { cleanup, render } from '@testing-library/preact'
 import { afterEach, describe, expect, it } from 'vitest'
-import type { GapKind, LegMoment } from '../../src/copy/schedule'
+import { legTimes, type LegMoment } from '../../src/copy/schedule'
 import type { Leg } from '../../src/engine/legs'
-import { rowLook } from '../../src/ui/scheduleFacts'
+import { rowLook, type Gap } from '../../src/ui/scheduleFacts'
 import { TimelineRow } from '../../src/ui/TimelineRow'
 import { testAirports } from '../fixtures/airports'
 import { drive, flight, H, pilot, place } from '../fixtures/legs'
@@ -18,10 +18,11 @@ const at = (hours: number) => (T0 + hours) * H
 const commuter = pilot('LEX', 'SDF')
 const ups = flight('RFD', 'SDF', T0 + 6.25, T0 + 7.75, 'T1', { number: '2961' }) // 6:15am to 7:45am
 
-function row(leg: Leg, moment: LegMoment, now: number, gap: { kind: GapKind; ms: number } | null = null) {
+function row(leg: Leg, moment: LegMoment, now: number, gap: Gap | null = null) {
   const { container } = render(
     <ol>
-      <TimelineRow leg={leg} look={rowLook(leg, commuter, testAirports)} moment={moment} now={now} timeZone={NY} h24={false} gap={gap} />
+      <TimelineRow leg={leg} look={rowLook(leg, commuter, testAirports)} times={legTimes(leg.start, leg.end, NY, false)} moment={moment} now={now}
+        gap={gap} />
     </ol>,
   )
   const card = container.querySelector<HTMLElement>('.leg')!
@@ -70,6 +71,12 @@ describe('TimelineRow (slice 3A §4.4–4.9)', () => {
     expect([...card.querySelectorAll('.sr-only')].map((s) => s.textContent)).toContain('Arriving at home airport')
     cleanup()
     expect(row(home, 'happening', at(10)).card.className).toBe('leg glass leg-happening homeward')
+  })
+
+  it('leaves the home hint off the next leg, where the UP NEXT tag speaks, as the app gives that row its own hint', () => {
+    const { card } = row(drive('SDF', 'LEX', true, T0 + 9, T0 + 10.5), 'next', at(8))
+    expect(card.className).toBe('leg glass leg-next homeward')
+    expect([...card.querySelectorAll('.sr-only')].map((s) => s.textContent)).not.toContain('Arriving at home airport')
   })
 
   it('puts the gap before the row as a dashed line and its label, hidden from screen readers', () => {

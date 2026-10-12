@@ -1,19 +1,18 @@
-import { gapText, legClock, legTimes, type GapKind, type LegMoment } from '../copy/schedule'
+import { gapText, legClock, type LegMoment } from '../copy/schedule'
 import type { Leg } from '../engine/legs'
 import { cssColor } from './colors'
 import { Icon } from './Icon'
-import type { RowLook } from './scheduleFacts'
+import type { Gap, RowLook } from './scheduleFacts'
 
 export interface TimelineRowProps {
   leg: Leg
   look: RowLook
+  /** The second line, worked out once per leg (legTimes). */
+  times: string
   moment: LegMoment
   now: number
-  /** The visitor's zone, for the times. */
-  timeZone: string
-  h24: boolean
   /** The gap before this leg, or null (TimeGapView). */
-  gap: { kind: GapKind; ms: number } | null
+  gap: Gap | null
 }
 
 /**
@@ -21,7 +20,7 @@ export interface TimelineRowProps {
  * right-hand column on glass, with the edge and tag of the leg happening now, the next leg, or a leg ending at home.
  * The gap before it comes first: a dashed line and a label, which screen readers skip since the times say it (§4.10).
  */
-export function TimelineRow({ leg, look, moment, now, timeZone, h24, gap }: TimelineRowProps) {
+export function TimelineRow({ leg, look, times, moment, now, gap }: TimelineRowProps) {
   const clock = legClock(leg.start, leg.end, now, moment)
   const edge = moment === 'happening' ? ' leg-happening' : moment === 'next' ? ' leg-next' : look.homeward ? ' leg-home' : ''
   return (
@@ -43,7 +42,7 @@ export function TimelineRow({ leg, look, moment, now, timeZone, h24, gap }: Time
         </span>
         <span class="leg-text">
           <span class="leg-title">{look.title}</span>
-          <span class="leg-times">{legTimes(leg.start, leg.end, timeZone, h24)}</span>
+          <span class="leg-times">{times}</span>
         </span>
         <span class="leg-clock">
           <span class="leg-clock-label" aria-hidden="true">{clock.label}</span>
@@ -51,7 +50,8 @@ export function TimelineRow({ leg, look, moment, now, timeZone, h24, gap }: Time
           <span class="sr-only">{clock.spoken}</span>
         </span>
         {moment === 'next' && <span class="up-next">UP NEXT</span>}
-        {look.homeward && <span class="sr-only">Arriving at home airport</span>}
+        {/* The app's hint: "Up next event" on the next leg, which its UP NEXT tag says here, else this one. */}
+        {look.homeward && moment !== 'next' && <span class="sr-only">Arriving at home airport</span>}
       </div>
     </li>
   )
