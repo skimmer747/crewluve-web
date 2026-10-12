@@ -14,6 +14,14 @@
   --map-route-edge: 0.75;
 }
 
+/* The info bar's own colors, fixed in the app too (§5.2). Colors come before the dark block that overrides them. */
+.inflight-bar {
+  --bar-text: rgb(10%, 15%, 25%);
+  --bar-text-2: rgb(30%, 38%, 50%);
+  --bar-underline: rgba(10%, 15%, 25%, 0.3);
+  --bar-fill: rgba(65%, 78%, 90%, 0.6);
+}
+
 @media (prefers-color-scheme: dark) {
   .flight-map {
     --map-day-1: rgb(12%, 18%, 30%);
@@ -25,6 +33,13 @@
     --map-route: var(--cyan);
     --map-route-middle: 0.8;
     --map-route-edge: 0.6;
+  }
+
+  .inflight-bar {
+    --bar-text: #ffffff;
+    --bar-text-2: var(--gray);
+    --bar-underline: rgba(255, 255, 255, 0.3);
+    --bar-fill: rgba(8%, 12%, 25%, 0.6);
   }
 }
 
@@ -196,4 +211,100 @@
   color: var(--map-text-2);
   font-size: 14px;
   font-weight: 500;
+}
+
+/* The card: the map, the banner and the bar stacked with no gaps inside the frosted card (§5.3). */
+.inflight {
+  overflow: hidden;
+}
+
+/* The delay banner: white 12 px bold text and icon, 6 px apart and 6 px above and below, on orange or green (§5.1).
+   The readable fills keep the white text legible under Increase Contrast in dark mode (§11). */
+.inflight-banner {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 0;
+  color: #ffffff;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+}
+
+.inflight-banner.late {
+  background: var(--fill-orange, var(--orange));
+}
+
+.inflight-banner.early {
+  background: var(--fill-green, var(--green));
+}
+
+/* The info bar: 16 px in from the sides and 10 px top and bottom, over its own fill. */
+.inflight-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--bar-fill);
+}
+
+.inflight-flight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* The flight number: 18 px heavy rounded, underlined at 30%; a button with no button look, as the app's tap target. */
+.inflight-number {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-rounded);
+  font-size: 18px;
+  line-height: 1.2;
+  font-weight: 800;
+  color: var(--bar-text);
+  text-decoration: underline;
+  text-decoration-color: var(--bar-underline);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.inflight-status {
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 500;
+  color: var(--bar-text-2);
+}
+
+.inflight-arrival {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+/* The arrival's time: a 12 px location arrow, then 16 px semibold with steady digits. */
+.inflight-time {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--bar-text);
+}
+
+.inflight-code {
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 500;
+  color: var(--bar-text-2);
 }

@@ -310,6 +310,32 @@ describe('inFlight.css', () => {
     expect([light.get('--map-route'), light.get('--map-route-middle'), light.get('--map-route-edge')]).toEqual(['var(--blue)', '1', '0.75'])
     expect([darkMap.get('--map-route'), darkMap.get('--map-route-middle'), darkMap.get('--map-route-edge')]).toEqual(['var(--cyan)', '0.8', '0.6'])
   })
+
+  it('puts the banner’s white text on the readable fills', () => {
+    expect(declarations(find(top, '.inflight-banner.late')!.body)).toContainEqual(['background', 'var(--fill-orange, var(--orange))'])
+    expect(declarations(find(top, '.inflight-banner.early')!.body)).toContainEqual(['background', 'var(--fill-green, var(--green))'])
+    expect(declarations(find(top, '.inflight-banner')!.body)).toContainEqual(['color', '#ffffff'])
+  })
+
+  // Slice 2C §5.2: the info bar's fixed colors, light and dark.
+  it.each([
+    ['--bar-text', 'rgb(10%,15%,25%)', '#ffffff'],
+    ['--bar-text-2', 'rgb(30%,38%,50%)', 'var(--gray)'],
+    ['--bar-underline', 'rgba(10%,15%,25%,.3)', 'rgba(255,255,255,.3)'],
+    ['--bar-fill', 'rgba(65%,78%,90%,.6)', 'rgba(8%,12%,25%,.6)'],
+  ])('%s is the info bar’s color, light and dark', (name, lightValue, darkValue) => {
+    expect(normalize(customProperties(find(top, '.inflight-bar')?.body).get(name))).toBe(normalize(lightValue))
+    expect(normalize(customProperties(find(blocks(dark?.body ?? ''), '.inflight-bar')?.body).get(name))).toBe(normalize(darkValue))
+  })
+
+  it('sets every light color before the dark block, so the dark ones win in dark mode', () => {
+    const darkAt = top.indexOf(dark!)
+    for (const head of ['.flight-map', '.inflight-bar']) {
+      const colored = top.filter((b) => b.head === head && declarations(b.body).some(([prop]) => prop.startsWith('--')))
+      expect(colored.length, head).toBeGreaterThan(0)
+      for (const rule of colored) expect(top.indexOf(rule), head).toBeLessThan(darkAt)
+    }
+  })
 })
 
 describe('location.css', () => {
