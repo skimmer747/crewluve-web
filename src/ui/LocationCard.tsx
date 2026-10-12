@@ -10,7 +10,7 @@ import { SunDial } from './SunDial'
 import { TimeDifferenceLine } from './TimeDifferenceLine'
 import { WeatherCredit } from './WeatherCredit'
 
-/** The app shows the location card in every status but flying, where Part C's map will go (slice 2B1 §3). */
+/** The app shows the location card in every status but flying, where the in-flight card takes its place (slice 2B1 §3, 2C §3). */
 export function showsLocationCard(snap: Snapshot): boolean {
   return snap.status.kind !== 'inFlight'
 }

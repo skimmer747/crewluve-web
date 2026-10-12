@@ -397,6 +397,18 @@ describe('inFlight.css', () => {
     )
   })
 
+  it('centers the duration and distance on the map whatever its width', () => {
+    expect(rule('.flight-distance')).toEqual(expect.arrayContaining([['left', '50%'], ['transform', 'translate(-50%, -50%)']]))
+  })
+
+  it('gives the popup’s 22 px ✕ a bigger area to tap without moving it, as the sun popup’s', () => {
+    expect(rule('.tracking-close')).toEqual(expect.arrayContaining([['display', 'flex'], ['margin', '-6px'], ['padding', '6px']]))
+  })
+
+  it('lets the tracking card scroll on a short or zoomed screen, so its links stay in reach', () => {
+    expect(rule('.tracking-card')).toEqual(expect.arrayContaining([['max-height', '100%'], ['overflow-y', 'auto']]))
+  })
+
   it('springs the tracking popup open on the sun popup’s keyframes at 0.42 s, and stills it for reduced motion', () => {
     const animations = rulesIn(css('inFlight')).filter((r) => r.head === '.tracking-card').flatMap((r) => declarations(r.body)).filter(([prop]) => prop === 'animation')
     expect(animations).toContainEqual(['animation', 'sun-popup-fade 0.42s linear, sun-popup-zoom 0.42s linear'])

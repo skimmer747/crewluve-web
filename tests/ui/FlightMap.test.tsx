@@ -95,7 +95,7 @@ describe('FlightMap', () => {
     expect(expected).toMatchObject({ direction: 'across', left: 'night', right: 'day' })
     if (expected.direction !== 'across') throw new Error('expected a split sky')
     const stops = [...sky.querySelectorAll('stop')]
-    expect(stops.map((s) => s.getAttribute('class'))).toEqual(['sky-night-1', 'sky-night-1', 'sky-day-1', 'sky-day-1'])
+    expect(stops.map((s) => s.getAttribute('class'))).toEqual(['flight-sky-night-1', 'flight-sky-night-1', 'flight-sky-day-1', 'flight-sky-day-1'])
     expect(stops.map((s) => Number(s.getAttribute('offset')))).toEqual([0, expected.leftUntil, expected.rightFrom, 1])
   })
 
@@ -103,7 +103,15 @@ describe('FlightMap', () => {
     const morning = Date.UTC(2026, 9, 12, 15)
     const { container } = render(<FlightMap facts={facts({ dep: SDF, arr: RFD, start: morning, end: morning + 90 * MINUTE, blockMs: 90 * MINUTE })} now={morning + 30 * MINUTE} h24={false} />)
     const sky = container.querySelector('linearGradient[y2="1"]')!
-    expect([...sky.querySelectorAll('stop')].map((s) => s.getAttribute('class'))).toEqual(['sky-day-1', 'sky-day-2'])
+    expect([...sky.querySelectorAll('stop')].map((s) => s.getAttribute('class'))).toEqual(['flight-sky-day-1', 'flight-sky-day-2'])
+  })
+
+  it('works the airports’ daylight and the sky out again when the flight’s times change', () => {
+    const { container, rerender } = render(<FlightMap facts={facts()} now={THIRD} h24={false} />)
+    const departureIcon = () => iconNameOf(container.querySelector('.flight-airport svg'))
+    expect(departureIcon()).toBe('Moon') // 5:40 AM in Anchorage
+    rerender(<FlightMap facts={facts({ start: OUT + 6 * HOUR, end: OUT + 11 * HOUR })} now={OUT + 7 * HOUR} h24={false} />)
+    expect(departureIcon()).toBe('Sun') // 11:40 AM
   })
 
   it('draws the plane at its progress, turned along the route', () => {

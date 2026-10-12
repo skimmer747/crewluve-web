@@ -50,7 +50,7 @@ export function StatusScreen(p: StatusScreenProps) {
   /** The card's dial, which opened the popup: focus goes back to it afterwards. */
   const dial = useRef<HTMLElement | null>(null)
   /** The in-flight card's flight number, which opened the tracking popup: focus goes back to it afterwards. */
-  const flightNumber = useRef<HTMLElement | null>(null)
+  const flightNumberButton = useRef<HTMLElement | null>(null)
   const wasOpen = useRef(false)
   const wasTracking = useRef(false)
   const spans = safeNarrative(snap, { now: p.now, viewerTz: p.viewerTz, h24: p.h24, airports: p.airports })
@@ -78,7 +78,7 @@ export function StatusScreen(p: StatusScreenProps) {
     if (trackingOpen && !tracking) setTrackingOpen(false)
   }, [trackingOpen, tracking])
   useEffect(() => {
-    if (wasTracking.current && !tracking && flightNumber.current?.isConnected) flightNumber.current.focus()
+    if (wasTracking.current && !tracking && flightNumberButton.current?.isConnected) flightNumberButton.current.focus()
     wasTracking.current = tracking
   }, [tracking])
   const hidden = open || tracking
@@ -110,7 +110,7 @@ export function StatusScreen(p: StatusScreenProps) {
             now={p.now}
             h24={p.h24}
             onOpenTracking={(button) => {
-              flightNumber.current = button
+              flightNumberButton.current = button
               setTrackingOpen(true)
             }}
           />

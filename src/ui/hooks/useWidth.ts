@@ -4,6 +4,7 @@ import { useLayoutEffect, useState } from 'preact/hooks'
 /**
  * An element's width in CSS pixels, measured as it mounts and again whenever it changes, as the app's GeometryReader
  * does (slice 2C §4.1). `fallback` stands in until then, and while the element has no width, as in a hidden page.
+ * It watches the element the ref holds when the component mounts, so that element must render from the start.
  */
 export function useWidth(element: RefObject<HTMLElement>, fallback: number): number {
   const [width, setWidth] = useState(fallback)

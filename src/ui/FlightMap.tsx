@@ -116,7 +116,7 @@ function MapDrawing({ facts, depPlace, arrPlace, nm, width, progress, h24 }: Map
           </g>
         </svg>
       )}
-      <p class="flight-distance" style={{ left: `${width / 2}px` }}>
+      <p class="flight-distance">
         {facts.blockMs > 0 && (
           <span class="flight-distance-part">
             <Icon name="Timer" size={10} color="var(--blue)" />
@@ -137,17 +137,17 @@ function SkyGradient({ id, sky }: { id: string; sky: Sky }) {
   if (sky.direction === 'down') {
     return (
       <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" class={`sky-${sky.time}-1`} />
-        <stop offset="1" class={`sky-${sky.time}-2`} />
+        <stop offset="0" class={`flight-sky-${sky.time}-1`} />
+        <stop offset="1" class={`flight-sky-${sky.time}-2`} />
       </linearGradient>
     )
   }
   return (
     <linearGradient id={id} x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" class={`sky-${sky.left}-1`} />
-      <stop offset={sky.leftUntil} class={`sky-${sky.left}-1`} />
-      <stop offset={sky.rightFrom} class={`sky-${sky.right}-1`} />
-      <stop offset="1" class={`sky-${sky.right}-1`} />
+      <stop offset="0" class={`flight-sky-${sky.left}-1`} />
+      <stop offset={sky.leftUntil} class={`flight-sky-${sky.left}-1`} />
+      <stop offset={sky.rightFrom} class={`flight-sky-${sky.right}-1`} />
+      <stop offset="1" class={`flight-sky-${sky.right}-1`} />
     </linearGradient>
   )
 }
