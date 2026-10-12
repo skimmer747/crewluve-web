@@ -78,7 +78,7 @@ The narrative card, the days-home pill, the location card, the in-flight card an
 
 - **Every leg the status page already reads:** the last 60 days and the next 120 days of CrewLu Cloud data, built by the same leg builder (`buildLegs`).
   - That builder copies the legs Duty sends the app (`PartnerStatusGenerator.swift:707-1065`). That means trip flights, turns, layovers, home and base stops between duty periods, jumpseats, drives, reserve, hot standby, training and other events.
-  - A layover, home or base stop ends early when a flight leaves during it, as the app's `adjustLayoversForOverlappingFlights` does.
+  - A layover, home or base stop ends early when a flight leaves during it, as the app's `adjustLayoversForOverlappingFlights` does. The site's builder trims a turn the same way (§7).
 - **Left out:** the report-time leg the status page adds before a trip's first flight. Duty doesn't send one, and the app doesn't list it.
 - **Hidden items stay hidden:** the site already skips rows the pilot hid from the timeline.
 - **The order:** by start time.
@@ -126,12 +126,13 @@ The narrative card, the days-home pill, the location card, the in-flight card an
 
 - **The label** of a reserve, hot standby, training or other event is its name as the status page already has it: the reserve code ("RSV-A"), "Hot Standby", the training's name, or the event's title.
 
-- **{flight}:**
-  - a flight or jumpseat entered with its airline: the code as entered and the number, "AA1234";
-  - a UPS company flight, entered without an airline: "UPS" and the number, "UPS2961", as Duty writes it;
+- **{flight}:** written as on the in-flight card, in the form of Duty's `formatFlightNumber`:
+  - a flight or jumpseat entered with its airline: the code as entered and the number, "AA1234". An airline entered as 5X reads "UPS2961", as on the status page;
+  - a UPS company flight, entered without an airline: "UPS" and the number, "UPS2961";
   - ground transport: "GND";
   - a jumpseat entered without an airline: the number alone, "2961".
-- **"In" or "at":** "in" with the city's name from the airport list, else "at" with the airport code. For a base stop, the code also takes "in", as the status page says "at base in SDF".
+- **"In" or "at":** "in" with the city's name from the airport list, else "at" with the place as entered: an airport code, or free text such as "Training Center" ("Sim at Training Center", as the app writes it). For a base stop, the code also takes "in", as the status page says "at base in SDF".
+- **A drive home** is the site's one rule, the status page's: its direction, or its destination being home. It decides the words, the color and the home mark (§4.9).
 
 ### 4.6 Icons and colors
 
@@ -154,7 +155,7 @@ The narrative card, the days-home pill, the location card, the in-flight card an
 | Training or event at the pilot's base | buildings | blue |
 | Other training or event | book | purple |
 
-- **★ marks the three fixes** to the app (decision 2). Each matches what the status page shows at the same moment.
+- **★ marks the three fixes** to the app (decision 2). Each says what the status page says at the same moment. The base stop's buildings are in the list's blue for things at base, where the status page's sentence card draws a base in purple.
   - **Trip flights go by the airline the site works out,** as the status page does: the code entered, else UPS for a company flight. The app's list knows an airline only for commercial deadheads, so it shows every other trip flight as a blue airplane, a FedEx pilot's company flights included.
   - **Jumpseats go by the airline entered for them,** as in the app (decision 7).
 - **Airline icons and colors** come from the site's airline table, as on the status page.
@@ -195,8 +196,9 @@ The narrative card, the days-home pill, the location card, the in-flight card an
   - **The edge** is a 2 px ring of cyan and blue with fainter cyan and blue, turning once every 4 s.
   - **A red "UP NEXT" tag:** 11 px, bold, white, in a capsule with 8 px by 3 px of padding, 6 px from the row's top and 8 px from its right. As in the app, it sits over the top of the right-hand column.
 - **Ending at home** means:
-  - a flight, jumpseat or drive that lands at the pilot's home airport;
-  - or a training or other event at it.
+  - a flight or jumpseat that lands at the pilot's home airport;
+  - a drive the site counts as a drive home (§4.5);
+  - or a training or other event at the home airport.
   - Such a row has a green edge at 50% when it isn't happening now or up next. For screen readers, it says "Arriving at home airport", the app's hint.
 - **Reduced motion:** no pulse, and the up-next edge is a still cyan ring at 60%, as in the app.
 - **Live:** when a leg starts, its row switches to "Ends in", and the edge and tag move to the next leg.
@@ -289,6 +291,14 @@ Nothing new: no requests, storage or scripts. The content security policy is unc
 - **Flight numbers:**
   - A placeholder number such as XXXX shows just the route. The app shows "UPSXXXX".
   - A commercial ticket entered without an airline shows its number alone. The app writes "UPS" before it.
+  - Leading zeros are dropped, as everywhere on the site: "UPS81". Duty writes the number as stored: "UPS081".
+  - An airline entered as 5X reads "UPS2961", as on the status page. Duty writes "5X2961".
+- **Places:** a location the site reads as an airport shows its city. "SDFZ" reads "in Louisville", where the app writes "at SDFZ".
+- **Drives:** a drive's words, color and home mark follow one rule, its direction or its destination being home. The app takes the words from the direction and the color from the destination, so a drive "to work" that ends at home, or "home" to a city that's no longer home, reads differently there.
+- **Inherited from the site's leg builder,** which the status page already uses:
+  - a turn ends early when a flight leaves during it, as layovers do;
+  - a leg with no length is left out;
+  - a drive home tied to a late trip moves with the delay.
 - **Time zones:** each time carries the abbreviation in force at that time. The app uses today's for every row.
 - **24-hour devices** get 24-hour times, as on the rest of the site. The app always shows "6:05am".
 - **Opening:** the list appears at its opening day. The app scrolls down to it as the screen opens.
@@ -350,6 +360,7 @@ Nothing new: no requests, storage or scripts. The content security policy is unc
 | 6 | The back button copies iOS 26's: a chevron in a round glass button. | Design, copying the app |
 | 7 | A jumpseat goes by the airline entered for it: its airline's look with one, the green seat without. | Design, from decision 2's table |
 | 8 | The bars use iOS's bar material as a new color, `--bar-fill`, and the demo gains a `nothing-ahead` scene that shows View Schedule. | Design, from the browser check while planning |
+| 9 | Titles use the place as entered when it isn't a known airport ("Sim at Training Center"), as the app does; a drive home follows the site's one rule; the base stop stays in the list's blue; the next leg gets no home hint, as its UP NEXT tag speaks. | Design, from the batch A reviews |
 
 ## 10. Roadmap
 
