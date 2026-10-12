@@ -5,9 +5,10 @@ import type { UpcomingTrip } from '../../src/engine/trips'
 import { Chevron } from '../../src/ui/Chevron'
 import { CountdownCard } from '../../src/ui/CountdownCard'
 import { FallbackCard } from '../../src/ui/FallbackCard'
-import { SCHEDULE_HASH, type ScheduleLinkName } from '../../src/ui/ScheduleLink'
+import { SCHEDULE_HASH, ViewScheduleLink, type ScheduleLinkName } from '../../src/ui/ScheduleLink'
 import { UpcomingTripCard } from '../../src/ui/UpcomingTripCard'
 import { testAirports } from '../fixtures/airports'
+import { iconNameOf } from '../fixtures/ui'
 
 afterEach(cleanup)
 
@@ -99,5 +100,24 @@ describe('the cards that open the schedule (slice 3A §3.1)', () => {
     }
     fireEvent.pointerDown(link, { button: 2 })
     expect(card.className).toBe('card glass countdown linked')
+  })
+})
+
+describe('ViewScheduleLink (slice 3A §3.2)', () => {
+  it('is one link named View Schedule, with the blue calendar and a small chevron, that opens the schedule', () => {
+    const onOpen = vi.fn()
+    render(<ViewScheduleLink onOpen={onOpen} />)
+    const link = screen.getByRole('link', { name: 'View Schedule' })
+    expect(link.getAttribute('href')).toBe(SCHEDULE_HASH)
+    expect(link.getAttribute('data-schedule-link')).toBe('view')
+    expect(link.className).toBe('card glass view-schedule linked')
+    expect(iconNameOf(link.querySelector('svg.icon'))).toBe('CalendarBlank')
+    expect(link.querySelector('.chevron')!.getAttribute('height')).toBe('12')
+    expect(fireEvent.click(link)).toBe(false)
+    expect(onOpen).toHaveBeenCalledWith('view')
+    fireEvent.pointerDown(link, { button: 0 })
+    expect(link.className).toBe('card glass view-schedule linked pressed')
+    fireEvent.pointerUp(link)
+    expect(link.className).toBe('card glass view-schedule linked')
   })
 })

@@ -286,6 +286,13 @@ describe('cards.css', () => {
     const media = find(top, '@media (prefers-reduced-motion: reduce)')!
     expect(declarations(find(blocks(media.body), '.linked.pressed')!.body)).toEqual([['transform', 'none']])
   })
+
+  it('lays the View Schedule button out as the app does: 16 px in, the words at 20 px semibold filling the row (slice 3A §3.2)', () => {
+    expect(declarations(find(top, '.view-schedule')!.body)).toEqual(expect.arrayContaining([['display', 'flex'], ['gap', '8px'], ['padding', '16px']]))
+    expect(declarations(find(top, '.view-schedule-text')!.body)).toEqual(
+      expect.arrayContaining([['flex', '1'], ['font-size', '20px'], ['font-weight', '600']]),
+    )
+  })
 })
 
 describe('trips.css', () => {

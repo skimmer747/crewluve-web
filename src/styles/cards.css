@@ -340,6 +340,27 @@
   box-shadow: none;
 }
 
+/* The View Schedule button (slice 3A §3.2): the 22 px calendar, the words at 20 px semibold, and a 12 px chevron. */
+.view-schedule {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.view-schedule-text {
+  flex: 1;
+  font-size: 20px;
+  line-height: 25px;
+  font-weight: 600;
+}
+
+.view-schedule .chevron {
+  color: var(--text-2);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .digits {
     animation: none;

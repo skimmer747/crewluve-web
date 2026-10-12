@@ -16,6 +16,7 @@ import { inFlightFacts } from './inFlightFacts'
 import { LocationCard, showsLocationCard } from './LocationCard'
 import { locationFacts, showsDial } from './locationFacts'
 import { NarrativeCard } from './NarrativeCard'
+import { ViewScheduleLink, type ScheduleLinkName, type ScheduleLinkProps } from './ScheduleLink'
 import { SunPopup } from './SunPopup'
 import { Title, titleFor } from './Title'
 import { TrackingPopup } from './TrackingPopup'
@@ -35,7 +36,16 @@ export interface StatusScreenProps {
   demo: boolean
   celebrateKey: number
   footer: FooterProps
+  /**
+   * Opens the schedule from the link named (slice 3A §3). Without it the page has no way into the schedule, as on the
+   * app's iPad, where the schedule sits beside it.
+   */
+  onOpenSchedule?: (name: ScheduleLinkName) => void
 }
+
+/** The link into the schedule named `name`, or none when the page has no way into it. */
+const linkTo = (name: ScheduleLinkName, open?: (name: ScheduleLinkName) => void): ScheduleLinkProps | undefined =>
+  open && { name, onOpen: open }
 
 /**
  * The top of Crewluve's main screen, in its card order (spec §4.4; the location card, slice 2B1 §3; the trip cards, slice
@@ -65,13 +75,17 @@ export function StatusScreen(p: StatusScreenProps) {
   const tracking = usePopupOpener(flying?.trackingNumber != null, inTheirPlace)
   const hidden = sun.open || tracking.open
   const flight = snap.nextFlight
+  // The cards that lead to the schedule (slice 3A §3.1); View Schedule shows whenever none of them is here (§3.2).
+  const home = snap.status.kind === 'home'
+  const cardLeadsThere = (home ? snap.leave != null : snap.arrival != null || snap.fallbackDaysRemaining != null) || snap.upcomingTrip != null
   return (
     <>
       <main class="screen" aria-hidden={hidden ? 'true' : undefined} inert={hidden || undefined}>
         <Title text={titleFor(snap.hasName ? snap.name : null)} headingRef={titleHeading} />
         {p.demo && <DemoBanner />}
         <NarrativeCard spans={spans} visual={statusVisual(snap)} ring={snap.ring} />
-        {snap.status.kind === 'home' ? <HomeCards {...p} /> : <AwayCard {...p} />}
+        {home ? <HomeCards {...p} /> : <AwayCard {...p} />}
+        {p.onOpenSchedule && !cardLeadsThere && <ViewScheduleLink onOpen={p.onOpenSchedule} />}
         {facts && (
           <LocationCard
             airport={airport}
@@ -88,7 +102,8 @@ export function StatusScreen(p: StatusScreenProps) {
           <InFlightCard facts={flying} now={p.now} h24={p.h24} headingRef={inFlightHeading} onOpenTracking={tracking.show} />
         )}
         {snap.upcomingTrip && (
-          <UpcomingTripCard trip={snap.upcomingTrip} now={p.now} timeZone={p.homeTz} h24={p.h24} airports={p.airports} />
+          <UpcomingTripCard trip={snap.upcomingTrip} now={p.now} timeZone={p.homeTz} h24={p.h24} airports={p.airports}
+            link={linkTo('trip', p.onOpenSchedule)} />
         )}
         {snap.tripProgress && <TripProgressCard progress={snap.tripProgress} airports={p.airports} />}
         <Footer {...p.footer} />
@@ -113,7 +128,7 @@ export function StatusScreen(p: StatusScreenProps) {
   )
 }
 
-function HomeCards({ snap, now, homeTz, h24, airports }: StatusScreenProps) {
+function HomeCards({ snap, now, homeTz, h24, airports, onOpenSchedule }: StatusScreenProps) {
   const leave = snap.leave
   const visual = leave ? leaveCard(leave) : null
   const subtitle = !leave
@@ -124,17 +139,20 @@ function HomeCards({ snap, now, homeTz, h24, airports }: StatusScreenProps) {
   return (
     <>
       {leave && visual && (
-        <CountdownCard title={visual.title} icon={visual.icon} color={visual.color} target={leave.time} now={now} subtitle={subtitle} />
+        <CountdownCard title={visual.title} icon={visual.icon} color={visual.color} target={leave.time} now={now} subtitle={subtitle}
+          link={linkTo('leave', onOpenSchedule)} />
       )}
       {snap.daysHome != null && snap.daysHome >= 1 && <DaysHomePill name={snap.name} days={snap.daysHome} />}
     </>
   )
 }
 
-function AwayCard({ snap, now, homeTz, h24, airports, celebrateKey }: StatusScreenProps) {
+function AwayCard({ snap, now, homeTz, h24, airports, celebrateKey, onOpenSchedule }: StatusScreenProps) {
   const arrival = snap.arrival
   if (!arrival) {
-    return snap.fallbackDaysRemaining != null ? <FallbackCard daysRemaining={snap.fallbackDaysRemaining} /> : null
+    return snap.fallbackDaysRemaining != null
+      ? <FallbackCard daysRemaining={snap.fallbackDaysRemaining} link={linkTo('fallback', onOpenSchedule)} />
+      : null
   }
   const visual = arrivalCard(snap, arrival, airports)
   const city = airports.city(arrival.airport)
@@ -149,6 +167,7 @@ function AwayCard({ snap, now, homeTz, h24, airports, celebrateKey }: StatusScre
       subtitle={city ? `${when} · ${city}` : when}
       celebrate={snap.celebrate}
       celebrateKey={celebrateKey}
+      link={linkTo('arrival', onOpenSchedule)}
     />
   )
 }

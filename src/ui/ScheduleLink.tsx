@@ -1,6 +1,7 @@
 import type { JSX } from 'preact'
 import { useState } from 'preact/hooks'
 import { Chevron } from './Chevron'
+import { Icon } from './Icon'
 
 /** The Schedule page's address, on this same page (slice 3A §3.3). */
 export const SCHEDULE_HASH = '#schedule'
@@ -62,4 +63,20 @@ export function useScheduleLink(link: ScheduleLinkProps | undefined): { linked: 
       </a>
     ),
   }
+}
+
+/**
+ * The View Schedule button (PilotStatusView, slice 3A §3.2): the blue calendar, "View Schedule" and a small chevron in
+ * one glass card that's a link into the schedule, pressing in as the cards do.
+ */
+export function ViewScheduleLink({ onOpen }: { onOpen: (name: ScheduleLinkName) => void }) {
+  const { pressed, handlers } = usePressed()
+  return (
+    <a class={`card glass view-schedule linked${pressed ? ' pressed' : ''}`} href={SCHEDULE_HASH} data-schedule-link="view"
+      onClick={(e) => openOnPlainClick(e, () => onOpen('view'))} {...handlers}>
+      <Icon name="CalendarBlank" size={22} color="var(--blue)" />
+      <span class="view-schedule-text">View Schedule</span>
+      <Chevron size={12} weight={1.5} />
+    </a>
+  )
 }

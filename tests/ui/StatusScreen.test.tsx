@@ -8,6 +8,7 @@ import { buildSchedule } from '../../src/engine/normalize'
 import { makeSnapshot, safeSnapshot, type Snapshot } from '../../src/engine/snapshot'
 import { EmptyState } from '../../src/ui/EmptyState'
 import type { FooterProps } from '../../src/ui/Footer'
+import type { ScheduleLinkName } from '../../src/ui/ScheduleLink'
 import { StatusScreen } from '../../src/ui/StatusScreen'
 import { testAirports } from '../fixtures/airports'
 import { sharedDaylight } from '../../src/time/sharedDaylight'
@@ -404,6 +405,7 @@ describe('the location card in each demo scene', () => {
     'commuting-home': 'Louisville',
     reserve: 'Louisville',
     training: 'Louisville',
+    'nothing-ahead': 'Lexington',
   }
 
   it.each(Object.keys(DEMO_SCENES) as DemoScene[])('%s', (scene) => {
@@ -515,5 +517,73 @@ describe('StatusScreen in-flight card (slice 2C)', () => {
         footer={footer(NOW)} />,
     )
     expect(container.querySelector('.inflight') != null).toBe(scene === 'flying' || scene === 'last-leg')
+  })
+})
+
+describe('StatusScreen: the ways into the schedule (slice 3A §3.1, §3.2)', () => {
+  const linksAt = (minutes: number, snap: Snapshot = makeSnapshot(e.schedule, e.legs, at(minutes), NY), onOpen?: (name: ScheduleLinkName) => void) => {
+    const now = at(minutes)
+    const { container } = render(
+      <StatusScreen snap={snap} now={now} viewerTz={NY} homeTz={NY} h24={false} airports={testAirports} weather={null} demo={false}
+        celebrateKey={0} footer={footer(now)} onOpenSchedule={onOpen ?? (() => {})} />,
+    )
+    return { container, names: [...container.querySelectorAll('[data-schedule-link]')].map((a) => a.getAttribute('data-schedule-link')) }
+  }
+  const away = () => makeSnapshot(e.schedule, e.legs, at(100), NY)
+
+  it('links the Leaves Home In card and the upcoming trip card at home, with no View Schedule button', () => {
+    expect(linksAt(-1440).names).toEqual(['leave', 'trip'])
+    expect(screen.queryByRole('link', { name: 'View Schedule' })).toBeNull()
+  })
+
+  it('links the arrival countdown away, and the trip card too at base', () => {
+    expect(linksAt(100).names).toEqual(['arrival'])
+    cleanup()
+    expect(linksAt(30).names).toEqual(['arrival', 'trip'])
+  })
+
+  it('links only the trip card at base between trips, with no View Schedule button', () => {
+    expect(linksAt(7000).names).toEqual(['trip'])
+  })
+
+  it('links the ~N days card when no arrival can be worked out', () => {
+    expect(linksAt(100, { ...away(), arrival: null, fallbackDaysRemaining: 2 }).names).toEqual(['fallback'])
+  })
+
+  it('shows View Schedule after the narrative and before the location card when no card leads to the schedule', () => {
+    const { container, names } = linksAt(12000) // home, with no trip ahead
+    expect(names).toEqual(['view'])
+    const button = screen.getByRole('link', { name: 'View Schedule' })
+    expect(container.querySelector('.narrative')!.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(button.compareDocumentPosition(container.querySelector('.location')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('shows View Schedule away when nothing else leads there, where the app has no way in', () => {
+    expect(linksAt(100, { ...away(), arrival: null, fallbackDaysRemaining: null }).names).toEqual(['view'])
+  })
+
+  it('opens the schedule with the name of the link taken', () => {
+    const opened: ScheduleLinkName[] = []
+    linksAt(-1440, undefined, (name) => opened.push(name))
+    fireEvent.click(screen.getAllByRole('link', { name: 'Schedule' })[1])
+    expect(opened).toEqual(['trip'])
+  })
+
+  it('shows View Schedule in the demo’s nothing-ahead scene: home, with no trip ahead', () => {
+    const now = Date.UTC(2026, 9, 20, 16, 0)
+    const schedule = buildSchedule(demoRawForScene('nothing-ahead', now), now)
+    render(
+      <StatusScreen snap={makeSnapshot(schedule, buildLegs(schedule), now, NY)} now={now} viewerTz={NY} homeTz={NY} h24={false}
+        airports={testAirports} weather={null} demo celebrateKey={0} footer={footer(now)} onOpenSchedule={() => {}} />,
+    )
+    expect(screen.getByRole('link', { name: 'View Schedule' })).toBeTruthy()
+  })
+
+  it('has no way into the schedule without onOpenSchedule, as on the app’s iPad', () => {
+    for (const minutes of [-1440, 100, 12000]) {
+      const { container } = renderAt(minutes)
+      expect(container.querySelector('[data-schedule-link]')).toBeNull()
+      cleanup()
+    }
   })
 })
