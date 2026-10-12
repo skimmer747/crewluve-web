@@ -1,10 +1,11 @@
 # Crewluve Web
 
-The Crewluve app's "Where's {Name}?" screen as a website for pilots' families.
+The Crewluve app's "Where's {Name}?" screen, and its Schedule, as a website for pilots' families.
 Sign in with the pilot's CrewLu Cloud account. The site only reads; it never changes anything.
 
 - Live: https://crewluve.crewlu.net
-- Demo: https://crewluve.crewlu.net/?demo=1 (add `&scene=layover`, `last-leg`, `home`, `commuting-home`, …)
+- Demo: https://crewluve.crewlu.net/?demo=1 (add `&scene=layover`, `last-leg`, `home`, `commuting-home`, `nothing-ahead`, …)
+- Schedule: add `#schedule` to either address, or tap a card with a chevron.
 - Design: docs/superpowers/specs/2026-10-08-crewluve-web-slice1-design.md
 
 ## Develop
