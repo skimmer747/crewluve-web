@@ -12,6 +12,7 @@ import {
   dialTimeText,
   leaveWhenText,
   longDateTimeText,
+  mapAirportTimeText,
   narrativeCountdown,
   ordinalSuffix,
   shortTimeText,
@@ -103,6 +104,14 @@ describe('clock times', () => {
     expect(dialTimeText(Date.UTC(2026, 9, 10, 22, 41), NY, true)).toBe('18:41')
     expect(dialTimeText(Date.UTC(2026, 9, 9, 4, 5), NY, false)).toBe('12:05a')
     expect(dialTimeText(Date.UTC(2026, 9, 9, 16, 0), NY, false)).toBe('12:00p')
+  })
+
+  it('prints the in-flight map’s airport times as the app does: the weekday’s first two letters, then the time', () => {
+    // Monday 12 October 2026: 5:40 AM in Anchorage, 2:40 PM in New York.
+    expect(mapAirportTimeText(Date.UTC(2026, 9, 12, 13, 40), 'America/Anchorage', false)).toBe('MO 5:40AM')
+    expect(mapAirportTimeText(Date.UTC(2026, 9, 12, 18, 40), NY, false)).toBe('MO 2:40PM')
+    expect(mapAirportTimeText(Date.UTC(2026, 9, 12, 13, 40), 'America/Anchorage', true)).toBe('MO 05:40')
+    expect(mapAirportTimeText(Date.UTC(2026, 9, 11, 4, 5), NY, false)).toBe('SU 12:05AM')
   })
 
   it('adds the zone for {T}', () => {

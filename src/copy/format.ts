@@ -127,6 +127,15 @@ export function dialTimeText(ms: number, timeZone: string, h24: boolean): string
   return clock(ms, timeZone, h24, 'a', 'p')
 }
 
+/**
+ * An airport's time on the in-flight map: "MO 5:40AM", the weekday's first two letters and then the time
+ * (FlightRouteMapView.formatLocalTime, "h:mma"), or "MO 05:40" in 24-hour.
+ */
+export function mapAirportTimeText(ms: number, timeZone: string, h24: boolean): string {
+  const weekday = WEEKDAYS[zonedParts(ms, timeZone).weekday].slice(0, 2).toUpperCase()
+  return `${weekday} ${clock(ms, timeZone, h24, 'AM', 'PM')}`
+}
+
 /** {T}: "1:00pm EST" or "13:00 EST" (formattedLocalTime). */
 export function timeWithZone(ms: number, timeZone: string, h24: boolean): string {
   return `${clockText(ms, timeZone, h24)} ${zoneAbbr(ms, timeZone)}`
