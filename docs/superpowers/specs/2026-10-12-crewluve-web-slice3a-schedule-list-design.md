@@ -30,7 +30,9 @@ Each of them changes in three ways:
 - **A chevron (›)** at the right end of its top row: 14 px, semibold, in the secondary color.
   - On the countdown cards and the "~N days" card, it ends the icon-and-title row.
   - On the upcoming trip card, it comes after the delay badge, when there is one.
-- **The whole card opens the schedule.** It's one link: Tab stops once per card, and the focus ring outlines the whole card.
+- **The whole card opens the schedule:** a tap or click anywhere on it, as the app's card button does. A swipe makes no click, so the trip card's route still scrolls sideways.
+  - **Its chevron is the link** keyboards and screen readers use, named "Schedule". Tab stops once per card, and the focus ring outlines the whole card. Screen readers read the card's own words as before.
+  - **On the narrowest phones,** 320 px wide, a delayed trip card's delay badge and chevron move to a second row together, as the badge already did.
 - **Pressing it** shrinks the card to 97% and fades it to 85%, then lets it go, over about 0.3 s (`CardButtonStyle`). With reduced motion, it only fades.
 
 The narrative card, the days-home pill, the location card, the in-flight card and the trip progress card don't open the schedule, as in the app.
@@ -56,10 +58,13 @@ The narrative card, the days-home pill, the location card, the in-flight card an
   - The phone's Back, swipe-back and the browser's Back return to the status page.
   - The page's own back button does the same. If the schedule was opened straight from its address (a bookmark or a reload), the back button goes to the status page instead of leaving the site.
 - **Bookmarks and reloads** open the schedule. Signed out, the sign-in page comes first, then the schedule.
-- **The status page comes back scrolled to where it was.**
+- **The status page comes back scrolled to where it was.** That holds however the schedule opened: from a card, by the browser's Forward, or with the address edited to `#schedule`.
+  - Only the schedule's own history entry stops the browser restoring a scroll; the site sets it each time. The status page's entry keeps the browser's own restoring, so a reload or a return from another site finds it where it was.
 - **Focus:**
   - When the schedule opens, focus moves to its "Schedule" heading, so screen readers announce the new page. The heading takes focus without a focus ring, as the status page's headings do (popup follow-ups §4.2).
   - Coming back, focus returns to the card or button that opened the schedule when it's still on the page. Otherwise it goes to the status page's title.
+  - Focus moves before the scroll is set, since Safari before 15 ignores `preventScroll` and scrolls to whatever takes focus.
+  - Safari before 15.4 has no `:focus-visible`, so it shows the card's focus ring after a return even after a tap.
 - **When there's nothing to show:** while the data first loads, after an error with nothing saved, or when CrewLu Cloud has nothing for the account, the address doesn't matter. The site shows the same screen it shows today.
 
 ## 4. The Schedule page
@@ -97,11 +102,12 @@ The narrative card, the days-home pill, the location card, the in-flight card an
   - **Other headings** have no pill and use the secondary color.
   - **Behind each heading:** the same bar material as the top bar, across the list's width.
 - **Live:** the words follow the clock. At midnight, "Today" becomes "Yesterday".
-- **For screen readers,** each day is a heading over a list of its legs. Its words are read normally ("Thursday, Oct 16"), not in capitals.
+- **For screen readers,** each day is a heading over a list of its legs. Its words are read normally ("Thursday, Oct 16"), not in capitals: the heading is labelled with them.
+  - Safari drops the list role from a list shown without bullets, so each list says it's a list.
 
 ### 4.4 Rows
 
-- **Layout:** a glass card with a 14 px radius and 12 px by 10 px of padding. It holds, 12 px apart:
+- **Layout:** a glass card with a 14 px radius and 12 px by 10 px of padding, without the glass's backdrop blur: the rows sit on the page's plain color, where a blur shows nothing and costs Safari a layer each. It holds, 12 px apart:
   - **An icon in a circle:** 36 px, in the leg's color at 20%. The icon is 15 px, in the leg's color.
   - **Two lines:**
     - the title, 15 px, semibold;
@@ -194,12 +200,12 @@ The narrative card, the days-home pill, the location card, the in-flight card an
   - Its icon pulses gently, fading to about half and back roughly once a second (`.symbolEffect(.pulse)`).
 - **Up next** means the first leg that hasn't started:
   - **The edge** is a 2 px ring of cyan and blue with fainter cyan and blue, turning once every 4 s.
-  - **A red "UP NEXT" tag:** 11 px, bold, white, in a capsule with 8 px by 3 px of padding, 6 px from the row's top and 8 px from its right. As in the app, it sits over the top of the right-hand column.
+  - **A red "UP NEXT" tag:** 11 px, bold, white, in a capsule with 8 px by 3 px of padding, 6 px from the row's top and 8 px from its right. As in the app, it sits over the top of the right-hand column. Its words are "Up next", shown in capitals, so screen readers say them rather than spell them.
 - **Ending at home** means:
   - a flight or jumpseat that lands at the pilot's home airport;
   - a drive the site counts as a drive home (§4.5);
   - or a training or other event at the home airport.
-  - Such a row has a green edge at 50% when it isn't happening now or up next. For screen readers, it says "Arriving at home airport", the app's hint.
+  - Such a row has a green edge at 50% when it isn't happening now or up next. For screen readers, it says "Arriving at home airport", the app's hint, except on the next leg, where the app's hint is "Up next event" and the tag already says so.
 - **Reduced motion:** no pulse, and the up-next edge is a still cyan ring at 60%, as in the app.
 - **Live:** when a leg starts, its row switches to "Ends in", and the edge and tag move to the next leg.
 
@@ -214,6 +220,7 @@ The narrative card, the days-home pill, the location card, the in-flight card an
   - else "Gap 1h 25m" in the secondary color.
   - The line is the same color at 40%.
 - **Lengths** use the "Duration" formats.
+- **For screen readers,** the label is in words, "Layover, 3 hours, 10 minutes", as VoiceOver reads the app's.
 
 ### 4.11 Where it opens
 
@@ -279,7 +286,7 @@ The narrative card, the days-home pill, the location card, the in-flight card an
 
 Nothing new: no requests, storage or scripts. The content security policy is unchanged.
 - The page's styles live in its stylesheet.
-- The few values that change while it runs, such as the stuck heading's offset, are set through the CSSOM, which the policy allows.
+- The one value set while it runs, each row's color (`--leg`), is set through the CSSOM, which the policy allows.
 
 ## 7. Deliberate differences from the app
 
@@ -361,6 +368,7 @@ Nothing new: no requests, storage or scripts. The content security policy is unc
 | 7 | A jumpseat goes by the airline entered for it: its airline's look with one, the green seat without. | Design, from decision 2's table |
 | 8 | The bars use iOS's bar material as a new color, `--bar-fill`, and the demo gains a `nothing-ahead` scene that shows View Schedule. | Design, from the browser check while planning |
 | 9 | Titles use the place as entered when it isn't a known airport ("Sim at Training Center"), as the app does; a drive home follows the site's one rule; the base stop stays in the list's blue; the next leg gets no home hint, as its UP NEXT tag speaks. | Design, from the batch A reviews |
+| 10 | The whole card takes the tap and the chevron is the link, so the trip card's route still scrolls; gaps are spoken; rows have no backdrop blur; only the schedule's history entry stops scroll restoring. | Design, from the batch B reviews |
 
 ## 10. Roadmap
 
