@@ -430,7 +430,7 @@ describe('StatusScreen in-flight card (slice 2C)', () => {
   it('opens the tracking popup from the flight number, after <main>, and hides the page behind it', () => {
     const { container } = renderAt(100)
     const main = container.querySelector('main')!
-    fireEvent.click(screen.getByRole('button', { name: 'UPS2961' }))
+    fireEvent.click(screen.getByRole('button', { name: 'UPS2961. Opens flight tracking.' }))
     const dialog = screen.getByRole('dialog', { name: 'UPS2961' })
     expect(main.contains(dialog)).toBe(false)
     expect(main.compareDocumentPosition(dialog) & FOLLOWING).toBeTruthy()
@@ -441,17 +441,17 @@ describe('StatusScreen in-flight card (slice 2C)', () => {
   it('shows the page again and returns focus to the flight number once the popup has closed', async () => {
     reduceMotion()
     const { container } = renderAt(100)
-    fireEvent.click(screen.getByRole('button', { name: 'UPS2961' }))
+    fireEvent.click(screen.getByRole('button', { name: 'UPS2961. Opens flight tracking.' }))
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(container.querySelector('main')!.hasAttribute('inert')).toBe(false)
     await act(() => {})
-    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'UPS2961' }))
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'UPS2961. Opens flight tracking.' }))
   })
 
   it('closes the popup by itself at landing, and keeps it closed on the next flight', () => {
     const { rerender } = render(screenFor(e, 100))
-    fireEvent.click(screen.getByRole('button', { name: 'UPS2961' }))
+    fireEvent.click(screen.getByRole('button', { name: 'UPS2961. Opens flight tracking.' }))
     rerender(screenFor(e, 180))
     expect(screen.queryByRole('dialog')).toBeNull()
     rerender(screenFor(e, 300))
@@ -466,14 +466,14 @@ describe('StatusScreen in-flight card (slice 2C)', () => {
       <StatusScreen snap={{ ...snap, status: { ...snap.status, current } }} now={now} viewerTz={NY} homeTz={NY} h24={false}
         airports={testAirports} weather={null} demo={false} celebrateKey={0} footer={footer(now)} />,
     )
-    fireEvent.click(screen.getByRole('button', { name: '2961' }))
+    fireEvent.click(screen.getByRole('button', { name: '2961. Opens flight tracking.' }))
     expect(screen.getByRole('dialog', { name: '2961' })).toBeTruthy()
     expect(document.querySelector('.tracking-link')).toBeNull()
   })
 
   it('covers a jumpseat, with the airline’s ICAO code in the popup', () => {
     render(screenFor(jumpseater, -240))
-    fireEvent.click(screen.getByRole('button', { name: 'DL1234' }))
+    fireEvent.click(screen.getByRole('button', { name: 'DL1234. Opens flight tracking.' }))
     expect(screen.getByRole('heading', { level: 2, name: 'DAL1234' })).toBeTruthy()
   })
 

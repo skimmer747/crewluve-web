@@ -59,7 +59,7 @@ describe('InFlightCard', () => {
   it('makes the flight number a button that opens the tracking popup, handing itself over', () => {
     const open = vi.fn()
     render(card({}, false, open))
-    const button = screen.getByRole('button', { name: 'UPS2962' })
+    const button = screen.getByRole('button', { name: 'UPS2962. Opens flight tracking.' })
     expect(button.getAttribute('aria-haspopup')).toBe('dialog')
     fireEvent.click(button)
     expect(open).toHaveBeenCalledWith(button)

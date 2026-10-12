@@ -35,7 +35,13 @@ export function InFlightCard({ facts, now, h24, onOpenTracking }: InFlightCardPr
       <div class="inflight-bar">
         <div class="inflight-flight">
           {facts.flightNumber && (
-            <button type="button" class="inflight-number" aria-haspopup="dialog" onClick={(e) => onOpenTracking(e.currentTarget)}>
+            <button
+              type="button"
+              class="inflight-number"
+              aria-label={`${facts.flightNumber}. Opens flight tracking.`}
+              aria-haspopup="dialog"
+              onClick={(e) => onOpenTracking(e.currentTarget)}
+            >
               {facts.flightNumber}
             </button>
           )}

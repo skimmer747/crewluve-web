@@ -205,7 +205,7 @@ Everything comes from what the site already has; there are no new requests.
 2. **The delay banner** shows only at 15 minutes or more off schedule, as everywhere on the site. The app shows any delay.
 3. **Times follow the site's 24-hour setting.** The app's map labels are always 12-hour.
 4. **FlightRadar24 opens its website.** The app tries the FlightRadar24 app first. On an iPhone with that app installed, the website may hand over to it.
-5. **Screen readers get more than in the app:** the map's spoken description, an "In flight" heading for the card, "Time in Louisville" before the info bar's time, naming the city whose time it is, and the delay banner in words ("Delayed 40 minutes", "Departed 20 minutes early").
+5. **Screen readers get more than in the app:** the map's spoken description, an "In flight" heading for the card, "Time in Louisville" before the info bar's time, naming the city whose time it is, the delay banner in words ("Delayed 40 minutes", "Departed 20 minutes early"), and the flight number saying what it opens ("UPS2962. Opens flight tracking."), as the sun dial does.
 6. **There's no map during ground transport,** where the location card shows (B1 §8 item 9).
 7. **"EARLY DEP" uses a check in a circle,** since the site's icon set has no clock with a check badge.
 8. **The sun's position comes from the site's own sun module,** the NOAA formulas behind the location card's sunrise and sunset (decision 9).
