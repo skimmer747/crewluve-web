@@ -50,7 +50,8 @@
   overflow: hidden;
 }
 
-.flight-map-art {
+.flight-map-art,
+.flight-map-plane {
   position: absolute;
   top: 0;
   left: 0;
@@ -73,7 +74,8 @@
   stop-color: var(--map-night-2);
 }
 
-/* The route: 3 px, round, fading to 75% at the edges, over a 4 px glow of its color at 50% (§4.4). */
+/* The route: 3 px, round, fading to 75% at the edges, over a 4 px glow of itself at half strength, as the app's
+   shadow, which takes the line's own fade (§4.4). */
 .flight-route-edge {
   stop-color: var(--map-route);
   stop-opacity: var(--map-route-edge);
@@ -95,7 +97,6 @@
 }
 
 .flight-route-glow {
-  stroke: var(--map-route);
   stroke-opacity: 0.5;
 }
 

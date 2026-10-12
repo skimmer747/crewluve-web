@@ -115,6 +115,30 @@ describe('FlightMap', () => {
     expect(pose.at).toEqual(project(greatCirclePoint(ANC.place!, SDF.place!, 1 / 3), box, W))
   })
 
+  it('stacks its layers as the app does: the route, the airports, the plane over them, then the distance', () => {
+    const { container } = render(<FlightMap facts={facts()} now={THIRD} h24={false} />)
+    const layers = [...container.querySelector('.flight-map')!.children].map((layer) => layer.getAttribute('class'))
+    expect(layers).toEqual(['flight-map-art', 'flight-airport', 'flight-airport', 'flight-map-plane', 'flight-distance'])
+    expect(container.querySelector('svg.flight-map-plane .flight-plane')).not.toBeNull()
+    expect(container.querySelector('svg.flight-map-plane')!.getAttribute('aria-hidden')).toBe('true')
+    expect(container.querySelector('svg.flight-map-art .flight-plane')).toBeNull()
+  })
+
+  it('glows the route in its own fade, and the arrow and the plane, each over a blur', () => {
+    const { container } = render(<FlightMap facts={facts()} now={THIRD} h24={false} />)
+    const filterOf = (el: Element) => container.querySelector(`filter[id="${el.getAttribute('filter')!.slice(5, -1)}"]`)!
+    const blurOf = (el: Element) => filterOf(el).querySelector('feGaussianBlur')!.getAttribute('stdDeviation')
+    const routeGlow = container.querySelector('.flight-route-glow')!
+    expect(routeGlow.getAttribute('stroke')).toBe(container.querySelector('.flight-route')!.getAttribute('stroke'))
+    expect(blurOf(routeGlow)).toBe('2')
+    // Over the whole map, so a route that runs straight up the map keeps its glow.
+    const area = filterOf(routeGlow)
+    expect(['filterUnits', 'x', 'y', 'width', 'height'].map((name) => area.getAttribute(name))).toEqual(['userSpaceOnUse', '0', '0', String(W), '200'])
+    expect(blurOf(container.querySelector('.flight-arrow-glow')!)).toBe('2')
+    expect(blurOf(container.querySelector('.flight-plane-halo')!)).toBe('4')
+    expect(blurOf(container.querySelector('.flight-plane-glow')!.parentElement!)).toBe('2')
+  })
+
   it('has no plane before departure or after landing', () => {
     expect(render(<FlightMap facts={facts()} now={OUT - MINUTE} h24={false} />).container.querySelector('.flight-plane')).toBeNull()
     cleanup()

@@ -82,30 +82,40 @@ function MapDrawing({ facts, depPlace, arrPlace, nm, width, progress, h24 }: Map
             <stop offset="0.5" class="flight-route-middle" />
             <stop offset="1" class="flight-route-edge" />
           </linearGradient>
-          <filter id={`${id}-glow`} x="-50%" y="-50%" width="200%" height="200%">
+          {/* Over the whole map, so a route that runs straight up the map, with no width of its own, keeps its glow. */}
+          <filter id={`${id}-glow`} filterUnits="userSpaceOnUse" x="0" y="0" width={width} height={MAP_HEIGHT}>
             <feGaussianBlur stdDeviation="2" />
-          </filter>
-          <filter id={`${id}-halo`} x="-100%" y="-100%" width="300%" height="300%">
-            <feGaussianBlur stdDeviation="4" />
           </filter>
         </defs>
         <rect class="flight-sky" width={width} height={MAP_HEIGHT} fill={`url(#${id}-sky)`} />
-        <polyline class="flight-route-glow" points={layout.line} filter={`url(#${id}-glow)`} />
+        {/* The route's glow is the line itself, fade and all, at half strength, as the app's shadow takes the line's. */}
+        <polyline class="flight-route-glow" points={layout.line} stroke={`url(#${id}-route)`} filter={`url(#${id}-glow)`} />
         <polyline class="flight-route" points={layout.line} stroke={`url(#${id}-route)`} />
         <polyline class="flight-arrow-glow" points={chevron} filter={`url(#${id}-glow)`} />
         <polyline class="flight-arrow" points={chevron} />
-        {plane && (
+      </svg>
+      <Airport end={facts.dep} at={layout.depAt} day={layout.depDay} time={facts.start} h24={h24} />
+      <Airport end={facts.arr} at={layout.arrAt} day={layout.arrDay} time={facts.end} h24={h24} />
+      {/* The app draws the plane over the airports' columns, so it's a second drawing, laid over them. */}
+      {plane && (
+        <svg class="flight-map-plane" width={width} height={MAP_HEIGHT} viewBox={`0 0 ${width} ${MAP_HEIGHT}`} aria-hidden="true">
+          <defs>
+            <filter id={`${id}-plane-glow`} x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="2" />
+            </filter>
+            <filter id={`${id}-halo`} x="-100%" y="-100%" width="300%" height="300%">
+              <feGaussianBlur stdDeviation="4" />
+            </filter>
+          </defs>
           <g class="flight-plane" transform={`translate(${plane.at.x} ${plane.at.y})`}>
             <circle class="flight-plane-halo" r="15" filter={`url(#${id}-halo)`} />
-            <g filter={`url(#${id}-glow)`}>
+            <g filter={`url(#${id}-plane-glow)`}>
               <PlaneIcon heading={plane.heading} glow />
             </g>
             <PlaneIcon heading={plane.heading} />
           </g>
-        )}
-      </svg>
-      <Airport end={facts.dep} at={layout.depAt} day={layout.depDay} time={facts.start} h24={h24} />
-      <Airport end={facts.arr} at={layout.arrAt} day={layout.arrDay} time={facts.end} h24={h24} />
+        </svg>
+      )}
       <p class="flight-distance" style={{ left: `${width / 2}px` }}>
         {facts.blockMs > 0 && (
           <span class="flight-distance-part">

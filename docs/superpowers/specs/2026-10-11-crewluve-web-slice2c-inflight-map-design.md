@@ -58,7 +58,7 @@ It copies `FlightRouteMapView.swift` line for line, except where §10 says other
 - **The line:** the 51 points joined, 3 px wide, with round caps and joins.
   - **Color:** blue in light mode at full strength; cyan in dark mode at 80%.
   - **Fading:** a left-to-right gradient across the map's whole width, at 75%, 100% and 75% of that strength.
-  - **Glow:** the route color at 50%, 4 px of blur.
+  - **Glow:** the line itself at half strength, fade and all, with 4 px of blur. The app's shadow takes its strength from the line it's under.
 - **The arrow:** at point 25 (the middle), pointing along the route from point 24.
   - **Shape:** a 3 px chevron, round caps. Its tip is 12 px ahead, and its arms 9.6 px out at ±2.5 radians from the heading.
   - **Color:** the route color at full strength, glowing at 80% with 4 px of blur.
@@ -187,7 +187,7 @@ Everything comes from what the site already has; there are no new requests.
   - the plane's position and heading;
   - the distance, the duration and the labels;
   - the callsign and the tracking links.
-- **The map:** a Preact component drawing one SVG at the measured width, with HTML columns for the airports and the duration and distance. Its colors are CSS custom properties: the app's fixed colors as fixed values, and its system colors as the site's theme colors.
+- **The map:** a Preact component that stacks its layers in the app's order. The sky, the route and the arrow are one SVG at the measured width. The airports' columns are HTML over it, the plane is a second SVG over them, and the duration and distance come last. Its colors are CSS custom properties: the app's fixed colors as fixed values, and its system colors as the site's theme colors.
 - **The card:** a component, `InFlightCard`, that the status screen draws in the location card's place while the pilot is in the air.
 - **The popup:** a component, `TrackingPopup`, drawn after `<main>` like the sun popup. It reuses the sun popup's dialog behavior: focus, Escape, the inert page and focus returning.
 - **Icons:** the site's Phosphor icons. It already has the plane, sun, moon, warning, location arrow and ✕ in a circle. Part C adds a timer, a left-right arrow with a head at each end (the app's `arrow.left.and.right`), a broadcast, a GPS fix, "arrow square out" and a check in a circle.

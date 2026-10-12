@@ -311,6 +311,18 @@ describe('inFlight.css', () => {
     expect([darkMap.get('--map-route'), darkMap.get('--map-route-middle'), darkMap.get('--map-route-edge')]).toEqual(['var(--cyan)', '0.8', '0.6'])
   })
 
+  it('glows the route through its own fade at half strength, with no stroke color over the line’s gradient', () => {
+    const glow = declarations(find(top, '.flight-route-glow')!.body)
+    expect(glow).toContainEqual(['stroke-opacity', '0.5'])
+    expect(glow.map(([prop]) => prop)).not.toContain('stroke')
+  })
+
+  it('lays the plane’s drawing exactly over the map’s, so the plane sits over the airports', () => {
+    expect(declarations(find(top, '.flight-map-art, .flight-map-plane')!.body)).toEqual(
+      expect.arrayContaining([['position', 'absolute'], ['top', '0'], ['left', '0']]),
+    )
+  })
+
   it('puts the banner’s white text on the readable fills', () => {
     expect(declarations(find(top, '.inflight-banner.late')!.body)).toContainEqual(['background', 'var(--fill-orange, var(--orange))'])
     expect(declarations(find(top, '.inflight-banner.early')!.body)).toContainEqual(['background', 'var(--fill-green, var(--green))'])
