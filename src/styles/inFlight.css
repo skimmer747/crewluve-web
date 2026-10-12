@@ -1,0 +1,199 @@
+/* The in-flight card (slice 2C): the app's LocationCardView in flight, its FlightRouteMapView, and the tracking popup. */
+
+/* The map's own colors, fixed in the app (§4.3, §4.5): RGB fractions, written as percentages. Its system colors follow
+   the site's theme, so Increase Contrast reaches them (§11). */
+.flight-map {
+  --map-day-1: rgb(85%, 92%, 98%);
+  --map-day-2: rgb(75%, 85%, 95%);
+  --map-night-1: rgb(70%, 80%, 92%);
+  --map-night-2: rgb(65%, 75%, 88%);
+  --map-text: #000000;
+  --map-text-2: rgb(40%, 40%, 45%);
+  --map-route: var(--blue);
+  --map-route-middle: 1;
+  --map-route-edge: 0.75;
+}
+
+@media (prefers-color-scheme: dark) {
+  .flight-map {
+    --map-day-1: rgb(12%, 18%, 30%);
+    --map-day-2: rgb(10%, 15%, 26%);
+    --map-night-1: rgb(4%, 8%, 16%);
+    --map-night-2: rgb(2%, 5%, 12%);
+    --map-text: #ffffff;
+    --map-text-2: var(--gray);
+    --map-route: var(--cyan);
+    --map-route-middle: 0.8;
+    --map-route-edge: 0.6;
+  }
+}
+
+/* 200 px tall, the card's width; the drawing, the airports and the distance are laid over each other. */
+.flight-map {
+  position: relative;
+  height: 200px;
+  overflow: hidden;
+}
+
+.flight-map-art {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+}
+
+.sky-day-1 {
+  stop-color: var(--map-day-1);
+}
+
+.sky-day-2 {
+  stop-color: var(--map-day-2);
+}
+
+.sky-night-1 {
+  stop-color: var(--map-night-1);
+}
+
+.sky-night-2 {
+  stop-color: var(--map-night-2);
+}
+
+/* The route: 3 px, round, fading to 75% at the edges, over a 4 px glow of its color at 50% (§4.4). */
+.flight-route-edge {
+  stop-color: var(--map-route);
+  stop-opacity: var(--map-route-edge);
+}
+
+.flight-route-middle {
+  stop-color: var(--map-route);
+  stop-opacity: var(--map-route-middle);
+}
+
+.flight-route,
+.flight-route-glow,
+.flight-arrow,
+.flight-arrow-glow {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.flight-route-glow {
+  stroke: var(--map-route);
+  stroke-opacity: 0.5;
+}
+
+/* The arrow: the route's color at full strength, glowing at 80%. */
+.flight-arrow,
+.flight-arrow-glow {
+  stroke: var(--map-route);
+}
+
+.flight-arrow-glow {
+  stroke-opacity: 0.8;
+}
+
+/* The plane: a blue halo 30 px across at 30%, blurred 8 px, then the icon glowing blue at 80% (§4.6). */
+.flight-plane-halo {
+  fill: var(--blue);
+  fill-opacity: 0.3;
+}
+
+.flight-plane-glow {
+  fill: var(--blue);
+  fill-opacity: 0.8;
+}
+
+.flight-plane-icon {
+  fill: var(--map-text);
+}
+
+/* An airport's column, centered on its place: 4 px between lines (§4.5). */
+.flight-airport {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* A sun or a moon, 14 px, over a 4 px glow of its own color at 80%. */
+.flight-airport-icon {
+  display: grid;
+}
+
+.flight-airport-icon > .icon {
+  grid-area: 1 / 1;
+}
+
+.flight-airport-icon > .icon:first-child {
+  filter: blur(2px);
+  opacity: 0.8;
+}
+
+.flight-airport-icon.day {
+  color: var(--yellow);
+}
+
+.flight-airport-icon.night {
+  color: var(--blue);
+}
+
+.flight-airport-code {
+  font-family: var(--font-rounded);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--map-text);
+}
+
+.flight-airport-city {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--map-text-2);
+}
+
+.flight-airport-time {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--map-text);
+}
+
+/* The duration and the distance, centered 20 px above the bottom: 8 px apart, each a 10 px blue icon and 12 px text (§4.7). */
+.flight-distance {
+  position: absolute;
+  top: 180px;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  display: flex;
+  gap: 8px;
+  font-family: var(--font-rounded);
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 500;
+  color: var(--map-text);
+  white-space: nowrap;
+}
+
+.flight-distance-part {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Without both airports' places: the day sky, a 24 px plane and the codes, 8 px apart, in the secondary color (§4.8). */
+.flight-map-fallback {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(var(--map-day-1), var(--map-day-2));
+  color: var(--map-text-2);
+  font-size: 14px;
+  font-weight: 500;
+}

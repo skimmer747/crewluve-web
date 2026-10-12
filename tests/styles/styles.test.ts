@@ -287,6 +287,31 @@ describe('trips.css', () => {
   })
 })
 
+describe('inFlight.css', () => {
+  const top = blocks(css('inFlight'))
+  const dark = find(top, '@media (prefers-color-scheme: dark)')
+  const light = customProperties(find(top, '.flight-map')?.body)
+  const darkMap = customProperties(find(blocks(dark?.body ?? ''), '.flight-map')?.body)
+
+  // Slice 2C §4.3 and §4.5: FlightRouteMapView's fixed colors, as RGB fractions.
+  it.each([
+    ['--map-day-1', 'rgb(85%,92%,98%)', 'rgb(12%,18%,30%)'],
+    ['--map-day-2', 'rgb(75%,85%,95%)', 'rgb(10%,15%,26%)'],
+    ['--map-night-1', 'rgb(70%,80%,92%)', 'rgb(4%,8%,16%)'],
+    ['--map-night-2', 'rgb(65%,75%,88%)', 'rgb(2%,5%,12%)'],
+    ['--map-text', '#000000', '#ffffff'],
+    ['--map-text-2', 'rgb(40%,40%,45%)', 'var(--gray)'],
+  ])('%s is the app’s color, light and dark', (name, lightValue, darkValue) => {
+    expect(normalize(light.get(name))).toBe(normalize(lightValue))
+    expect(normalize(darkMap.get(name))).toBe(normalize(darkValue))
+  })
+
+  it('draws the route in the theme’s blue, or cyan at 80% in dark mode, so Increase Contrast reaches it', () => {
+    expect([light.get('--map-route'), light.get('--map-route-middle'), light.get('--map-route-edge')]).toEqual(['var(--blue)', '1', '0.75'])
+    expect([darkMap.get('--map-route'), darkMap.get('--map-route-middle'), darkMap.get('--map-route-edge')]).toEqual(['var(--cyan)', '0.8', '0.6'])
+  })
+})
+
 describe('location.css', () => {
   const top = blocks(css('location'))
 
