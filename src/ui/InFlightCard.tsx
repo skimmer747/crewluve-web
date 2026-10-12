@@ -1,3 +1,4 @@
+import type { Ref } from 'preact'
 import { delayBannerText, spokenDelayBanner } from '../copy/flight'
 import { shortTimeText } from '../copy/format'
 import { FlightMap } from './FlightMap'
@@ -10,20 +11,22 @@ export interface InFlightCardProps {
   h24: boolean
   /** Opens the tracking popup. The flight number hands itself over, so focus can go back to it afterwards. */
   onOpenTracking: (button: HTMLButtonElement) => void
+  /** The card's heading, which takes focus from code when a popup closes by itself (popup follow-ups §4.2). */
+  headingRef?: Ref<HTMLHeadingElement>
 }
 
 /**
  * LocationCardView while the pilot is in the air (slice 2C §5): the map, a delay banner when the departure is 15
  * minutes or more off, and the info bar with the flight number, "In Flight", and the arrival's local time and code.
  */
-export function InFlightCard({ facts, now, h24, onOpenTracking }: InFlightCardProps) {
+export function InFlightCard({ facts, now, h24, onOpenTracking, headingRef }: InFlightCardProps) {
   // The arrival's local time, or the departure's when the arrival's zone isn't known (§5.2), named for screen readers.
   const { arr, dep } = facts
   const clock = arr.timeZone ? { city: arr.city, zone: arr.timeZone } : dep.timeZone ? { city: dep.city, zone: dep.timeZone } : null
   const offset = facts.delayMinutes
   return (
     <section class="card glass inflight">
-      <h2 class="sr-only">In flight</h2>
+      <h2 ref={headingRef} class="sr-only" tabIndex={-1}>In flight</h2>
       <FlightMap facts={facts} now={now} h24={h24} />
       {offset != null && (
         <p class={offset < 0 ? 'inflight-banner early' : 'inflight-banner late'}>

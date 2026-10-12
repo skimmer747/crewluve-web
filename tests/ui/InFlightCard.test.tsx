@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, render, screen } from '@testing-library/preact'
+import { createRef } from 'preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { InFlightCard } from '../../src/ui/InFlightCard'
 import type { FlightEnd, InFlightFacts } from '../../src/ui/inFlightFacts'
@@ -30,6 +31,13 @@ describe('InFlightCard', () => {
     expect(section.getAttribute('class')).toBe('card glass inflight')
     expect(screen.getByRole('heading', { level: 2, name: 'In flight' }).classList.contains('sr-only')).toBe(true)
     expect([...section.children].map((el) => el.getAttribute('class'))).toEqual(['sr-only', 'flight-map', 'inflight-banner late', 'inflight-bar'])
+  })
+
+  it('lets its heading take focus from code only, for when a popup closes by itself', () => {
+    const heading = createRef<HTMLHeadingElement>()
+    render(<InFlightCard facts={facts()} now={NOW} h24={false} onOpenTracking={() => {}} headingRef={heading} />)
+    expect(heading.current).toBe(screen.getByRole('heading', { level: 2, name: 'In flight' }))
+    expect(heading.current!.getAttribute('tabindex')).toBe('-1')
   })
 
   it('shows DELAYED with a warning for a late departure, and EARLY DEP with a check for an early one', () => {

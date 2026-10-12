@@ -1,3 +1,4 @@
+import type { Ref } from 'preact'
 import { shortTimeText } from '../copy/format'
 import { timeDifference } from '../copy/location'
 import { temperatureText } from '../copy/weather'
@@ -27,20 +28,22 @@ export interface LocationCardProps {
   weather: Weather | null
   /** Opens the sun popup: the dial becomes a button, and is handed to it for focus to come back to (slice 2B2 §3). */
   onOpenSun?: (dial: HTMLElement) => void
+  /** The city's heading, which takes focus from code when a popup closes by itself (popup follow-ups §4.2). */
+  headingRef?: Ref<HTMLHeadingElement>
 }
 
 /**
  * LocationCardView's standard view (slice 2B1 §4): the city and flag, the weather, the local time and how far it is
  * from home's, with the sun dial in the upper right. With no airport it's just "Unknown Location", as in the app.
  */
-export function LocationCard({ airport, facts, now, homeTz, h24, weather, onOpenSun }: LocationCardProps) {
+export function LocationCard({ airport, facts, now, homeTz, h24, weather, onOpenSun, headingRef }: LocationCardProps) {
   const { city, flag, tz, visual } = facts
   return (
     <section class="card glass location">
       <div class="location-body">
         <div class="location-head">
           <Icon name="MapPin" size={22} color="var(--red)" />
-          <h2 class="location-city">{city}</h2>
+          <h2 ref={headingRef} class="location-city" tabIndex={-1}>{city}</h2>
           {flag && <span class="location-flag">{flag}</span>}
         </div>
         {airport &&

@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, render, screen } from '@testing-library/preact'
+import { createRef } from 'preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { demoRaw } from '../../src/data/demo'
 import type { Weather } from '../../src/data/weather'
@@ -38,6 +39,16 @@ describe('LocationCard', () => {
     const pin = container.querySelector('.location-head svg') as SVGElement
     expect(iconNameOf(pin)).toBe('MapPin')
     expect(pin.style.color).toBe('var(--red)')
+  })
+
+  it('lets the city’s heading take focus from code only, for when a popup closes by itself', () => {
+    const heading = createRef<HTMLHeadingElement>()
+    render(
+      <LocationCard airport="ANC" facts={locationFacts('ANC', NOW, testAirports, cloudy)} now={NOW} homeTz={NY} h24={false} weather={cloudy}
+        headingRef={heading} />,
+    )
+    expect(heading.current).toBe(screen.getByRole('heading', { level: 2, name: 'Anchorage' }))
+    expect(heading.current!.getAttribute('tabindex')).toBe('-1')
   })
 
   it('shows the flag of a country the app has one for, and none in the US', () => {
