@@ -402,3 +402,81 @@ describe('the location card in each demo scene', () => {
     expect(container.querySelector('.location-city')?.textContent ?? null).toBe(CITY[scene])
   })
 })
+
+describe('StatusScreen in-flight card (slice 2C)', () => {
+  const FOLLOWING = Node.DOCUMENT_POSITION_FOLLOWING
+  const jumpseater = engineFor(demoRaw('jumpseater', A))
+  const screenFor = (engine: { schedule: ReturnType<typeof buildSchedule>; legs: Leg[] }, minutes: number) => {
+    const now = at(minutes)
+    return (
+      <StatusScreen snap={makeSnapshot(engine.schedule, engine.legs, now, NY)} now={now} viewerTz={NY} homeTz={NY} h24={false}
+        airports={testAirports} weather={null} demo={false} celebrateKey={0} footer={footer(now)} />
+    )
+  }
+  const reduceMotion = () => vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce'), media: query }))
+
+  it('takes the location card’s place while the pilot is flying: after the countdown, before the trip card', () => {
+    const { container } = renderAt(100)
+    const card = container.querySelector('.inflight')!
+    expect(container.querySelector('.location')).toBeNull()
+    expect(container.querySelector('.countdown')!.compareDocumentPosition(card) & FOLLOWING).toBeTruthy()
+    expect(card.compareDocumentPosition(container.querySelector('.trip-card')!) & FOLLOWING).toBeTruthy()
+    expect(screen.getByRole('img', { name: /^Flight from Louisville to Rockford, / })).toBeTruthy()
+  })
+
+  it('isn’t there on the ground', () => {
+    expect(renderAt(180).container.querySelector('.inflight')).toBeNull()
+  })
+
+  it('shows the delayed flight’s banner', () => {
+    expect(renderAt(1700).container.querySelector('.inflight-banner')!.textContent).toBe('DELAYED 40m')
+  })
+
+  it('opens the tracking popup from the flight number, after <main>, and hides the page behind it', () => {
+    const { container } = renderAt(100)
+    const main = container.querySelector('main')!
+    fireEvent.click(screen.getByRole('button', { name: 'UPS2961' }))
+    const dialog = screen.getByRole('dialog', { name: 'UPS2961' })
+    expect(main.contains(dialog)).toBe(false)
+    expect(main.compareDocumentPosition(dialog) & FOLLOWING).toBeTruthy()
+    expect(main.getAttribute('aria-hidden')).toBe('true')
+    expect(main.hasAttribute('inert')).toBe(true)
+  })
+
+  it('shows the page again and returns focus to the flight number once the popup has closed', async () => {
+    reduceMotion()
+    const { container } = renderAt(100)
+    fireEvent.click(screen.getByRole('button', { name: 'UPS2961' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(container.querySelector('main')!.hasAttribute('inert')).toBe(false)
+    await act(() => {})
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'UPS2961' }))
+  })
+
+  it('closes the popup by itself at landing, and keeps it closed on the next flight', () => {
+    const { rerender } = render(screenFor(e, 100))
+    fireEvent.click(screen.getByRole('button', { name: 'UPS2961' }))
+    rerender(screenFor(e, 180))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    rerender(screenFor(e, 300))
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('covers a jumpseat, with the airline’s ICAO code in the popup', () => {
+    render(screenFor(jumpseater, -240))
+    fireEvent.click(screen.getByRole('button', { name: 'DL1234' }))
+    expect(screen.getByRole('heading', { level: 2, name: 'DAL1234' })).toBeTruthy()
+  })
+
+  it.each(Object.keys(DEMO_SCENES) as DemoScene[])('shows in the demo’s %s scene only when the pilot is in the air', (scene) => {
+    const NOW = Date.UTC(2026, 9, 20, 16, 0)
+    const schedule = buildSchedule(demoRawForScene(scene, NOW), NOW)
+    const snap = makeSnapshot(schedule, buildLegs(schedule), NOW, NY)
+    const { container } = render(
+      <StatusScreen snap={snap} now={NOW} viewerTz={NY} homeTz={NY} h24={false} airports={testAirports} weather={null} demo celebrateKey={0}
+        footer={footer(NOW)} />,
+    )
+    expect(container.querySelector('.inflight') != null).toBe(scene === 'flying' || scene === 'last-leg')
+  })
+})

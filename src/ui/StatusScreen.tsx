@@ -10,11 +10,14 @@ import { DaysHomePill } from './DaysHomePill'
 import { DemoBanner } from './DemoBanner'
 import { FallbackCard } from './FallbackCard'
 import { Footer, type FooterProps } from './Footer'
+import { InFlightCard } from './InFlightCard'
+import { inFlightFacts } from './inFlightFacts'
 import { LocationCard, showsLocationCard } from './LocationCard'
 import { locationFacts, showsDial } from './locationFacts'
 import { NarrativeCard } from './NarrativeCard'
 import { SunPopup } from './SunPopup'
 import { Title, titleFor } from './Title'
+import { TrackingPopup } from './TrackingPopup'
 import { TripProgressCard } from './TripProgressCard'
 import { UpcomingTripCard } from './UpcomingTripCard'
 
@@ -35,15 +38,21 @@ export interface StatusScreenProps {
 
 /**
  * The top of Crewluve's main screen, in its card order (spec §4.4; the location card, slice 2B1 §3; the trip cards, slice
- * 2A §3), and the sun popup the location card's dial opens (slice 2B2 §9). The popup goes after <main>, since the card's
- * frosted glass would trap a full-screen overlay inside the card; while it's open, the page is hidden from screen readers.
+ * 2A §3; the in-flight card in the location card's place, slice 2C §3). Then the sun popup the location card's dial opens
+ * (slice 2B2 §9) and the tracking popup the in-flight card's flight number opens (slice 2C §6). The popups go after
+ * <main>, since a card's frosted glass would trap a full-screen overlay inside the card; while one is open, the page is
+ * hidden from screen readers.
  */
 export function StatusScreen(p: StatusScreenProps) {
   const { snap } = p
   const [sunOpen, setSunOpen] = useState(false)
+  const [trackingOpen, setTrackingOpen] = useState(false)
   /** The card's dial, which opened the popup: focus goes back to it afterwards. */
   const dial = useRef<HTMLElement | null>(null)
+  /** The in-flight card's flight number, which opened the tracking popup: focus goes back to it afterwards. */
+  const flightNumber = useRef<HTMLElement | null>(null)
   const wasOpen = useRef(false)
+  const wasTracking = useRef(false)
   const spans = safeNarrative(snap, { now: p.now, viewerTz: p.viewerTz, h24: p.h24, airports: p.airports })
   const airport = snap.status.airport
   // The place, worked out once for the card, the popup and when the popup may be open: the card's rule for its dial.
@@ -61,10 +70,22 @@ export function StatusScreen(p: StatusScreenProps) {
     if (wasOpen.current && !open && dial.current?.isConnected) dial.current.focus()
     wasOpen.current = open
   }, [open])
+  // The in-flight card while the pilot is in the air; the tracking popup closes by itself when its flight number goes,
+  // at landing, and focus goes back to the flight number once it has closed, as for the dial.
+  const flying = inFlightFacts(snap, p.airports)
+  const tracking = trackingOpen && flying?.trackingNumber != null
+  useEffect(() => {
+    if (trackingOpen && !tracking) setTrackingOpen(false)
+  }, [trackingOpen, tracking])
+  useEffect(() => {
+    if (wasTracking.current && !tracking && flightNumber.current?.isConnected) flightNumber.current.focus()
+    wasTracking.current = tracking
+  }, [tracking])
+  const hidden = open || tracking
   const flight = snap.nextFlight
   return (
     <>
-      <main class="screen" aria-hidden={open ? 'true' : undefined} inert={open || undefined}>
+      <main class="screen" aria-hidden={hidden ? 'true' : undefined} inert={hidden || undefined}>
         <Title text={titleFor(snap.hasName ? snap.name : null)} />
         {p.demo && <DemoBanner />}
         <NarrativeCard spans={spans} visual={statusVisual(snap)} ring={snap.ring} />
@@ -80,6 +101,17 @@ export function StatusScreen(p: StatusScreenProps) {
             onOpenSun={(button) => {
               dial.current = button
               setSunOpen(true)
+            }}
+          />
+        )}
+        {flying && (
+          <InFlightCard
+            facts={flying}
+            now={p.now}
+            h24={p.h24}
+            onOpenTracking={(button) => {
+              flightNumber.current = button
+              setTrackingOpen(true)
             }}
           />
         )}
@@ -101,6 +133,9 @@ export function StatusScreen(p: StatusScreenProps) {
           departure={flight ? { scheduled: flight.schedStart, actual: flight.start } : null}
           onClose={() => setSunOpen(false)}
         />
+      )}
+      {tracking && flying?.trackingNumber && (
+        <TrackingPopup flightNumber={flying.trackingNumber} links={flying.links} onClose={() => setTrackingOpen(false)} />
       )}
     </>
   )
