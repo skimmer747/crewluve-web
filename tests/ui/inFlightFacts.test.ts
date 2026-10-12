@@ -80,6 +80,9 @@ describe('inFlightFacts', () => {
     const leg = flight('SDF', 'RFD', 0, 2, 'T1', { airline: null })
     const facts = inFlightFacts({ ...air, status: { ...air.status, current: leg } }, testAirports)!
     expect([facts.flightNumber, facts.trackingNumber, facts.links]).toEqual(['100', '100', null])
+    // An airline code with more than letters and digits gets no tracking links, but the popup still opens.
+    const odd = inFlightFacts({ ...air, status: { ...air.status, current: { ...leg, airline: 'U/S' } } }, testAirports)!
+    expect([odd.flightNumber, odd.trackingNumber, odd.links]).toEqual(['U/S100', 'U/S100', null])
   })
 })
 
