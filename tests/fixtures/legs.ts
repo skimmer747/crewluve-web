@@ -36,7 +36,7 @@ export function drive(from: string, to: string, toHome: boolean, start: number, 
 }
 
 export function duty(kind: DutyEventKind, title: string, airport: string | null, start: number, end: number): DutyLeg {
-  return { kind, id: `${kind}@${start}`, tripId: null, title, airport, start: start * H, end: end * H, driveLike: false }
+  return { kind, id: `${kind}@${start}`, tripId: null, title, airport, location: airport, start: start * H, end: end * H, driveLike: false }
 }
 
 export const sorted = <T extends { start: number; end: number }>(legs: T[]) =>

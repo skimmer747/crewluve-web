@@ -169,13 +169,15 @@ export function buildSchedule(raw: RawSchedule, now: number): Schedule {
     const end = parseInstant(m.end_time_utc, now)
     if (start == null || end == null || end <= start) continue
     const { kind, title } = classifyManualEvent(m.title, m.category_id ? categoryName.get(m.category_id) ?? null : null)
-    events.push({ id: m.id, kind, title, airport: toIata(m.location), start, end })
+    events.push({ id: m.id, kind, title, airport: toIata(m.location), location: m.location?.trim() || null, start, end })
   }
   for (const te of raw.trainingEvents.filter(visible)) {
     const start = parseInstant(te.start_time_utc, now)
     const end = parseInstant(te.end_time_utc, now)
     if (start == null || end == null || end <= start) continue
-    events.push({ id: te.id, kind: 'training', title: trainingTitle(te.event_type), airport: toIata(te.station), start, end })
+    events.push({
+      id: te.id, kind: 'training', title: trainingTitle(te.event_type), airport: toIata(te.station), location: te.station?.trim() || null, start, end,
+    })
   }
 
   return {

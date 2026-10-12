@@ -65,6 +65,8 @@ export interface DutyEvent {
   kind: DutyEventKind
   title: string
   airport: Iata | null
+  /** The location as entered, trimmed, or null: the airport's code, or free text such as "Training Center". */
+  location: string | null
   start: number
   end: number
 }

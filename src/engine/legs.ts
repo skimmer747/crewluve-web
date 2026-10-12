@@ -33,6 +33,8 @@ export interface DutyLeg {
   tripId: null
   title: string
   airport: Iata | null
+  /** The location as entered: the airport's code, or free text such as "Training Center" (slice 3A §4.5). */
+  location: string | null
   start: number
   end: number
   /** An event titled like a drive ("Driving the truck home") counts as a drive for homecomings. */
@@ -117,7 +119,7 @@ export function buildLegs(s: Schedule): Leg[] {
   }
   for (const e of s.events) {
     legs.push({
-      kind: e.kind, id: e.id, tripId: null, title: e.title, airport: e.airport, start: e.start, end: e.end,
+      kind: e.kind, id: e.id, tripId: null, title: e.title, airport: e.airport, location: e.location, start: e.start, end: e.end,
       driveLike: e.kind === 'event' && DRIVE_TITLE.test(e.title),
     })
   }

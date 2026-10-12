@@ -209,6 +209,18 @@ describe('buildSchedule', () => {
     ])
   })
 
+  it('keeps each event’s location as entered, trimmed, beside the airport it names (slice 3A §4.5)', () => {
+    expect(s.events.map((e) => [e.id, e.airport, e.location])).toEqual([['m1', 'SDF', 'sdf'], ['te1', 'SDF', 'SDF']])
+    const free = buildSchedule(
+      new RawBuilder(A).pilot('Alex', 'SDF', 'LEX')
+        .manualEvent('m2', 'Sim', 100, 200, '  Training Center ')
+        .manualEvent('m3', 'Gym', 300, 400, ' ')
+        .build(),
+      A,
+    )
+    expect(free.events.map((e) => [e.id, e.airport, e.location])).toEqual([['m2', null, 'Training Center'], ['m3', null, null]])
+  })
+
   it('drops trips without live duty periods, and flags accounts with no data', () => {
     const bare = new RawBuilder(A).build()
     bare.trips.push({ id: 'bare', start_date: new Date(A).toISOString(), end_date: new Date(A + H).toISOString(), days: 1, base: 'SDF', updated_at: '2026-10-01T00:00:00Z' })
