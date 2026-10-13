@@ -1354,11 +1354,11 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Files:**
 - Modify (only if nudges are needed): `src/styles/split.css`
 
-- [ ] **Step 1: Build and open the preview**
+- [x] **Step 1: Build and open the preview**
 
 Run `npm run build`, then start or reuse the `crewluve-preview` server from `.claude/launch.json` (port 5181) in the browser pane.
 
-- [ ] **Step 2: Take the screenshots, in light and in dark**
+- [x] **Step 2: Take the screenshots, in light and in dark**
 
 Take a small throwaway screenshot first, then the real one. If a page was built again since it was last opened, add a new query word, such as `&v=2`, so the browser doesn't show the old one.
 
@@ -1368,11 +1368,11 @@ Take a small throwaway screenshot first, then the real one. If a page was built 
 
 Then resize across the line both ways, with the browser pane showing: while it's hidden, the pane can hold back the media query's change. Tab through both columns, and scroll each column and the list's box with the keys.
 
-- [ ] **Step 3: Ask the user to sign off**
+- [x] **Step 3: Ask the user to sign off**
 
 Put the screenshots side by side, next to the mockups the user approved while brainstorming, and ask one question: "Looks right (Recommended)" or "Change something". Apply their notes, then show them again.
 
-- [ ] **Step 4: Run the gates and commit any nudges**
+- [x] **Step 4: Run the gates and commit any nudges**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -1465,3 +1465,24 @@ Update the project memory with the new tip and what's next: the items left from 
   - re-reading the window in `useSideBySide`'s effect, the same shape as 3B's height check, which no test could pin;
   - a generated id for the hidden heading, as there's only ever one.
 - **Checks:** deliberate breaks against the fixes and the rest caught 39 of 39. The suite is 2156 tests in 93 files.
+
+**Look check (Task 7)**
+- The user said "Looks right" to a sheet of six screenshots of the reviewed build:
+  - an iPad upright, 820 × 1180, in light, and an iPad mini upright, 744 × 1133, in dark, both on the ground, with the location card's dial at 138 and 134 px;
+  - an iPad on its side, 1180 × 820, in dark, in the air, and the flight-tracking popup over it;
+  - computers at 1440 × 900, in light, at home, and at 1920 × 1080, in dark, where the layout stops at 1376 px.
+- Resizing across the line with the tracking popup open closed it, and the one-column page came back with its chevron. Widening brought the layout back, on this month. There were no console errors.
+- No visual nudges were needed.
+
+**Re-checks, after the look check**
+- Both reviewers re-checked the changes at `d63c226`, each with deliberate breaks of its own:
+  - the spec review: matches the spec, with all four of its findings fixed. Its earlier breaks, the title at 17 px, a rule shrinking the bar's `h1` and a remembered day, now fail the tests.
+  - the code-quality review: ready to merge, with all four of its findings fixed and no regressions in its probes: popups across the line both ways, the body's class, the listeners, and the window shrinking under 500 px tall.
+- Their Minor items:
+  - §8 didn't list the dial as a difference from the app, whose dial stays 160 points;
+  - §9 didn't name the new style test;
+  - a comment cited §5.2 for the popup's closing, which the spec puts in §5.3.
+
+**Changes after the re-checks**
+- `ce9bbdb`: the comment's sections.
+- `4a8e0ae`: the spec's §8 and §9.
