@@ -626,18 +626,18 @@ At 402 × 874 on `/?demo=1&scene=flying#schedule`, and at 1180 × 820 on `/?demo
 
 ### Task 5: Merge and release (controller, asks first)
 
-- [ ] **Step 1: Merge**
+- [x] **Step 1: Merge**
 
 Use superpowers:finishing-a-development-branch. Ask the user one question about how to merge `redraws` into `main`.
 
-- [ ] **Step 2: Release, only with a fresh yes**
+- [x] **Step 2: Release, only with a fresh yes**
 
 Ask before pushing `main`; the push redeploys crewluve.crewlu.net. After the "Deploy to GitHub Pages" run succeeds, check the live site:
 - the live page's files match the local build;
 - https://crewluve.crewlu.net/?demo=1&scene=flying#schedule ticks and takes taps as before;
 - `read_console_messages` with `onlyErrors: true` shows nothing, and the demo makes no requests beyond the page's own files.
 
-- [ ] **Step 3: Update the memory**
+- [x] **Step 3: Update the memory**
 
 Update the project memory with the new tip and what's next: fixes from the user's Safari check once they've tried their iPhone and iPad, then the roadmap.
 
@@ -677,3 +677,8 @@ Update the project memory with the new tip and what's next: fixes from the user'
 - `169fe9c`: tests that Current Event after midnight selects the new day, that a tap on a day takes the list by data that arrived after the first draw, and that a row draws again when new data changes its leg.
 - `181b964`: the wrapper is named after what it holds, and its comment says it passes no ref on; `ScheduleView` says why setting the ref as it draws is safe.
 - **Checks:** deliberate breaks caught 16 of 16, the review's frozen handlers among them. The suite is 2167 tests in 95 files.
+
+**Merge and release (Task 5), 2026-10-13**
+- **Merge:** the user chose "Merge into main locally". `main` fast-forwarded to `46495f0`, and the branch is deleted. On the merged `main`: 2167 tests in 95 files; tsc and build clean. The build makes `index-IAymGmrn.js`, 0.29 kB gzipped more than before.
+- **Release:** with the user's separate yes, main was pushed (`e198fd8..46495f0`). The "Deploy to GitHub Pages" run 38345871809 succeeded, with no annotations.
+- **The live check:** the live page and its files are byte for byte the local build. On https://crewluve.crewlu.net/?demo=1&scene=flying#schedule at 402 × 874, the happening row's clock ticked and a tap on a day selected it. There were no console errors, and the demo asked only for the page, `airports.json`, and its script and styles.
