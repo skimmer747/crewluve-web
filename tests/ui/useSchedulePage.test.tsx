@@ -3,9 +3,12 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/preact
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useSchedulePage } from '../../src/ui/hooks/useSchedulePage'
 
-/** The two pages, reduced to what the hook moves between: the status page's title and one link, the schedule's back button. */
-function Pages() {
-  const page = useSchedulePage()
+/**
+ * The two pages, reduced to what the hook moves between: the status page's title and one link, the schedule's back
+ * button. `sideBySide` says the window is wide enough to show both at once (slice 3C §3).
+ */
+function Pages({ sideBySide = false }: { sideBySide?: boolean }) {
+  const page = useSchedulePage(sideBySide)
   if (page.open) {
     return (
       <main>
@@ -177,5 +180,24 @@ describe('useSchedulePage (slice 3A §3.3)', () => {
     const { unmount } = render(<Pages />)
     unmount()
     expect(removed.mock.calls.map(([type]) => type)).toEqual(expect.arrayContaining(['popstate', 'hashchange']))
+  })
+})
+
+describe('useSchedulePage on a wide window (slice 3C §5.1)', () => {
+  it('follows Back and Forward, but moves neither focus nor the window’s scroll, since nothing on screen changes', async () => {
+    render(<Pages sideBySide />)
+    window.scrollTo(0, 300)
+    location.hash = '#schedule'
+    await settle()
+    expect(onSchedule()).toBe(true)
+    window.scrollTo(0, 50)
+    history.back()
+    await settle()
+    expect(onSchedule()).toBe(false)
+    expect(document.activeElement).toBe(document.body)
+    expect(window.scrollY).toBe(50)
+    history.forward()
+    await settle()
+    expect(onSchedule()).toBe(true)
   })
 })

@@ -13,8 +13,10 @@ const atSchedule = () => window.location.hash === SCHEDULE_HASH
  *   entry of the site's to go back to, so it goes to the status page instead of leaving the site.
  * - The status page comes back where it was scrolled, with focus on the link that opened the schedule, or on the
  *   page's title when that link has gone.
+ * - On a wide window, where the status and the schedule show side by side, it follows the address the same way, but
+ *   moves neither focus nor the window's scroll: nothing on screen changes (slice 3C §5.1).
  */
-export function useSchedulePage() {
+export function useSchedulePage(sideBySide: boolean) {
   const [open, setOpen] = useState(atSchedule)
   const from = useRef<ScheduleLinkName | null>(null)
   const statusScroll = useRef(0)
@@ -45,9 +47,10 @@ export function useSchedulePage() {
   }, [])
 
   // Runs once the status page is back on screen, before it's painted. Focus comes first: Safari before 15 ignores
-  // preventScroll and scrolls to what takes focus, and the scroll after it puts the page back.
+  // preventScroll and scrolls to what takes focus, and the scroll after it puts the page back. Side by side, the status
+  // page never left.
   useLayoutEffect(() => {
-    if (wasOpen.current && !open) {
+    if (wasOpen.current && !open && !sideBySide) {
       const link = from.current && document.querySelector<HTMLElement>(`[data-schedule-link="${from.current}"]`)
       ;(link ?? document.querySelector<HTMLElement>('h1.title'))?.focus({ preventScroll: true })
       window.scrollTo(0, statusScroll.current)

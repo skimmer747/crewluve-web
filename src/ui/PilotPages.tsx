@@ -69,7 +69,7 @@ export function PilotPages({ schedule, airports, demo, onSignOut, loadWeather = 
   // Asked for before the early return below, so the hooks run in the same order on every render.
   const weather = useWeather(weatherPlace(snap, airports, unit), loadWeather)
   // The page the address asks for, and the legs the Schedule page lists.
-  const page = useSchedulePage()
+  const page = useSchedulePage(false)
   const listed = useMemo(() => (ready ? scheduleLegs(ready.legs) : []), [ready])
 
   if (!snap) {
