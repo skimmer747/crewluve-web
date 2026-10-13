@@ -29,11 +29,11 @@ Status: approved in brainstorming on 2026-10-12. Slice 3A, the Schedule page and
 ### 3.2 Short windows (decision 1)
 
 - **Below 500 px tall,** such as a phone on its side, the calendar and its hairline move into the top of the list's box and scroll away with the list. The bar stays.
-- **The rule is the window's height alone,** so it doesn't change from month to month as the calendar grows from four week rows to six. Phones held upright, the iPhone SE included, are taller than that in Safari, so they pin the calendar.
-- **Turning the phone** moves the calendar, and the list stays where it was (decision 9):
-  - the day showing at the top of the list stays as far down as it was;
+- **The rule is the window's height alone,** so it doesn't change from month to month as the calendar grows from four week rows to six. Phones held upright, the iPhone SE included, are taller than that in Safari, so they pin the calendar. On the shortest, a six-row month leaves the list little room: about 97 px on the iPhone SE, about 548 px tall in Safari, and 48 px on a window just 500 px tall. The user kept the calendar pinned there at the look check (decision 11).
+- **Turning the phone** moves the calendar, and the list stays where it was (decisions 9 and 10):
+  - the day showing at the top of the list stays as far down as it was, even right after the page opens, when for a moment the bar and the pinned calendar fill the smaller window;
   - before any day showed, with the calendar filling the box, the list goes back to its top;
-  - a control of the calendar that had focus gets it back, though the move rebuilds the calendar.
+  - a control of the calendar that had focus gets it back, though the move rebuilds the calendar. On a turn to a short window, the list scrolls to show that control, which wins over keeping the list's place: focus stays where it can be seen.
 
 ### 3.3 The bar
 
@@ -198,6 +198,7 @@ Copied from `EventTimelineView` and `TripCalendarView` (decision 5).
 - **Moving around:** the arrow keys move a day left or right, or a week up or down. Moving onto a day of another month turns the calendar to it. Enter or Space taps the day. Moving alone selects nothing.
   - With Alt, Ctrl or ⌘, an arrow stays the browser's, for Back and Forward (decision 9).
   - A day picked another way, by a row or Current Event, takes the Tab stop back from the keys (decision 9).
+  - The Tab stop follows focus: a day that gets focus any way, such as given back after a turn, becomes the stop (decision 10).
 - **What's read:**
   - A day: its weekday and date, such as "Thursday, October 15".
   - Today is marked as the current date, and the selected day as selected.
@@ -296,9 +297,9 @@ Nothing new: no requests, storage or scripts. The content security policy is unc
 - **`SchedulePage`:**
   - opening on this month with today selected, at 3A's opening day;
   - each tap of §5.2–5.4 scrolling the box to the right heading, or not;
-  - a row tap turning the month;
+  - a row tap turning the month, and a day tap turning to a month of fewer rows on a short window;
   - reduced motion jumping;
-  - the calendar moving into the box below 500 px and back, keeping the day at the top;
+  - the calendar moving into the box below 500 px and back, keeping the day at the top, also right after opening, and the calendar's focus and Tab stop;
   - the stuck heading measured in the box;
   - new data keeping the selection, the month and the scroll.
 - **Styles:**
@@ -309,7 +310,7 @@ Nothing new: no requests, storage or scripts. The content security policy is unc
 - **In the browser:**
   - the demo at 375 and 320 px wide, in light and dark;
   - a six-week month;
-  - a window under 500 px tall;
+  - a window under 500 px tall, and a short upright one, about 548 px tall, with a six-row month;
   - Increase Contrast, by copying the `prefers-contrast` rules out of their media queries through the CSSOM (Part A follow-ups);
   - every tap of §5, and the keyboard;
   - the look check with the user, against the app on their phone, including the Current Event button.
@@ -327,6 +328,8 @@ Nothing new: no requests, storage or scripts. The content security policy is unc
 | 7 | "Too short" is a window under 500 px tall; the bar takes the page's plain color; a tap on the selected day scrolls again; the time line is measured as the bars are; the arrows take 44 px of taps. | Design, from decisions 1, 3 and 5 |
 | 8 | The list's box has no padding at the top, so the headings stick at its very top, and it doesn't scroll sideways; the arrows' tap areas stay within the column's sides. | Design, from the browser check while planning |
 | 9 | A tap's scroll waits for the redraw and starts from the list's own scroll; a turn keeps the list's place and the calendar's focus; Alt, Ctrl and ⌘ arrows stay the browser's; a day picked another way takes the Tab stop; Current Event stays over the › arrow's tap area; the selected circle uses the readable blue under Increase Contrast; rows tap without Safari's grey flash; the body gives up its full height while the page shows; the time line is worked out once a minute. | Design, from the batch reviews |
+| 10 | A turn right after opening keeps the list's place, though for a moment the list's box has no height; the Tab stop follows focus, however a day gets it; on a turn to a short window, a focused control of the calendar is scrolled into view, over the list's place. | Design, from the re-checks |
+| 11 | The calendar stays pinned on the shortest upright phones too, though a six-row month leaves the list about 97 px on the iPhone SE. | User, 2026-10-12, at the look check |
 
 ## 11. Roadmap
 
