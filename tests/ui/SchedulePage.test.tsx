@@ -28,7 +28,7 @@ const LEGS: Leg[] = [
 ]
 
 function page(legs: Leg[], now: number, onBack = () => {}) {
-  return <SchedulePage legs={legs} pilot={pilot('LEX', 'SDF')} now={now} timeZone={NY} h24={false} airports={testAirports} onBack={onBack} />
+  return <SchedulePage legs={legs} pilot={pilot('LEX', 'SDF')} now={now} timeZone={NY} h24={false} airports={testAirports} onBack={onBack} weekStart={0} />
 }
 
 /** Lays the page out for the browser-free tests: the list's box from 60 px down, each day and heading where `tops` say. */
@@ -177,5 +177,139 @@ describe('SchedulePage (slice 3A §4)', () => {
     expect(screen.getByText('No schedule data')).toBeTruthy()
     expect(screen.getByText("Schedule will appear when your pilot's Duty app sends trip details.")).toBeTruthy()
     expect(container.querySelector('.schedule-day')).toBeNull()
+  })
+})
+
+describe('SchedulePage’s calendar (slice 3B §3.1, §5)', () => {
+  /** The days laid out as the list's box would hold them: Thursday at 100 px, Friday at 700 and Saturday at 1400. */
+  const DAYS = { days: { [THU]: 100, [THU + 1]: 700, [THU + 2]: 1400 } }
+  const day = (container: Element, n: number) => container.querySelector<HTMLElement>(`[data-calendar-day="${n}"]`)!
+  const title = (container: Element) => container.querySelector('.calendar-title')!.textContent
+  const scrolls = () => vi.spyOn(HTMLElement.prototype, 'scrollTo').mockImplementation(() => {})
+
+  it('sits between the bar and the list with its hairline, on this month with today selected', () => {
+    const { container } = render(page(LEGS, at(10)))
+    const calendar = container.querySelector('.calendar')!
+    expect(calendar.previousElementSibling!.className).toBe('schedule-bar')
+    expect(calendar.nextElementSibling!.className).toBe('calendar-rule')
+    expect(calendar.nextElementSibling!.nextElementSibling!.className).toBe('schedule-days')
+    expect(title(container)).toBe('October 2026')
+    expect(day(container, THU).className).toBe('calendar-day today selected')
+  })
+
+  it('takes the list to a tapped day’s heading, gliding there, and selects the day', () => {
+    const scrollTo = scrolls()
+    layOut(DAYS)
+    const { container } = render(page(LEGS, at(10)))
+    fireEvent.click(day(container, THU + 1))
+    expect(scrollTo).toHaveBeenLastCalledWith({ top: 640, behavior: 'smooth' })
+    expect(day(container, THU + 1).className).toBe('calendar-day selected')
+    expect(day(container, THU).className).toBe('calendar-day today')
+  })
+
+  it('takes a day without legs to the latest day before it that has some, and leaves the list still for a day before every leg', () => {
+    const scrollTo = scrolls()
+    layOut(DAYS)
+    const { container } = render(page(LEGS, at(10)))
+    fireEvent.click(day(container, THU + 3))
+    expect(scrollTo).toHaveBeenLastCalledWith({ top: 1340, behavior: 'smooth' })
+    const calls = scrollTo.mock.calls.length
+    fireEvent.click(day(container, THU - 1))
+    expect(scrollTo.mock.calls.length).toBe(calls)
+    expect(day(container, THU - 1).className).toBe('calendar-day selected')
+  })
+
+  it('takes today, while a leg is happening, to the day that leg started', () => {
+    const scrollTo = scrolls()
+    layOut(DAYS)
+    const { container } = render(page(LEGS, at(26))) // Friday 2am, in the layover from Thursday
+    fireEvent.click(day(container, THU + 1))
+    expect(scrollTo).toHaveBeenLastCalledWith({ top: 40, behavior: 'smooth' })
+  })
+
+  it('scrolls again for a tap on the day already selected, where the app does nothing', () => {
+    const scrollTo = scrolls()
+    layOut(DAYS)
+    const { container } = render(page(LEGS, at(10)))
+    fireEvent.click(day(container, THU + 2))
+    fireEvent.click(day(container, THU + 2))
+    expect(scrollTo.mock.calls.slice(-2)).toEqual([[{ top: 1340, behavior: 'smooth' }], [{ top: 1340, behavior: 'smooth' }]])
+  })
+
+  it('turns to a greyed day’s month as it selects it', () => {
+    const { container } = render(page(LEGS, at(10)))
+    fireEvent.click(day(container, THU - 15)) // Wednesday 30 September
+    expect(title(container)).toBe('September 2026')
+    expect(day(container, THU - 15).className).toBe('calendar-day selected')
+  })
+
+  it('turns the month with the arrows, keeping the day selected and the list still', () => {
+    const scrollTo = scrolls()
+    const { container } = render(page(LEGS, at(10)))
+    const calls = scrollTo.mock.calls.length
+    fireEvent.click(screen.getByRole('button', { name: 'Next month' }))
+    expect(title(container)).toBe('November 2026')
+    fireEvent.click(screen.getByRole('button', { name: 'Previous month' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Previous month' }))
+    expect(title(container)).toBe('September 2026')
+    fireEvent.click(screen.getByRole('button', { name: 'Next month' }))
+    expect(day(container, THU).className).toBe('calendar-day today selected')
+    expect(scrollTo.mock.calls.length).toBe(calls)
+  })
+
+  it('goes back to this month and today with Current Event, and takes the list where it opened', () => {
+    const scrollTo = scrolls()
+    layOut(DAYS)
+    const { container } = render(page(LEGS, at(10)))
+    fireEvent.click(screen.getByRole('button', { name: 'Next month' }))
+    fireEvent.click(day(container, THU + 19)) // Tuesday 3 November
+    expect(title(container)).toBe('November 2026')
+    fireEvent.click(screen.getByRole('button', { name: 'Current Event' }))
+    expect(title(container)).toBe('October 2026')
+    expect(day(container, THU).className).toBe('calendar-day today selected')
+    expect(scrollTo).toHaveBeenLastCalledWith({ top: 640, behavior: 'smooth' })
+  })
+
+  it('picks a row’s day on the calendar and takes the list to it, unless it’s the selected day already, as in the app', () => {
+    const scrollTo = scrolls()
+    layOut(DAYS)
+    const { container } = render(page(LEGS, at(10)))
+    const calls = scrollTo.mock.calls.length
+    const row = (n: number) => container.querySelector<HTMLElement>(`[data-day="${n}"] .leg`)!
+    fireEvent.click(row(THU))
+    expect(scrollTo.mock.calls.length).toBe(calls)
+    fireEvent.click(row(THU + 2))
+    expect(day(container, THU + 2).className).toBe('calendar-day selected')
+    expect(scrollTo).toHaveBeenLastCalledWith({ top: 1340, behavior: 'smooth' })
+    fireEvent.click(row(THU + 2))
+    expect(scrollTo.mock.calls.length).toBe(calls + 1)
+  })
+
+  it('jumps instead of gliding for a visitor who asks for reduced motion', () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce'), media: query }))
+    const scrollTo = scrolls()
+    layOut(DAYS)
+    const { container } = render(page(LEGS, at(10)))
+    fireEvent.click(day(container, THU + 1))
+    expect(scrollTo).toHaveBeenLastCalledWith({ top: 640, behavior: 'auto' })
+  })
+
+  it('keeps the selected day and the month when the clock runs and new data arrives', () => {
+    const { container, rerender } = render(page(LEGS, at(10)))
+    fireEvent.click(screen.getByRole('button', { name: 'Next month' }))
+    fireEvent.click(day(container, THU + 19))
+    rerender(page([...LEGS], at(11)))
+    expect(title(container)).toBe('November 2026')
+    expect(day(container, THU + 19).className).toBe('calendar-day selected')
+  })
+
+  it('moves the time line once a minute, as the app’s does', () => {
+    const { container, rerender } = render(page(LEGS, at(10)))
+    const line = () => container.querySelector<HTMLElement>('.calendar-line')!.style.left
+    const before = line()
+    rerender(page(LEGS, at(10) + 59_000))
+    expect(line()).toBe(before)
+    rerender(page(LEGS, at(10) + 60_000))
+    expect(line()).not.toBe(before)
   })
 })

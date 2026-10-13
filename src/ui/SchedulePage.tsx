@@ -3,11 +3,14 @@ import { dayHeading, legTimes } from '../copy/schedule'
 import type { AirportIndex } from '../data/airports'
 import type { Leg } from '../engine/legs'
 import type { Pilot } from '../engine/types'
-import { calendarDay } from '../time/zoned'
+import { calendarDay, MINUTE } from '../time/zoned'
+import { firstWeekday, monthOf, scrollDay, type Month } from './calendarFacts'
 import { Chevron } from './Chevron'
 import { Icon } from './Icon'
+import { prefersReducedMotion } from './motion'
 import { gapBefore, legMoment, nextLegId, openingDay, rowLook, scheduleDays } from './scheduleFacts'
 import { TimelineRow } from './TimelineRow'
+import { TripCalendar } from './TripCalendar'
 
 export interface SchedulePageProps {
   /** The legs to list, in start order (scheduleLegs). */
@@ -19,6 +22,8 @@ export interface SchedulePageProps {
   h24: boolean
   airports: AirportIndex
   onBack: () => void
+  /** The week's first day, 0 = Sunday: the visitor's region's, unless a test gives one (slice 3B §5.8). */
+  weekStart?: number
 }
 
 /** How far below the top of the list's box a heading counts as stuck there: the app's 20 points (EventTimelineView). */
@@ -28,12 +33,18 @@ const topOf = (el: HTMLElement | null) => el?.getBoundingClientRect().top ?? 0
 
 /**
  * The Schedule page (EventTimelineView, slice 3A §4, 3B §3): the window's height exactly, with a bar holding the back
- * button and the title, then every leg by day in a box of its own that scrolls, as the app's scroll view does. The days'
- * headings stick at the top of the box, and the list opens at the next leg's day. Today's heading is green, and the one
- * stuck at the top yellow.
+ * button and the title, the month calendar pinned under it, then every leg by day in a box of its own that scrolls, as
+ * the app's scroll view does. The days' headings stick at the top of the box, and the list opens at the next leg's day.
+ * Today's heading is green, and the one stuck at the top yellow. Tapping a day or a row, or Current Event, scrolls the
+ * list (3B §5).
  */
-export function SchedulePage({ legs, pilot, now, timeZone, h24, airports, onBack }: SchedulePageProps) {
+export function SchedulePage({ legs, pilot, now, timeZone, h24, airports, onBack, weekStart }: SchedulePageProps) {
   const days = useMemo(() => scheduleDays(legs, timeZone), [legs, timeZone])
+  const today = calendarDay(now, timeZone)
+  // The calendar opens on this month with today selected (3B §5.1). The page keeps both, so the calendar can move.
+  const [selected, setSelected] = useState(today)
+  const [month, setMonth] = useState<Month>(() => monthOf(today))
+  const firstDay = useMemo(() => weekStart ?? firstWeekday(), [weekStart])
   const title = useRef<HTMLHeadingElement>(null)
   const list = useRef<HTMLDivElement>(null)
   const [stuck, setStuck] = useState<number | null>(null)
@@ -94,7 +105,34 @@ export function SchedulePage({ legs, pilot, now, timeZone, h24, airports, onBack
     }
   }, [days])
 
-  const today = calendarDay(now, timeZone)
+  /** Scrolls the list so `day`'s heading sits at the top of its box, gliding unless the visitor asks for reduced motion (3B §5.6). */
+  const scrollToDay = (day: number | null) => {
+    const box = list.current
+    const section = day === null ? null : box?.querySelector<HTMLElement>(`[data-day="${day}"]`)
+    if (!box || !section) return
+    box.scrollTo({ top: box.scrollTop + section.getBoundingClientRect().top - topOf(box), behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
+  }
+
+  /** A day picked on the calendar: selected, its month shown, and the list taken to it (3B §5.2). */
+  const pick = (day: number) => {
+    setSelected(day)
+    setMonth(monthOf(day))
+    scrollToDay(scrollDay(day, days, now, timeZone))
+  }
+
+  /** A row's day, picked as the calendar's would be, unless it's the selected day already, as in the app (3B §5.3). */
+  const pickRow = (leg: Leg) => {
+    const day = calendarDay(leg.start, timeZone)
+    if (day !== selected) pick(day)
+  }
+
+  /** Current Event: this month and today, and the list where it opened (3B §5.4). */
+  const currentEvent = () => {
+    setSelected(today)
+    setMonth(monthOf(today))
+    scrollToDay(openingDay(days, now, timeZone))
+  }
+
   const nextId = nextLegId(legs, now)
   return (
     <main class="schedule">
@@ -104,6 +142,10 @@ export function SchedulePage({ legs, pilot, now, timeZone, h24, airports, onBack
         </button>
         <h1 class="schedule-title" ref={title} tabIndex={-1}>Schedule</h1>
       </header>
+      {/* The time line moves once a minute, as the app's (3B §4.7). */}
+      <TripCalendar month={month} firstDay={firstDay} legs={legs} now={Math.floor(now / MINUTE) * MINUTE} timeZone={timeZone} today={today}
+        selected={selected} onSelect={pick} onMonth={setMonth} onCurrentEvent={currentEvent} />
+      <div class="calendar-rule" />
       {/* The list's own scrolling box, which keyboards reach to scroll it. The list inside keeps the 12 px above and
           below, so the box has no padding at the top and the headings stick at its very top (3B §3.4). */}
       <div class="schedule-days" ref={list} tabIndex={0} role="region" aria-label="Legs">
@@ -127,7 +169,7 @@ export function SchedulePage({ legs, pilot, now, timeZone, h24, airports, onBack
                   <ol class="day-legs" role="list">
                     {d.legs.map((row) => (
                       <TimelineRow key={row.leg.id} leg={row.leg} look={row.look} times={row.times} moment={legMoment(row.leg, now, nextId)}
-                        now={now} gap={row.gap} />
+                        now={now} gap={row.gap} onTap={() => pickRow(row.leg)} />
                     ))}
                   </ol>
                 </section>
