@@ -131,15 +131,15 @@ On `/?demo=1&scene=flying`, in light and dark:
 
 ### Task 3: Merge and release (controller, asks first)
 
-- [ ] **Step 1: Merge**
+- [x] **Step 1: Merge**
 
 Use superpowers:finishing-a-development-branch. Ask the user one question about how to merge `ups-plane-icon` into `main`.
 
-- [ ] **Step 2: Release, only with a fresh yes**
+- [x] **Step 2: Release, only with a fresh yes**
 
 Ask before pushing `main`; the push redeploys crewluve.crewlu.net. After the "Deploy to GitHub Pages" run succeeds, check that the live page's files match the local build, that the flying scene shows the plane, and that there are no console errors.
 
-- [ ] **Step 3: Update the memory**
+- [x] **Step 3: Update the memory**
 
 Update the project memory with the new tip, the site's first deliberate break from the app's look, and what's next: back to the idea board.
 
@@ -163,4 +163,4 @@ Update the project memory with the new tip, the site's first deliberate break fr
 - **Task 1:** built as printed; 6 tests failed first ("expected 'Package' to be 'AirplaneTilt'"), then 2168 tests in 95 files passed, `tsc` and build clean. Commit `c809af2`; 2169 after the review.
 - **Task 2:** at 375 × 812, `scene=flying`: the status card's icon is the tilted plane in UPS brown in its ring; on `#schedule` every UPS row (UPS2950, 2951, 2961, 2963, 2962, …) draws the tilted plane, the drives keep the car, and UPS2961, happening, still pulses. Dark: the planes are the lighter UPS gold. `scene=last-leg`: the plane in orange. No console errors.
 - **Review (after Task 1): ready to merge,** no findings. It confirmed both icon paths (`scheduleFacts.ts` `moveLook`, `copy/visuals.ts` `statusVisual`) go through `airlineIcon`; `UPS`, `ups` and `5X` all resolve to `5X`; a company flight with no code becomes `5X` in `normalize.ts`; nothing else draws an airline's icon. A break back to `Package` failed exactly 6 tests. Taken: a `UPS → AirplaneTilt` case in `airlines.test.ts` (2169 tests). Noted, not changed: a numbered jumpseat with no airline already shows the airline's icon on the status card but the green seat in its row (`scheduleFacts.test.ts` documents it), so it now shows the plane there instead of the box.
-
+- **Released, 2026-10-13:** the user chose "Merge into main locally" (fast-forward to `f2db00d`, branch deleted; 2169 tests, `tsc` and build green on main), then gave a separate yes to push (`90e0295..f2db00d`, 4 commits incl. the Part C leftovers' release note). Pages run 38455718404 succeeded. Live serves `index-BxIjuwnR.js`/`index-DL9IXgqK.css`, every deployed file byte-identical to the local build. Live `?demo=1&scene=flying#schedule`: 9 UPS rows, 9 tilted planes, no boxes; no console errors.
