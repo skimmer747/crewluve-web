@@ -60,7 +60,7 @@
 - Create: `src/ui/memo.ts`
 - Test: `tests/ui/memo.test.tsx`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/ui/memo.test.tsx`:
 
@@ -122,12 +122,12 @@ describe('memo (redraws §4.1)', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/memo.test.tsx`
 Expected: FAIL with `Error: Failed to resolve import "../../src/ui/memo" from "tests/ui/memo.test.tsx"`; no tests run.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/memo.ts`:
 
@@ -163,12 +163,12 @@ export function memo<P extends object>(Inner: FunctionComponent<P>): ComponentTy
 
 The class sits around the component, and Preact asks it before drawing the component again. The component itself is drawn by `createElement`, so its own state and hooks still draw it again as before.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/memo.test.tsx`
 Expected: PASS, 4 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 2161 tests in 94 files after this task.
 
@@ -187,7 +187,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/ui/TripCalendar.tsx`, `src/ui/ScheduleView.tsx`
 - Test: `tests/ui/redraws.test.tsx`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/redraws.test.tsx`. It counts the calendar's draws through `dayName`, which names every day as the calendar draws:
 
@@ -249,12 +249,12 @@ describe('redraws: the calendar (redraws §4.2)', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/redraws.test.tsx tests/ui/TripCalendar.test.tsx tests/ui/SchedulePage.test.tsx`
 Expected: FAIL in 1 test (`1 failed | 62 passed (63)`) with `AssertionError: expected "dayName" to not be called at all, but actually been called 2065 times`: the calendar draws again every second.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/ui/TripCalendar.tsx`, import the helper:
 
@@ -363,12 +363,12 @@ with this:
 
 `onMonth` stays `setMonth`, which never changes. The calendar's other props already stay the same from tick to tick; its clock is rounded to the minute (3B §4.7).
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/redraws.test.tsx tests/ui/TripCalendar.test.tsx tests/ui/SchedulePage.test.tsx`
 Expected: PASS, 63 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 2162 tests in 95 files after this task.
 
@@ -387,7 +387,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/ui/TimelineRow.tsx`, `src/ui/ScheduleView.tsx`
 - Test: `tests/ui/redraws.test.tsx`, `tests/ui/TimelineRow.test.tsx`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/ui/redraws.test.tsx`, import the rows' clock:
 
@@ -456,12 +456,12 @@ with this:
     fireEvent.click(container.querySelector('.leg-gap')!)
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/redraws.test.tsx tests/ui/TimelineRow.test.tsx tests/ui/SchedulePage.test.tsx`
 Expected: FAIL in 2 tests (`2 failed | 50 passed (52)`): all five rows draw again each second (`expected [ 1792059300000, 1792064700000, …(3) ] to deeply equal [ 1792064700000, 1792145700000 ]`), and the tap hands over the click (`expected [ [ …(1) ] ] to deeply equal [ [ { kind: 'flight', …(13) } ] ]`).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/ui/TimelineRow.tsx`, import the helper:
 
@@ -591,12 +591,12 @@ with this:
 
 A row that's neither happening nor next shows its fixed duration, which `legClock` works out without the clock, so a clock of 0 changes nothing on screen.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/redraws.test.tsx tests/ui/TimelineRow.test.tsx tests/ui/SchedulePage.test.tsx`
 Expected: PASS, 52 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 2163 tests in 95 files after this task.
 
@@ -611,11 +611,11 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ### Task 4: Browser check (controller)
 
-- [ ] **Step 1: Build and open the preview**
+- [x] **Step 1: Build and open the preview**
 
 Run `npm run build`, then start or reuse the `crewluve-preview` server from `.claude/launch.json` (port 5181) in the browser pane.
 
-- [ ] **Step 2: Check that nothing changed**
+- [x] **Step 2: Check that nothing changed**
 
 At 402 × 874 on `/?demo=1&scene=flying#schedule`, and at 1180 × 820 on `/?demo=1&scene=flying`:
 - the happening and next rows' clocks tick every second;
@@ -645,7 +645,7 @@ Update the project memory with the new tip and what's next: fixes from the user'
 
 ## Done when
 
-- `npx vitest run`, `npx tsc --noEmit` and `npm run build` are all green, with 2163 tests in 95 files.
+- `npx vitest run`, `npx tsc --noEmit` and `npm run build` are all green, with 2163 tests in 95 files from this plan's blocks, and 2167 after the review.
 - The calendar draws again only as the minute turns or when what it shows changes, and of the rows only the happening and the next each second, with nothing on screen changed (Tasks 1–3, 4).
 - It's live on crewluve.crewlu.net, released with the user's yes (Task 5).
 
@@ -661,4 +661,19 @@ Update the project memory with the new tip and what's next: fixes from the user'
 
 ## Execution notes
 
-(Add notes here as the build goes: where the code had to differ from a printed block, and why.)
+**Build, 2026-10-13**
+- Tasks 1–3 were built on `redraws` in the main folder from this plan's own blocks (`scratchpad/rd/drive.py`), test first.
+  - Each Step 2 failed and each Step 4 passed as printed.
+  - All 7 files came out identical to the scratch copy: `798ea5d`..`80023b1`, 2163 tests in 95 files.
+- **Task 4, the browser check,** on the branch's build at 402 × 874 and 1180 × 820: the clocks ticked; a tap on a day, a tap on a row, the arrows, Current Event and the arrow keys with Enter worked; there were no console errors. The date passed midnight during the check, and Current Event went to the new today.
+
+**Review**
+- **One code-quality review of the whole branch,** with its own frozen copy at `80023b1`: matches the spec; ready to merge with fixes.
+  - It found the code correct. It compared a long-lived view with fresh draws at 55 moments around every leg's start and end, at midnight and at 20:00, with no mismatches. It timed a tick on the Schedule page at 0.16–0.22 ms, down from 0.73–1.16 ms.
+  - Important: no test caught the calendar's handlers going stale. Frozen at the first draw, all 2163 tests passed, though Current Event after midnight would select yesterday.
+  - Minor: no test of rows drawing again with new data; the wrapper had no name of its own; a comment for the ref set as the page draws.
+
+**Changes after the review** (spec decision 5)
+- `169fe9c`: tests that Current Event after midnight selects the new day, that a tap on a day takes the list by data that arrived after the first draw, and that a row draws again when new data changes its leg.
+- `181b964`: the wrapper is named after what it holds, and its comment says it passes no ref on; `ScheduleView` says why setting the ref as it draws is safe.
+- **Checks:** deliberate breaks caught 16 of 16, the review's frozen handlers among them. The suite is 2167 tests in 95 files.

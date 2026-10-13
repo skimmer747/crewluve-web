@@ -60,6 +60,7 @@ Measured in the tests' browser (happy-dom), with the demo's 22 legs, over 300 ti
   - the calendar: none within a minute, one as the minute turns, and one after a tap on a day;
   - the rows: only the happening and the next rows each second.
 - **A row's tap hands over its leg.**
+- **The steady handlers work from the latest draw** (decision 5): Current Event after midnight selects the new day, and a tap on a day takes the list by data that arrived after the first draw. A row draws again when new data changes its leg.
 - **Gates:** `npx vitest run`, `npx tsc --noEmit` and `npm run build`.
 - **Deliberate breaks** of the new code, to check that the tests catch them.
 - **In the browser:** the demo's Schedule page and the side-by-side layout behave as before, with taps, Current Event, the arrows and the keys, and no console errors.
@@ -72,6 +73,7 @@ Measured in the tests' browser (happy-dom), with the demo's 22 legs, over 300 ti
 | 2 | Our own small `memo`, not `preact/compat`'s. | User, 2026-10-12 |
 | 3 | The Safari check on the user's own iPhone and iPad, with fixes from what they find. | User, 2026-10-12 |
 | 4 | The design in §4 and the testing in §5. | User, 2026-10-12 |
+| 5 | Tests that the steady handlers work from the latest draw, after midnight and with new data, and that a row draws again with new data; the helper's wrapper is named after what it holds. | Design, from the review |
 
 ## 7. Roadmap
 
