@@ -88,17 +88,18 @@ export function PilotPages({ schedule, airports, demo, onSignOut, loadWeather = 
   }
 
   const status = { snap, now, viewerTz, homeTz, h24, airports, weather, demo, celebrateKey, footer }
-  // Side by side, the schedule sits beside the cards, and nothing on the status page opens it (3C §4.3).
+  const view = { legs: listed, pilot: snap.pilot, now, timeZone: viewerTz, h24, airports }
+  // Side by side, the schedule sits beside the cards, and nothing on the status page opens it (3C §4.3). Each layout
+  // has a status page of its own, so crossing the line rebuilds it, and a popup open on it closes (§5.2).
   if (sideBySide) {
-    const beside = <ScheduleView legs={listed} pilot={snap.pilot} now={now} timeZone={viewerTz} h24={h24} airports={airports} />
-    return <StatusScreen {...status} beside={beside} />
+    return <StatusScreen key="side-by-side" {...status} beside={<ScheduleView {...view} />} />
   }
 
   if (page.open) {
-    return <SchedulePage legs={listed} pilot={snap.pilot} now={now} timeZone={viewerTz} h24={h24} airports={airports} onBack={page.back} />
+    return <SchedulePage {...view} onBack={page.back} />
   }
 
-  return <StatusScreen {...status} onOpenSchedule={page.show} />
+  return <StatusScreen key="one-column" {...status} onOpenSchedule={page.show} />
 }
 
 /** The airport whose weather the location card shows, or null when the card is hidden or the airport isn't in the list. */

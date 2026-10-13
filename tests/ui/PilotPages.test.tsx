@@ -248,6 +248,7 @@ describe('PilotPages side by side (slice 3C)', () => {
   it('changes nothing on screen as Back and Forward move between the two addresses (§5.1)', async () => {
     const { container } = render(pages())
     const main = container.querySelector('main')!
+    fireEvent.click(screen.getByRole('button', { name: 'Next month' }))
     location.hash = '#schedule'
     await settle()
     history.back()
@@ -256,6 +257,8 @@ describe('PilotPages side by side (slice 3C)', () => {
     await settle()
     expect(container.querySelector('main')).toBe(main)
     expect(layout(container)).toBe('split')
+    // The schedule beside the status kept its month: nothing was rebuilt.
+    expect(container.querySelector('.calendar-title')!.textContent).toBe('November 2026')
     expect(document.activeElement).toBe(document.body)
   })
 
@@ -266,6 +269,9 @@ describe('PilotPages side by side (slice 3C)', () => {
     expect(layout(container)).toBe('screen')
     act(() => setWindowSize(1180, 820))
     expect(layout(container)).toBe('split')
+    const selected = () => container.querySelector('[role="gridcell"][aria-selected="true"] button')
+    fireEvent.click(screen.getByRole('button', { name: 'Thursday, October 22' }))
+    expect(selected()!.getAttribute('aria-label')).toBe('Thursday, October 22')
     fireEvent.click(screen.getByRole('button', { name: 'Next month' }))
     expect(container.querySelector('.calendar-title')!.textContent).toBe('November 2026')
     act(() => setWindowSize(402, 874))
@@ -273,6 +279,25 @@ describe('PilotPages side by side (slice 3C)', () => {
     expect(container.querySelector('.calendar')).toBeNull()
     act(() => setWindowSize(1180, 820))
     expect(container.querySelector('.calendar-title')!.textContent).toBe('October 2026')
+    expect(selected()!.getAttribute('aria-current')).toBe('date')
+  })
+
+  it('closes a popup as the window crosses the line, since the status page is rebuilt too (§5.2, §5.3)', () => {
+    // From the narrow side: happy-dom reports a media query's first change only from not matching.
+    setWindowSize(402, 874)
+    const { container } = render(pages())
+    const openTracking = () => fireEvent.click(screen.getByRole('button', { name: 'UPS2961. Opens flight tracking.' }))
+    openTracking()
+    expect(screen.getByRole('dialog', { name: 'UPS2961' })).toBeTruthy()
+    act(() => setWindowSize(1180, 820))
+    expect(layout(container)).toBe('split')
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(container.querySelector('main')!.hasAttribute('inert')).toBe(false)
+    openTracking()
+    act(() => setWindowSize(402, 874))
+    expect(layout(container)).toBe('screen')
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(container.querySelector('main')!.hasAttribute('inert')).toBe(false)
   })
 
   it('opens the Schedule page, with focus on its title, as the window narrows at the schedule’s address (§5.2)', () => {
