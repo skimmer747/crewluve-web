@@ -47,6 +47,7 @@ No ride home is logged between the two trips. He stays in Louisville.
 - **Not in:**
   - **A ride home in the middle of N.** Step 2 only counts a ride home that starts after the trip's last flight departs. N inherits that rule. So when N has days at home in its middle (a drive home and a drive back between its flights), the chain counts to the ride home after N, not to the one in the middle. The site already says the same during N's first half. This is rare, and it's step 2's rule, not this fix's.
   - **A trip with no flights between T and N.** It has no legs, so the chain passes over it. Where the "~N days" card used to show during it, the card now counts to N's homecoming. This is rare.
+  - **Two rarer signs of home.** A leg at home that starts before T lands and runs into the gap (a "Vacation" event from the day before) doesn't stop the chain; only legs that start in the gap do. A drive-titled event away from home ("Drive to work" at SDF) isn't counted as a drive to work.
   - **The labels.** "Back at Base In" stays where no homecoming is known. The app would say "Louisville In" there, but the user's report is about the date, not the words.
   - **The app's "last arrival home in the block".** The site keeps the first homecoming, so a local pilot whose first trip ends at home is home after that trip.
 
@@ -60,11 +61,12 @@ No ride home is logged between the two trips. He stays in Louisville.
 2. **Ride home** (unchanged).
 3. **Straight on to the next trip (new).** The next trip N is the one step 2 stops at: the trip of the earliest leg of another trip (§4.2). If all of these hold, the pilot stays away until N is over, and T's homecoming is N's. Run steps 1–3 on N. If that gives a homecoming → **"Back Home In"**, counting to its end.
    - N's first leg starts no more than 24 h after T's last flight lands. Both are effective times, so a late landing shortens the gap (C1).
-   - Nothing between T's last landing and N's first leg shows the pilot at home:
-     - no standalone leg from effHome or at it (a flight, jumpseat, drive or event)
+   - Nothing between T's last landing (or now, if later) and N's first leg shows the pilot at home:
+     - no standalone leg from effHome or at it (a flight, jumpseat, drive, event or duty)
      - no drive to work, from anywhere, as `leaveTarget` counts one
      - N itself doesn't leave from effHome
    - Step 2 found no ride home. A ride home before N is the homecoming.
+   - Signs of home that are already over don't count. The status isn't Home, so he has left home again and stays away until N is over.
 4. **Final flight still ahead** (was 4.3, unchanged): still counts T's own last flight.
 5. **Otherwise → no countdown** (was 4.4, C26).
 
@@ -97,6 +99,7 @@ No ride home is logged between the two trips. He stays in Louisville.
   - N's ride home gets its own 3 days, counted from N's landing
   - like T, N ignores a ride home that starts before its last flight departs
   - a drive to work from elsewhere, an event at home, or N leaving from home stops the chain
+  - a ride back from home that is already over doesn't
   - no homecoming down the line → still "Back at Base In", then nothing (C26)
   - {HB} at home names the later homecoming
 - **Gates:** `npx vitest run`, `npx tsc --noEmit`, `npm run build`.
@@ -113,6 +116,7 @@ No ride home is logged between the two trips. He stays in Louisville.
 | 4 | Keep the first homecoming and the "Back at Base In" label. | Design |
 | 5 | Widen "at home in between" from a ride from home to any standalone leg from or at home, a drive to work, or N leaving from home. | Design (review) |
 | 6 | Accept a ride home in the middle of N (step 2's own rule) and a trip with no flights between T and N, as noted in §3. | Design (review) |
+| 7 | Signs of home already over don't stop the chain; the two rarer signs in §3 are accepted. | Design (re-check) |
 
 ## 7. Roadmap
 

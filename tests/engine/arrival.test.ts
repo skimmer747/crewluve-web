@@ -326,6 +326,13 @@ describe('back-to-back trips: the homecoming after the last one (back-home spec 
     expect(targetAtHour(legs, commuter, 30)).toBeNull()
   })
 
+  it.each([
+    ['a jumpseat', flight('LEX', 'SDF', 38, 39, null)],
+    ['a drive', drive('LEX', 'SDF', false, 38, 39)],
+  ])('goes on once %s back from home is over: he is away again until the next trip ends', (_ride, fromHome) => {
+    expect(targetAtHour(sorted([...T1, fromHome, ...T2(45), rideHome]), commuter, 40)).toMatchObject({ label: 'home', time: 64 * H })
+  })
+
   it('stops at the landing when the next trip leaves from home', () => {
     const legs = sorted([...T1, flight('LEX', 'ATL', 40, 42, 'T2'), flight('ATL', 'SDF', 50, 52, 'T2'), drive('SDF', 'LEX', true, 53, 54)])
     expect(targetAtHour(legs, commuter, 1)).toMatchObject({ label: 'base', time: 25 * H })

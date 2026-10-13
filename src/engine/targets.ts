@@ -82,7 +82,8 @@ export function arrivalTarget(legs: Leg[], pilot: Pilot, status: Status, t: numb
     const next = nextTripLeg(id, after)
     const r = ride(last.start, last.end + RIDE_WINDOW, next?.start ?? Infinity)
     if (r) return toTarget('home', r, home)
-    if (!next || next.start - last.end > DAY || departureOf(next) === home || homeBetween(last.end, next.start)) break
+    // Signs of home before t are over: the status isn't Home, so he is away again.
+    if (!next || next.start - last.end > DAY || departureOf(next) === home || homeBetween(Math.max(last.end, t), next.start)) break
     id = next.tripId
     after = next.start
   }

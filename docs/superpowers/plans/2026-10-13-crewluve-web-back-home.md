@@ -15,7 +15,7 @@
 ## Execution notes
 
 - **Branch:** `back-home`, from `main` at `f5b64a8`, in the main project folder. Run every command from `~/Dev/Crewluve Website`, quoted.
-- **Gates:** `npx vitest run`, `npx tsc --noEmit` and `npm run build`. The suite is 2169 tests in 95 files before this plan, 2184 after Task 2, and 2190 after the review.
+- **Gates:** `npx vitest run`, `npx tsc --noEmit` and `npm run build`. The suite is 2169 tests in 95 files before this plan, 2184 after Task 2, 2190 after the review, and 2192 after the re-check.
 - **The Crewluve app (`~/Dev/Crewluv`) is reference only.**
 - **One review** after Task 2, covering the spec too.
 
@@ -55,7 +55,7 @@
 
 ## Done when
 
-- The three gates are green with 2190 tests in 95 files.
+- The three gates are green with 2192 tests in 95 files.
 - On the report's week, the card says "Back Home In", Sat, Oct 17 at 3:21 AM · Orlando, at every moment from the report to the second trip (Task 1's test).
 - It's live on crewluve.crewlu.net, released with the user's yes (Task 3).
 
@@ -70,3 +70,7 @@
   - **Minor:** spec fixes: the celebration does change (as in the app), the 24 h is measured differently from the app, a ride home in the middle of N and a trip with no flights in between are accepted (§3, decision 6).
   - **Minor:** names: `ofTrip`, `after`, `homeBetween`; `nextTripLeg` returns a leg with a trip id; the doc says legs are sorted.
   - Fixes: 2190 tests in 95 files, `tsc` and build clean; deliberate breaks 15 of 15 caught (the reviewer's two included).
+- **Re-check (8e62c42): ready to merge, yes.** Every fix holds. On 30k random schedules the wider check only ever stops a chain, and each stopped chain gives main's answer. Three optional Minors:
+  - **Taken:** signs of home before now no longer stop the chain (`Math.max(last.end, t)`), so after a ride back from home he counts to the next trip's homecoming. 2 tests (jumpseat and drive), red first. 2192 tests, `tsc` and build clean.
+  - **Accepted, in spec §3:** a leg at home that starts before T lands, and a drive-titled event away from home (decision 7).
+  - **Deliberate breaks:** the old window caught (2 failing). Measuring from now even on later passes is not caught: it only differs for a sign of home in the middle of a trip being flown, which real data can't hold.
