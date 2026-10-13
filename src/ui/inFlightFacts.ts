@@ -2,7 +2,7 @@ import { flightNumberText } from '../copy/flight'
 import { trackingFlightNumber, trackingLinks, type TrackingLinks } from '../copy/tracking'
 import type { AirportIndex } from '../data/airports'
 import { isMove } from '../engine/legs'
-import { departureOffset, type Snapshot } from '../engine/snapshot'
+import type { Snapshot } from '../engine/snapshot'
 import type { GeoPoint } from './flightMapGeometry'
 
 /** One end of the flight: its code, its city, and its place and zone when the airport list has them. */
@@ -25,7 +25,10 @@ export interface InFlightFacts {
   end: number
   /** The scheduled block time, shown under the map as the app shows it. */
   blockMs: number
-  /** How late (positive) or early the departure is, when that's 15 minutes or more; else null. */
+  /**
+   * How late (positive) or early the departure is, when that's 15 minutes or more; else null. It's the snapshot's
+   * delay, which the sentence reads too (Part C leftovers §4.2).
+   */
   delayMinutes: number | null
   /** The info bar's flight number in the pilot's Duty app's form, or null without digits. */
   flightNumber: string | null
@@ -59,7 +62,7 @@ export function inFlightFacts(snap: Snapshot, airports: AirportIndex): InFlightF
     start: leg.start,
     end: leg.end,
     blockMs: leg.schedEnd - leg.schedStart,
-    delayMinutes: departureOffset({ scheduled: leg.schedStart, actual: leg.start }),
+    delayMinutes: snap.delay?.minutes ?? null,
     flightNumber,
     trackingNumber: trackingFlightNumber(leg.airline, leg.number) ?? flightNumber,
     links: trackingLinks(leg.airline, leg.number),

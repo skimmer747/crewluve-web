@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { demoRaw } from '../../src/data/demo'
+import { RawBuilder } from '../../src/data/rowBuilder'
+import type { MoveLeg } from '../../src/engine/legs'
 import { makeSnapshot, type Snapshot } from '../../src/engine/snapshot'
 import { flightProgress, inFlightFacts } from '../../src/ui/inFlightFacts'
 import { testAirports } from '../fixtures/airports'
 import { A, at, engineFor, M } from '../fixtures/engine'
-import { flight, H } from '../fixtures/legs'
+import { flight } from '../fixtures/legs'
 
 const NY = 'America/New_York'
 const driver = engineFor(demoRaw('driver', A))
@@ -32,19 +34,17 @@ describe('inFlightFacts', () => {
     expect(facts.delayMinutes).toBe(40)
   })
 
-  it('takes the delay from the departure, not from the landing', () => {
+  it('gives the snapshot’s delay, the one the sentence reads', () => {
     const air = snapAt(100)
-    const leg = flight('SDF', 'RFD', 1, 3, 'T1', { schedStart: 1 * H - 40 * M, schedEnd: 3 * H - 10 * M })
-    expect(inFlightFacts({ ...air, status: { ...air.status, current: leg } }, testAirports)!.delayMinutes).toBe(40)
+    const late: Snapshot = { ...air, delay: { flight: air.status.current as MoveLeg, minutes: 25 } }
+    expect(inFlightFacts(late, testAirports)!.delayMinutes).toBe(25)
   })
 
-  it('notes a delay of 15 minutes or more, late or early, and none at 14', () => {
-    const air = snapAt(100)
-    const delay = (minutes: number) => {
-      const leg = flight('SDF', 'RFD', 1, 3, 'T1', { schedStart: 1 * H - minutes * M, schedEnd: 3 * H - minutes * M })
-      return inFlightFacts({ ...air, status: { ...air.status, current: leg } }, testAirports)!.delayMinutes
-    }
-    expect([delay(15), delay(14), delay(-14), delay(-15)]).toEqual([15, null, null, -15])
+  it('takes the delay from the departure, not from the landing', () => {
+    const late = engineFor(new RawBuilder(A).pilot('Sam', 'SDF', null).trip('t1', {
+      dutyPeriods: [{ start: 0, end: 600, flights: [{ dep: 'SDF', arr: 'RFD', out: 60, in: 150, actualOut: 100, actualIn: 160 }] }],
+    }).build())
+    expect(inFlightFacts(snapAt(120, late), testAirports)!.delayMinutes).toBe(40)
   })
 
   it('covers a jumpseat too, with its airline’s number and ICAO code', () => {
