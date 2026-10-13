@@ -12,11 +12,13 @@ import { Footer, type FooterProps } from './Footer'
 import type { ScheduleHandle } from './hooks/useSchedule'
 import { useNow } from './hooks/useNow'
 import { useSchedulePage } from './hooks/useSchedulePage'
+import { useSideBySide } from './hooks/useSideBySide'
 import { useVisibilityCount } from './hooks/useVisibilityCount'
 import { useWeather } from './hooks/useWeather'
 import { showsLocationCard } from './LocationCard'
 import { scheduleLegs } from './scheduleFacts'
 import { SchedulePage } from './SchedulePage'
+import { ScheduleView } from './ScheduleView'
 import { StatusScreen } from './StatusScreen'
 import { Title } from './Title'
 
@@ -31,7 +33,8 @@ export interface PilotPagesProps {
 
 /**
  * Rebuilds the schedule when new rows arrive, and the snapshot every second. Shows the status page, or the Schedule
- * page when the address ends in #schedule (slice 3A §3.3); while there's nothing to show, the same screen as ever.
+ * page when the address ends in #schedule (slice 3A §3.3). On a wide window it shows both side by side, whatever the
+ * address (3C §3, §5.1). While there's nothing to show, the same screen as ever, at every width.
  */
 export function PilotPages({ schedule, airports, demo, onSignOut, loadWeather = demo ? loadDemoWeather : loadLiveWeather }: PilotPagesProps) {
   const now = useNow()
@@ -68,8 +71,10 @@ export function PilotPages({ schedule, airports, demo, onSignOut, loadWeather = 
   const snap = ready ? safeSnapshot(ready.s, ready.legs, now, airports.tz(ready.s.pilot.base) ?? viewerTz) : null
   // Asked for before the early return below, so the hooks run in the same order on every render.
   const weather = useWeather(weatherPlace(snap, airports, unit), loadWeather)
-  // The page the address asks for, and the legs the Schedule page lists.
-  const page = useSchedulePage(false)
+  // The page the address asks for, and the legs the Schedule page lists. A wide window shows both pages side by side
+  // (slice 3C §3).
+  const sideBySide = useSideBySide()
+  const page = useSchedulePage(sideBySide)
   const listed = useMemo(() => (ready ? scheduleLegs(ready.legs) : []), [ready])
 
   if (!snap) {
@@ -82,14 +87,18 @@ export function PilotPages({ schedule, airports, demo, onSignOut, loadWeather = 
     )
   }
 
+  const status = { snap, now, viewerTz, homeTz, h24, airports, weather, demo, celebrateKey, footer }
+  // Side by side, the schedule sits beside the cards, and nothing on the status page opens it (3C §4.3).
+  if (sideBySide) {
+    const beside = <ScheduleView legs={listed} pilot={snap.pilot} now={now} timeZone={viewerTz} h24={h24} airports={airports} />
+    return <StatusScreen {...status} beside={beside} />
+  }
+
   if (page.open) {
     return <SchedulePage legs={listed} pilot={snap.pilot} now={now} timeZone={viewerTz} h24={h24} airports={airports} onBack={page.back} />
   }
 
-  return (
-    <StatusScreen snap={snap} now={now} viewerTz={viewerTz} homeTz={homeTz} h24={h24} airports={airports} weather={weather} demo={demo}
-      celebrateKey={celebrateKey} footer={footer} onOpenSchedule={page.show} />
-  )
+  return <StatusScreen {...status} onOpenSchedule={page.show} />
 }
 
 /** The airport whose weather the location card shows, or null when the card is hidden or the airport isn't in the list. */

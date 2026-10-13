@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/preact'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/preact'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { demoRawForScene } from '../../src/data/demo'
+import { demoRawForScene, type DemoScene } from '../../src/data/demo'
 import { RawBuilder } from '../../src/data/rowBuilder'
 import type { RawSchedule } from '../../src/data/rows'
 import { tempUnitFor, type WeatherLoader } from '../../src/data/weather'
@@ -12,13 +12,15 @@ import type { ScheduleHandle } from '../../src/ui/hooks/useSchedule'
 import { PilotPages } from '../../src/ui/PilotPages'
 import { scheduleLegs } from '../../src/ui/scheduleFacts'
 import { testAirports } from '../fixtures/airports'
-import { stubAnimationFrames } from '../fixtures/ui'
+import { setWindowSize, stubAnimationFrames } from '../fixtures/ui'
 
 const NOW = Date.UTC(2026, 9, 20, 16)
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
   vi.setSystemTime(NOW)
+  // A phone's window, for the one-column pages, unless a test makes it wider (slice 3C §3).
+  setWindowSize(402, 874)
 })
 
 afterEach(() => {
@@ -197,5 +199,98 @@ describe('PilotPages: the status page and the Schedule page (slice 3A §3.3)', (
     cleanup()
     render(<PilotPages schedule={handle(new RawBuilder(NOW).build())} airports={testAirports} demo={false} onSignOut={() => {}} />)
     expect(screen.getByText('No schedule in CrewLu Cloud yet')).toBeTruthy()
+  })
+})
+
+describe('PilotPages side by side (slice 3C)', () => {
+  /** Lets the browser's history events arrive: happy-dom sends popstate a moment after history.back(). */
+  const settle = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 20)))
+  const pages = (scene: DemoScene = 'flying') => (
+    <PilotPages schedule={handle(demoRawForScene(scene, NOW))} airports={testAirports} demo onSignOut={() => {}} />
+  )
+  const layout = (container: Element) => container.querySelector('main')!.className
+  beforeEach(() => {
+    history.replaceState(null, '', '/')
+    setWindowSize(1180, 820)
+  })
+  afterEach(() => history.replaceState(null, '', '/'))
+
+  it('shows the status and the schedule side by side on a wide window, under one bar with the title (§4)', () => {
+    const raw = demoRawForScene('flying', NOW)
+    const { container } = render(<PilotPages schedule={handle(raw)} airports={testAirports} demo onSignOut={() => {}} />)
+    expect(layout(container)).toBe('split')
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe("Where's Alex?")
+    expect(screen.getByRole('region', { name: 'Status' }).querySelector('.countdown')).not.toBeNull()
+    const schedule = screen.getByRole('region', { name: 'Schedule' })
+    expect(schedule.querySelector('.calendar-title')!.textContent).toBe('October 2026')
+    const legs = within(schedule).getByRole('region', { name: 'Legs' }).querySelectorAll('.leg')
+    expect(legs.length).toBe(scheduleLegs(buildLegs(buildSchedule(raw, NOW))).length)
+    expect(screen.queryByRole('button', { name: 'Back' })).toBeNull()
+    // Nothing takes focus as it opens, as on the status page (§5.4).
+    expect(document.activeElement).toBe(document.body)
+  })
+
+  it('has no way into the schedule beside it: no chevrons, and no View Schedule, at home or away (§4.3)', () => {
+    for (const scene of ['home', 'nothing-ahead', 'flying'] as const) {
+      const { container, unmount } = render(pages(scene))
+      expect(container.querySelector('[data-schedule-link]')).toBeNull()
+      unmount()
+    }
+  })
+
+  it('shows the same at the schedule’s own address (§5.1)', () => {
+    history.replaceState(null, '', '/#schedule')
+    const { container } = render(pages())
+    expect(layout(container)).toBe('split')
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe("Where's Alex?")
+  })
+
+  it('changes nothing on screen as Back and Forward move between the two addresses (§5.1)', async () => {
+    const { container } = render(pages())
+    const main = container.querySelector('main')!
+    location.hash = '#schedule'
+    await settle()
+    history.back()
+    await settle()
+    history.forward()
+    await settle()
+    expect(container.querySelector('main')).toBe(main)
+    expect(layout(container)).toBe('split')
+    expect(document.activeElement).toBe(document.body)
+  })
+
+  it('switches layouts as the window crosses the line, opening the schedule again at this month each time (§5.2)', () => {
+    // From the narrow side: happy-dom reports a media query's first change only from not matching.
+    setWindowSize(402, 874)
+    const { container } = render(pages())
+    expect(layout(container)).toBe('screen')
+    act(() => setWindowSize(1180, 820))
+    expect(layout(container)).toBe('split')
+    fireEvent.click(screen.getByRole('button', { name: 'Next month' }))
+    expect(container.querySelector('.calendar-title')!.textContent).toBe('November 2026')
+    act(() => setWindowSize(402, 874))
+    expect(layout(container)).toBe('screen')
+    expect(container.querySelector('.calendar')).toBeNull()
+    act(() => setWindowSize(1180, 820))
+    expect(container.querySelector('.calendar-title')!.textContent).toBe('October 2026')
+  })
+
+  it('opens the Schedule page, with focus on its title, as the window narrows at the schedule’s address (§5.2)', () => {
+    history.replaceState(null, '', '/#schedule')
+    setWindowSize(402, 874)
+    render(pages())
+    act(() => setWindowSize(1180, 820))
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe("Where's Alex?")
+    act(() => setWindowSize(402, 874))
+    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: 'Schedule' }))
+  })
+
+  it('keeps the screens it always has while there’s nothing to show (§2)', () => {
+    render(<PilotPages schedule={handle(null)} airports={testAirports} demo={false} onSignOut={() => {}} />)
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('CrewLuve')
+    cleanup()
+    const { container } = render(<PilotPages schedule={handle(new RawBuilder(NOW).build())} airports={testAirports} demo={false} onSignOut={() => {}} />)
+    expect(screen.getByText('No schedule in CrewLu Cloud yet')).toBeTruthy()
+    expect(layout(container)).toBe('screen')
   })
 })
