@@ -588,3 +588,69 @@ describe('StatusScreen: the ways into the schedule (slice 3A §3.1, §3.2)', () 
     }
   })
 })
+
+describe('StatusScreen beside the schedule (slice 3C §4, §5)', () => {
+  const sideBySide = (minutes: number, snap: Snapshot = makeSnapshot(e.schedule, e.legs, at(minutes), NY)) => {
+    const now = at(minutes)
+    return (
+      <StatusScreen snap={snap} now={now} viewerTz={NY} homeTz={NY} h24={false} airports={testAirports} weather={null} demo celebrateKey={0}
+        footer={footer(now)} beside={<p class="beside">The schedule</p>} />
+    )
+  }
+  const reduceMotion = () => vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce'), media: query }))
+  const openTracking = () => fireEvent.click(screen.getByRole('button', { name: 'UPS2961. Opens flight tracking.' }))
+
+  it('puts the title in a bar across the top, the cards in a scrolling region of their own, and the schedule beside them', () => {
+    const { container } = render(sideBySide(100))
+    expect(container.querySelectorAll('main').length).toBe(1)
+    const main = container.querySelector('main')!
+    expect(main.className).toBe('split')
+    expect([...main.children].map((el) => `${el.tagName} ${el.className}`)).toEqual(['HEADER split-bar', 'SECTION split-status', 'SECTION split-schedule'])
+    expect(screen.getByRole('heading', { level: 1, name: "Where's Alex?" }).parentElement!.className).toBe('split-bar')
+    // The cards' column takes Tab focus, so the keys scroll it, as the list's box does (3B §3.4).
+    const status = screen.getByRole('region', { name: 'Status' })
+    expect(status.tabIndex).toBe(0)
+    expect(status.firstElementChild!.className).toBe('glass demo-banner')
+    expect(status.querySelector('.countdown')).not.toBeNull()
+    expect(status.lastElementChild!.className).toBe('footer')
+    // The schedule's region is named by a heading only screen readers see, so heading navigation reaches it.
+    const schedule = screen.getByRole('region', { name: 'Schedule' })
+    expect([...schedule.children].map((el) => el.outerHTML)).toEqual([
+      '<h2 id="split-schedule-heading" class="sr-only">Schedule</h2>',
+      '<p class="beside">The schedule</p>',
+    ])
+  })
+
+  it('adds no <style> elements, which the site’s content security policy would block', () => {
+    const before = document.querySelectorAll('style').length
+    render(sideBySide(100))
+    expect(document.querySelectorAll('style').length).toBe(before)
+  })
+
+  it('hides the bar and both columns behind a popup, and gives them back once it has closed', () => {
+    reduceMotion()
+    const { container } = render(sideBySide(100))
+    const main = container.querySelector('main')!
+    openTracking()
+    expect(main.contains(screen.getByRole('dialog', { name: 'UPS2961' }))).toBe(false)
+    expect([main.getAttribute('aria-hidden'), main.hasAttribute('inert')]).toEqual(['true', true])
+    // The one main holds the bar and both columns, so all three are hidden with it.
+    expect([...main.children].map((el) => el.className)).toEqual(['split-bar', 'split-status', 'split-schedule'])
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    expect([main.getAttribute('aria-hidden'), main.hasAttribute('inert')]).toEqual([null, false])
+  })
+
+  it('sends focus to the title in the bar when a popup closes by itself and no card has the location card’s place', async () => {
+    // The sentence can't tell what a flight without its leg is doing: it says "On duty", and logs that once.
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const snap = makeSnapshot(e.schedule, e.legs, at(100), NY)
+    const { rerender } = render(sideBySide(100, snap))
+    openTracking()
+    // Still in the air, so no location card, but with no leg to draw the in-flight card from.
+    rerender(sideBySide(100, { ...snap, status: { ...snap.status, current: null } }))
+    await act(() => {})
+    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: "Where's Alex?" }))
+    expect(document.activeElement!.parentElement!.className).toBe('split-bar')
+    error.mockRestore()
+  })
+})

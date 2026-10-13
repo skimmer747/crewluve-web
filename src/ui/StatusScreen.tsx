@@ -1,3 +1,4 @@
+import type { ComponentChildren } from 'preact'
 import { useRef } from 'preact/hooks'
 import { arrivalWhenText, leaveWhenText, tripDepartsText } from '../copy/format'
 import { safeNarrative } from '../copy/narrative'
@@ -41,6 +42,11 @@ export interface StatusScreenProps {
    * app's iPad, where the schedule sits beside it.
    */
   onOpenSchedule?: (name: ScheduleLinkName) => void
+  /**
+   * The schedule's view, to show beside the cards on a wide window (slice 3C §4). The title then goes in a bar across
+   * both, and the cards in a column of their own.
+   */
+  beside?: ComponentChildren
 }
 
 /** The link into the schedule named `name`, or none when the page has no way into it. */
@@ -53,6 +59,9 @@ const linkTo = (name: ScheduleLinkName, open?: (name: ScheduleLinkName) => void)
  * (slice 2B2 §9) and the tracking popup the in-flight card's flight number opens (slice 2C §6). The popups go after
  * <main>, since a card's frosted glass would trap a full-screen overlay inside the card; while one is open, the page is
  * hidden from screen readers.
+ *
+ * Given the schedule's view, it lays the page out as the app's iPad does (slice 3C §4): the title in a bar across the
+ * top, the cards in a column of their own, and the view beside them, all in the one <main> a popup hides (§5.3).
  */
 export function StatusScreen(p: StatusScreenProps) {
   const { snap } = p
@@ -78,36 +87,58 @@ export function StatusScreen(p: StatusScreenProps) {
   // The cards that lead to the schedule (slice 3A §3.1); View Schedule shows whenever none of them is here (§3.2).
   const home = snap.status.kind === 'home'
   const cardLeadsThere = (home ? snap.leave != null : snap.arrival != null || snap.fallbackDaysRemaining != null) || snap.upcomingTrip != null
+  const title = <Title text={titleFor(snap.hasName ? snap.name : null)} headingRef={titleHeading} />
+  const cards = (
+    <>
+      {p.demo && <DemoBanner />}
+      <NarrativeCard spans={spans} visual={statusVisual(snap)} ring={snap.ring} />
+      {home ? <HomeCards {...p} /> : <AwayCard {...p} />}
+      {p.onOpenSchedule && !cardLeadsThere && <ViewScheduleLink onOpen={p.onOpenSchedule} />}
+      {facts && (
+        <LocationCard
+          airport={airport}
+          facts={facts}
+          now={p.now}
+          homeTz={p.homeTz}
+          h24={p.h24}
+          weather={p.weather}
+          headingRef={locationHeading}
+          onOpenSun={sun.show}
+        />
+      )}
+      {flying && (
+        <InFlightCard facts={flying} now={p.now} h24={p.h24} headingRef={inFlightHeading} onOpenTracking={tracking.show} />
+      )}
+      {snap.upcomingTrip && (
+        <UpcomingTripCard trip={snap.upcomingTrip} now={p.now} timeZone={p.homeTz} h24={p.h24} airports={p.airports}
+          link={linkTo('trip', p.onOpenSchedule)} />
+      )}
+      {snap.tripProgress && <TripProgressCard progress={snap.tripProgress} airports={p.airports} />}
+      <Footer {...p.footer} />
+    </>
+  )
+  const ariaHidden = hidden ? 'true' : undefined
+  const inert = hidden || undefined
   return (
     <>
-      <main class="screen" aria-hidden={hidden ? 'true' : undefined} inert={hidden || undefined}>
-        <Title text={titleFor(snap.hasName ? snap.name : null)} headingRef={titleHeading} />
-        {p.demo && <DemoBanner />}
-        <NarrativeCard spans={spans} visual={statusVisual(snap)} ring={snap.ring} />
-        {home ? <HomeCards {...p} /> : <AwayCard {...p} />}
-        {p.onOpenSchedule && !cardLeadsThere && <ViewScheduleLink onOpen={p.onOpenSchedule} />}
-        {facts && (
-          <LocationCard
-            airport={airport}
-            facts={facts}
-            now={p.now}
-            homeTz={p.homeTz}
-            h24={p.h24}
-            weather={p.weather}
-            headingRef={locationHeading}
-            onOpenSun={sun.show}
-          />
-        )}
-        {flying && (
-          <InFlightCard facts={flying} now={p.now} h24={p.h24} headingRef={inFlightHeading} onOpenTracking={tracking.show} />
-        )}
-        {snap.upcomingTrip && (
-          <UpcomingTripCard trip={snap.upcomingTrip} now={p.now} timeZone={p.homeTz} h24={p.h24} airports={p.airports}
-            link={linkTo('trip', p.onOpenSchedule)} />
-        )}
-        {snap.tripProgress && <TripProgressCard progress={snap.tripProgress} airports={p.airports} />}
-        <Footer {...p.footer} />
-      </main>
+      {p.beside ? (
+        <main class="split" aria-hidden={ariaHidden} inert={inert}>
+          <header class="split-bar">{title}</header>
+          {/* The cards' own scrolling box, which keyboards reach to scroll it, as the list's box (3C §5.4). */}
+          <section class="split-status" aria-label="Status" tabIndex={0}>
+            {cards}
+          </section>
+          <section class="split-schedule" aria-labelledby="split-schedule-heading">
+            <h2 id="split-schedule-heading" class="sr-only">Schedule</h2>
+            {p.beside}
+          </section>
+        </main>
+      ) : (
+        <main class="screen" aria-hidden={ariaHidden} inert={inert}>
+          {title}
+          {cards}
+        </main>
+      )}
       {sun.open && dialFacts && (
         <SunPopup
           facts={dialFacts}
