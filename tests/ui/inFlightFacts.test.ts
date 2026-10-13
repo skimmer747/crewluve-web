@@ -16,7 +16,7 @@ const snapAt = (minutes: number, e = driver) => makeSnapshot(e.schedule, e.legs,
 describe('inFlightFacts', () => {
   it('describes the flight under way: Louisville to Rockford, UPS 2961', () => {
     const facts = inFlightFacts(snapAt(100), testAirports)!
-    expect(facts.dep).toEqual({ code: 'SDF', city: 'Louisville', place: { lat: 38.1746, lon: -85.7382 }, timeZone: 'America/Kentucky/Louisville' })
+    expect(facts.dep).toEqual({ code: 'SDF', city: 'Louisville', place: { lat: 38.1746, lng: -85.7382 }, timeZone: 'America/Kentucky/Louisville' })
     expect(facts.arr.city).toBe('Rockford')
     expect([facts.start, facts.end]).toEqual([at(60), at(150)])
     expect(facts.blockMs).toBe(90 * M)

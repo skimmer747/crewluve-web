@@ -64,11 +64,11 @@ function MapDrawing({ facts, depPlace, arrPlace, nm, width, progress, h24 }: Map
     const points = routePoints(depPlace, arrPlace).map((p) => project(p, bounds, width))
     const depAt = project(depPlace, bounds, width)
     const arrAt = project(arrPlace, bounds, width)
-    const depDay = isSunUp(facts.start, depPlace.lat, depPlace.lon)
-    const arrDay = isSunUp(facts.end, arrPlace.lat, arrPlace.lon)
+    const depDay = isSunUp(facts.start, depPlace.lat, depPlace.lng)
+    const arrDay = isSunUp(facts.end, arrPlace.lat, arrPlace.lng)
     const sky = flightSky(depDay, arrDay, depAt.x / width, arrAt.x / width, solarTransition(depPlace, arrPlace, facts.start, facts.end))
     return { bounds, line: pointsAttr(points), arrow: routeArrow(points), depAt, arrAt, depDay, arrDay, sky }
-  }, [depPlace.lat, depPlace.lon, arrPlace.lat, arrPlace.lon, facts.start, facts.end, width])
+  }, [depPlace.lat, depPlace.lng, arrPlace.lat, arrPlace.lng, facts.start, facts.end, width])
   const plane = progress == null ? null : planePose(depPlace, arrPlace, layout.bounds, width, progress)
   const chevron = pointsAttr([layout.arrow.left, layout.arrow.tip, layout.arrow.right])
   return (

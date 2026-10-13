@@ -14,31 +14,31 @@ import {
   type GeoPoint,
 } from '../../src/ui/flightMapGeometry'
 
-const SDF: GeoPoint = { lat: 38.1746, lon: -85.7382 }
-const ANC: GeoPoint = { lat: 61.1744, lon: -149.9983 }
-const MIA: GeoPoint = { lat: 25.7959, lon: -80.2871 }
-const NRT: GeoPoint = { lat: 35.7647, lon: 140.3864 }
-const HNL: GeoPoint = { lat: 21.3245, lon: -157.9251 }
-const CGN: GeoPoint = { lat: 50.8659, lon: 7.1427 }
+const SDF: GeoPoint = { lat: 38.1746, lng: -85.7382 }
+const ANC: GeoPoint = { lat: 61.1744, lng: -149.9983 }
+const MIA: GeoPoint = { lat: 25.7959, lng: -80.2871 }
+const NRT: GeoPoint = { lat: 35.7647, lng: 140.3864 }
+const HNL: GeoPoint = { lat: 21.3245, lng: -157.9251 }
+const CGN: GeoPoint = { lat: 50.8659, lng: 7.1427 }
 const W = DEFAULT_MAP_WIDTH
 
 describe('greatCirclePoint', () => {
   it('starts and ends at the airports', () => {
     expect(greatCirclePoint(SDF, ANC, 0).lat).toBeCloseTo(SDF.lat, 9)
-    expect(greatCirclePoint(SDF, ANC, 0).lon).toBeCloseTo(SDF.lon, 9)
+    expect(greatCirclePoint(SDF, ANC, 0).lng).toBeCloseTo(SDF.lng, 9)
     expect(greatCirclePoint(SDF, ANC, 1).lat).toBeCloseTo(ANC.lat, 9)
-    expect(greatCirclePoint(SDF, ANC, 1).lon).toBeCloseTo(ANC.lon, 9)
+    expect(greatCirclePoint(SDF, ANC, 1).lng).toBeCloseTo(ANC.lng, 9)
   })
 
   it('follows the equator and the meridians, where the great circle is plain', () => {
-    const half = greatCirclePoint({ lat: 0, lon: 0 }, { lat: 0, lon: 90 }, 0.5)
+    const half = greatCirclePoint({ lat: 0, lng: 0 }, { lat: 0, lng: 90 }, 0.5)
     expect(half.lat).toBeCloseTo(0, 9)
-    expect(half.lon).toBeCloseTo(45, 9)
-    expect(greatCirclePoint({ lat: 0, lon: 0 }, { lat: 90, lon: 0 }, 0.5).lat).toBeCloseTo(45, 9)
+    expect(half.lng).toBeCloseTo(45, 9)
+    expect(greatCirclePoint({ lat: 0, lng: 0 }, { lat: 90, lng: 0 }, 0.5).lat).toBeCloseTo(45, 9)
   })
 
   it('bows toward the pole between two places at the same latitude, as a great circle does', () => {
-    expect(greatCirclePoint({ lat: 45, lon: -100 }, { lat: 45, lon: 0 }, 0.5).lat).toBeGreaterThan(50)
+    expect(greatCirclePoint({ lat: 45, lng: -100 }, { lat: 45, lng: 0 }, 0.5).lat).toBeGreaterThan(50)
   })
 
   it('gives the start for two airports at the same place', () => {
@@ -51,7 +51,7 @@ describe('routePoints', () => {
     const points = routePoints(SDF, ANC)
     expect(points).toHaveLength(51)
     expect(points[0].lat).toBeCloseTo(SDF.lat, 9)
-    expect(points[50].lon).toBeCloseTo(ANC.lon, 9)
+    expect(points[50].lng).toBeCloseTo(ANC.lng, 9)
   })
 })
 
@@ -71,7 +71,7 @@ describe('mapBounds', () => {
   it('holds the whole route, padded by 15% of its spans', () => {
     const points = routePoints(SDF, ANC)
     const lats = points.map((p) => p.lat)
-    const lons = points.map((p) => p.lon)
+    const lons = points.map((p) => p.lng)
     const [lat0, lat1, lon0, lon1] = [Math.min(...lats), Math.max(...lats), Math.min(...lons), Math.max(...lons)]
     const b = mapBounds(SDF, ANC)
     expect(b.minLat).toBeCloseTo(lat0 - (lat1 - lat0) * 0.15, 9)
@@ -84,7 +84,7 @@ describe('mapBounds', () => {
   it('widens a route that runs north and south to 0.6 of its height, evenly on both sides', () => {
     const b = mapBounds(SDF, MIA)
     expect((b.maxLon - b.minLon) / (b.maxLat - b.minLat)).toBeCloseTo(0.6, 9)
-    expect((b.minLon + b.maxLon) / 2).toBeCloseTo((SDF.lon + MIA.lon) / 2, 9)
+    expect((b.minLon + b.maxLon) / 2).toBeCloseTo((SDF.lng + MIA.lng) / 2, 9)
   })
 
   it('counts longitudes on from 180° for a route across the antimeridian, so it draws in one piece', () => {
@@ -95,7 +95,7 @@ describe('mapBounds', () => {
   })
 
   it('boxes a route across the antimeridian in those longitudes, padded by 15%', () => {
-    const lons = routePoints(ANC, NRT).map((p) => (p.lon < 0 ? p.lon + 360 : p.lon))
+    const lons = routePoints(ANC, NRT).map((p) => (p.lng < 0 ? p.lng + 360 : p.lng))
     const [lon0, lon1] = [Math.min(...lons), Math.max(...lons)]
     const b = mapBounds(ANC, NRT)
     expect(b.minLon).toBeCloseTo(lon0 - (lon1 - lon0) * 0.15, 9)
@@ -106,13 +106,13 @@ describe('mapBounds', () => {
 describe('project', () => {
   it('puts the box’s corners 60 px in from the drawing’s corners, north up', () => {
     const b = { minLat: 10, maxLat: 20, minLon: -100, maxLon: -80, lonOffset: 0 }
-    expect(project({ lat: 10, lon: -100 }, b, W)).toEqual({ x: MAP_PADDING, y: MAP_HEIGHT - MAP_PADDING })
-    expect(project({ lat: 20, lon: -80 }, b, W)).toEqual({ x: W - MAP_PADDING, y: MAP_PADDING })
+    expect(project({ lat: 10, lng: -100 }, b, W)).toEqual({ x: MAP_PADDING, y: MAP_HEIGHT - MAP_PADDING })
+    expect(project({ lat: 20, lng: -80 }, b, W)).toEqual({ x: W - MAP_PADDING, y: MAP_PADDING })
   })
 
   it('puts a place in the middle of an axis with no span', () => {
     const b = { minLat: 10, maxLat: 10, minLon: -90, maxLon: -90, lonOffset: 0 }
-    expect(project({ lat: 10, lon: -90 }, b, W)).toEqual({ x: W / 2, y: MAP_HEIGHT / 2 })
+    expect(project({ lat: 10, lng: -90 }, b, W)).toEqual({ x: W / 2, y: MAP_HEIGHT / 2 })
   })
 
   it('keeps the whole route inside the padding', () => {
@@ -135,7 +135,7 @@ describe('distanceNm', () => {
   })
 
   it('is 60 nautical miles a degree along a meridian, and 0 for the same place', () => {
-    expect(distanceNm({ lat: 0, lon: 0 }, { lat: 1, lon: 0 })).toBe(60)
+    expect(distanceNm({ lat: 0, lng: 0 }, { lat: 1, lng: 0 })).toBe(60)
     expect(distanceNm(SDF, SDF)).toBe(0)
   })
 })

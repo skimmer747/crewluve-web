@@ -4,7 +4,7 @@
 /** A place on the globe, in degrees: latitude north positive, longitude east positive. */
 export interface GeoPoint {
   lat: number
-  lon: number
+  lng: number
 }
 
 /** A point in the map's drawing, in CSS pixels from its top left. */
@@ -25,7 +25,7 @@ const deg = (r: number) => (r * 180) / Math.PI
 
 /** The point `fraction` of the way along the great circle from `a` to `b` (interpolateGreatCircle). */
 export function greatCirclePoint(a: GeoPoint, b: GeoPoint, fraction: number): GeoPoint {
-  const [lat1, lon1, lat2, lon2] = [rad(a.lat), rad(a.lon), rad(b.lat), rad(b.lon)]
+  const [lat1, lon1, lat2, lon2] = [rad(a.lat), rad(a.lng), rad(b.lat), rad(b.lng)]
   const cosD = Math.sin(lat1) * Math.sin(lat2) + Math.cos(lat1) * Math.cos(lat2) * Math.cos(lon2 - lon1)
   const d = Math.acos(Math.min(1, Math.max(-1, cosD)))
   if (d < 0.0001) return a
@@ -34,7 +34,7 @@ export function greatCirclePoint(a: GeoPoint, b: GeoPoint, fraction: number): Ge
   const x = wa * Math.cos(lat1) * Math.cos(lon1) + wb * Math.cos(lat2) * Math.cos(lon2)
   const y = wa * Math.cos(lat1) * Math.sin(lon1) + wb * Math.cos(lat2) * Math.sin(lon2)
   const z = wa * Math.sin(lat1) + wb * Math.sin(lat2)
-  return { lat: deg(Math.atan2(z, Math.sqrt(x * x + y * y))), lon: deg(Math.atan2(y, x)) }
+  return { lat: deg(Math.atan2(z, Math.sqrt(x * x + y * y))), lng: deg(Math.atan2(y, x)) }
 }
 
 /** The great circle from `a` to `b` as `segments` + 1 points, ends included (generateGreatCirclePoints). */
@@ -47,8 +47,8 @@ export function routePoints(a: GeoPoint, b: GeoPoint, segments = ROUTE_SEGMENTS)
  * is shorter than the way east (routeCrossesAntimeridian). Anchorage to Tokyo is; Louisville to Anchorage isn't.
  */
 export function crossesAntimeridian(a: GeoPoint, b: GeoPoint): boolean {
-  if ((a.lon >= 0 && b.lon >= 0) || (a.lon < 0 && b.lon < 0)) return false
-  const eastward = Math.abs(b.lon - a.lon)
+  if ((a.lng >= 0 && b.lng >= 0) || (a.lng < 0 && b.lng < 0)) return false
+  const eastward = Math.abs(b.lng - a.lng)
   return 360 - eastward < eastward
 }
 
@@ -75,12 +75,12 @@ export function mapBounds(a: GeoPoint, b: GeoPoint): MapBounds {
   const lonOffset = crossesAntimeridian(a, b) ? 360 : 0
   let minLat = Math.min(a.lat, b.lat)
   let maxLat = Math.max(a.lat, b.lat)
-  let minLon = Math.min(boxLongitude(a.lon, lonOffset), boxLongitude(b.lon, lonOffset))
-  let maxLon = Math.max(boxLongitude(a.lon, lonOffset), boxLongitude(b.lon, lonOffset))
+  let minLon = Math.min(boxLongitude(a.lng, lonOffset), boxLongitude(b.lng, lonOffset))
+  let maxLon = Math.max(boxLongitude(a.lng, lonOffset), boxLongitude(b.lng, lonOffset))
   for (const p of routePoints(a, b)) {
     minLat = Math.min(minLat, p.lat)
     maxLat = Math.max(maxLat, p.lat)
-    const lon = boxLongitude(p.lon, lonOffset)
+    const lon = boxLongitude(p.lng, lonOffset)
     minLon = Math.min(minLon, lon)
     maxLon = Math.max(maxLon, lon)
   }
@@ -104,7 +104,7 @@ export function mapBounds(a: GeoPoint, b: GeoPoint): MapBounds {
 export function project(p: GeoPoint, bounds: MapBounds, width: number, height = MAP_HEIGHT): MapPoint {
   const lonSpan = bounds.maxLon - bounds.minLon
   const latSpan = bounds.maxLat - bounds.minLat
-  const nx = lonSpan <= 0 ? 0.5 : (boxLongitude(p.lon, bounds.lonOffset) - bounds.minLon) / lonSpan
+  const nx = lonSpan <= 0 ? 0.5 : (boxLongitude(p.lng, bounds.lonOffset) - bounds.minLon) / lonSpan
   const ny = latSpan <= 0 ? 0.5 : (p.lat - bounds.minLat) / latSpan
   return {
     x: MAP_PADDING + nx * (width - MAP_PADDING * 2),
@@ -115,7 +115,7 @@ export function project(p: GeoPoint, bounds: MapBounds, width: number, height = 
 /** The great-circle distance in nautical miles, rounded down: the haversine formula on a 6,371 km sphere (§4.7). */
 export function distanceNm(a: GeoPoint, b: GeoPoint): number {
   const dLat = rad(b.lat - a.lat)
-  const dLon = rad(b.lon - a.lon)
+  const dLon = rad(b.lng - a.lng)
   const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLon / 2) ** 2
   const meters = 6371000 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h))
   return Math.trunc(meters / 1852)

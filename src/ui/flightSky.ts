@@ -25,7 +25,7 @@ export function solarTransition(dep: GeoPoint, arr: GeoPoint, depTime: number, a
   for (let i = 0; i <= samples; i++) {
     const progress = i / samples
     const at = greatCirclePoint(dep, arr, progress)
-    const up = isSunUp(depTime + duration * progress, at.lat, at.lon)
+    const up = isSunUp(depTime + duration * progress, at.lat, at.lng)
     if (before !== null && up !== before) return { progress: (i - 0.5) / samples, sunrise: up }
     before = up
   }

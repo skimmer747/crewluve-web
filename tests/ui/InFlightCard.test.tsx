@@ -12,8 +12,8 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-const ANC: FlightEnd = { code: 'ANC', city: 'Anchorage', place: { lat: 61.1744, lon: -149.9983 }, timeZone: 'America/Anchorage' }
-const SDF: FlightEnd = { code: 'SDF', city: 'Louisville', place: { lat: 38.1746, lon: -85.7382 }, timeZone: 'America/Kentucky/Louisville' }
+const ANC: FlightEnd = { code: 'ANC', city: 'Anchorage', place: { lat: 61.1744, lng: -149.9983 }, timeZone: 'America/Anchorage' }
+const SDF: FlightEnd = { code: 'SDF', city: 'Louisville', place: { lat: 38.1746, lng: -85.7382 }, timeZone: 'America/Kentucky/Louisville' }
 const OUT = Date.UTC(2026, 9, 12, 13, 40)
 const NOW = OUT + 100 * MINUTE // 11:20 AM in Louisville
 const facts = (over: Partial<InFlightFacts> = {}): InFlightFacts => ({

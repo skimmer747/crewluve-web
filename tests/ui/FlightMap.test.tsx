@@ -15,9 +15,9 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-const ANC: FlightEnd = { code: 'ANC', city: 'Anchorage', place: { lat: 61.1744, lon: -149.9983 }, timeZone: 'America/Anchorage' }
-const SDF: FlightEnd = { code: 'SDF', city: 'Louisville', place: { lat: 38.1746, lon: -85.7382 }, timeZone: 'America/Kentucky/Louisville' }
-const RFD: FlightEnd = { code: 'RFD', city: 'Rockford', place: { lat: 42.1954, lon: -89.0972 }, timeZone: 'America/Chicago' }
+const ANC: FlightEnd = { code: 'ANC', city: 'Anchorage', place: { lat: 61.1744, lng: -149.9983 }, timeZone: 'America/Anchorage' }
+const SDF: FlightEnd = { code: 'SDF', city: 'Louisville', place: { lat: 38.1746, lng: -85.7382 }, timeZone: 'America/Kentucky/Louisville' }
+const RFD: FlightEnd = { code: 'RFD', city: 'Rockford', place: { lat: 42.1954, lng: -89.0972 }, timeZone: 'America/Chicago' }
 // Monday 12 October 2026: Anchorage at 5:40 AM, in the dark, to Louisville at 2:40 PM.
 const OUT = Date.UTC(2026, 9, 12, 13, 40)
 const facts = (over: Partial<InFlightFacts> = {}): InFlightFacts => ({
@@ -86,8 +86,8 @@ describe('FlightMap', () => {
     const sky = container.querySelector(`linearGradient[id="${container.querySelector('.flight-sky')!.getAttribute('fill')!.slice(5, -1)}"]`)!
     expect(sky.getAttribute('x2')).toBe('1')
     const expected = flightSky(
-      isSunUp(OUT, ANC.place!.lat, ANC.place!.lon),
-      isSunUp(OUT + 5 * HOUR, SDF.place!.lat, SDF.place!.lon),
+      isSunUp(OUT, ANC.place!.lat, ANC.place!.lng),
+      isSunUp(OUT + 5 * HOUR, SDF.place!.lat, SDF.place!.lng),
       project(ANC.place!, box, W).x / W,
       project(SDF.place!, box, W).x / W,
       solarTransition(ANC.place!, SDF.place!, OUT, OUT + 5 * HOUR),

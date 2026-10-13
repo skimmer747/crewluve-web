@@ -43,7 +43,7 @@ function flightEnd(code: string, airports: AirportIndex): FlightEnd {
   return {
     code,
     city: airports.city(code) ?? code,
-    place: airport ? { lat: airport.lat, lon: airport.lng } : null,
+    place: airport ? { lat: airport.lat, lng: airport.lng } : null,
     timeZone: airports.tz(code),
   }
 }

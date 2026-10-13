@@ -4,14 +4,14 @@ import { flightSky, solarTransition } from '../../src/ui/flightSky'
 import { isSunUp } from '../../src/time/sun'
 import { HOUR, MINUTE } from '../../src/time/zoned'
 
-const SDF: GeoPoint = { lat: 38.1746, lon: -85.7382 }
-const RFD: GeoPoint = { lat: 42.1954, lon: -89.0972 }
-const ANC: GeoPoint = { lat: 61.1744, lon: -149.9983 }
+const SDF: GeoPoint = { lat: 38.1746, lng: -85.7382 }
+const RFD: GeoPoint = { lat: 42.1954, lng: -89.0972 }
+const ANC: GeoPoint = { lat: 61.1744, lng: -149.9983 }
 
 /** Daylight on the plane at `progress` of a flight from `dep` at `out` to `arr` at `in_`. */
 const dayAt = (dep: GeoPoint, arr: GeoPoint, out: number, in_: number, progress: number) => {
   const at = greatCirclePoint(dep, arr, progress)
-  return isSunUp(out + (in_ - out) * progress, at.lat, at.lon)
+  return isSunUp(out + (in_ - out) * progress, at.lat, at.lng)
 }
 
 describe('solarTransition', () => {
