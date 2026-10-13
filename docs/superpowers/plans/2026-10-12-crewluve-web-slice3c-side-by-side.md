@@ -1387,18 +1387,18 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ### Task 8: Merge and release (controller, asks first)
 
-- [ ] **Step 1: Merge**
+- [x] **Step 1: Merge**
 
 Use superpowers:finishing-a-development-branch. Ask the user one question about how to merge `slice3c` into `main`.
 
-- [ ] **Step 2: Release, only with a fresh yes**
+- [x] **Step 2: Release, only with a fresh yes**
 
 Ask before pushing `main`; the push redeploys crewluve.crewlu.net. After the "Deploy to GitHub Pages" run succeeds, check the live site:
 - the live page's files match the local build;
 - https://crewluve.crewlu.net/?demo=1&scene=flying at 1180 × 820 shows the status and the schedule side by side under one bar, and at 402 × 874 the status page alone, with its chevron;
 - `read_console_messages` with `onlyErrors: true` shows nothing, and the demo makes no requests beyond the page's own files.
 
-- [ ] **Step 3: Update the memory**
+- [x] **Step 3: Update the memory**
 
 Update the project memory with the new tip and what's next: the items left from 3A and 3B, then the roadmap's web-only ideas.
 
@@ -1486,3 +1486,12 @@ Update the project memory with the new tip and what's next: the items left from 
 **Changes after the re-checks**
 - `ce9bbdb`: the comment's sections.
 - `4a8e0ae`: the spec's §8 and §9.
+
+**Merge and release (Task 8), 2026-10-12**
+- **Merge:** the user chose "Merge into main locally". `main` hadn't moved since the branch was cut, so it fast-forwarded to `e198fd8`, and the branch is deleted.
+  - On the merged `main`: 2156 tests in 93 files; tsc and build clean. The build makes `index-BuA_NJlg.js` and `index-DL9IXgqK.css`.
+- **Release:** with the user's separate yes, main was pushed (`75426fc..e198fd8`), taking 3B's release note and 3C's spec and plan with it. The "Deploy to GitHub Pages" run 38341808483 succeeded, with no annotations.
+- **The live check:** the live page and its files (the script, the styles, the Supabase chunk and `airports.json`) are byte for byte the local build. On https://crewluve.crewlu.net/?demo=1&scene=flying:
+  - at 1180 × 820, the status and the schedule side by side under the "Where's Alex?" bar, in columns 472 and 708 px wide, with no chevrons and no back button, the calendar on October 2026, the regions Status, Schedule and Legs, and nothing focused;
+  - at 402 × 874, the status page alone, with the arrival card's chevron, scrolling with the window;
+  - there are no console errors, and the demo asks only for the page, `airports.json`, and its script and styles.
