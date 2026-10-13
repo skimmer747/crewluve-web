@@ -112,38 +112,42 @@ export interface Bar {
 /** A trip's leg stretches to meet the next when that begins less than this after it ends, as in the app. */
 const JOIN_UNDER = 30 * MINUTE
 
-/** A week row's span: from its first day's midnight to the midnight seven days later, both in the visitor's zone. */
-function rowSpan(firstDay: number, timeZone: string) {
-  const start = dayStart(firstDay, timeZone)
-  const end = dayStart(firstDay + 7, timeZone)
+/**
+ * A week row's span: from its first day's midnight to the midnight seven days later, both in the visitor's zone.
+ * `rowStart` is that first day, as calendarDay gives it.
+ */
+function rowSpan(rowStart: number, timeZone: string) {
+  const start = dayStart(rowStart, timeZone)
+  const end = dayStart(rowStart + 7, timeZone)
   return { start, end, at: (ms: number) => ((ms - start) / (end - start)) * 7 }
 }
 
 /**
  * A week row's bars, CalendarDataBuilder.buildSegments: one for each leg the row overlaps, cut at its edges, measured
  * across it by time, and drawn in start order. A trip's legs stretch to meet the next across gaps under 30 minutes, and
- * a leg with no trip is a trip of its own. `legs` are all the list's legs, so a trip's start and end come from all of
- * them, not only this row's (§4.5, §4.6).
+ * a leg with no trip is a trip of its own. `rowStart` is the row's first day, as calendarDay gives it. `legs` are all
+ * the list's legs, so a trip's start and end come from all of them, not only this row's (§4.5, §4.6).
  */
-export function weekBars(firstDay: number, legs: readonly Leg[], timeZone: string): Bar[] {
-  const { start, end, at } = rowSpan(firstDay, timeZone)
-  const trips = new Map<string, Leg[]>()
-  legs.forEach((leg, i) => {
-    if (barKind(leg) === null || leg.start >= end || leg.end <= start) return
-    const key = leg.tripId ?? `solo ${i}`
+export function weekBars(rowStart: number, legs: readonly Leg[], timeZone: string): Bar[] {
+  const { start, end, at } = rowSpan(rowStart, timeZone)
+  // A trip's legs gather under its id; a leg with no trip under itself, so it can't meet any trip's id.
+  const trips = new Map<string | Leg, Leg[]>()
+  for (const leg of legs) {
+    if (barKind(leg) === null || leg.start >= end || leg.end <= start) continue
+    const key = leg.tripId ?? leg
     trips.set(key, [...(trips.get(key) ?? []), leg])
-  })
+  }
   const bars: Bar[] = []
-  for (const [tripId, inRow] of trips) {
+  for (const [key, inRow] of trips) {
     const sorted = [...inRow].sort((a, b) => a.start - b.start)
-    const whole = sorted[0].tripId === null ? sorted : legs.filter((leg) => leg.tripId === tripId)
+    const whole = typeof key === 'string' ? legs.filter((leg) => leg.tripId === key) : sorted
     const tripStart = Math.min(...whole.map((leg) => leg.start))
     const tripEnd = Math.max(...whole.map((leg) => leg.end))
     sorted.forEach((leg, i) => {
       const next = sorted[i + 1]
-      const gap = next ? next.start - leg.end : 0
+      const joins = next !== undefined && next.start > leg.end && next.start - leg.end < JOIN_UNDER
       const from = at(Math.max(leg.start, start))
-      const to = gap > 0 && gap < JOIN_UNDER ? at(next.start) : at(Math.min(leg.end, end))
+      const to = joins ? at(next.start) : at(Math.min(leg.end, end))
       if (to <= from) return
       bars.push({
         id: leg.id,
@@ -159,9 +163,12 @@ export function weekBars(firstDay: number, legs: readonly Leg[], timeZone: strin
   return bars.sort((a, b) => a.from - b.from)
 }
 
-/** Where the time line sits in a week row, in days from its start, measured as the bars are; null outside it (§4.7). */
-export function timeLine(firstDay: number, now: number, timeZone: string): number | null {
-  const { start, end, at } = rowSpan(firstDay, timeZone)
+/**
+ * Where the time line sits in the week row starting on `rowStart`, in days from its start, measured as the bars are;
+ * null outside it (§4.7).
+ */
+export function timeLine(rowStart: number, now: number, timeZone: string): number | null {
+  const { start, end, at } = rowSpan(rowStart, timeZone)
   return now >= start && now < end ? at(now) : null
 }
 

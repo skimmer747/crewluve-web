@@ -41,6 +41,16 @@ describe('firstWeekday (slice 3B §5.8)', () => {
     vi.stubGlobal('Intl', { Locale: class { maximize() { return this } } })
     expect(firstWeekday('de-DE')).toBe(0)
   })
+
+  it('reads the standard getWeekInfo() first, and the older weekInfo where a browser has only that', () => {
+    // Each test machine's Node has one or the other, so both are stubbed here.
+    vi.stubGlobal('Intl', { Locale: class { maximize() { return this } getWeekInfo() { return { firstDay: 1 } } } })
+    expect(firstWeekday('xx')).toBe(1)
+    vi.stubGlobal('Intl', { Locale: class { maximize() { return this } weekInfo = { firstDay: 6 } } })
+    expect(firstWeekday('xx')).toBe(6)
+    vi.stubGlobal('Intl', { Locale: class { maximize() { return this } getWeekInfo() { return { firstDay: 7 } } weekInfo = { firstDay: 1 } } })
+    expect(firstWeekday('xx')).toBe(0)
+  })
 })
 
 describe('monthGrid (slice 3B §4.4)', () => {
@@ -65,6 +75,8 @@ describe('monthGrid (slice 3B §4.4)', () => {
     expect(rows).toHaveLength(6)
     expect(dates(rows)[5]).toBe('30 31 (1) (2) (3) (4) (5)')
     expect(dates(monthGrid({ year: 2026, month: 5 }, 0))[5]).toBe('31 (1) (2) (3) (4) (5) (6)')
+    // From Monday, March 2026, which starts on a Sunday, needs six too.
+    expect(dates(monthGrid({ year: 2026, month: 3 }, 1))[5]).toBe('30 31 (1) (2) (3) (4) (5)')
   })
 
   it('gives each day its calendar day number, one after another from the week’s first day', () => {
@@ -99,7 +111,10 @@ describe('weekBars (slice 3B §4.5, §4.6)', () => {
       flight('SDF', 'MCO', T0 + 120, T0 + 121, null),
     ]
     expect(legs.map(barKind)).toEqual(['duty', 'duty', 'rest', 'rest', null, 'rest', 'reserve', 'reserve', 'training', 'training', 'jumpseat'])
-    expect(weekBars(SUN, legs, NY).map((b) => b.kind)).toEqual(['duty', 'duty', 'rest', 'rest', 'rest', 'reserve', 'reserve', 'training', 'training', 'jumpseat'])
+    const bars = weekBars(SUN, legs, NY)
+    expect(bars.map((b) => b.kind)).toEqual(['duty', 'duty', 'rest', 'rest', 'rest', 'reserve', 'reserve', 'training', 'training', 'jumpseat'])
+    // Codes only over the layover and the rest at base: not over the turn, though it has an airport too.
+    expect(bars.map((b) => b.code)).toEqual([null, null, 'ANC', 'SDF', null, null, null, null, null, null])
   })
 
   it('measures bars across the row by time, from its first midnight, and cuts them at its edges', () => {
@@ -129,6 +144,9 @@ describe('weekBars (slice 3B §4.5, §4.6)', () => {
       ['duty', 33.5, 36, null, false, true],
       ['rest', 36.25, 37, null, true, true],
     ])
+    // 29 minutes still joins.
+    const [first] = weekBars(SUN, [flight('SDF', 'RFD', T0 + 30, T0 + 31, 'U'), flight('RFD', 'SDF', T0 + 31 + 29 / 60, T0 + 33, 'U')], NY)
+    expect(first.to * 24).toBeCloseTo(31 + 29 / 60, 10)
   })
 
   it('rounds only where the whole trip starts and ends, and leaves a gap with square ends at a stop at home', () => {
@@ -151,7 +169,7 @@ describe('weekBars (slice 3B §4.5, §4.6)', () => {
     ])
   })
 
-  it('takes a trip’s ends from all its legs, time at home too: a row with its middle rounds nothing, one with its last leg only the end', () => {
+  it('takes a trip’s ends from all its legs, in other rows too: a row with its middle rounds nothing, one with its last leg only the end', () => {
     const middle = [flight('SDF', 'ANC', T0 - 10, T0 - 2), place('layover', 'ANC', T0 - 2, T0 + 200), flight('ANC', 'SDF', T0 + 200, T0 + 205)]
     expect(weekBars(SUN, middle, NY).map(shape)).toEqual([['rest', 0, 168, 'ANC', false, false]])
     const afterHome = [flight('SDF', 'LEX', T0 - 30, T0 - 28), place('home', 'LEX', T0 - 28, T0 + 20), flight('LEX', 'SDF', T0 + 20, T0 + 22)]
@@ -174,11 +192,16 @@ describe('weekBars (slice 3B §4.5, §4.6)', () => {
     expect(weekBars(SUN, legs, NY).map((b) => [b.kind, hours(b.from)])).toEqual([['duty', 30], ['rest', 40], ['jumpseat', 45], ['duty', 60]])
   })
 
-  it('measures the week the clocks go back across its 169 hours, as the app does', () => {
+  it('measures the week the clocks go back across its 169 hours, as the app does, and rounds legs at the row’s very edges', () => {
     const midnight = Date.UTC(2026, 10, 1, 4) / H // Sunday 1 Nov 2026, midnight EDT
-    const [bar] = weekBars(dayOf(2026, 11, 1), [duty('training', 'CQ', 'SDF', midnight + 73, midnight + 169)], NY) // Wednesday midnight EST on
+    const legs = [
+      duty('event', 'Dinner', null, midnight, midnight + 1), // from the row's first instant
+      duty('training', 'CQ', 'SDF', midnight + 73, midnight + 169), // Wednesday midnight EST to the row's last
+    ]
+    const [first, bar] = weekBars(dayOf(2026, 11, 1), legs, NY)
+    expect([first.from, first.roundStart, first.roundEnd]).toEqual([0, true, true])
     expect(bar.from).toBeCloseTo((73 / 169) * 7, 10)
-    expect(bar.to).toBe(7)
+    expect([bar.to, bar.roundStart, bar.roundEnd]).toEqual([7, true, true])
   })
 })
 
@@ -188,6 +211,10 @@ describe('timeLine (slice 3B §4.7)', () => {
     expect(timeLine(SUN + 7, (T0 + 168) * H, NY)).toBe(0)
     expect(timeLine(SUN, (T0 + 168) * H, NY)).toBeNull()
     expect(timeLine(SUN, (T0 - 1) * H, NY)).toBeNull()
+    // In the week the clocks go back, Wednesday 11am EST is 84 of its 169 hours in, where a bar starting then begins,
+    // not 3 days and 11 hours, as the app measures its line within the day.
+    const midnight = Date.UTC(2026, 10, 1, 4) / H
+    expect(timeLine(dayOf(2026, 11, 1), (midnight + 84) * H, NY)).toBeCloseTo((84 / 169) * 7, 10)
   })
 })
 
@@ -195,12 +222,13 @@ describe('scrollDay (slice 3B §5.2)', () => {
   /** Thursday 15 Oct 2026 in New York, and its midnight in the fixtures' hours. The list has Thursday, Friday and Sunday. */
   const THU = dayOf(2026, 10, 15)
   const T = Date.UTC(2026, 9, 15, 4) / H
-  const days = scheduleDays([
+  const legs = [
     flight('SDF', 'RFD', T + 6, T + 8, 'A'),
     place('layover', 'RFD', T + 8, T + 30, 'A'), // Thursday 8am to Friday 6am
     flight('RFD', 'SDF', T + 30, T + 32, 'A'),
     duty('training', 'CQ', 'SDF', T + 76, T + 80), // Sunday
-  ], NY)
+  ]
+  const days = scheduleDays(legs, NY)
   const fridayNoon = (T + 36) * H
 
   it('goes to a day that has legs', () => {
@@ -221,6 +249,9 @@ describe('scrollDay (slice 3B §5.2)', () => {
     const friday2am = (T + 26) * H // the layover from Thursday is happening
     expect(scrollDay(THU + 1, days, friday2am, NY)).toBe(THU)
     expect(scrollDay(THU + 3, days, friday2am, NY)).toBe(THU + 3)
+    // With a jumpseat from Friday 1am happening too, the earlier leg still decides, as the app's first match does.
+    const both = scheduleDays([...legs, flight('RFD', 'ORD', T + 25, T + 27, null)], NY)
+    expect(scrollDay(THU + 1, both, friday2am, NY)).toBe(THU)
   })
 
   it('takes today like any other day when nothing is happening', () => {

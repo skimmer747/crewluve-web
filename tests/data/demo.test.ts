@@ -21,11 +21,13 @@ describe('demoRaw', () => {
     expect(raw.jumpseats.map((j) => `${j.origin}-${j.destination}`)).toEqual(['SDF-MCO', 'MCO-SDF', 'SDF-MCO'])
   })
 
-  it('rests the third trip at base, SDF, for 16 hours between two duty periods, for the calendar’s light bar (slice 3B §6.2)', () => {
-    const legs = buildLegs(buildSchedule(demoRaw('driver', A), A))
-    const rests = legs.filter((leg) => leg.kind === 'base')
-    expect(rests).toMatchObject([{ tripId: 'demo-t2', airport: 'SDF' }])
-    expect((rests[0].end - rests[0].start) / 3_600_000).toBe(16)
+  it('rests the third trip at base, SDF, for 16 hours between two duty periods, in both variants, for the calendar’s light bar (slice 3B §6.2)', () => {
+    for (const variant of ['driver', 'jumpseater'] as const) {
+      const legs = buildLegs(buildSchedule(demoRaw(variant, A), A))
+      const rests = legs.filter((leg) => leg.kind === 'base')
+      expect(rests, variant).toMatchObject([{ tripId: 'demo-t2', airport: 'SDF' }])
+      expect((rests[0].end - rests[0].start) / 3_600_000, variant).toBe(16)
+    }
   })
 
   it('keeps the ANC→SDF flight 40 minutes late', () => {
