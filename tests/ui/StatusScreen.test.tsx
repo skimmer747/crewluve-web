@@ -551,7 +551,7 @@ describe('StatusScreen: the ways into the schedule (slice 3A §3.1, §3.2)', () 
   })
 
   it('shows View Schedule after the narrative and before the location card when no card leads to the schedule', () => {
-    const { container, names } = linksAt(14400) // home, with no trip ahead
+    const { container, names } = linksAt(DEMO_SCENES['nothing-ahead'].offset) // home, with no trip ahead
     expect(names).toEqual(['view'])
     const button = screen.getByRole('link', { name: 'View Schedule' })
     expect(container.querySelector('.narrative')!.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
@@ -580,7 +580,8 @@ describe('StatusScreen: the ways into the schedule (slice 3A §3.1, §3.2)', () 
   })
 
   it('has no way into the schedule without onOpenSchedule, as on the app’s iPad', () => {
-    for (const minutes of [-1440, 100, 12000]) {
+    // Home before the trip, in the air, and home with nothing ahead, where the status page would otherwise show View Schedule.
+    for (const minutes of [-1440, 100, DEMO_SCENES['nothing-ahead'].offset]) {
       const { container } = renderAt(minutes)
       expect(container.querySelector('[data-schedule-link]')).toBeNull()
       cleanup()
