@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { dayOf, dayParts } from '../../src/time/zoned'
-import { addMonths, firstWeekday, inMonth, monthGrid, monthOf } from '../../src/ui/calendarFacts'
+import { addMonths, barKind, firstWeekday, inMonth, monthGrid, monthOf, timeLine, weekBars, type Bar } from '../../src/ui/calendarFacts'
+import { drive, duty, flight, H, place } from '../fixtures/legs'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -70,5 +71,121 @@ describe('monthGrid (slice 3B §4.4)', () => {
     expect(days[0].day).toBe(dayOf(2026, 9, 27))
     expect(dayParts(days[0].day).weekday).toBe(0)
     expect(days.every((d, i) => d.day === days[0].day + i)).toBe(true)
+  })
+})
+
+const NY = 'America/New_York'
+/** Sunday 11 Oct 2026, the first day of a week row, and its midnight in New York in the fixtures' hours. */
+const SUN = dayOf(2026, 10, 11)
+const T0 = Date.UTC(2026, 9, 11, 4) / H
+/** A place in a week row as hours from its start, in a week without a clock change. */
+const hours = (days: number) => Math.round(days * 24 * 100) / 100
+const shape = (b: Bar) => [b.kind, hours(b.from), hours(b.to), b.code, b.roundStart, b.roundEnd]
+
+describe('weekBars (slice 3B §4.5, §4.6)', () => {
+  it('gives each leg its kind of bar, a rest at base among the rests, and time at home none', () => {
+    const legs = [
+      flight('SDF', 'RFD', T0 + 30, T0 + 31, 'A'),
+      place('turn', 'RFD', T0 + 31, T0 + 32, 'A'),
+      place('layover', 'ANC', T0 + 40, T0 + 41, 'B'),
+      place('base', 'SDF', T0 + 50, T0 + 51, 'C'),
+      place('home', 'LEX', T0 + 60, T0 + 61, 'D'),
+      drive('LEX', 'SDF', false, T0 + 70, T0 + 71),
+      duty('reserve', 'RSV-A', 'SDF', T0 + 80, T0 + 81),
+      duty('hotStandby', 'Hot Standby', 'SDF', T0 + 90, T0 + 91),
+      duty('training', 'CQ', 'SDF', T0 + 100, T0 + 101),
+      duty('event', 'Dinner', null, T0 + 110, T0 + 111),
+      flight('SDF', 'MCO', T0 + 120, T0 + 121, null),
+    ]
+    expect(legs.map(barKind)).toEqual(['duty', 'duty', 'rest', 'rest', null, 'rest', 'reserve', 'reserve', 'training', 'training', 'jumpseat'])
+    expect(weekBars(SUN, legs, NY).map((b) => b.kind)).toEqual(['duty', 'duty', 'rest', 'rest', 'rest', 'reserve', 'reserve', 'training', 'training', 'jumpseat'])
+  })
+
+  it('measures bars across the row by time, from its first midnight, and cuts them at its edges', () => {
+    const legs = [
+      duty('reserve', 'RSV-A', 'SDF', T0 - 2, T0 + 2), // from the row before
+      duty('training', 'CQ', 'SDF', T0 + 30, T0 + 42), // Monday 6am to 6pm
+      flight('SDF', 'ANC', T0 + 164, T0 + 172, 'X'), // Saturday 8pm, into the next row
+    ]
+    expect(weekBars(SUN, legs, NY).map(shape)).toEqual([
+      ['reserve', 0, 2, null, false, true],
+      ['training', 30, 42, null, true, true],
+      ['duty', 164, 168, null, true, false],
+    ])
+    expect(weekBars(SUN + 7, legs, NY).map(shape)).toEqual([['duty', 0, 4, null, false, true]])
+  })
+
+  it('stretches a trip’s leg to meet the next across a gap under 30 minutes, and leaves 30 minutes or more open', () => {
+    const legs = [
+      flight('SDF', 'RFD', T0 + 30, T0 + 31, 'T'),
+      flight('RFD', 'ANC', T0 + 31.25, T0 + 33, 'T'), // 15 minutes later
+      flight('ANC', 'SDF', T0 + 33.5, T0 + 36, 'T'), // 30 minutes later
+      drive('SDF', 'LEX', true, T0 + 36.25, T0 + 37), // 15 minutes later, but not the trip’s
+    ]
+    expect(weekBars(SUN, legs, NY).map(shape)).toEqual([
+      ['duty', 30, 31.25, null, true, false],
+      ['duty', 31.25, 33, null, false, false],
+      ['duty', 33.5, 36, null, false, true],
+      ['rest', 36.25, 37, null, true, true],
+    ])
+  })
+
+  it('rounds only where the whole trip starts and ends, and leaves a gap with square ends at a stop at home', () => {
+    const legs = [
+      flight('SDF', 'ANC', T0 + 30, T0 + 32),
+      place('layover', 'ANC', T0 + 32, T0 + 50),
+      flight('ANC', 'LEX', T0 + 50, T0 + 52),
+      place('home', 'LEX', T0 + 52, T0 + 80),
+      flight('LEX', 'SDF', T0 + 80, T0 + 82),
+      place('base', 'SDF', T0 + 82, T0 + 100),
+      flight('SDF', 'RFD', T0 + 100, T0 + 102),
+    ]
+    expect(weekBars(SUN, legs, NY).map(shape)).toEqual([
+      ['duty', 30, 32, null, true, false],
+      ['rest', 32, 50, 'ANC', false, false],
+      ['duty', 50, 52, null, false, false],
+      ['duty', 80, 82, null, false, false],
+      ['rest', 82, 100, 'SDF', false, false],
+      ['duty', 100, 102, null, false, true],
+    ])
+  })
+
+  it('takes a trip’s ends from all its legs, time at home too: a row with its middle rounds nothing, one with its last leg only the end', () => {
+    const middle = [flight('SDF', 'ANC', T0 - 10, T0 - 2), place('layover', 'ANC', T0 - 2, T0 + 200), flight('ANC', 'SDF', T0 + 200, T0 + 205)]
+    expect(weekBars(SUN, middle, NY).map(shape)).toEqual([['rest', 0, 168, 'ANC', false, false]])
+    const afterHome = [flight('SDF', 'LEX', T0 - 30, T0 - 28), place('home', 'LEX', T0 - 28, T0 + 20), flight('LEX', 'SDF', T0 + 20, T0 + 22)]
+    expect(weekBars(SUN, afterHome, NY).map(shape)).toEqual([['duty', 20, 22, null, false, true]])
+  })
+
+  it('puts the code over both pieces of a layover that runs into the next row', () => {
+    const legs = [flight('SDF', 'ANC', T0 + 150, T0 + 160, 'L'), place('layover', 'ANC', T0 + 160, T0 + 180, 'L'), flight('ANC', 'SDF', T0 + 180, T0 + 185, 'L')]
+    expect(weekBars(SUN, legs, NY).map(shape)).toEqual([['duty', 150, 160, null, true, false], ['rest', 160, 168, 'ANC', false, false]])
+    expect(weekBars(SUN + 7, legs, NY).map(shape)).toEqual([['rest', 0, 12, 'ANC', false, false], ['duty', 12, 17, null, false, true]])
+  })
+
+  it('draws overlapping legs in start order, a later one over an earlier', () => {
+    const legs = [
+      flight('SDF', 'MCO', T0 + 30, T0 + 40, 'A'),
+      place('layover', 'MCO', T0 + 40, T0 + 60, 'A'),
+      flight('MCO', 'SDF', T0 + 60, T0 + 62, 'A'),
+      flight('MCO', 'TPA', T0 + 45, T0 + 47, null),
+    ]
+    expect(weekBars(SUN, legs, NY).map((b) => [b.kind, hours(b.from)])).toEqual([['duty', 30], ['rest', 40], ['jumpseat', 45], ['duty', 60]])
+  })
+
+  it('measures the week the clocks go back across its 169 hours, as the app does', () => {
+    const midnight = Date.UTC(2026, 10, 1, 4) / H // Sunday 1 Nov 2026, midnight EDT
+    const [bar] = weekBars(dayOf(2026, 11, 1), [duty('training', 'CQ', 'SDF', midnight + 73, midnight + 169)], NY) // Wednesday midnight EST on
+    expect(bar.from).toBeCloseTo((73 / 169) * 7, 10)
+    expect(bar.to).toBe(7)
+  })
+})
+
+describe('timeLine (slice 3B §4.7)', () => {
+  it('sits at now’s place in its week row, measured as the bars are, and in no other row', () => {
+    expect(timeLine(SUN, (T0 + 30) * H, NY)).toBeCloseTo(1.25, 10)
+    expect(timeLine(SUN + 7, (T0 + 168) * H, NY)).toBe(0)
+    expect(timeLine(SUN, (T0 + 168) * H, NY)).toBeNull()
+    expect(timeLine(SUN, (T0 - 1) * H, NY)).toBeNull()
   })
 })

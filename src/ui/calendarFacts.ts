@@ -1,4 +1,5 @@
-import { dayOf, dayParts } from '../time/zoned'
+import type { Leg } from '../engine/legs'
+import { dayOf, dayParts, dayStart, MINUTE } from '../time/zoned'
 
 /** A month the calendar shows: its year, and its month, 1–12. */
 export interface Month {
@@ -62,4 +63,103 @@ export function monthGrid(m: Month, firstDay: number): GridDay[][] {
       return { day, date: dayParts(day).day, inMonth: day >= first && day <= last }
     }),
   )
+}
+
+/** A bar's kind, which gives its color (CalendarBarSegment.Category; §4.5). */
+export type BarKind = 'duty' | 'rest' | 'reserve' | 'training' | 'jumpseat'
+
+/**
+ * The kind of bar a leg draws, as CalendarDataBuilder sorts them, or null for time at home, which draws none. A rest at
+ * base is rest: the app draws it as duty, its catch-all for the legs it doesn't name (decision 2).
+ */
+export function barKind(leg: Leg): BarKind | null {
+  switch (leg.kind) {
+    case 'home':
+      return null
+    case 'layover':
+    case 'base':
+    case 'drive':
+      return 'rest'
+    case 'reserve':
+    case 'hotStandby':
+      return 'reserve'
+    case 'training':
+    case 'event':
+      return 'training'
+    case 'jumpseat':
+      return 'jumpseat'
+    default:
+      // Trip flights, ground transport and turns.
+      return 'duty'
+  }
+}
+
+/** A bar in a week row: where it starts and ends, in days from the row's start (0–7), and how it looks. */
+export interface Bar {
+  /** Its leg's id. */
+  id: string
+  from: number
+  to: number
+  kind: BarKind
+  /** The airport code over a layover or a rest at base (§4.6). */
+  code: string | null
+  /** Rounded where its trip starts or ends, in this row (§4.5). */
+  roundStart: boolean
+  roundEnd: boolean
+}
+
+/** A trip's leg stretches to meet the next when that begins less than this after it ends, as in the app. */
+const JOIN_UNDER = 30 * MINUTE
+
+/** A week row's span: from its first day's midnight to the midnight seven days later, both in the visitor's zone. */
+function rowSpan(firstDay: number, timeZone: string) {
+  const start = dayStart(firstDay, timeZone)
+  const end = dayStart(firstDay + 7, timeZone)
+  return { start, end, at: (ms: number) => ((ms - start) / (end - start)) * 7 }
+}
+
+/**
+ * A week row's bars, CalendarDataBuilder.buildSegments: one for each leg the row overlaps, cut at its edges, measured
+ * across it by time, and drawn in start order. A trip's legs stretch to meet the next across gaps under 30 minutes, and
+ * a leg with no trip is a trip of its own. `legs` are all the list's legs, so a trip's start and end come from all of
+ * them, not only this row's (§4.5, §4.6).
+ */
+export function weekBars(firstDay: number, legs: readonly Leg[], timeZone: string): Bar[] {
+  const { start, end, at } = rowSpan(firstDay, timeZone)
+  const trips = new Map<string, Leg[]>()
+  legs.forEach((leg, i) => {
+    if (barKind(leg) === null || leg.start >= end || leg.end <= start) return
+    const key = leg.tripId ?? `solo ${i}`
+    trips.set(key, [...(trips.get(key) ?? []), leg])
+  })
+  const bars: Bar[] = []
+  for (const [tripId, inRow] of trips) {
+    const sorted = [...inRow].sort((a, b) => a.start - b.start)
+    const whole = sorted[0].tripId === null ? sorted : legs.filter((leg) => leg.tripId === tripId)
+    const tripStart = Math.min(...whole.map((leg) => leg.start))
+    const tripEnd = Math.max(...whole.map((leg) => leg.end))
+    sorted.forEach((leg, i) => {
+      const next = sorted[i + 1]
+      const gap = next ? next.start - leg.end : 0
+      const from = at(Math.max(leg.start, start))
+      const to = gap > 0 && gap < JOIN_UNDER ? at(next.start) : at(Math.min(leg.end, end))
+      if (to <= from) return
+      bars.push({
+        id: leg.id,
+        from,
+        to,
+        kind: barKind(leg)!,
+        code: leg.kind === 'layover' || leg.kind === 'base' ? leg.airport : null,
+        roundStart: leg.start <= tripStart && tripStart >= start && tripStart < end,
+        roundEnd: leg.end >= tripEnd && tripEnd > start && tripEnd <= end,
+      })
+    })
+  }
+  return bars.sort((a, b) => a.from - b.from)
+}
+
+/** Where the time line sits in a week row, in days from its start, measured as the bars are; null outside it (§4.7). */
+export function timeLine(firstDay: number, now: number, timeZone: string): number | null {
+  const { start, end, at } = rowSpan(firstDay, timeZone)
+  return now >= start && now < end ? at(now) : null
 }
