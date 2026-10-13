@@ -1,5 +1,5 @@
 import type { RefObject } from 'preact'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks'
 import { dayHeading, legTimes } from '../copy/schedule'
 import type { AirportIndex } from '../data/airports'
 import type { Leg } from '../engine/legs'
@@ -214,12 +214,19 @@ export function ScheduleView({ legs, pilot, now, timeZone, h24, airports, weekSt
     setJump({ day: openingDay(days, now, timeZone) })
   }
 
+  // The calendar's handlers stay the same functions from draw to draw, and call the latest pick and Current Event, so
+  // the memoized calendar draws again only when what it shows changes (redraws §4.2).
+  const latest = useRef({ pick, currentEvent })
+  latest.current = { pick, currentEvent }
+  const onPick = useCallback((day: number) => latest.current.pick(day), [])
+  const onCurrentEvent = useCallback(() => latest.current.currentEvent(), [])
+
   const nextId = nextLegId(legs, now)
   // The time line moves once a minute, as the app's (3B §4.7).
   const calendar = (
     <>
       <TripCalendar month={month} firstDay={firstDay} legs={legs} now={Math.floor(now / MINUTE) * MINUTE} timeZone={timeZone} today={today}
-        selected={selected} onSelect={pick} onMonth={setMonth} onCurrentEvent={currentEvent} />
+        selected={selected} onSelect={onPick} onMonth={setMonth} onCurrentEvent={onCurrentEvent} />
       <div class="calendar-rule" />
     </>
   )

@@ -4,6 +4,7 @@ import type { Leg } from '../engine/legs'
 import { dayOf } from '../time/zoned'
 import { addMonths, inMonth, monthGrid, monthOf, timeLine, weekBars, type Bar, type GridDay, type Month } from './calendarFacts'
 import { Chevron } from './Chevron'
+import { memo } from './memo'
 
 export interface TripCalendarProps {
   /** The month shown. */
@@ -33,9 +34,11 @@ const STEPS: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -
  * The month calendar (TripCalendarView, CalendarWeekRowView, CalendarTripBarView; slice 3B §4): the month between its
  * arrows and Current Event, the weekday letters, and a row a week with the days' numbers, the codes over layovers and
  * rests at base, the bars, the time line and the grid lines. The page says what to show; the calendar keeps only the
- * keyboard's place among the days, one Tab stop that the arrow keys move (§5.7).
+ * keyboard's place among the days, one Tab stop that the arrow keys move (§5.7). It draws again only when what it's
+ * given changes, or the keyboard's place does: the page's clock is to the minute, and its handlers are steady (redraws
+ * §4.2).
  */
-export function TripCalendar({ month, firstDay, legs, now, timeZone, today, selected, onSelect, onMonth, onCurrentEvent }: TripCalendarProps) {
+export const TripCalendar = memo(function TripCalendar({ month, firstDay, legs, now, timeZone, today, selected, onSelect, onMonth, onCurrentEvent }: TripCalendarProps) {
   const weeks = useMemo(
     () => monthGrid(month, firstDay).map((days) => ({ days, bars: weekBars(days[0].day, legs, timeZone) })),
     [month.year, month.month, firstDay, legs, timeZone],
@@ -133,7 +136,7 @@ export function TripCalendar({ month, firstDay, legs, now, timeZone, today, sele
       </div>
     </div>
   )
-}
+})
 
 function dayClass(d: GridDay, today: number, selected: number): string {
   const marks = [d.inMonth ? null : 'other', d.day === today ? 'today' : null, d.day === selected ? 'selected' : null]
