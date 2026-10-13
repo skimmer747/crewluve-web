@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, fireEvent, render } from '@testing-library/preact'
+import { cleanup, fireEvent, render, screen } from '@testing-library/preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { dayName } from '../../src/copy/calendar'
 import { legClock } from '../../src/copy/schedule'
@@ -58,6 +58,30 @@ describe('redraws: the calendar (redraws §4.2)', () => {
     fireEvent.click(container.querySelector<HTMLElement>(`[data-calendar-day="${THU + 1}"]`)!)
     expect(dayName).toHaveBeenCalledTimes(days)
   })
+
+  // The steady handlers must call the latest draw's code: a screen left open all day goes past midnight.
+  it('works from the latest draw after midnight: Current Event selects the new day', () => {
+    const { container, rerender } = render(view(at(24) - 30_000))
+    rerender(view(at(24) + 30_000))
+    fireEvent.click(screen.getByRole('button', { name: 'Current Event' }))
+    expect(container.querySelector('[role="gridcell"][aria-selected="true"] button')!.getAttribute('aria-label')).toBe('Friday, October 16')
+  })
+
+  it('works from the latest data: a tap on a day takes the list to a day that arrived after the first draw', () => {
+    const scrollTo = vi.spyOn(HTMLElement.prototype, 'scrollTo').mockImplementation(() => {})
+    // The list's box 60 px down, Saturday's day 600 px down in it and Sunday's 900.
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const top = this.classList.contains('schedule-days') ? 60 : ({ [THU + 2]: 600, [THU + 3]: 900 } as Record<string, number>)[this.dataset.day ?? ''] ?? 0
+      return { top, bottom: top, left: 0, right: 0, width: 0, height: 0, x: 0, y: top, toJSON: () => ({}) } as DOMRect
+    })
+    const { container, rerender } = render(view(at(10)))
+    const sunday = duty('training', 'Sim', 'SDF', T0 + 76, T0 + 80) // Sunday 4am, in the new data
+    rerender(<ScheduleView legs={[...LEGS, sunday]} pilot={PILOT} now={at(10)} timeZone={NY} h24={false} airports={testAirports} weekStart={0} />)
+    fireEvent.click(container.querySelector<HTMLElement>(`[data-calendar-day="${THU + 3}"]`)!)
+    // Sunday's heading at the top of the box. From the first draw's data, Sunday had no legs and the list went to Saturday.
+    expect(scrollTo).toHaveBeenLastCalledWith({ top: 840, behavior: 'smooth' })
+    vi.restoreAllMocks()
+  })
 })
 
 describe('redraws: the rows (redraws §4.3)', () => {
@@ -68,5 +92,12 @@ describe('redraws: the rows (redraws §4.3)', () => {
     rerender(view(start + 1000))
     // The layover happening at 10am, and the flight after it.
     expect(vi.mocked(legClock).mock.calls.map(([legStart]) => legStart)).toEqual([LEGS[1].start, LEGS[2].start])
+  })
+
+  it('draws a row again when new data changes its leg', () => {
+    const { container, rerender } = render(view(at(10)))
+    const renamed = [...LEGS.slice(0, 4), duty('training', 'Recurrent', 'SDF', T0 + 52, T0 + 56)]
+    rerender(<ScheduleView legs={renamed} pilot={PILOT} now={at(10)} timeZone={NY} h24={false} airports={testAirports} weekStart={0} />)
+    expect([...container.querySelectorAll('.leg-title')].map((t) => t.textContent).pop()).toMatch(/^Recurrent/)
   })
 })
