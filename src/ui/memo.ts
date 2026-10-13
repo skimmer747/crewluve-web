@@ -12,10 +12,13 @@ function changed(before: object, after: object): boolean {
 /**
  * The component, drawn again only when one of its props has changed (redraws §4.1), as React's memo does. Its own
  * state and hooks still draw it again as they would. preact/compat's memo works the same way, through
- * shouldComponentUpdate, but brings the rest of compat with it.
+ * shouldComponentUpdate, but brings the rest of compat with it. Unlike compat's, it doesn't pass a ref on: nothing
+ * memoized here takes one.
  */
 export function memo<P extends object>(Inner: FunctionComponent<P>): ComponentType<P> {
   return class Memo extends Component<P> {
+    static displayName = `Memo(${Inner.displayName ?? Inner.name})`
+
     shouldComponentUpdate(next: Readonly<P>) {
       return changed(this.props, next)
     }

@@ -215,7 +215,8 @@ export function ScheduleView({ legs, pilot, now, timeZone, h24, airports, weekSt
   }
 
   // The calendar's and the rows' handlers stay the same functions from draw to draw, calling the latest pick, Current
-  // Event and row tap, so the memoized calendar and rows draw again only when what they show changes (redraws §4).
+  // Event and row tap, so the memoized calendar and rows draw again only when what they show changes (redraws §4). The
+  // ref is set as the page draws, which is safe in Preact: it never throws a draw away, as React's concurrent mode can.
   const latest = useRef({ pick, currentEvent, pickRow })
   latest.current = { pick, currentEvent, pickRow }
   const onPick = useCallback((day: number) => latest.current.pick(day), [])

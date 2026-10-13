@@ -41,6 +41,10 @@ describe('memo (redraws §4.1)', () => {
     expect(draws).toBe(3)
   })
 
+  it('is named after the component it holds, for devtools and Preact’s warnings', () => {
+    expect(memo(function TripCalendar() { return null }).displayName).toBe('Memo(TripCalendar)')
+  })
+
   it('still draws again for its own state, as the calendar does for the keyboard’s place', () => {
     draws = 0
     const Counter = memo(({ label }: { label: string }) => {
