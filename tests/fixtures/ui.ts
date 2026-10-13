@@ -65,3 +65,15 @@ export function iconNameOf(svg: Element | null): IconName | null {
   const drawn = JSON.stringify([...svg.querySelectorAll('path')].map((path) => path.getAttribute('d')))
   return (Object.keys(ICON_PATHS) as IconName[]).find((name) => JSON.stringify(ICON_PATHS[name]) === drawn) ?? null
 }
+
+/**
+ * Sets happy-dom's window to `width` × `height` CSS px, as a resized window or a turned tablet would be, and sends the
+ * resize that media queries follow. happy-dom starts at 1024 × 768, which is wide enough for the side-by-side layout
+ * (slice 3C §3). Wrap it in act() while something on the page follows the window.
+ *
+ * happy-dom reports a media query's first change only from not matching, where a browser reports any change. So a test
+ * that resizes across a line starts on the narrow, or short, side of it.
+ */
+export function setWindowSize(width: number, height: number) {
+  ;(window as unknown as { happyDOM: { setViewport(size: { width: number; height: number }): void } }).happyDOM.setViewport({ width, height })
+}
