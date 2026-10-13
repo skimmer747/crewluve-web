@@ -214,12 +214,13 @@ export function ScheduleView({ legs, pilot, now, timeZone, h24, airports, weekSt
     setJump({ day: openingDay(days, now, timeZone) })
   }
 
-  // The calendar's handlers stay the same functions from draw to draw, and call the latest pick and Current Event, so
-  // the memoized calendar draws again only when what it shows changes (redraws §4.2).
-  const latest = useRef({ pick, currentEvent })
-  latest.current = { pick, currentEvent }
+  // The calendar's and the rows' handlers stay the same functions from draw to draw, calling the latest pick, Current
+  // Event and row tap, so the memoized calendar and rows draw again only when what they show changes (redraws §4).
+  const latest = useRef({ pick, currentEvent, pickRow })
+  latest.current = { pick, currentEvent, pickRow }
   const onPick = useCallback((day: number) => latest.current.pick(day), [])
   const onCurrentEvent = useCallback(() => latest.current.currentEvent(), [])
+  const onRowTap = useCallback((leg: Leg) => latest.current.pickRow(leg), [])
 
   const nextId = nextLegId(legs, now)
   // The time line moves once a minute, as the app's (3B §4.7).
@@ -255,10 +256,15 @@ export function ScheduleView({ legs, pilot, now, timeZone, h24, airports, weekSt
                   </h2>
                   {/* Safari drops the list role from a list shown without bullets; the role puts it back. */}
                   <ol class="day-legs" role="list">
-                    {d.legs.map((row) => (
-                      <TimelineRow key={row.leg.id} leg={row.leg} look={row.look} times={row.times} moment={legMoment(row.leg, now, nextId)}
-                        now={now} gap={row.gap} onTap={() => pickRow(row.leg)} />
-                    ))}
+                    {d.legs.map((row) => {
+                      // Only the happening and the next legs show the time ticking. The others get a clock of 0,
+                      // so they draw again only when they change (redraws §4.3).
+                      const moment = legMoment(row.leg, now, nextId)
+                      return (
+                        <TimelineRow key={row.leg.id} leg={row.leg} look={row.look} times={row.times} moment={moment}
+                          now={moment === 'other' ? 0 : now} gap={row.gap} onTap={onRowTap} />
+                      )
+                    })}
                   </ol>
                 </section>
               )

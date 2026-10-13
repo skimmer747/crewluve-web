@@ -2,16 +2,22 @@
 import { cleanup, fireEvent, render } from '@testing-library/preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { dayName } from '../../src/copy/calendar'
+import { legClock } from '../../src/copy/schedule'
 import type { Leg } from '../../src/engine/legs'
 import { DAY, MINUTE } from '../../src/time/zoned'
 import { ScheduleView } from '../../src/ui/ScheduleView'
 import { testAirports } from '../fixtures/airports'
 import { drive, duty, flight, H, pilot, place } from '../fixtures/legs'
 
-// Each part's draws are counted through a function it calls as it draws: the calendar names every day it shows.
+// Each part's draws are counted through a function it calls as it draws: the calendar names every day it shows, and a
+// row works out its clock.
 vi.mock('../../src/copy/calendar', async (importOriginal) => {
   const real = await importOriginal<typeof import('../../src/copy/calendar')>()
   return { ...real, dayName: vi.fn(real.dayName) }
+})
+vi.mock('../../src/copy/schedule', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../src/copy/schedule')>()
+  return { ...real, legClock: vi.fn(real.legClock) }
 })
 
 afterEach(() => {
@@ -51,5 +57,16 @@ describe('redraws: the calendar (redraws §4.2)', () => {
     vi.mocked(dayName).mockClear()
     fireEvent.click(container.querySelector<HTMLElement>(`[data-calendar-day="${THU + 1}"]`)!)
     expect(dayName).toHaveBeenCalledTimes(days)
+  })
+})
+
+describe('redraws: the rows (redraws §4.3)', () => {
+  it('draws only the happening and the next rows again each second; the others keep their durations', () => {
+    const start = at(10)
+    const { rerender } = render(view(start))
+    vi.mocked(legClock).mockClear()
+    rerender(view(start + 1000))
+    // The layover happening at 10am, and the flight after it.
+    expect(vi.mocked(legClock).mock.calls.map(([legStart]) => legStart)).toEqual([LEGS[1].start, LEGS[2].start])
   })
 })

@@ -2,6 +2,7 @@ import { gapSpoken, gapText, legClock, type LegMoment } from '../copy/schedule'
 import type { Leg } from '../engine/legs'
 import { cssColor } from './colors'
 import { Icon } from './Icon'
+import { memo } from './memo'
 import type { Gap, RowLook } from './scheduleFacts'
 
 export interface TimelineRowProps {
@@ -13,16 +14,20 @@ export interface TimelineRowProps {
   now: number
   /** The gap before this leg, or null (TimeGapView). */
   gap: Gap | null
-  /** A tap on the leg, which picks its day on the calendar (slice 3B §5.3). For the pointer only: the days do the same. */
-  onTap?: () => void
+  /**
+   * A tap on the leg, handed over with it, which picks its day on the calendar (slice 3B §5.3). For the pointer only:
+   * the days do the same.
+   */
+  onTap?: (leg: Leg) => void
 }
 
 /**
  * One leg in the list (TimelineRowView, slice 3A §4.4–4.9): its icon in a circle of its color, its title, times and
  * right-hand column on glass, with the edge and tag of the leg happening now, the next leg, or a leg ending at home.
- * The gap before it comes first: a dashed line and a label, which screen readers hear in words (§4.10).
+ * The gap before it comes first: a dashed line and a label, which screen readers hear in words (§4.10). It draws again
+ * only when its props change: the page gives the time only to the legs whose clock shows it (redraws §4.3).
  */
-export function TimelineRow({ leg, look, times, moment, now, gap, onTap }: TimelineRowProps) {
+export const TimelineRow = memo(function TimelineRow({ leg, look, times, moment, now, gap, onTap }: TimelineRowProps) {
   const clock = legClock(leg.start, leg.end, now, moment)
   const edge = moment === 'happening' ? ' leg-happening' : moment === 'next' ? ' leg-next' : look.homeward ? ' leg-home' : ''
   return (
@@ -34,7 +39,7 @@ export function TimelineRow({ leg, look, times, moment, now, gap, onTap }: Timel
           <span class="sr-only">{gapSpoken(gap.kind, gap.ms)}</span>
         </div>
       )}
-      <div class={`leg glass${edge}${look.homeward ? ' homeward' : ''}`} style={{ '--leg': cssColor(look.color) }} onClick={onTap}>
+      <div class={`leg glass${edge}${look.homeward ? ' homeward' : ''}`} style={{ '--leg': cssColor(look.color) }} onClick={onTap && (() => onTap(leg))}>
         {moment === 'next' && (
           <span class="leg-ring" aria-hidden="true">
             <span class="leg-ring-turn" />
@@ -59,4 +64,4 @@ export function TimelineRow({ leg, look, times, moment, now, gap, onTap }: Timel
       </div>
     </li>
   )
-}
+})

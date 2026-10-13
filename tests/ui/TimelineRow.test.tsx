@@ -106,7 +106,8 @@ describe('TimelineRow taps (slice 3B §5.3)', () => {
     )
     const card = container.querySelector<HTMLElement>('.leg')!
     fireEvent.click(card.querySelector('.leg-title')!)
-    expect(onTap).toHaveBeenCalledTimes(1)
+    // It hands over its leg, so one handler serves every row (redraws §4.3).
+    expect(onTap.mock.calls).toEqual([[ups]])
     fireEvent.click(container.querySelector('.leg-gap')!)
     expect(onTap).toHaveBeenCalledTimes(1)
     expect([card.tagName, card.getAttribute('role'), card.getAttribute('tabindex')]).toEqual(['DIV', null, null])
