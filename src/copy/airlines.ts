@@ -66,14 +66,12 @@ const RGB: Record<string, [number, number, number]> = {
   PO: [0.0, 0.3, 0.6], GT: [0.8, 0.0, 0.0],
 }
 
-const resolve = (code: string) => ICAO_TO_IATA[code.trim().toUpperCase()] ?? code.trim().toUpperCase()
-
 const toHex = ([r, g, b]: [number, number, number]) =>
   `#${[r, g, b].map((c) => Math.round(c * 255).toString(16).padStart(2, '0')).join('').toUpperCase()}` as const
 
 /** The IATA code for an airline code entered either way ("UPS" → "5X", "dl" → "DL"); a code the table hasn't got stays. */
 export function airlineIata(code: string): string {
-  return resolve(code)
+  return ICAO_TO_IATA[code.trim().toUpperCase()] ?? code.trim().toUpperCase()
 }
 
 /** The ICAO code the tracking sites use for an IATA airline code ("5X" → "UPS"), or null when the table hasn't got it. */
@@ -84,18 +82,18 @@ export function airlineIcao(code: string): string | null {
 // In the three lookups below, a blank code (null, empty or only whitespace) means "no airline code".
 export function airlineName(code: string | null): string {
   if (!code?.trim()) return 'Commercial'
-  const c = resolve(code)
+  const c = airlineIata(code)
   return NAMES[c] ?? c
 }
 
 export function airlineIcon(code: string | null): IconName {
   if (!code?.trim()) return 'Airplane'
-  return SYMBOLS[resolve(code)] ?? 'Airplane'
+  return SYMBOLS[airlineIata(code)] ?? 'Airplane'
 }
 
 export function airlineColor(code: string | null): ColorToken {
   if (!code?.trim()) return 'blue'
-  const c = resolve(code)
+  const c = airlineIata(code)
   if (c === '5X') return 'ups' // #663300 light, #E09E33 dark (the only theme-aware brand color)
   const rgb = RGB[c]
   return rgb ? (toHex(rgb) as ColorToken) : 'blue'

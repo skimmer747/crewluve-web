@@ -19,17 +19,19 @@ Status: reported by the user on 2026-10-13 with a screenshot of the tracking pop
 ## 3. The design
 
 - **`trackingLinks`' `flightRadar24`** is `https://www.flightradar24.com/data/flights/{iata}{digits}`, all in lower case: "5x5768", "dl1235".
-- **The IATA code** comes from a new `airlineIata(code)` in `src/copy/airlines.ts`: the table's IATA code for an ICAO code ("UPS" → "5X"), otherwise the code as entered, in capitals. It's the lookup the airline's name, icon and color already use (`resolve`).
-- **The callsign's safety rule covers it:** there are no links unless the callsign is only letters and digits. The page's code is the same airline and digits, with at most the table's IATA code swapped in, so it is letters and digits too. Both links come and go together, as before.
-- **The slice 2C spec** gets pointers in §9 and §10 item 4.
+- **The IATA code** comes from `airlineIata(code)` in `src/copy/airlines.ts`: the table's IATA code for an ICAO code ("UPS" → "5X"), otherwise the code as entered, in capitals. It's the lookup the airline's name, icon and color already use (it was the private `resolve`).
+- **A code the table can't turn into IATA keeps the live map.** IATA codes have two characters. A jumpseat entered with a three-letter ICAO code the table hasn't got ("ABX 3060"; Duty's custom airline field takes 2–3 letters) would get a flight page with no data, so it links to `fr24.com/ABX3060` as before, which finds the flight once it's in the air.
+- **Safety:** no links unless the callsign is only letters and digits, as before, and none unless the page's code is only plain lower-case letters and digits too. Both links come and go together.
+- **The iPhone app:** FlightRadar24's app takes over its live-map links but not its `/data` pages, so the flight page stays in the browser. Its Live link may then open the app.
+- **The slice 2C spec** gets pointers in §6 (the tracking popup) and §10 item 4.
 
 ## 4. Testing
 
 - **Red first:** `trackingLinks('5X', '2962')` gives `https://www.flightradar24.com/data/flights/5x2962`. Today it gives `https://fr24.com/UPS2962`.
-- **Codes:** "UPS" entered as the airline gives "5x"; "dl" gives "dl"; a code the table hasn't got ("XY") is kept.
+- **Codes:** "UPS" entered as the airline gives "5x"; "dl" gives "dl"; a code the table hasn't got ("XY") is kept; "ABX" keeps the live map; a number the page can't hold plainly gives no links.
 - **The popup's test** expects the new address.
 - **Gates:** `npx vitest run`, `npx tsc --noEmit`, `npm run build`.
-- **Deliberate breaks:** the ICAO code back in the address; upper case; the code as entered instead of the table's IATA code.
+- **Deliberate breaks:** the ICAO code back in the address; upper case; the code as entered instead of the table's IATA code; no live-map fallback, or the fallback for every code; the page's check dropped.
 - **In the browser:** the demo's flying scene, the popup's FlightRadar24 link.
 
 ## 5. Decisions log
@@ -38,3 +40,4 @@ Status: reported by the user on 2026-10-13 with a screenshot of the tracking pop
 |---|---|---|
 | 1 | Open FlightRadar24's flight page, not the live map. | User, 2026-10-13 |
 | 2 | Keep the app's caption, "Live tracking map": the page's Live button is one tap away. | Design |
+| 3 | A three-letter code the table can't turn into IATA keeps the live map. | Design (review) |

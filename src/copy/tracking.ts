@@ -25,15 +25,17 @@ export interface TrackingLinks {
 /**
  * The flight's pages on FlightRadar24 and FlightAware (flightRadar24URLs, flightAwareURL), or null without a tracking
  * flight number. The app opens FlightRadar24's live map, which finds the flight only once it's tracked; the site opens
- * the flight number's page, which lists it before takeoff too, and needs the IATA code ("5x5768") (FR24 flight page spec).
+ * the flight number's page, which lists it before takeoff too (FR24 flight page spec).
  */
 export function trackingLinks(airline: string | null, number: string | null): TrackingLinks | null {
   const sign = trackingFlightNumber(airline, number)
-  if (!sign || !airline || !number) return null
-  // The callsign's airline and digits, with the IATA code from the table: letters and digits only, as the callsign.
-  const page = `${airlineIata(airline)}${number}`.toLowerCase()
+  if (!sign || !airline || !number) return null // sign is null without them; this only tells TypeScript
+  const iata = airlineIata(airline)
+  const page = `${iata}${number}`.toLowerCase()
+  if (!/^[a-z0-9]+$/.test(page)) return null
   return {
-    flightRadar24: `https://www.flightradar24.com/data/flights/${page}`,
+    // The flight pages know IATA codes only ("5x5768"), so a code the table can't turn into one keeps the live map.
+    flightRadar24: iata.length === 2 ? `https://www.flightradar24.com/data/flights/${page}` : `https://fr24.com/${sign}`,
     flightAware: `https://www.flightaware.com/live/flight/${sign}`,
   }
 }

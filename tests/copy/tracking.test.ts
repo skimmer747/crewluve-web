@@ -43,6 +43,18 @@ describe('trackingLinks', () => {
     expect(trackingLinks('UPS', '5768')?.flightRadar24).toBe('https://www.flightradar24.com/data/flights/5x5768')
     expect(trackingLinks(' b6 ', '1234')?.flightRadar24).toBe('https://www.flightradar24.com/data/flights/b61234')
     expect(trackingLinks('xy', '12')?.flightRadar24).toBe('https://www.flightradar24.com/data/flights/xy12')
+    expect(trackingLinks('dl', '1235')?.flightRadar24).toBe('https://www.flightradar24.com/data/flights/dl1235')
+  })
+
+  it('keeps the live map for a three-letter code the table can’t turn into IATA, which the flight pages don’t know', () => {
+    expect(trackingLinks('ABX', '3060')).toEqual({
+      flightRadar24: 'https://fr24.com/ABX3060',
+      flightAware: 'https://www.flightaware.com/live/flight/ABX3060',
+    })
+  })
+
+  it('is null when the page’s address would hold anything but plain letters and digits', () => {
+    expect(trackingLinks('5X', '12ı')).toBeNull() // the callsign's capitals make it "UPS12I"; the page would keep "ı"
   })
 
   it('is null without a tracking flight number', () => {
