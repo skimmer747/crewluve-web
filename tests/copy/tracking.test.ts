@@ -31,12 +31,18 @@ describe('trackingFlightNumber', () => {
 })
 
 describe('trackingLinks', () => {
-  it('opens FlightRadar24’s and FlightAware’s pages for the flight', () => {
+  it('opens FlightRadar24’s page for the flight number and FlightAware’s for the callsign', () => {
     expect(trackingLinks('5X', '2962')).toEqual({
-      flightRadar24: 'https://fr24.com/UPS2962',
+      flightRadar24: 'https://www.flightradar24.com/data/flights/5x2962',
       flightAware: 'https://www.flightaware.com/live/flight/UPS2962',
     })
-    expect(trackingLinks('DL', '1235')?.flightRadar24).toBe('https://fr24.com/DAL1235')
+    expect(trackingLinks('DL', '1235')?.flightRadar24).toBe('https://www.flightradar24.com/data/flights/dl1235')
+  })
+
+  it('gives FlightRadar24 the IATA code, which its flight pages need, however the airline was entered', () => {
+    expect(trackingLinks('UPS', '5768')?.flightRadar24).toBe('https://www.flightradar24.com/data/flights/5x5768')
+    expect(trackingLinks(' b6 ', '1234')?.flightRadar24).toBe('https://www.flightradar24.com/data/flights/b61234')
+    expect(trackingLinks('xy', '12')?.flightRadar24).toBe('https://www.flightradar24.com/data/flights/xy12')
   })
 
   it('is null without a tracking flight number', () => {

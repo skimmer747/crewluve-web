@@ -1,6 +1,6 @@
 // The tracking popup's flight number and links (slice 2C §6), with the app's FlightTrackingHelper's airline codes.
 
-import { airlineIcao } from './airlines'
+import { airlineIata, airlineIcao } from './airlines'
 
 /**
  * The flight as the tracking sites know it, which the popup's header shows: the airline's ICAO code and the digits,
@@ -24,10 +24,16 @@ export interface TrackingLinks {
 
 /**
  * The flight's pages on FlightRadar24 and FlightAware (flightRadar24URLs, flightAwareURL), or null without a tracking
- * flight number. The app tries FlightRadar24's own app first; the site opens its web page (§10 item 4).
+ * flight number. The app opens FlightRadar24's live map, which finds the flight only once it's tracked; the site opens
+ * the flight number's page, which lists it before takeoff too, and needs the IATA code ("5x5768") (FR24 flight page spec).
  */
 export function trackingLinks(airline: string | null, number: string | null): TrackingLinks | null {
   const sign = trackingFlightNumber(airline, number)
-  if (!sign) return null
-  return { flightRadar24: `https://fr24.com/${sign}`, flightAware: `https://www.flightaware.com/live/flight/${sign}` }
+  if (!sign || !airline || !number) return null
+  // The callsign's airline and digits, with the IATA code from the table: letters and digits only, as the callsign.
+  const page = `${airlineIata(airline)}${number}`.toLowerCase()
+  return {
+    flightRadar24: `https://www.flightradar24.com/data/flights/${page}`,
+    flightAware: `https://www.flightaware.com/live/flight/${sign}`,
+  }
 }

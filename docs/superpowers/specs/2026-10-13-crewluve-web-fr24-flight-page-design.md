@@ -20,7 +20,7 @@ Status: reported by the user on 2026-10-13 with a screenshot of the tracking pop
 
 - **`trackingLinks`' `flightRadar24`** is `https://www.flightradar24.com/data/flights/{iata}{digits}`, all in lower case: "5x5768", "dl1235".
 - **The IATA code** comes from a new `airlineIata(code)` in `src/copy/airlines.ts`: the table's IATA code for an ICAO code ("UPS" → "5X"), otherwise the code as entered, in capitals. It's the lookup the airline's name, icon and color already use (`resolve`).
-- **The same safety rule as the callsign:** no FlightRadar24 link unless the flight-page code is only letters and digits. The popup already shows no links without a callsign, so both links come and go together.
+- **The callsign's safety rule covers it:** there are no links unless the callsign is only letters and digits. The page's code is the same airline and digits, with at most the table's IATA code swapped in, so it is letters and digits too. Both links come and go together, as before.
 - **The slice 2C spec** gets pointers in §9 and §10 item 4.
 
 ## 4. Testing
@@ -29,7 +29,7 @@ Status: reported by the user on 2026-10-13 with a screenshot of the tracking pop
 - **Codes:** "UPS" entered as the airline gives "5x"; "dl" gives "dl"; a code the table hasn't got ("XY") is kept.
 - **The popup's test** expects the new address.
 - **Gates:** `npx vitest run`, `npx tsc --noEmit`, `npm run build`.
-- **Deliberate breaks:** the ICAO code back in the address; upper case; the safety check dropped.
+- **Deliberate breaks:** the ICAO code back in the address; upper case; the code as entered instead of the table's IATA code.
 - **In the browser:** the demo's flying scene, the popup's FlightRadar24 link.
 
 ## 5. Decisions log

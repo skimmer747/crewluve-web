@@ -71,6 +71,11 @@ const resolve = (code: string) => ICAO_TO_IATA[code.trim().toUpperCase()] ?? cod
 const toHex = ([r, g, b]: [number, number, number]) =>
   `#${[r, g, b].map((c) => Math.round(c * 255).toString(16).padStart(2, '0')).join('').toUpperCase()}` as const
 
+/** The IATA code for an airline code entered either way ("UPS" → "5X", "dl" → "DL"); a code the table hasn't got stays. */
+export function airlineIata(code: string): string {
+  return resolve(code)
+}
+
 /** The ICAO code the tracking sites use for an IATA airline code ("5X" → "UPS"), or null when the table hasn't got it. */
 export function airlineIcao(code: string): string | null {
   return IATA_TO_ICAO[code.trim().toUpperCase()] ?? null

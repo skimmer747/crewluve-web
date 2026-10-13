@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { airlineColor, airlineIcao, airlineIcon, airlineName, flightPhrase } from '../../src/copy/airlines'
+import { airlineColor, airlineIata, airlineIcao, airlineIcon, airlineName, flightPhrase } from '../../src/copy/airlines'
 
 describe('airlineName', () => {
   it.each([['5X', 'UPS'], ['UPS', 'UPS'], ['dl', 'Delta'], ['DAL', 'Delta'], ['TG', 'Thai Airways'], ['ZZ', 'ZZ'], [null, 'Commercial']])(
@@ -10,6 +10,12 @@ describe('airlineName', () => {
 describe('airlineIcao', () => {
   it.each([['5X', 'UPS'], ['dl', 'DAL'], [' b6 ', 'JBU'], ['OH', 'PSA'], ['G4', null], ['UPS', null]])(
     '%s → %s', (code, icao) => expect(airlineIcao(code)).toBe(icao),
+  )
+})
+
+describe('airlineIata', () => {
+  it.each([['5X', '5X'], ['UPS', '5X'], ['dal', 'DL'], [' b6 ', 'B6'], ['xy', 'XY']])(
+    '%s → %s', (code, iata) => expect(airlineIata(code)).toBe(iata),
   )
 })
 
