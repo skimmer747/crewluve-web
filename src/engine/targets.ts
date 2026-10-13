@@ -38,7 +38,7 @@ export function currentTripId(legs: Leg[], status: Status, t: number): string | 
 
 /**
  * What the away countdown counts to (spec §6.5, with step 4.3 from the back-home spec §4.1), or null for no countdown.
- * Never call it while the status is Home.
+ * Never call it while the status is Home. `legs` must be sorted by start.
  */
 export function arrivalTarget(legs: Leg[], pilot: Pilot, status: Status, t: number): ArrivalTarget | null {
   const current = status.current
@@ -49,13 +49,14 @@ export function arrivalTarget(legs: Leg[], pilot: Pilot, status: Status, t: numb
   if (!home) return null
   if (current && !current.tripId && isHomecomingMove(current, home)) return toTarget('home', current, home)
 
-  // The first leg of a trip other than `trip` that starts after `from`: no ride home of `trip` starts after it (C14).
-  const nextTripLeg = (trip: string | null, from: number) => legs.find((l) => l.tripId && l.tripId !== trip && l.start > from)
+  // The first leg of a trip other than `ofTrip` that starts after `from`: no ride home of `ofTrip` starts after it (C14).
+  const nextTripLeg = (ofTrip: string | null, from: number) =>
+    legs.find((l): l is Leg & { tripId: string } => !!l.tripId && l.tripId !== ofTrip && l.start > from)
   const ride = (from: number, startBy: number, before: number) =>
     legs.find((l) => !l.tripId && isHomecomingMove(l, home) && l.end > t && l.start >= from && l.start < before && l.start <= startBy)
-  // A standalone flight, jumpseat or drive from home in [from, to) means the pilot went home in between.
-  const leavesHome = (from: number, to: number) =>
-    legs.some((l) => !l.tripId && (isMove(l) || l.kind === 'drive') && departureOf(l) === home && l.start >= from && l.start < to)
+  // A standalone leg from (or at) home, or a drive to work, in [from, to) means the pilot went home in between.
+  const homeBetween = (from: number, to: number) =>
+    legs.some((l) => !l.tripId && l.start >= from && l.start < to && (departureOf(l) === home || (l.kind === 'drive' && !l.toHome)))
 
   const trip = currentTripId(legs, status, t)
   if (!trip) {
@@ -65,7 +66,7 @@ export function arrivalTarget(legs: Leg[], pilot: Pilot, status: Status, t: numb
 
   // Steps 4.1–4.3: the trip's homecoming, else straight on to the next trip's while the pilot stays away.
   let id = trip
-  let from = t // the other trips' legs that start after this come after `id`; it only grows, so the loop ends
+  let after = t // the other trips' legs that start after this come after `id`; it only grows, so the loop ends
   let tripLast: MoveLeg | null = null
   for (;;) {
     const tripLegs = legs.filter((l) => l.tripId === id)
@@ -78,12 +79,12 @@ export function arrivalTarget(legs: Leg[], pilot: Pilot, status: Status, t: numb
     if (flights.length === 0) break
     const last = flights.reduce((a, b) => (b.end > a.end ? b : a))
     tripLast ??= last
-    const next = nextTripLeg(id, from)
+    const next = nextTripLeg(id, after)
     const r = ride(last.start, last.end + RIDE_WINDOW, next?.start ?? Infinity)
     if (r) return toTarget('home', r, home)
-    if (!next?.tripId || next.start - last.end > DAY || leavesHome(last.end, next.start)) break
+    if (!next || next.start - last.end > DAY || departureOf(next) === home || homeBetween(last.end, next.start)) break
     id = next.tripId
-    from = next.start
+    after = next.start
   }
 
   // Step 4.4: the trip's own last flight, if it is still ahead.

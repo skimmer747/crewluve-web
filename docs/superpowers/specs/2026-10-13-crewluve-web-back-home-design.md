@@ -38,13 +38,15 @@ No ride home is logged between the two trips. He stays in Louisville.
 
 ### 2.4 Why 24 hours
 
-- **It's the app's line,** so the two agree.
+- **It's the same 24 h line as the app's.** The two measure it a little differently. The app measures from each leg's scheduled end to the next leg's start, between any two neighbouring legs, so a commute or an event in between can bridge a longer gap. The site measures from T's actual landing to N's first leg. So they can disagree close to 24 h, after a delay, or with an event in between.
 - **Todd's own history shows a longer gap can hide a trip home.** Trip CA02JUN26 landed at SDF on Jun 4 03:52 UTC and the next trip reported Jun 5 06:39, 26.8 h later. No ride home was logged, but a jumpseat MCO→SDF on Jun 5 01:05 shows he went home in between.
 
 ## 3. Scope
 
 - **In:** §6.5 gets a new step 4.3 in `arrivalTarget` (`src/engine/targets.ts`); its tests; a pointer in the slice 1 spec's §6.5.
 - **Not in:**
+  - **A ride home in the middle of N.** Step 2 only counts a ride home that starts after the trip's last flight departs. N inherits that rule. So when N has days at home in its middle (a drive home and a drive back between its flights), the chain counts to the ride home after N, not to the one in the middle. The site already says the same during N's first half. This is rare, and it's step 2's rule, not this fix's.
+  - **A trip with no flights between T and N.** It has no legs, so the chain passes over it. Where the "~N days" card used to show during it, the card now counts to N's homecoming. This is rare.
   - **The labels.** "Back at Base In" stays where no homecoming is known. The app would say "Louisville In" there, but the user's report is about the date, not the words.
   - **The app's "last arrival home in the block".** The site keeps the first homecoming, so a local pilot whose first trip ends at home is home after that trip.
 
@@ -58,7 +60,10 @@ No ride home is logged between the two trips. He stays in Louisville.
 2. **Ride home** (unchanged).
 3. **Straight on to the next trip (new).** The next trip N is the one step 2 stops at: the trip of the earliest leg of another trip (§4.2). If all of these hold, the pilot stays away until N is over, and T's homecoming is N's. Run steps 1–3 on N. If that gives a homecoming → **"Back Home In"**, counting to its end.
    - N's first leg starts no more than 24 h after T's last flight lands. Both are effective times, so a late landing shortens the gap (C1).
-   - No standalone flight, jumpseat or drive leaves effHome between T's last landing and N's first leg. A ride from home means he went home.
+   - Nothing between T's last landing and N's first leg shows the pilot at home:
+     - no standalone leg from effHome or at it (a flight, jumpseat, drive or event)
+     - no drive to work, from anywhere, as `leaveTarget` counts one
+     - N itself doesn't leave from effHome
    - Step 2 found no ride home. A ride home before N is the homecoming.
 4. **Final flight still ahead** (was 4.3, unchanged): still counts T's own last flight.
 5. **Otherwise → no countdown** (was 4.4, C26).
@@ -70,12 +75,12 @@ No ride home is logged between the two trips. He stays in Louisville.
 
 ### 4.3 C14, restated
 
-"Never a leg from the next trip" becomes: **never the next trip's homecoming when the pilot can have gone home in between.** That is, more than 24 h between the trips, or a ride from home logged between them.
+"Never a leg from the next trip" becomes: **never the next trip's homecoming when the pilot can have gone home in between.** That is, more than 24 h between the trips, or anything in §4.1 that shows him at home.
 
 ### 4.4 What shows
 
 - **The card:** "Back Home In", the house icon, green (red when the homecoming runs 15 min or more late), with the subtitle "Sat, Oct 17 at 3:21 AM · Orlando".
-- **The celebration:** unchanged. It shows in the last 24 h, and never while the pilot is at the base.
+- **The celebration:** the rule is unchanged: it shows in the last 24 h before the target, and never while the pilot is at the base. The target changes, though. On T's last flight into the base, the site used to celebrate "Back at Base" in that flight's last hours. Now the target is the homecoming days later, so it doesn't. The app does the same.
 - **The home sentence:** when the next trip runs straight into another, "Back home in …" names the later homecoming.
 
 ## 5. Testing
@@ -88,10 +93,14 @@ No ride home is logged between the two trips. He stays in Louisville.
   - a jumpseat from home between the trips stops the chain
   - three trips in a row chain to the ride home after the third
   - N's homecoming can be its own final landing at home
+  - a ride home before N wins over N's (the first homecoming)
+  - N's ride home gets its own 3 days, counted from N's landing
+  - like T, N ignores a ride home that starts before its last flight departs
+  - a drive to work from elsewhere, an event at home, or N leaving from home stops the chain
   - no homecoming down the line → still "Back at Base In", then nothing (C26)
   - {HB} at home names the later homecoming
 - **Gates:** `npx vitest run`, `npx tsc --noEmit`, `npm run build`.
-- **Deliberate breaks:** the 24 h made strict or dropped; the ride-from-home check dropped; N's "other trips" counted from now; the chain stopped after one trip.
+- **Deliberate breaks:** the 24 h made strict or dropped; each "at home in between" check dropped; N's "other trips" counted from now; the chain stopped after one trip; the chain taken before the ride home; N's 3 days or N's ride counted from T.
 - **In the browser:** the demo's scenes look as before (each demo trip has its own ride home), with no console errors.
 
 ## 6. Decisions log
@@ -102,6 +111,8 @@ No ride home is logged between the two trips. He stays in Louisville.
 | 2 | Chain only when the next trip starts within 24 h of the landing (the app's line; Todd's Jun 4–5 trip home at 26.8 h). | Design |
 | 3 | A ride from home between the trips stops the chain, so the app's known overshoot doesn't come back. | Design |
 | 4 | Keep the first homecoming and the "Back at Base In" label. | Design |
+| 5 | Widen "at home in between" from a ride from home to any standalone leg from or at home, a drive to work, or N leaving from home. | Design (review) |
+| 6 | Accept a ride home in the middle of N (step 2's own rule) and a trip with no flights between T and N, as noted in §3. | Design (review) |
 
 ## 7. Roadmap
 

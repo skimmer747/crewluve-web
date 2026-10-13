@@ -535,7 +535,7 @@ A **homecoming move** is a flight, jumpseat, drive, or drive-titled event that a
       - it starts no earlier than T's last flight departs
       - it starts before any *other* trip's first leg
       - it starts within 3 days of T's last flight landing
-   - *2026-10-13:* a new step goes here, before "Final flight still ahead": when the next trip starts within 24 h of T's landing and the pilot doesn't go home in between, T's homecoming is that trip's. See `2026-10-13-crewluve-web-back-home-design.md` §4.
+   - *2026-10-13:* a new step goes here, before "Final flight still ahead": when the next trip starts within 24 h of T's landing and nothing shows the pilot at home in between, T's homecoming is that trip's. See `2026-10-13-crewluve-web-back-home-design.md` §4.
    3. **Final flight still ahead:** if T's last flight is still ahead → "Back at Base In" when it lands at the base, otherwise "{City} In", counting to that flight's `in`.
    4. **Otherwise → no countdown** (C26). The trip is over and no ride home is logged.
 5. **Without a T:** the first standalone homecoming move that ends after t, starts within 3 days, and starts before the next trip's first leg → **"Back Home In"**. Otherwise no target.
@@ -618,7 +618,7 @@ All of these come from the 2026-07-02 Crewluve leave/return-home audit, C1–C30
 - **Off-trip status.** Never Turn or Layover (`TripStateResolver.swift:469`).
 - **Ground transport and company deadheads.** They aren't shown as "flying".
 - **"5X …" flight numbers.** They keep UPS branding (`FlightTrackingHelper.swift:14-22`).
-- **24-hour block merge overshoot.** Avoided (§6.5).
+- **24-hour block merge overshoot.** Avoided (§6.5). *2026-10-13:* still avoided when trips are chained; see the back-home spec §4.3.
 - **Report window.** Shown as "at base", not "Home".
 
 ## 7. Architecture

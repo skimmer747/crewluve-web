@@ -316,12 +316,39 @@ describe('back-to-back trips: the homecoming after the last one (back-home spec 
   })
 
   it.each([
-    ['a jumpseat', flight('LEX', 'SDF', 40, 41, null)],
-    ['a drive', drive('LEX', 'SDF', false, 40, 41)],
-  ])('stops at the landing when %s from home between the trips shows the pilot went home', (_ride, fromHome) => {
-    const legs = sorted([...T1, fromHome, ...T2(45), rideHome])
+    ['a jumpseat from home', flight('LEX', 'SDF', 40, 41, null)],
+    ['a drive from home', drive('LEX', 'SDF', false, 40, 41)],
+    ['a drive to work from elsewhere', drive('CVG', 'SDF', false, 40, 41)],
+    ['an event at home', duty('event', 'Dentist', 'LEX', 40, 41)],
+  ])('stops at the landing when %s between the trips shows the pilot went home', (_leg, atHome) => {
+    const legs = sorted([...T1, atHome, ...T2(45), rideHome])
     expect(targetAtHour(legs, commuter, 1)).toMatchObject({ label: 'base', time: 25 * H })
     expect(targetAtHour(legs, commuter, 30)).toBeNull()
+  })
+
+  it('stops at the landing when the next trip leaves from home', () => {
+    const legs = sorted([...T1, flight('LEX', 'ATL', 40, 42, 'T2'), flight('ATL', 'SDF', 50, 52, 'T2'), drive('SDF', 'LEX', true, 53, 54)])
+    expect(targetAtHour(legs, commuter, 1)).toMatchObject({ label: 'base', time: 25 * H })
+    expect(targetAtHour(legs, commuter, 26)).toBeNull()
+  })
+
+  it('keeps the first homecoming: a ride home before the next trip wins', () => {
+    const legs = sorted([...T1, drive('SDF', 'LEX', true, 26, 27), ...T2(40), rideHome])
+    expect(targetAtHour(legs, commuter, 1)).toMatchObject({ label: 'home', time: 27 * H })
+  })
+
+  it('gives the next trip’s ride home its own 3 days, from that trip’s landing', () => {
+    const legs = sorted([...T1, flight('SDF', 'ANC', 30, 35, 'T2'), flight('ANC', 'SDF', 105, 110, 'T2'), drive('SDF', 'LEX', true, 111, 112)])
+    expect(targetAtHour(legs, commuter, 1)).toMatchObject({ label: 'home', time: 112 * H })
+  })
+
+  it('ignores a ride home that starts before the next trip’s last flight departs, as for the current trip', () => {
+    const legs = sorted([
+      ...T1,
+      flight('SDF', 'ANC', 30, 35, 'T2'), flight('SDF', 'LEX', 40, 41, null), flight('ANC', 'SDF', 50, 55, 'T2'),
+      drive('SDF', 'LEX', true, 56, 57),
+    ])
+    expect(targetAtHour(legs, commuter, 1)).toMatchObject({ label: 'home', time: 57 * H })
   })
 
   it('goes on through three trips in a row', () => {
