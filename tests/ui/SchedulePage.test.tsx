@@ -31,17 +31,19 @@ function page(legs: Leg[], now: number, onBack = () => {}) {
   return <SchedulePage legs={legs} pilot={pilot('LEX', 'SDF')} now={now} timeZone={NY} h24={false} airports={testAirports} onBack={onBack} />
 }
 
-/** Lays the page out for the browser-free tests: the bar's bottom at 60 px, each day and heading where `tops` say. */
+/** Lays the page out for the browser-free tests: the list's box from 60 px down, each day and heading where `tops` say. */
 function layOut(tops: { days?: Record<number, number>; headings?: Record<number, number> }) {
   vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
     const day = Number((this.closest('[data-day]') as HTMLElement | null)?.dataset.day)
-    const top = this.classList.contains('schedule-bar') ? 0
+    const top = this.classList.contains('schedule-days') ? 60
       : this.classList.contains('day-heading') ? tops.headings?.[day] ?? 0
       : this.classList.contains('schedule-day') ? tops.days?.[day] ?? 0 : 0
-    const bottom = this.classList.contains('schedule-bar') ? 60 : top
-    return { top, bottom, left: 0, right: 0, width: 0, height: bottom - top, x: 0, y: top, toJSON: () => ({}) } as DOMRect
+    return { top, bottom: top, left: 0, right: 0, width: 0, height: 0, x: 0, y: top, toJSON: () => ({}) } as DOMRect
   })
 }
+
+/** The list's own scrolling box (slice 3B §3.4). */
+const listBox = (container: Element) => container.querySelector<HTMLElement>('.schedule-days')!
 
 const rowsOf = (container: Element) =>
   [...container.querySelectorAll('.schedule-day')].map((d) => [...d.querySelectorAll('.leg')].map((l) => l.className))
@@ -76,9 +78,18 @@ describe('SchedulePage (slice 3A §4)', () => {
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.getAttribute('aria-label'))).toEqual(['Today', 'Tomorrow', 'Saturday, Oct 17'])
   })
 
+  it('scrolls the list in its own box under the bar, which keyboards can reach and screen readers name (slice 3B §3.1, §3.4)', () => {
+    const { container } = render(page(LEGS, at(10)))
+    const box = listBox(container)
+    expect(box.parentElement!.firstElementChild!.className).toBe('schedule-bar')
+    expect(box.parentElement!.lastElementChild).toBe(box)
+    expect([box.getAttribute('tabindex'), box.getAttribute('role'), box.getAttribute('aria-label')]).toEqual(['0', 'region', 'Legs'])
+    expect(box.querySelectorAll('.schedule-day').length).toBe(3)
+  })
+
   it('focuses the title before it scrolls, since Safari before 15 scrolls to whatever takes focus', () => {
     const calls: string[] = []
-    vi.spyOn(window, 'scrollTo').mockImplementation(() => {
+    vi.spyOn(HTMLElement.prototype, 'scrollTo').mockImplementation(() => {
       calls.push('scroll')
     })
     const focus = HTMLElement.prototype.focus
@@ -105,7 +116,7 @@ describe('SchedulePage (slice 3A §4)', () => {
   })
 
   it('updates in place as the clock runs and new data arrives, without scrolling again', () => {
-    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    const scrollTo = vi.spyOn(HTMLElement.prototype, 'scrollTo').mockImplementation(() => {})
     const { container, rerender } = render(page(LEGS, at(10)))
     rerender(page([...LEGS], at(30.5)))
     expect(rowsOf(container)[1]).toEqual(['leg glass leg-happening', 'leg glass leg-next homeward'])
@@ -113,47 +124,52 @@ describe('SchedulePage (slice 3A §4)', () => {
     expect(scrollTo).toHaveBeenCalledTimes(1)
   })
 
-  it('opens with the next leg’s day just under the bar', () => {
-    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+  it('opens with the next leg’s day at the top of the list’s box, scrolling the box and not the window', () => {
+    const windowScroll = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    const scrollTo = vi.spyOn(HTMLElement.prototype, 'scrollTo').mockImplementation(() => {})
     layOut({ days: { [THU]: 100, [THU + 1]: 700, [THU + 2]: 1400 } })
-    render(page(LEGS, at(10)))
+    const { container } = render(page(LEGS, at(10)))
     expect(scrollTo).toHaveBeenCalledWith(0, 640)
+    expect(scrollTo.mock.contexts[0]).toBe(listBox(container))
+    expect(windowScroll).not.toHaveBeenCalled()
   })
 
   it('opens at the top when the day it would open at has no legs', () => {
-    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    const scrollTo = vi.spyOn(HTMLElement.prototype, 'scrollTo').mockImplementation(() => {})
     layOut({ days: { [THU]: 100 } })
     render(page(LEGS.slice(0, 1), at(36)))
     expect(scrollTo).toHaveBeenCalledWith(0, 0)
   })
 
-  it('turns the heading stuck under the bar yellow, the last one within 20 px of it, as the page scrolls; today’s stays green', async () => {
-    vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+  it('turns the heading stuck at the top of the list yellow, the last one within 20 px of it, as the list scrolls; today’s stays green', async () => {
+    vi.spyOn(HTMLElement.prototype, 'scrollTo').mockImplementation(() => {})
     const frames = stubAnimationFrames()
     layOut({ headings: { [THU]: -300, [THU + 1]: 60, [THU + 2]: 900 } })
     const { container } = render(page(LEGS, at(10)))
     const pills = () => [...container.querySelectorAll('.day-pill')].map((p) => p.className)
     expect(pills()).toEqual(['day-pill today', 'day-pill stuck', 'day-pill'])
     layOut({ headings: { [THU]: -900, [THU + 1]: -100, [THU + 2]: 75 } })
-    fireEvent.scroll(window)
+    fireEvent.scroll(listBox(container))
     await frames.frame(16)
     expect(pills()).toEqual(['day-pill today', 'day-pill', 'day-pill stuck'])
     layOut({ headings: { [THU]: 60, [THU + 1]: 900, [THU + 2]: 1400 } })
-    fireEvent.scroll(window)
+    fireEvent.scroll(listBox(container))
     await frames.frame(32)
     expect(pills()).toEqual(['day-pill today', 'day-pill', 'day-pill'])
-    // 21 px below the bar is too far.
+    // 21 px below the top of the list is too far.
     layOut({ headings: { [THU]: -900, [THU + 1]: 60, [THU + 2]: 81 } })
-    fireEvent.scroll(window)
+    fireEvent.scroll(listBox(container))
     await frames.frame(48)
     expect(pills()).toEqual(['day-pill today', 'day-pill stuck', 'day-pill'])
   })
 
-  it('stops listening to the page’s scrolling and resizing once it’s gone', () => {
-    const removed = vi.spyOn(window, 'removeEventListener')
+  it('stops listening to the list’s scrolling and the window’s resizing once it’s gone', () => {
+    const fromWindow = vi.spyOn(window, 'removeEventListener')
+    const fromElements = vi.spyOn(HTMLElement.prototype, 'removeEventListener')
     const { unmount } = render(page(LEGS, at(10)))
     unmount()
-    expect(removed.mock.calls.map(([type]) => type)).toEqual(expect.arrayContaining(['scroll', 'resize']))
+    expect(fromWindow.mock.calls.map(([type]) => type)).toContain('resize')
+    expect(fromElements.mock.calls.map(([type]) => type)).toContain('scroll')
   })
 
   it('shows the app’s empty state when there are no legs at all', () => {

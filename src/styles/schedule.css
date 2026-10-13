@@ -1,27 +1,30 @@
 /* The Schedule page (slice 3A §4). Sizes are the app's EventTimelineView, TimelineRowView and TimeGapView in points. */
 
-/* The page: the site's column, without the status page's 24 px gaps. */
+/* The page: the site's column, exactly the window's height, which it never scrolls; only the list does, in its own box
+   (slice 3B §3.1). Fixed to the window's edges, which holds in Safari before 15.4 too. */
 .schedule {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   max-width: 480px;
   margin: 0 auto;
-  padding: 0 16px env(safe-area-inset-bottom);
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
 }
 
-/* The bar stays at the top: the back button, 44 px of round glass with a chevron as in iOS 26, and the title in the
-   middle, over iOS's bar material: nearly white, or dark gray in dark mode, and a little see-through. */
+/* The bar: the back button, 44 px of round glass with a chevron as in iOS 26, and the title in the middle, on the
+   page's plain color, as iOS 26's bar over content that doesn't scroll under it (slice 3B §3.3). */
 .schedule-bar {
-  position: sticky;
-  top: 0;
-  z-index: 2;
+  flex: none;
   height: 60px;
   margin: 0 -16px;
   padding: 0 16px;
   display: grid;
   grid-template-columns: 44px 1fr 44px;
   align-items: center;
-  background: var(--bar-fill);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  backdrop-filter: blur(20px) saturate(180%);
 }
 
 .schedule-back {
@@ -39,17 +42,30 @@
   font-weight: 600;
 }
 
-/* The list, 12 px above and below; the page gives it its 16 px sides. */
+/* The list's box: the rest of the page, scrolling on its own, which doesn't hand its scroll on to the window at its ends
+   or scroll sideways. It spans the column, so its scroll bar sits at the edge, and keeps the 16 px sides inside. It has
+   no padding at the top, where a sticky heading would stop short of the box's edge (slice 3B §3.4). */
 .schedule-days {
-  padding: 12px 0;
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 0 -16px;
+  padding: 0 16px;
 }
 
-/* A day's heading sticks under the bar while its legs scroll past, and the next day's pushes it up. Its band is the
-   bar's color laid over the page's: the same shade, but solid, as a backdrop blur on every heading costs Safari a
-   layer each, and without one a row sliding under would show through. */
+/* The list, 12 px above and below as the app's, the bottom above the home indicator. */
+.schedule-list {
+  padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
+}
+
+/* A day's heading sticks at the top of the list while its legs scroll past, and the next day's pushes it up. Its band
+   is iOS's bar material's shade laid over the page's: the same shade, but solid, as a backdrop blur on every heading
+   costs Safari a layer each, and without one a row sliding under would show through. */
 .day-heading {
   position: sticky;
-  top: 60px;
+  top: 0;
   z-index: 1;
   margin: 0;
   padding: 12px 0 2px;

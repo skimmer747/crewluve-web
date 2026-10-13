@@ -613,16 +613,29 @@ describe('schedule.css', () => {
   // Read when each test runs, so a missing file fails the tests below and not the whole file.
   const rule = (head: string) => declarations(find(rulesIn(css('schedule')), head)!.body)
 
-  it('keeps the bar at the top and each day’s heading stuck just under it, both over iOS’s bar material', () => {
-    expect(rule('.schedule-bar')).toEqual(expect.arrayContaining([['position', 'sticky'], ['top', '0'], ['height', '60px'], ['background', 'var(--bar-fill)']]))
+  it('fills the window with the page: the bar on the page’s plain color, then the list in its own box, headings stuck at its top (slice 3B §3)', () => {
+    // Fixed to the window's edges, which holds in Safari before 15.4 too, so the window itself never scrolls.
+    expect(rule('.schedule')).toEqual(expect.arrayContaining([
+      ['position', 'fixed'], ['top', '0'], ['right', '0'], ['bottom', '0'], ['left', '0'], ['max-width', '480px'], ['margin', '0 auto'],
+      ['padding', '0 16px'], ['display', 'flex'], ['flex-direction', 'column'],
+    ]))
+    // Nothing scrolls under the bar now, so it has no material, as iOS 26's bar over content that doesn't move.
+    expect(rule('.schedule-bar')).toEqual(expect.arrayContaining([['flex', 'none'], ['height', '60px']]))
+    expect(rule('.schedule-bar').map(([prop]) => prop)).not.toContain('background')
+    expect(rule('.schedule-bar').map(([prop]) => prop)).not.toContain('position')
+    // The box spans the column, so its scroll bar sits at the edge. It has no padding at the top, where a sticky heading
+    // would stop short of its edge: the list inside keeps the app's 12 px, the bottom above the home indicator.
+    expect(rule('.schedule-days')).toEqual([
+      ['flex', '1'], ['min-height', '0'], ['overflow-x', 'hidden'], ['overflow-y', 'auto'], ['overscroll-behavior', 'contain'],
+      ['margin', '0 -16px'], ['padding', '0 16px'],
+    ])
+    expect(rule('.schedule-list')).toEqual([['padding', '12px 0 calc(12px + env(safe-area-inset-bottom))']])
     expect(rule('.day-heading')).toEqual(expect.arrayContaining([
-      // The bar's color over the page's: the same shade, solid, so a row sliding under the heading doesn't show through.
-      ['position', 'sticky'], ['top', '60px'], ['padding', '12px 0 2px'], ['background', 'linear-gradient(var(--bar-fill), var(--bar-fill)), var(--bg)'],
+      // The bar material's shade over the page's, solid, so a row sliding under the heading doesn't show through.
+      ['position', 'sticky'], ['top', '0'], ['padding', '12px 0 2px'], ['background', 'linear-gradient(var(--bar-fill), var(--bar-fill)), var(--bg)'],
       ['font-size', '12px'], ['font-weight', '600'], ['text-transform', 'uppercase'],
     ]))
     expect(rule('.schedule-back')).toEqual([['width', '44px'], ['height', '44px'], ['-webkit-tap-highlight-color', 'transparent']])
-    // The list's own 12 px is the space at the bottom, as the app's, above the home indicator's.
-    expect(rule('.schedule')).toContainEqual(['padding', '0 16px env(safe-area-inset-bottom)'])
     expect(rule('.schedule-title')).toEqual(expect.arrayContaining([['font-size', '17px'], ['font-weight', '600']]))
   })
 
@@ -681,12 +694,10 @@ describe('schedule.css', () => {
     expect(rule('.leg-next .leg-clock-value')).toEqual([['font-weight', '600']])
   })
 
-  it('spaces the list as the app does, slides rows under the headings and headings under the bar, and pulses once a second', () => {
+  it('spaces the list as the app does, slides rows under the headings, and pulses once a second', () => {
     expect(rule('.day-legs')).toContainEqual(['gap', '6px'])
     expect(rule('.leg-text')).toContainEqual(['gap', '3px'])
-    expect(rule('.schedule-days')).toEqual([['padding', '12px 0']])
     expect(rule('.schedule-empty')).toContainEqual(['padding', '32px'])
-    expect(rule('.schedule-bar')).toContainEqual(['z-index', '2'])
     expect(rule('.day-heading')).toContainEqual(['z-index', '1'])
     expect(rule('.leg-icon.pulsing .icon')).toEqual([['animation', 'leg-pulse 1s ease-in-out infinite']])
     expect(rule('.leg-gap-line')).toContainEqual(['background', 'repeating-linear-gradient(to bottom, var(--gap) 0 4px, transparent 4px 8px)'])
