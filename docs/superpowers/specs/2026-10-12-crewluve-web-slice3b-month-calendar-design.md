@@ -22,14 +22,18 @@ Status: approved in brainstorming on 2026-10-12. Slice 3A, the Schedule page and
 
 - **The page is exactly the window's visible height:** the bar, then the calendar, then a hairline, then the list in its own scrolling box filling the rest.
 - **The bar and the calendar stay put.** The list scrolls under nothing: its box starts below the hairline, as the app's scroll view starts below its calendar.
-- **The window itself never scrolls** while the Schedule page shows, including in Safari before 15.4. The list's box doesn't hand its scroll on to the window at its ends.
+- **The window itself never scrolls** while the Schedule page shows. The list's box doesn't hand its scroll on to the window at its ends.
+  - Safari before 15.4 has no `dvh`, so the body's full height there is `100vh`, taller than the window with the toolbar showing. While the Schedule page shows, the body gives that height up, so even there the window has nothing to scroll (decision 9).
 - **The status page is untouched.** It still scrolls as the window, and comes back where it was (3A §3.3).
 
 ### 3.2 Short windows (decision 1)
 
 - **Below 500 px tall,** such as a phone on its side, the calendar and its hairline move into the top of the list's box and scroll away with the list. The bar stays.
 - **The rule is the window's height alone,** so it doesn't change from month to month as the calendar grows from four week rows to six. Phones held upright, the iPhone SE included, are taller than that in Safari, so they pin the calendar.
-- **Turning the phone** moves the calendar, and the day at the top of the list stays at the top.
+- **Turning the phone** moves the calendar, and the list stays where it was (decision 9):
+  - the day showing at the top of the list stays as far down as it was;
+  - before any day showed, with the calendar filling the box, the list goes back to its top;
+  - a control of the calendar that had focus gets it back, though the move rebuilds the calendar.
 
 ### 3.3 The bar
 
@@ -66,7 +70,7 @@ One row, in this order:
 - **Space,** a third.
 - **›**, the next month's arrow, named "Next month".
 
-Each arrow takes taps over a 44 px square around it, within the column's 16 px sides, without making the row taller (decision 8).
+Each arrow takes taps over a 44 px square around it, within the column's 16 px sides, without making the row taller (decision 8). At 320 px the › arrow's square reaches the right end of Current Event, which stays on top and takes those taps (decision 9).
 
 ### 4.3 The weekday letters
 
@@ -82,7 +86,7 @@ Each arrow takes taps over a 44 px square around it, within the column's 16 px s
 - **The grid** (`CalendarDataBuilder.buildMonthGrid`): the month's days, led and trailed by the days of the months either side to fill the first and last weeks.
 - **A day number:** 12 px, regular, centered in its seventh, and:
   - **today:** bold, with a 1.5 px blue ring, 26 px across;
-  - **the selected day:** white on a filled blue circle, 26 px across, and still bold when it's today;
+  - **the selected day:** white on a filled blue circle, 26 px across, and still bold when it's today. Under Increase Contrast in dark mode the circle is the readable blue fill, `--fill-blue`, as for all the site's white text on color (Part A follow-ups §3.3; decision 9);
   - **days of the months either side:** the secondary color at 40%;
   - **any other day:** the text color.
 - **Grid lines,** 0.5 px in `--grid-line` (§4.8): six down between the columns, across all the week rows, and one between each pair of rows. The weekday letters have none.
@@ -186,11 +190,14 @@ Copied from `EventTimelineView` and `TripCalendarView` (decision 5).
 
 - **The list's scroll is animated,** unless the visitor asks for reduced motion. Then it jumps.
 - **Scrolling the list by hand** doesn't change the selected day, as in the app.
+- **A tap's scroll waits for the page to redraw.** On a short window the calendar sits in the list, and a month with more or fewer week rows moves the list under it (decision 9).
 
 ### 5.7 Keyboard and screen readers
 
 - **The days are one grid,** with one Tab stop. That stop is the selected day when it's in the month shown, else today when it is, else the month's 1st.
 - **Moving around:** the arrow keys move a day left or right, or a week up or down. Moving onto a day of another month turns the calendar to it. Enter or Space taps the day. Moving alone selects nothing.
+  - With Alt, Ctrl or ⌘, an arrow stays the browser's, for Back and Forward (decision 9).
+  - A day picked another way, by a row or Current Event, takes the Tab stop back from the keys (decision 9).
 - **What's read:**
   - A day: its weekday and date, such as "Thursday, October 15".
   - Today is marked as the current date, and the selected day as selected.
@@ -222,7 +229,7 @@ Copied from `EventTimelineView` and `TripCalendarView` (decision 5).
   - `scrollDay`: the list's day a tapped day scrolls to (§5.2), or none. Current Event uses 3A's `openingDay`.
 - **`src/copy/calendar.ts`:** the month's name, the weekday letters and full names, and a day's spoken name.
 - **`src/ui/TripCalendar.tsx`:** draws the calendar from what it's given, and reports taps.
-  - It holds no state but the keyboard's place, so it can move into the list's box on short windows without losing anything.
+  - It holds no state but the keyboard's place, so it can move into the list's box on short windows and back. The page gives focus back to the control that had it (§3.2).
   - The bars' positions and widths are set through the CSSOM, as 3A sets each row's color.
 - **`src/styles/calendar.css`:** the calendar's styles.
 
@@ -259,7 +266,7 @@ Nothing new: no requests, storage or scripts. The content security policy is unc
 - **The weekday letters start on the week's first day.** The app always prints them from Sunday, so where a week starts on Monday, its letters don't line up with its columns.
 - **The arrows take 44 px of taps.** The app's take only the chevron's size.
 - **Windows under 500 px tall** scroll the calendar away with the list. The app doesn't face such a window.
-- **Under Increase Contrast** the codes darken in light mode.
+- **Under Increase Contrast** the codes darken in light mode, and in dark mode the selected day's circle is the darker readable blue under its white number. The app's turns lighter.
 - **The list's edges are plain cuts.** iOS 26 softens them.
 - **The web's own parts:** keyboard use of the days, names for screen readers, and the list's box taking focus.
 
@@ -319,9 +326,12 @@ Nothing new: no requests, storage or scripts. The content security policy is unc
 | 6 | The build in §6, with a rest at base added to the demo. | User, 2026-10-12 |
 | 7 | "Too short" is a window under 500 px tall; the bar takes the page's plain color; a tap on the selected day scrolls again; the time line is measured as the bars are; the arrows take 44 px of taps. | Design, from decisions 1, 3 and 5 |
 | 8 | The list's box has no padding at the top, so the headings stick at its very top, and it doesn't scroll sideways; the arrows' tap areas stay within the column's sides. | Design, from the browser check while planning |
+| 9 | A tap's scroll waits for the redraw and starts from the list's own scroll; a turn keeps the list's place and the calendar's focus; Alt, Ctrl and ⌘ arrows stay the browser's; a day picked another way takes the Tab stop; Current Event stays over the › arrow's tap area; the selected circle uses the readable blue under Increase Contrast; rows tap without Safari's grey flash; the body gives up its full height while the page shows; the time line is worked out once a minute. | Design, from the batch reviews |
 
 ## 11. Roadmap
 
 1. Slice 3C: side by side on iPad and desktop.
 2. Left from 3A: `memo` on rows, and a check in Safari on an iPhone (the ring's masks, VoiceOver on the lists, the headings and the gaps, and the focus ring after a return in Safari before 15.4). The sticky bar's blur is gone with this slice.
+   - Added by 3B's reviews, for the same iPhone check: whether VoiceOver says "selected" for the selected day, whose grid cell carries it while focus sits on the button inside; how a row reads now that it takes a tap; whether a drag on the pinned calendar bounces the whole page; and the calendar inside the region named "Legs" on a short window.
+   - For 3C: the calendar's title has a fixed `id`, which two calendars side by side would share.
 3. Still on the list from Part C: longitude's spelling (`GeoPoint.lon` where the rest of the site uses `lng`), and one source for the delay.
