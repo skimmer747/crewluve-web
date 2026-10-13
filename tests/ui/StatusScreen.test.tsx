@@ -551,7 +551,7 @@ describe('StatusScreen: the ways into the schedule (slice 3A §3.1, §3.2)', () 
   })
 
   it('shows View Schedule after the narrative and before the location card when no card leads to the schedule', () => {
-    const { container, names } = linksAt(12000) // home, with no trip ahead
+    const { container, names } = linksAt(14400) // home, with no trip ahead
     expect(names).toEqual(['view'])
     const button = screen.getByRole('link', { name: 'View Schedule' })
     expect(container.querySelector('.narrative')!.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()

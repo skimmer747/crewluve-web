@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_SCENE, DEMO_SCENES, demoRaw, demoRawForScene, isDemoScene } from '../../src/data/demo'
+import { buildLegs } from '../../src/engine/legs'
+import { buildSchedule } from '../../src/engine/normalize'
 
 const A = Date.UTC(2026, 9, 9, 9, 30)
 
@@ -17,6 +19,13 @@ describe('demoRaw', () => {
     expect(raw.pilotInfos[0].home_airport_code).toBe('MCO')
     expect(raw.commutes).toHaveLength(0)
     expect(raw.jumpseats.map((j) => `${j.origin}-${j.destination}`)).toEqual(['SDF-MCO', 'MCO-SDF', 'SDF-MCO'])
+  })
+
+  it('rests the third trip at base, SDF, for 16 hours between two duty periods, for the calendar’s light bar (slice 3B §6.2)', () => {
+    const legs = buildLegs(buildSchedule(demoRaw('driver', A), A))
+    const rests = legs.filter((leg) => leg.kind === 'base')
+    expect(rests).toMatchObject([{ tripId: 'demo-t2', airport: 'SDF' }])
+    expect((rests[0].end - rests[0].start) / 3_600_000).toBe(16)
   })
 
   it('keeps the ANC→SDF flight 40 minutes late', () => {

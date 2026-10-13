@@ -22,7 +22,7 @@ export const DEMO_SCENES: Record<DemoScene, { variant: DemoVariant; offset: numb
   reserve: { variant: 'driver', offset: 4500 },
   training: { variant: 'driver', offset: 5900 },
   // Home after the last trip, with nothing ahead: the status page shows View Schedule (slice 3A §3.2).
-  'nothing-ahead': { variant: 'driver', offset: 12000 },
+  'nothing-ahead': { variant: 'driver', offset: 14400 },
 }
 
 export const DEFAULT_SCENE: DemoScene = 'flying'
@@ -71,12 +71,21 @@ export function demoRaw(variant: DemoVariant, anchor: number, delayKnown = true)
       },
     ],
   })
+  // The third trip rests 16 hours at base between its second and third duty periods (slice 3B §6.2).
   b.trip('demo-t2', {
-    days: 2,
+    days: 3,
     base: 'SDF',
     dutyPeriods: [
       { start: 10080, end: 10470, flights: [{ dep: 'SDF', arr: 'ONT', out: 10140, in: 10440, number: '2970' }] },
       { start: 11400, end: 11730, flights: [{ dep: 'ONT', arr: 'SDF', out: 11460, in: 11700, number: '2971' }] },
+      {
+        start: 12600,
+        end: 12990,
+        flights: [
+          { dep: 'SDF', arr: 'RFD', out: 12660, in: 12750, number: '2972' },
+          { dep: 'RFD', arr: 'SDF', out: 12810, in: 12900, number: '2973' },
+        ],
+      },
     ],
   })
 
@@ -85,7 +94,7 @@ export function demoRaw(variant: DemoVariant, anchor: number, delayKnown = true)
     b.commute('demo-c1-work', 'LEX', 'SDF', 'toWork', -90, -20, 'demo-t1')
     b.commute('demo-c1-home', 'SDF', 'LEX', 'toHome', 1890, 1960, 'demo-t1')
     b.commute('demo-c2-work', 'LEX', 'SDF', 'toWork', 9990, 10060, 'demo-t2')
-    b.commute('demo-c2-home', 'SDF', 'LEX', 'toHome', 11730, 11800, 'demo-t2')
+    b.commute('demo-c2-home', 'SDF', 'LEX', 'toHome', 12990, 13060, 'demo-t2')
   } else {
     b.jumpseat('demo-j0-home', 'SDF', 'MCO', -6960, -6840, { airline: 'DL', number: '1230' })
     b.jumpseat('demo-j1-work', 'MCO', 'SDF', -300, -180, { airline: 'DL', number: '1234' })
