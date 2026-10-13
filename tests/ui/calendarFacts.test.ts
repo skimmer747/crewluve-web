@@ -147,6 +147,9 @@ describe('weekBars (slice 3B §4.5, §4.6)', () => {
     // 29 minutes still joins.
     const [first] = weekBars(SUN, [flight('SDF', 'RFD', T0 + 30, T0 + 31, 'U'), flight('RFD', 'SDF', T0 + 31 + 29 / 60, T0 + 33, 'U')], NY)
     expect(first.to * 24).toBeCloseTo(31 + 29 / 60, 10)
+    // Legs that overlap keep their own ends, as the app's join only takes a gap.
+    const [early] = weekBars(SUN, [flight('SDF', 'RFD', T0 + 30, T0 + 32, 'V'), flight('RFD', 'SDF', T0 + 31, T0 + 33, 'V')], NY)
+    expect(early.to * 24).toBeCloseTo(32, 10)
   })
 
   it('rounds only where the whole trip starts and ends, and leaves a gap with square ends at a stop at home', () => {

@@ -346,11 +346,16 @@ describe('SchedulePage’s calendar (slice 3B §3.1, §5)', () => {
     expect(scrollTo.mock.calls.length).toBe(calls)
   })
 
-  it('leaves the selected day alone as the list is scrolled by hand', () => {
+  it('leaves the selected day alone as the list is scrolled by hand, once the scroll’s frame has run', async () => {
     scrolls()
+    const frames = stubAnimationFrames()
+    layOut(DAYS)
     const { container } = render(page(LEGS, at(10)))
     fireEvent.click(day(container, THU + 2))
+    layOut({ headings: { [THU]: -900, [THU + 1]: 60, [THU + 2]: 900 } }) // Friday's heading now stuck at the top
     fireEvent.scroll(listBox(container))
+    await frames.frame(16)
+    expect(container.querySelector('.day-pill.stuck')!.textContent).toBe('Tomorrow')
     expect(day(container, THU + 2).className).toBe('calendar-day selected')
   })
 
@@ -399,6 +404,10 @@ describe('SchedulePage on a short window (slice 3B §3.2)', () => {
     vi.stubGlobal('matchMedia', (query: string) => (query === tall.media ? tall : { matches: false, media: query }))
     return {
       listeners,
+      get height() {
+        return height
+      },
+      /** The window takes its new height first, then tells the page, as a browser does. */
       turn(to: number) {
         height = to
         act(() => listeners.forEach((listener) => listener()))
@@ -420,38 +429,55 @@ describe('SchedulePage on a short window (slice 3B §3.2)', () => {
   })
 
   /**
-   * Lays the page out as a browser would: the list's box from 60 px down, 315 px tall, and each day's 300 px section
-   * `offsets` px into the list. The box's scroll moves the sections, and so does the calendar when it sits in the box:
-   * its 91.5 px and 50 px a week row come first.
+   * Lays the page out as a browser would, in a window `windowHeight()` px tall: under the 60 px bar, the calendar when
+   * it's pinned, then the list's box with whatever height is left, none at all if nothing is (flex: 1 with min-height:
+   * 0). Each day's section is 300 px tall, `offsets` px into the list. The box's scroll moves the sections, and so does
+   * the calendar when it sits in the box: its 91.5 px and 50 px a week row come first.
    */
-  function layOutLive(offsets: Record<number, number>) {
+  function layOutLive(offsets: Record<number, number>, windowHeight = () => 400) {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
       const box = document.querySelector<HTMLElement>('.schedule-days')!
-      const calendar = box.querySelector('.calendar') ? 91.5 + 50 * box.querySelectorAll('.calendar-week').length : 0
+      const calendar = 91.5 + 50 * document.querySelectorAll('.calendar-week').length
+      const inBox = box.querySelector('.calendar') !== null
+      const boxTop = 60 + (inBox ? 0 : calendar)
       const day = Number((this.closest('[data-day]') as HTMLElement | null)?.dataset.day)
-      const top = this === box ? 60 : this.classList.contains('schedule-day') ? 60 + calendar + (offsets[day] ?? 5000) - box.scrollTop : 0
-      const height = this === box ? 315 : 300
+      const top = this === box ? boxTop
+        : this.classList.contains('schedule-day') ? boxTop + (inBox ? calendar : 0) + (offsets[day] ?? 5000) - box.scrollTop : 0
+      const height = this === box ? Math.max(0, windowHeight() - boxTop) : 300
       return { top, bottom: top + height, left: 0, right: 0, width: 0, height, x: 0, y: top, toJSON: () => ({}) } as DOMRect
     })
   }
-  const sectionTop = (container: Element, day: number) => container.querySelector<HTMLElement>(`[data-day="${day}"]`)!.getBoundingClientRect().top
+  /** How far below the top of the list's box a day's section starts. */
+  const offsetInBox = (container: Element, day: number) =>
+    container.querySelector<HTMLElement>(`[data-day="${day}"]`)!.getBoundingClientRect().top - listBox(container).getBoundingClientRect().top
 
   it('keeps the list where it was as the phone turns, both ways: the day showing at its top stays as far down as it was', () => {
     const phone = windowOf(800)
     const scrollTo = vi.spyOn(HTMLElement.prototype, 'scrollTo')
-    layOutLive({ [THU]: 100, [THU + 1]: 700, [THU + 2]: 1400 })
+    layOutLive({ [THU]: 100, [THU + 1]: 700, [THU + 2]: 1400 }, () => phone.height)
     const { container } = render(page(LEGS, at(10)))
     expect(listBox(container).scrollTop).toBe(700) // opened at Friday
     listBox(container).scrollTop = 740 // and scrolled 40 px into it
-    expect(sectionTop(container, THU + 1)).toBe(20)
+    expect(offsetInBox(container, THU + 1)).toBe(-40)
     phone.turn(400)
     expect(listBox(container).firstElementChild!.className).toBe('calendar')
     expect(scrollTo).toHaveBeenLastCalledWith(0, 1081.5)
-    expect(sectionTop(container, THU + 1)).toBe(20)
+    expect(offsetInBox(container, THU + 1)).toBe(-40)
     phone.turn(800)
     expect(container.querySelector('.calendar')!.parentElement!.className).toBe('schedule')
     expect(scrollTo).toHaveBeenLastCalledWith(0, 740)
-    expect(sectionTop(container, THU + 1)).toBe(20)
+    expect(offsetInBox(container, THU + 1)).toBe(-40)
+  })
+
+  it('keeps the day at the top as the phone turns right after opening, though the pinned calendar leaves the box no height then', () => {
+    const phone = windowOf(812)
+    const scrollTo = vi.spyOn(HTMLElement.prototype, 'scrollTo')
+    layOutLive({ [THU]: 100, [THU + 1]: 700, [THU + 2]: 1400 }, () => phone.height)
+    const { container } = render(page(LEGS, at(10)))
+    expect(offsetInBox(container, THU + 1)).toBe(0) // opened with Friday at the very top
+    phone.turn(375) // 375 px is less than the bar and the pinned calendar, until the calendar moves
+    expect(scrollTo).toHaveBeenLastCalledWith(0, 1041.5)
+    expect(offsetInBox(container, THU + 1)).toBe(0)
   })
 
   it('goes back to the top of the list when the calendar filled the box and no day showed', () => {
@@ -472,7 +498,22 @@ describe('SchedulePage on a short window (slice 3B §3.2)', () => {
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Next month' }))
     container.querySelector<HTMLElement>(`[data-calendar-day="${THU + 5}"]`)!.focus()
     phone.turn(800)
-    expect(document.activeElement).toBe(container.querySelector(`[data-calendar-day="${THU + 5}"]`))
+    const focused = container.querySelector<HTMLElement>(`[data-calendar-day="${THU + 5}"]`)!
+    expect(document.activeElement).toBe(focused)
+    // And the day with focus is the days' Tab stop, so Shift+Tab leaves the grid.
+    expect(focused.tabIndex).toBe(0)
+  })
+
+  it('takes the list to a tapped day after the redraw too, when the tap turns to a month with fewer week rows', () => {
+    windowOf(400)
+    const scrollTo = vi.spyOn(HTMLElement.prototype, 'scrollTo')
+    layOutLive({ [THU]: 100, [THU + 1]: 700, [THU + 2]: 1400 })
+    const { container } = render(page(LEGS, at(10)))
+    for (let i = 0; i < 3; i++) fireEvent.click(screen.getByRole('button', { name: 'Next month' })) // January 2027: six week rows
+    fireEvent.click(container.querySelector<HTMLElement>(`[data-calendar-day="${THU + 74}"]`)!) // its greyed 28 December: five
+    expect(container.querySelector('.calendar-title')!.textContent).toBe('December 2026')
+    // No legs in December, so to Saturday, the latest day before it with some, measured with five rows.
+    expect(scrollTo).toHaveBeenLastCalledWith({ top: 1741.5, behavior: 'smooth' })
   })
 
   it('takes the list to a tap’s day after the page has redrawn, as the calendar in it grows or shrinks with the month', () => {

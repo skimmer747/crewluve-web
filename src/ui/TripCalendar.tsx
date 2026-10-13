@@ -48,8 +48,13 @@ export function TripCalendar({ month, firstDay, legs, now, timeZone, today, sele
   const focusNext = useRef<number | null>(null)
   const stop = [keyDay, selected, today].find((day) => day !== null && inMonth(day, month)) ?? dayOf(month.year, month.month, 1)
 
-  // A day picked another way, by a row or Current Event, takes the Tab stop back from the keys.
-  useEffect(() => setKeyDay(null), [selected])
+  // A day picked another way, by a row or Current Event, takes the Tab stop back from the keys: only when the selected
+  // day changes, not as the calendar mounts, where focus given back after it moved has just set the stop.
+  const shownSelected = useRef(selected)
+  useEffect(() => {
+    if (shownSelected.current !== selected) setKeyDay(null)
+    shownSelected.current = selected
+  }, [selected])
 
   useLayoutEffect(() => {
     const day = focusNext.current
@@ -109,7 +114,7 @@ export function TripCalendar({ month, firstDay, legs, now, timeZone, today, sele
                 <span key={d.day} role="gridcell" aria-selected={d.day === selected ? 'true' : 'false'}>
                   <button type="button" class={dayClass(d, today, selected)} data-calendar-day={d.day} aria-label={dayName(d.day)}
                     aria-current={d.day === today ? 'date' : undefined} tabIndex={d.day === stop ? 0 : -1} onClick={() => tap(d.day)}
-                    onKeyDown={(e) => move(e, d.day)}>
+                    onKeyDown={(e) => move(e, d.day)} onFocus={() => setKeyDay(d.day)}>
                     <span class="calendar-num">{d.date}</span>
                   </button>
                 </span>

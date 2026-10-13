@@ -137,9 +137,11 @@ export function SchedulePage({ legs, pilot, now, timeZone, h24, airports, onBack
   const place = (): Place => {
     const box = list.current!
     const { top, bottom } = box.getBoundingClientRect()
+    // As a phone turns on its side, the window has shrunk before the calendar moves, and the bar and the pinned calendar
+    // can leave the box no height at all: a day starting right at its top still counts, so `<=` at the bottom.
     const showing = [...box.querySelectorAll<HTMLElement>('.schedule-day')].find((section) => {
       const rect = section.getBoundingClientRect()
-      return rect.bottom > top && rect.top < bottom
+      return rect.bottom > top && rect.top <= bottom
     })
     const buttons = [...document.querySelectorAll<HTMLElement>('.calendar button')]
     return {

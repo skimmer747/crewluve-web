@@ -769,6 +769,8 @@ describe('calendar.css', () => {
     // The number sits over its circle.
     expect(rule('.calendar-num')).toEqual([['position', 'relative']])
     expect(rule('.calendar-day.other:not(.selected) .calendar-num')).toEqual([['opacity', '0.4']])
+    // Only unselected: a greyed day that's selected keeps the white of `.selected`.
+    expect(rule('.calendar-day.other:not(.selected)')).toEqual([['color', 'var(--text-2)']])
     const heads = rulesIn(css('calendar')).map((r) => r.head)
     expect(heads.indexOf('.calendar-day.selected::before')).toBeGreaterThan(heads.indexOf('.calendar-day.today::before'))
   })
