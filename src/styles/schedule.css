@@ -1,7 +1,7 @@
 /* The Schedule page (slice 3A §4). Sizes are the app's EventTimelineView, TimelineRowView and TimeGapView in points. */
 
-/* The page: the site's column, exactly the window's height, which it never scrolls; only the list does, in its own box
-   (slice 3B §3.1). Fixed to the window's edges, which holds in Safari before 15.4 too. */
+/* The page: the site's column, exactly the window's height, fixed to its edges, so the window has nothing to scroll; only
+   the list does, in its own box (slice 3B §3.1). */
 .schedule {
   position: fixed;
   top: 0;
@@ -13,6 +13,12 @@
   padding: 0 16px;
   display: flex;
   flex-direction: column;
+}
+
+/* While it shows, the body gives up the full height base.css gives it: Safari before 15.4, without dvh, makes that 100vh,
+   taller than the window with its toolbar showing, which would leave the window something to scroll. */
+html.schedule-open body {
+  min-height: 0;
 }
 
 /* The bar: the back button, 44 px of round glass with a chevron as in iOS 26, and the title in the middle, on the
@@ -53,6 +59,11 @@
   overscroll-behavior: contain;
   margin: 0 -16px;
   padding: 0 16px;
+}
+
+/* Its focus ring inside its edges, which the window and the column's sides would otherwise cut off. */
+.schedule-days:focus-visible {
+  outline-offset: -2px;
 }
 
 /* The list, 12 px above and below as the app's, the bottom above the home indicator. */
@@ -136,6 +147,7 @@
   gap: 6px;
 }
 
+/* A tap on the leg picks its day (slice 3B §5.3), without Safari's grey flash, as on the cards that open the schedule. */
 .leg {
   position: relative;
   display: flex;
@@ -143,6 +155,7 @@
   gap: 12px;
   padding: 10px 12px;
   border-radius: 14px;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .leg.glass {

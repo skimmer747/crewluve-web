@@ -87,6 +87,13 @@ describe('SchedulePage (slice 3A §4)', () => {
     expect(box.querySelectorAll('.schedule-day').length).toBe(3)
   })
 
+  it('takes the body’s full height away while it shows, which Safari before 15.4 makes taller than the window, and gives it back', () => {
+    const { unmount } = render(page(LEGS, at(10)))
+    expect(document.documentElement.classList.contains('schedule-open')).toBe(true)
+    unmount()
+    expect(document.documentElement.classList.contains('schedule-open')).toBe(false)
+  })
+
   it('focuses the title before it scrolls, since Safari before 15 scrolls to whatever takes focus', () => {
     const calls: string[] = []
     vi.spyOn(HTMLElement.prototype, 'scrollTo').mockImplementation(() => {
@@ -197,12 +204,13 @@ describe('SchedulePage’s calendar (slice 3B §3.1, §5)', () => {
     expect(day(container, THU).className).toBe('calendar-day today selected')
   })
 
-  it('takes the list to a tapped day’s heading, gliding there, and selects the day', () => {
+  it('takes the list to a tapped day’s heading, gliding there from wherever it’s scrolled, and selects the day', () => {
     const scrollTo = scrolls()
     layOut(DAYS)
     const { container } = render(page(LEGS, at(10)))
+    listBox(container).scrollTop = 500
     fireEvent.click(day(container, THU + 1))
-    expect(scrollTo).toHaveBeenLastCalledWith({ top: 640, behavior: 'smooth' })
+    expect(scrollTo).toHaveBeenLastCalledWith({ top: 1140, behavior: 'smooth' })
     expect(day(container, THU + 1).className).toBe('calendar-day selected')
     expect(day(container, THU).className).toBe('calendar-day today')
   })
@@ -349,18 +357,71 @@ describe('SchedulePage on a short window (slice 3B §3.2)', () => {
     expect(container.querySelector('.schedule')!.children[1]).toBe(listBox(container))
   })
 
-  it('moves the calendar as the phone turns, keeping the day at the top of the list there', () => {
+  /**
+   * Lays the page out as a browser would: the list's box from 60 px down, 315 px tall, and each day's 300 px section
+   * `offsets` px into the list. The box's scroll moves the sections, and so does the calendar when it sits in the box:
+   * its 91.5 px and 50 px a week row come first.
+   */
+  function layOutLive(offsets: Record<number, number>) {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const box = document.querySelector<HTMLElement>('.schedule-days')!
+      const calendar = box.querySelector('.calendar') ? 91.5 + 50 * box.querySelectorAll('.calendar-week').length : 0
+      const day = Number((this.closest('[data-day]') as HTMLElement | null)?.dataset.day)
+      const top = this === box ? 60 : this.classList.contains('schedule-day') ? 60 + calendar + (offsets[day] ?? 5000) - box.scrollTop : 0
+      const height = this === box ? 315 : 300
+      return { top, bottom: top + height, left: 0, right: 0, width: 0, height, x: 0, y: top, toJSON: () => ({}) } as DOMRect
+    })
+  }
+  const sectionTop = (container: Element, day: number) => container.querySelector<HTMLElement>(`[data-day="${day}"]`)!.getBoundingClientRect().top
+
+  it('keeps the list where it was as the phone turns, both ways: the day showing at its top stays as far down as it was', () => {
     const phone = windowOf(800)
-    const scrollTo = vi.spyOn(HTMLElement.prototype, 'scrollTo').mockImplementation(() => {})
-    layOut({ days: { [THU + 1]: 700 } })
+    const scrollTo = vi.spyOn(HTMLElement.prototype, 'scrollTo')
+    layOutLive({ [THU]: 100, [THU + 1]: 700, [THU + 2]: 1400 })
     const { container } = render(page(LEGS, at(10)))
-    expect(scrollTo).toHaveBeenLastCalledWith(0, 640)
-    layOut({ headings: { [THU]: -300, [THU + 1]: 60, [THU + 2]: 900 }, days: { [THU + 1]: 260 } })
+    expect(listBox(container).scrollTop).toBe(700) // opened at Friday
+    listBox(container).scrollTop = 740 // and scrolled 40 px into it
+    expect(sectionTop(container, THU + 1)).toBe(20)
     phone.turn(400)
     expect(listBox(container).firstElementChild!.className).toBe('calendar')
-    expect(scrollTo).toHaveBeenLastCalledWith(0, 200)
+    expect(scrollTo).toHaveBeenLastCalledWith(0, 1081.5)
+    expect(sectionTop(container, THU + 1)).toBe(20)
     phone.turn(800)
     expect(container.querySelector('.calendar')!.parentElement!.className).toBe('schedule')
+    expect(scrollTo).toHaveBeenLastCalledWith(0, 740)
+    expect(sectionTop(container, THU + 1)).toBe(20)
+  })
+
+  it('goes back to the top of the list when the calendar filled the box and no day showed', () => {
+    const phone = windowOf(400)
+    const scrollTo = vi.spyOn(HTMLElement.prototype, 'scrollTo')
+    layOutLive({ [THU]: 100, [THU + 1]: 700, [THU + 2]: 1400 })
+    const { container } = render(page(LEGS, at(10)))
+    listBox(container).scrollTop = 0
+    phone.turn(800)
+    expect(scrollTo).toHaveBeenLastCalledWith(0, 0)
+  })
+
+  it('gives focus back to the calendar’s control the move rebuilt', () => {
+    const phone = windowOf(800)
+    const { container } = render(page(LEGS, at(10)))
+    screen.getByRole('button', { name: 'Next month' }).focus()
+    phone.turn(400)
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Next month' }))
+    container.querySelector<HTMLElement>(`[data-calendar-day="${THU + 5}"]`)!.focus()
+    phone.turn(800)
+    expect(document.activeElement).toBe(container.querySelector(`[data-calendar-day="${THU + 5}"]`))
+  })
+
+  it('takes the list to a tap’s day after the page has redrawn, as the calendar in it grows or shrinks with the month', () => {
+    windowOf(400)
+    const scrollTo = vi.spyOn(HTMLElement.prototype, 'scrollTo')
+    layOutLive({ [THU]: 100, [THU + 1]: 700, [THU + 2]: 1400 })
+    const { container } = render(page(LEGS, at(10)))
+    for (let i = 0; i < 3; i++) fireEvent.click(screen.getByRole('button', { name: 'Next month' })) // January 2027: six week rows
+    expect(container.querySelectorAll('.calendar-week').length).toBe(6)
+    fireEvent.click(screen.getByRole('button', { name: 'Current Event' })) // back to October's five
+    expect(scrollTo).toHaveBeenLastCalledWith({ top: 1041.5, behavior: 'smooth' })
   })
 
   it('stops listening for the window’s height once it’s gone', () => {

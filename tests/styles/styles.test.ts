@@ -614,7 +614,9 @@ describe('schedule.css', () => {
   const rule = (head: string) => declarations(find(rulesIn(css('schedule')), head)!.body)
 
   it('fills the window with the page: the bar on the page’s plain color, then the list in its own box, headings stuck at its top (slice 3B §3)', () => {
-    // Fixed to the window's edges, which holds in Safari before 15.4 too, so the window itself never scrolls.
+    // Fixed to the window's edges, so the window itself never scrolls; while it shows, the body gives up the 100vh that
+    // Safari before 15.4 would make taller than the window.
+    expect(rule('html.schedule-open body')).toEqual([['min-height', '0']])
     expect(rule('.schedule')).toEqual(expect.arrayContaining([
       ['position', 'fixed'], ['top', '0'], ['right', '0'], ['bottom', '0'], ['left', '0'], ['max-width', '480px'], ['margin', '0 auto'],
       ['padding', '0 16px'], ['display', 'flex'], ['flex-direction', 'column'],
@@ -630,6 +632,8 @@ describe('schedule.css', () => {
       ['margin', '0 -16px'], ['padding', '0 16px'],
     ])
     expect(rule('.schedule-list')).toEqual([['padding', '12px 0 calc(12px + env(safe-area-inset-bottom))']])
+    // Its focus ring inside its edges, which the window would cut off.
+    expect(rule('.schedule-days:focus-visible')).toEqual([['outline-offset', '-2px']])
     expect(rule('.day-heading')).toEqual(expect.arrayContaining([
       // The bar material's shade over the page's, solid, so a row sliding under the heading doesn't show through.
       ['position', 'sticky'], ['top', '0'], ['padding', '12px 0 2px'], ['background', 'linear-gradient(var(--bar-fill), var(--bar-fill)), var(--bg)'],
@@ -645,8 +649,10 @@ describe('schedule.css', () => {
     expect(rule('.day-pill.stuck')).toEqual([['background', 'var(--yellow)']])
   })
 
-  it('lays a row out as TimelineRowView: 12 px apart, 10 by 12 px in, with a 14 px radius', () => {
+  it('lays a row out as TimelineRowView: 12 px apart, 10 by 12 px in, with a 14 px radius, and no grey flash when tapped', () => {
     expect(rule('.leg')).toEqual(expect.arrayContaining([['display', 'flex'], ['gap', '12px'], ['padding', '10px 12px'], ['border-radius', '14px']]))
+    // A tap picks the row's day (slice 3B §5.3); Safari would grey the whole card, as it did the cards before 3A's fix.
+    expect(rule('.leg')).toContainEqual(['-webkit-tap-highlight-color', 'transparent'])
   })
 
   it('tints the 36 px icon circle with the leg’s color at 20%', () => {
