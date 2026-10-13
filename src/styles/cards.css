@@ -94,7 +94,8 @@
    18cqi reaches the full 52 px on every current iPhone (375 px and wider) and still fits the widest
    common value, "11d 08h 39m", on a 320 px phone with a few pixels to spare (19.7cqi is the hard limit).
    The calc line comes first for browsers without container units (cqi): they drop the second line and keep it.
-   It approximates the card's content box as 100vw - 80px (16 px margins and 24 px padding per side). */
+   It approximates the card's content box as 100vw - 80px (16 px margins and 24 px padding per side). In the
+   side-by-side layout's status column, split.css works it out from the column instead. */
 .countdown-value .num {
   font-size: min(52px, calc(18vw - 14.4px));
   font-size: min(52px, 18cqi);

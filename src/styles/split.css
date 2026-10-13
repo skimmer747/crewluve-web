@@ -55,6 +55,26 @@
   outline-offset: -2px;
 }
 
+/* The phone's page sizes some things by the window, which is its column. Here they go by the status column instead:
+   max(320px, 40vw) wide, until the layout stops at 1376 px, by when each has reached its largest. The sun dial is 42%
+   of the column, as on a phone; 42% of the window made it cover the card's words (location.css). */
+.split-status .sun-dial {
+  width: min(160px, calc(0.42 * max(320px, 40vw)));
+  height: min(160px, calc(0.42 * max(320px, 40vw)));
+}
+
+/* The countdown, for browsers without container units, from the column's card: its content is the column less 80 px.
+   The cqi line comes last again, so browsers that have them keep it (cards.css). */
+.split-status .countdown-value .num {
+  font-size: min(52px, calc(0.18 * max(320px, 40vw) - 14.4px));
+  font-size: min(52px, 18cqi);
+}
+
+.split-status .countdown-value .unit {
+  font-size: min(32px, calc(0.111 * max(320px, 40vw) - 8.88px));
+  font-size: min(32px, 11.1cqi);
+}
+
 /* The schedule: the Schedule page below its bar, with the same 16 px sides for its list's box to span, after the app's
    Divider, a 0.5 px hairline in iOS's separator color (§4.4, §4.5). */
 .split-schedule {

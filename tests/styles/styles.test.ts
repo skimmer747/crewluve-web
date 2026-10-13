@@ -854,6 +854,30 @@ describe('split.css', () => {
       ['grid-column', '1 / -1'], ['display', 'flex'], ['align-items', 'center'], ['justify-content', 'center'], ['padding', '0 16px'],
     ])
     expect(rule('.split-bar .title')).toEqual([['margin', '0']])
+    // The title keeps its 22 px bold, the app's iPad title, and no other rule here restyles it.
+    expect(declarations(find(rulesIn(css('base')), '.title')!.body)).toEqual(expect.arrayContaining([['font-size', '22px'], ['font-weight', '700']]))
+    expect(rulesIn(css('split')).map((r) => r.head)).toEqual([
+      '.split', '.split-bar', '.split-bar .title', '.split-status', '.split-status > *', '.split-status:focus-visible', '.split-status .sun-dial',
+      '.split-status .countdown-value .num', '.split-status .countdown-value .unit', '.split-schedule',
+    ])
+  })
+
+  it('sizes by the status column what the phone’s page sizes by the window: the sun dial, and the countdown without container units (§4.3)', () => {
+    // On a phone the column is the window: the dial is 42% of it, and the countdown 18% and 11.1% of the card's content,
+    // the window less 80 px. Side by side, the column is max(320px, 40vw) wide; the dial overlapped the card's words.
+    expect(declarations(find(rulesIn(css('location')), '.sun-dial')!.body)).toEqual(expect.arrayContaining([
+      ['width', 'min(160px, 42vw)'], ['height', 'min(160px, 42vw)'],
+    ]))
+    expect(rule('.split-status .sun-dial')).toEqual([
+      ['width', 'min(160px, calc(0.42 * max(320px, 40vw)))'], ['height', 'min(160px, calc(0.42 * max(320px, 40vw)))'],
+    ])
+    // The container-unit line still comes last, for the browsers that have them, as in cards.css.
+    expect(rule('.split-status .countdown-value .num')).toEqual([
+      ['font-size', 'min(52px, calc(0.18 * max(320px, 40vw) - 14.4px))'], ['font-size', 'min(52px, 18cqi)'],
+    ])
+    expect(rule('.split-status .countdown-value .unit')).toEqual([
+      ['font-size', 'min(32px, calc(0.111 * max(320px, 40vw) - 8.88px))'], ['font-size', 'min(32px, 11.1cqi)'],
+    ])
   })
 
   it('scrolls the status in a box of its own, spaced as the status page’s column, with its focus ring inside (§4.3)', () => {

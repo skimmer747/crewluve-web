@@ -146,7 +146,8 @@
 }
 
 /* The sun dial: 160 px like the app's, smaller on narrow phones, at the upper right. top lifts it 6 px above the
-   padding the way the app's .offset(y: -6) does, without changing the card's height as a margin would. */
+   padding the way the app's .offset(y: -6) does, without changing the card's height as a margin would. Beside the
+   schedule, split.css sizes it by the status column instead of the window. */
 .sun-dial {
   position: relative;
   top: -6px;
