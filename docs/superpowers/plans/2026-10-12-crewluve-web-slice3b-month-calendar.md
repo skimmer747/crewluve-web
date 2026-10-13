@@ -3263,18 +3263,18 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ### Task 14: Merge and release (controller, asks first)
 
-- [ ] **Step 1: Merge**
+- [x] **Step 1: Merge**
 
 Use superpowers:finishing-a-development-branch. Ask the user one question about how to merge `slice3b` into `main`.
 
-- [ ] **Step 2: Release, only with a fresh yes**
+- [x] **Step 2: Release, only with a fresh yes**
 
 Ask before pushing `main`; the push redeploys crewluve.crewlu.net. After the "Deploy to GitHub Pages" run succeeds, check the live site:
 - the live page's files match the local build;
 - https://crewluve.crewlu.net/?demo=1&scene=flying#schedule shows the calendar on this month with today selected; a tap on a day takes the list to it; and the back button returns to the status page;
 - `read_console_messages` with `onlyErrors: true` shows nothing, and the demo makes no requests beyond the page's own files.
 
-- [ ] **Step 3: Update the memory**
+- [x] **Step 3: Update the memory**
 
 Update the project memory with the new tip and what's next: Slice 3C, the status and the schedule side by side on iPad and desktop.
 
@@ -3400,6 +3400,17 @@ Update the project memory with the new tip and what's next: Slice 3C, the status
   - Deliberate breaks against this round's fixes caught 5 of 5.
   - The breaks left uncaught are equivalent rewrites. For example, which showing day a turn keeps makes no difference, since the calendar's move shifts every day alike.
   - The suite is 2121 tests in 91 files.
+
+**Merge and release (Task 14), 2026-10-12**
+- **Merge:** the user chose "Merge into main locally". `main` hadn't moved since the branch was cut, so it fast-forwarded to `75426fc`, and the branch is deleted.
+  - On the merged `main`: 2121 tests in 91 files; tsc and build clean. The build makes `index-C6ID6gPy.js` and `index-pCNEtSW1.css`.
+- **Release:** with the user's separate yes, main was pushed (`af61ade..75426fc`), taking 3A's release note and 3B's spec and plan with it. The "Deploy to GitHub Pages" run 38331279220 succeeded, with no annotations.
+- **The live check:** the live page and its files (the script, the styles, the Supabase chunk and `airports.json`) are byte for byte the local build. On https://crewluve.crewlu.net/?demo=1&scene=flying#schedule:
+  - the calendar opens on October 2026, with today, the 12th, selected and marked as the current date, the time line on it, and the trips' bars and codes. The list opens at Today, and the page is the window's height;
+  - a tap on Thursday the 15th selects it and keeps focus on it, and the list scrolls until that day's heading is the yellow pill at the box's top;
+  - the back button goes to the status page, and the page's `schedule-open` class goes with it;
+  - there are no console errors, and the demo asks only for the page, `airports.json`, and its script and styles.
+- The browser pane reported the tab as hidden, which holds smooth scrolling back, so the list reached the 15th a few seconds after the tap.
 
 **Left for later** (spec §11)
 - `memo` on rows, so a tick touches only the rows whose clock changes.
