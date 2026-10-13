@@ -49,8 +49,11 @@ describe('useSideBySide (slice 3C §3)', () => {
   })
 
   it('stops following the window once it’s gone', () => {
-    const removed = vi.spyOn(Object.getPrototypeOf(matchMedia(SIDE_BY_SIDE)), 'removeEventListener')
+    const lists = Object.getPrototypeOf(matchMedia(SIDE_BY_SIDE))
+    const added = vi.spyOn(lists, 'addEventListener')
+    const removed = vi.spyOn(lists, 'removeEventListener')
     render(<Layout />).unmount()
-    expect(removed).toHaveBeenCalledWith('change', expect.any(Function))
+    const follow = added.mock.calls.find(([type]) => type === 'change')![1]
+    expect(removed).toHaveBeenCalledWith('change', follow)
   })
 })
