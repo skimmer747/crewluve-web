@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, fireEvent, render, screen } from '@testing-library/preact'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Leg } from '../../src/engine/legs'
 import { DAY } from '../../src/time/zoned'
@@ -311,5 +311,63 @@ describe('SchedulePage’s calendar (slice 3B §3.1, §5)', () => {
     expect(line()).toBe(before)
     rerender(page(LEGS, at(10) + 60_000))
     expect(line()).not.toBe(before)
+  })
+})
+
+describe('SchedulePage on a short window (slice 3B §3.2)', () => {
+  /** A window `height` px tall, as matchMedia sees it, with the change event a turn of the phone sends. */
+  function windowOf(height: number) {
+    const listeners = new Set<() => void>()
+    const tall = {
+      get matches() {
+        return height >= 500
+      },
+      media: '(min-height: 500px)',
+      addEventListener: (_type: string, listener: () => void) => listeners.add(listener),
+      removeEventListener: (_type: string, listener: () => void) => listeners.delete(listener),
+    }
+    vi.stubGlobal('matchMedia', (query: string) => (query === tall.media ? tall : { matches: false, media: query }))
+    return {
+      listeners,
+      turn(to: number) {
+        height = to
+        act(() => listeners.forEach((listener) => listener()))
+      },
+    }
+  }
+
+  it('pins the calendar under the bar on a window 500 px tall', () => {
+    windowOf(500)
+    const { container } = render(page(LEGS, at(10)))
+    expect(container.querySelector('.calendar')!.parentElement!.className).toBe('schedule')
+  })
+
+  it('puts the calendar and its hairline at the top of the list on a shorter window, to scroll away with it', () => {
+    windowOf(499)
+    const { container } = render(page(LEGS, at(10)))
+    expect([...listBox(container).children].slice(0, 3).map((el) => el.className)).toEqual(['calendar', 'calendar-rule', 'schedule-list'])
+    expect(container.querySelector('.schedule')!.children[1]).toBe(listBox(container))
+  })
+
+  it('moves the calendar as the phone turns, keeping the day at the top of the list there', () => {
+    const phone = windowOf(800)
+    const scrollTo = vi.spyOn(HTMLElement.prototype, 'scrollTo').mockImplementation(() => {})
+    layOut({ days: { [THU + 1]: 700 } })
+    const { container } = render(page(LEGS, at(10)))
+    expect(scrollTo).toHaveBeenLastCalledWith(0, 640)
+    layOut({ headings: { [THU]: -300, [THU + 1]: 60, [THU + 2]: 900 }, days: { [THU + 1]: 260 } })
+    phone.turn(400)
+    expect(listBox(container).firstElementChild!.className).toBe('calendar')
+    expect(scrollTo).toHaveBeenLastCalledWith(0, 200)
+    phone.turn(800)
+    expect(container.querySelector('.calendar')!.parentElement!.className).toBe('schedule')
+  })
+
+  it('stops listening for the window’s height once it’s gone', () => {
+    const phone = windowOf(800)
+    const { unmount } = render(page(LEGS, at(10)))
+    expect(phone.listeners.size).toBe(1)
+    unmount()
+    expect(phone.listeners.size).toBe(0)
   })
 })

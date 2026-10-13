@@ -29,6 +29,12 @@ export interface SchedulePageProps {
 /** How far below the top of the list's box a heading counts as stuck there: the app's 20 points (EventTimelineView). */
 const STUCK_SLACK = 20
 
+/** The windows tall enough to keep the calendar pinned under the bar (slice 3B §3.2). */
+const TALL = '(min-height: 500px)'
+
+/** Whether the window is tall enough for the pinned calendar: yes where the browser can't say. */
+const tallEnough = () => typeof matchMedia !== 'function' || matchMedia(TALL).matches
+
 const topOf = (el: HTMLElement | null) => el?.getBoundingClientRect().top ?? 0
 
 /**
@@ -45,6 +51,10 @@ export function SchedulePage({ legs, pilot, now, timeZone, h24, airports, onBack
   const [selected, setSelected] = useState(today)
   const [month, setMonth] = useState<Month>(() => monthOf(today))
   const firstDay = useMemo(() => weekStart ?? firstWeekday(), [weekStart])
+  // Under 500 px tall, the calendar moves into the list and scrolls away with it; a turn of the phone moves it, keeping
+  // the day at the top of the list there (3B §3.2).
+  const [pinned, setPinned] = useState(tallEnough)
+  const keepDay = useRef<number | null>(null)
   const title = useRef<HTMLHeadingElement>(null)
   const list = useRef<HTMLDivElement>(null)
   const [stuck, setStuck] = useState<number | null>(null)
@@ -105,6 +115,27 @@ export function SchedulePage({ legs, pilot, now, timeZone, h24, airports, onBack
     }
   }, [days])
 
+  // A turn of the phone across 500 px moves the calendar, noting first the day at the top of the list.
+  useEffect(() => {
+    if (typeof matchMedia !== 'function') return
+    const query = matchMedia(TALL)
+    const turn = () => {
+      keepDay.current = stuckDay()
+      setPinned(query.matches)
+    }
+    query.addEventListener?.('change', turn)
+    return () => query.removeEventListener?.('change', turn)
+  }, [])
+
+  // Once the calendar has moved, that day is back at the top of the list.
+  useLayoutEffect(() => {
+    const day = keepDay.current
+    keepDay.current = null
+    const box = list.current!
+    const section = day === null ? null : box.querySelector<HTMLElement>(`[data-day="${day}"]`)
+    if (section) box.scrollTo(0, box.scrollTop + section.getBoundingClientRect().top - topOf(box))
+  }, [pinned])
+
   /** Scrolls the list so `day`'s heading sits at the top of its box, gliding unless the visitor asks for reduced motion (3B §5.6). */
   const scrollToDay = (day: number | null) => {
     const box = list.current
@@ -134,6 +165,14 @@ export function SchedulePage({ legs, pilot, now, timeZone, h24, airports, onBack
   }
 
   const nextId = nextLegId(legs, now)
+  // The time line moves once a minute, as the app's (3B §4.7).
+  const calendar = (
+    <>
+      <TripCalendar month={month} firstDay={firstDay} legs={legs} now={Math.floor(now / MINUTE) * MINUTE} timeZone={timeZone} today={today}
+        selected={selected} onSelect={pick} onMonth={setMonth} onCurrentEvent={currentEvent} />
+      <div class="calendar-rule" />
+    </>
+  )
   return (
     <main class="schedule">
       <header class="schedule-bar">
@@ -142,13 +181,11 @@ export function SchedulePage({ legs, pilot, now, timeZone, h24, airports, onBack
         </button>
         <h1 class="schedule-title" ref={title} tabIndex={-1}>Schedule</h1>
       </header>
-      {/* The time line moves once a minute, as the app's (3B §4.7). */}
-      <TripCalendar month={month} firstDay={firstDay} legs={legs} now={Math.floor(now / MINUTE) * MINUTE} timeZone={timeZone} today={today}
-        selected={selected} onSelect={pick} onMonth={setMonth} onCurrentEvent={currentEvent} />
-      <div class="calendar-rule" />
+      {pinned && calendar}
       {/* The list's own scrolling box, which keyboards reach to scroll it. The list inside keeps the 12 px above and
           below, so the box has no padding at the top and the headings stick at its very top (3B §3.4). */}
       <div class="schedule-days" ref={list} tabIndex={0} role="region" aria-label="Legs">
+        {!pinned && calendar}
         <div class="schedule-list">
           {rows.length === 0 ? (
             <div class="schedule-empty">
