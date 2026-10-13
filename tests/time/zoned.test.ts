@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calendarDay, isKnownZone, prefers24Hour, viewerTimeZone, zoneAbbr, zonedParts, zoneOffsetMinutes } from '../../src/time/zoned'
+import { calendarDay, dayOf, dayParts, dayStart, HOUR, isKnownZone, prefers24Hour, viewerTimeZone, zoneAbbr, zonedParts, zoneOffsetMinutes } from '../../src/time/zoned'
 
 const T = Date.UTC(2026, 9, 9, 3, 30) // 2026-10-09T03:30Z
 
@@ -75,5 +75,47 @@ describe('viewerTimeZone', () => {
 
   it('falls back to UTC when the runtime reports no zone', () => {
     expect(viewerTimeZone(() => undefined)).toBe('UTC')
+  })
+})
+
+describe('dayParts and dayOf (slice 3B §6.2)', () => {
+  it('turn a calendar day number into its date, and a date into its number', () => {
+    const day = calendarDay(T, 'America/New_York')
+    expect(dayParts(day)).toEqual({ year: 2026, month: 10, day: 8, weekday: 4 })
+    expect(dayOf(2026, 10, 8)).toBe(day)
+    expect(dayParts(dayOf(2028, 2, 29))).toEqual({ year: 2028, month: 2, day: 29, weekday: 2 })
+  })
+
+  it('roll a month or a day past its end over, as Date.UTC does', () => {
+    expect(dayOf(2026, 13, 1)).toBe(dayOf(2027, 1, 1))
+    expect(dayOf(2026, 0, 1)).toBe(dayOf(2025, 12, 1))
+    expect(dayOf(2026, 3, 0)).toBe(dayOf(2026, 2, 28))
+  })
+})
+
+describe('dayStart (slice 3B §4.5)', () => {
+  const NY = 'America/New_York'
+
+  it('is the instant a calendar day begins in the zone', () => {
+    expect(dayStart(calendarDay(T, NY), NY)).toBe(Date.UTC(2026, 9, 8, 4))
+    expect(dayStart(dayOf(2026, 10, 9), 'Asia/Kolkata')).toBe(Date.UTC(2026, 9, 8, 18, 30))
+    expect(dayStart(dayOf(2026, 10, 9), 'UTC')).toBe(Date.UTC(2026, 9, 9))
+  })
+
+  it('makes the days the clocks change 23 and 25 hours long', () => {
+    const spring = dayOf(2026, 3, 8)
+    const fall = dayOf(2026, 11, 1)
+    expect(dayStart(spring + 1, NY) - dayStart(spring, NY)).toBe(23 * HOUR)
+    expect(dayStart(fall + 1, NY) - dayStart(fall, NY)).toBe(25 * HOUR)
+  })
+
+  it('starts a day at its first minute where the clocks skip midnight', () => {
+    // Chile's clocks go from midnight to 1:00 on Sunday 6 September 2026, so that day begins at 1:00, 4:00 UTC.
+    expect(dayStart(dayOf(2026, 9, 6), 'America/Santiago')).toBe(Date.UTC(2026, 8, 6, 4))
+  })
+
+  it('reaches the zones furthest from UTC, 14 hours ahead and 12 behind', () => {
+    expect(dayStart(dayOf(2026, 10, 9), 'Pacific/Kiritimati')).toBe(Date.UTC(2026, 9, 8, 10))
+    expect(dayStart(dayOf(2026, 10, 9), 'Etc/GMT+12')).toBe(Date.UTC(2026, 9, 9, 12))
   })
 })

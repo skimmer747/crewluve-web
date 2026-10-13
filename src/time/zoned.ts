@@ -69,6 +69,35 @@ export function calendarDay(ms: number, timeZone: string): number {
   return Date.UTC(p.year, p.month - 1, p.day) / DAY
 }
 
+/** A calendar day number, as calendarDay gives it, as its date: `month` is 1–12 and `weekday` 0 = Sunday. */
+export function dayParts(day: number): { year: number; month: number; day: number; weekday: number } {
+  const date = new Date(day * DAY)
+  return { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate(), weekday: date.getUTCDay() }
+}
+
+/** A date's calendar day number, the reverse of dayParts. A month or a day past its end rolls over, as in Date.UTC. */
+export function dayOf(year: number, month: number, day: number): number {
+  return Date.UTC(year, month - 1, day) / DAY
+}
+
+/**
+ * The instant a calendar day begins in a zone: its midnight, or its first minute where the clocks skip midnight. The
+ * month calendar's week rows run from one to another, so a week with a clock change is 167 or 169 hours long (slice
+ * 3B §4.5).
+ */
+export function dayStart(day: number, timeZone: string): number {
+  // Zones run from 12 hours behind UTC to 14 ahead, so the day begins between 15 hours before the same date's
+  // midnight in UTC and 13 hours after it. Halve that span down to the minute.
+  let before = day * DAY - 15 * HOUR
+  let from = day * DAY + 13 * HOUR
+  while (from - before > MINUTE) {
+    const mid = before + Math.floor((from - before) / 2 / MINUTE) * MINUTE
+    if (calendarDay(mid, timeZone) >= day) from = mid
+    else before = mid
+  }
+  return from
+}
+
 /** The zone's offset from UTC at `ms`, in minutes: -240 for New York in summer, 330 for Kolkata. */
 export function zoneOffsetMinutes(ms: number, timeZone: string): number {
   const p = zonedParts(ms, timeZone)
