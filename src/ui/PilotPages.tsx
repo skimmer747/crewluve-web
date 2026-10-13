@@ -90,7 +90,7 @@ export function PilotPages({ schedule, airports, demo, onSignOut, loadWeather = 
   const status = { snap, now, viewerTz, homeTz, h24, airports, weather, demo, celebrateKey, footer }
   const view = { legs: listed, pilot: snap.pilot, now, timeZone: viewerTz, h24, airports }
   // Side by side, the schedule sits beside the cards, and nothing on the status page opens it (3C §4.3). Each layout
-  // has a status page of its own, so crossing the line rebuilds it, and a popup open on it closes (§5.2).
+  // has a status page of its own, so crossing the line rebuilds it, and a popup open on it closes (§5.2, §5.3).
   if (sideBySide) {
     return <StatusScreen key="side-by-side" {...status} beside={<ScheduleView {...view} />} />
   }
