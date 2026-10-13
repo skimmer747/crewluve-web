@@ -139,15 +139,15 @@ On `/?demo=1&scene=last-leg` and `/?demo=1&scene=flying`, locally and on the liv
 
 ### Task 5: Merge and release (controller, asks first)
 
-- [ ] **Step 1: Merge**
+- [x] **Step 1: Merge**
 
 Use superpowers:finishing-a-development-branch. Ask the user one question about how to merge `part-c-leftovers` into `main`.
 
-- [ ] **Step 2: Release, only with a fresh yes**
+- [x] **Step 2: Release, only with a fresh yes**
 
 Ask before pushing `main`; the push redeploys crewluve.crewlu.net. After the "Deploy to GitHub Pages" run succeeds, check that the live page's files match the local build, that the last-leg and flying scenes look as in Task 4, and that there are no console errors.
 
-- [ ] **Step 3: Update the memory**
+- [x] **Step 3: Update the memory**
 
 Update the project memory with the new tip and what's next: the optional page-scrolling hook, then the idea board.
 
@@ -173,3 +173,4 @@ Update the project memory with the new tip and what's next: the optional page-sc
   - a comment warns that the three tests which swap a leg into the snapshot leave its delay behind, so they shouldn't check it.
   - Not taken: `0e2cda2`'s message says `lonOffset` keeps the app's spelling, but the app spells it `longitudeOffset`. Spec §3 cites only `lon1`, `minLon` and `lonSpan`; `lonOffset` stays as a name of the map's own.
 - **Suite:** 2167 tests in 95 files.
+- **Released, 2026-10-13:** the user chose "Merge into main locally" (fast-forward to `90e0295`, branch deleted; gates green on main), then gave a separate yes to push (`46495f0..90e0295`, 5 commits incl. Redraws' release note). Pages run 38434830437 succeeded. Live serves `index-DEtkdLTa.js`/`index-DL9IXgqK.css`, and every deployed file is byte-identical to the local build. Live `?demo=1&scene=last-leg` shows "DELAYED 40m" (heard as "Delayed 40 minutes") and 2,706 nm; `scene=flying` has no banner and shows 286 nm; no console errors, and no requests beyond the page's own files. The map's hashes differ from Task 4's because the demo's flights follow the clock (at 1 pm the sky at each end is the other way round); Task 4 compared old and new at the same moment.
