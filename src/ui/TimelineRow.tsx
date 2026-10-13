@@ -13,6 +13,8 @@ export interface TimelineRowProps {
   now: number
   /** The gap before this leg, or null (TimeGapView). */
   gap: Gap | null
+  /** A tap on the leg, which picks its day on the calendar (slice 3B §5.3). For the pointer only: the days do the same. */
+  onTap?: () => void
 }
 
 /**
@@ -20,7 +22,7 @@ export interface TimelineRowProps {
  * right-hand column on glass, with the edge and tag of the leg happening now, the next leg, or a leg ending at home.
  * The gap before it comes first: a dashed line and a label, which screen readers hear in words (§4.10).
  */
-export function TimelineRow({ leg, look, times, moment, now, gap }: TimelineRowProps) {
+export function TimelineRow({ leg, look, times, moment, now, gap, onTap }: TimelineRowProps) {
   const clock = legClock(leg.start, leg.end, now, moment)
   const edge = moment === 'happening' ? ' leg-happening' : moment === 'next' ? ' leg-next' : look.homeward ? ' leg-home' : ''
   return (
@@ -32,7 +34,7 @@ export function TimelineRow({ leg, look, times, moment, now, gap }: TimelineRowP
           <span class="sr-only">{gapSpoken(gap.kind, gap.ms)}</span>
         </div>
       )}
-      <div class={`leg glass${edge}${look.homeward ? ' homeward' : ''}`} style={{ '--leg': cssColor(look.color) }}>
+      <div class={`leg glass${edge}${look.homeward ? ' homeward' : ''}`} style={{ '--leg': cssColor(look.color) }} onClick={onTap}>
         {moment === 'next' && (
           <span class="leg-ring" aria-hidden="true">
             <span class="leg-ring-turn" />

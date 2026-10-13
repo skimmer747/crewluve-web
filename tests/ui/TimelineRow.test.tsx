@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
-import { cleanup, render } from '@testing-library/preact'
-import { afterEach, describe, expect, it } from 'vitest'
+import { cleanup, fireEvent, render } from '@testing-library/preact'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { legTimes, type LegMoment } from '../../src/copy/schedule'
 import type { Leg } from '../../src/engine/legs'
 import { rowLook, type Gap } from '../../src/ui/scheduleFacts'
@@ -92,5 +92,23 @@ describe('TimelineRow (slice 3A §4.4–4.9)', () => {
     expect(gap.nextElementSibling!.className).toBe('leg glass')
     cleanup()
     expect(row(layover, 'other', at(40)).container.querySelector('.leg-gap')).toBeNull()
+  })
+})
+
+describe('TimelineRow taps (slice 3B §5.3)', () => {
+  it('reports a tap on the leg, not on its gap, and is no button for keyboards or screen readers, as the calendar’s days do the same', () => {
+    const onTap = vi.fn()
+    const { container } = render(
+      <ol>
+        <TimelineRow leg={ups} look={rowLook(ups, commuter, testAirports)} times={legTimes(ups.start, ups.end, NY, false)} moment="other" now={at(9)}
+          gap={{ kind: 'gap', ms: H }} onTap={onTap} />
+      </ol>,
+    )
+    const card = container.querySelector<HTMLElement>('.leg')!
+    fireEvent.click(card.querySelector('.leg-title')!)
+    expect(onTap).toHaveBeenCalledTimes(1)
+    fireEvent.click(container.querySelector('.leg-gap')!)
+    expect(onTap).toHaveBeenCalledTimes(1)
+    expect([card.tagName, card.getAttribute('role'), card.getAttribute('tabindex')]).toEqual(['DIV', null, null])
   })
 })
