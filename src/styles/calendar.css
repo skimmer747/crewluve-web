@@ -1,0 +1,229 @@
+/* The month calendar (slice 3B §4). Sizes are the app's TripCalendarView, CalendarWeekRowView and CalendarTripBarView
+   in points. */
+
+/* 16 px above and below; the page's column gives it its 16 px sides. The header, the weekday letters and the weeks are
+   8 px apart. */
+.calendar {
+  flex: none;
+  padding: 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* The header: ‹, the month, Current Event and ›, with a third of the room left over between each (§4.2). */
+.calendar-header {
+  display: flex;
+  align-items: center;
+}
+
+.calendar-space {
+  flex: 1;
+}
+
+.calendar-title {
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+/* SF Symbols' chevrons in blue. Each takes taps over 44 px, centered on it; the margins keep the row at the capsule's
+   height, and the tap areas within the column's 16 px sides, with the chevrons a pixel in from the content's edges. */
+.calendar-arrow {
+  width: 44px;
+  height: 44px;
+  margin: -7px -16px;
+  padding: 0;
+  border: 0;
+  background: none;
+  display: grid;
+  place-items: center;
+  color: var(--blue);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Current Event: iOS's bordered button, 12 px blue words on a gray capsule. */
+.calendar-now {
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--button-fill);
+  color: var(--blue);
+  font-size: 12px;
+  line-height: 16px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The weekday letters: 11 px, medium, in the secondary color, each centered in its seventh. */
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 8px;
+  text-align: center;
+  font-size: 11px;
+  line-height: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+/* A week: the day numbers' 28 px, then the codes' 12 px and the bars' 10 px. */
+.calendar-week {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  height: 50px;
+}
+
+/* A day's number: 12 px in its 28 px row, bold for today. Today has a 1.5 px blue ring and the selected day a filled
+   blue circle, both 26 px; the days of the months either side are the secondary color at 40%. */
+.calendar-day {
+  position: relative;
+  width: 100%;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: none;
+  display: grid;
+  place-items: center;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 16px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.calendar-day::before {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 50%;
+  width: 26px;
+  height: 26px;
+  margin-left: -13px;
+  border-radius: 50%;
+}
+
+.calendar-num {
+  position: relative;
+}
+
+.calendar-day.today {
+  font-weight: 700;
+}
+
+.calendar-day.today::before {
+  border: 1.5px solid var(--blue);
+}
+
+.calendar-day.selected {
+  color: #ffffff;
+}
+
+.calendar-day.selected::before {
+  border: 0;
+  background: var(--blue);
+}
+
+.calendar-day.other:not(.selected) {
+  color: var(--text-2);
+}
+
+.calendar-day.other:not(.selected) .calendar-num {
+  opacity: 0.4;
+}
+
+/* The codes, the bars, the time line and the grid lines, drawn over the week, which takes no taps there. */
+.calendar-art {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+/* A code: 9 px semibold, centered over its bar, its middle 8 px down the 12 px row under the numbers. */
+.calendar-code {
+  position: absolute;
+  top: 30px;
+  transform: translateX(-50%);
+  font-size: 9px;
+  line-height: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--rest-text);
+}
+
+/* A bar: 6 px tall in the middle of the 10 px strip, rounded 3 px where its trip starts or ends. */
+.calendar-bar {
+  position: absolute;
+  top: 42px;
+  height: 6px;
+}
+
+.calendar-bar.round-start {
+  border-top-left-radius: 3px;
+  border-bottom-left-radius: 3px;
+}
+
+.calendar-bar.round-end {
+  border-top-right-radius: 3px;
+  border-bottom-right-radius: 3px;
+}
+
+.bar-duty {
+  background: var(--duty);
+}
+
+.bar-rest {
+  background: var(--rest);
+}
+
+.bar-reserve {
+  background: var(--pink);
+}
+
+.bar-training {
+  background: var(--purple);
+}
+
+.bar-jumpseat {
+  background: var(--green);
+}
+
+/* The time line: green, 1.5 px, down the whole week, centered on now. */
+.calendar-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1.5px;
+  margin-left: -0.75px;
+  background: var(--green);
+}
+
+/* The grid lines, 0.5 px, drawn last, over the bars, as the app lays its lines over the weeks: six down each week, and
+   one along the top of every week but the first. */
+.calendar-vline {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0.5px;
+  margin-left: -0.25px;
+  background: var(--grid-line);
+}
+
+.calendar-week + .calendar-week .calendar-art::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0.5px;
+  background: var(--grid-line);
+}
+
+/* The hairline under the calendar, as wide as its content: the app's Divider, inset 16 px. */
+.calendar-rule {
+  flex: none;
+  height: 0.5px;
+  background: var(--separator);
+}

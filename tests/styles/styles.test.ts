@@ -86,6 +86,14 @@ const SPEC_COLORS: Array<[name: string, light: string, dark: string]> = [
   ['--bar-track', 'rgba(142,142,147,.2)', 'rgba(142,142,147,.2)'],
   // Slice 3A §4.1: the Schedule page's bars, as iOS's bar material looks over the page.
   ['--bar-fill', 'rgba(249,249,249,.94)', 'rgba(29,29,29,.94)'],
+  // Slice 3B §4.8: the calendar's on-duty and off-duty bars, its codes, its grid lines, Current Event's capsule and the
+  // hairline under the calendar.
+  ['--duty', '#1A3373', '#4D73E6'],
+  ['--rest', '#99BFEB', '#8CA6CC'],
+  ['--rest-text', '#99BFEB', '#8CA6CC'],
+  ['--grid-line', 'rgba(0,0,0,.15)', 'rgba(255,255,255,.4)'],
+  ['--button-fill', 'rgba(118,118,128,.12)', 'rgba(118,118,128,.24)'],
+  ['--separator', 'rgba(60,60,67,.29)', 'rgba(84,84,88,.6)'],
 ]
 
 describe('tokens.css', () => {
@@ -143,6 +151,8 @@ const HIGH_CONTRAST: Array<[name: string, light: string, dark: string]> = [
   ['--pink', '#E7124D', '#FF8AC4'],
   ['--gray', '#6C6C70', '#AEAEB2'],
   ['--bar-track', 'rgba(108,108,112,.2)', 'rgba(174,174,178,.2)'],
+  // Slice 3B §4.8: the calendar's 9 px codes, 5.2:1 on white. Dark mode's light blue is already 8.4:1 on black.
+  ['--rest-text', '#2A6FB8', '#8CA6CC'],
 ]
 
 /** The nine colors white text sits on: the city pills' blends, the badges and the sign-in button (spec §3.3). */
@@ -190,7 +200,7 @@ describe('tokens.css: Increase Contrast', () => {
     for (const set of [lightDefault, darkDefault, light]) expect([...set.keys()].filter((name) => name.startsWith('--fill-'))).toEqual([])
   })
 
-  it('changes only the system colors, the secondary text, the track and the glass, never the background, the text or UPS', () => {
+  it('changes only the system colors, the secondary text, the track, the glass and the calendar’s codes, never the background, the text or UPS', () => {
     const changed = [...HIGH_CONTRAST.map(([name]) => name), '--glass-fill', '--glass-edge'].sort()
     expect([...light.keys()].sort()).toEqual(changed)
     expect([...dark.keys()].sort()).toEqual([...changed, ...FILLS.map((color) => `--fill-${color}`)].sort())
@@ -701,6 +711,61 @@ describe('schedule.css', () => {
     expect([rule('.leg-gap-home'), rule('.leg-gap-turn'), rule('.leg-gap-layover'), rule('.leg-gap-gap')]).toEqual([
       [['--gap', 'var(--green)']], [['--gap', 'var(--orange)']], [['--gap', 'var(--blue)']], [['--gap', 'var(--text-2)']],
     ])
+  })
+})
+
+describe('calendar.css', () => {
+  // Read when each test runs, so a missing file fails the tests below and not the whole file.
+  const rule = (head: string) => declarations(find(rulesIn(css('calendar')), head)!.body)
+
+  it('lays the calendar out as TripCalendarView: 16 px above and below, 8 px between its header, letters and weeks', () => {
+    expect(rule('.calendar')).toEqual(expect.arrayContaining([['padding', '16px 0'], ['gap', '8px']]))
+    expect(rule('.calendar-weekdays')).toEqual(expect.arrayContaining([['margin-bottom', '8px'], ['font-size', '11px'], ['font-weight', '500'], ['color', 'var(--text-2)']]))
+    expect(rule('.calendar-space')).toEqual([['flex', '1']])
+  })
+
+  it('sets the month at 17 px semibold, Current Event in 12 px blue on the gray capsule, and blue arrows with 44 px to tap', () => {
+    expect(rule('.calendar-title')).toEqual(expect.arrayContaining([['font-size', '17px'], ['font-weight', '600']]))
+    expect(rule('.calendar-now')).toEqual(expect.arrayContaining([
+      ['padding', '7px 12px'], ['border-radius', '999px'], ['background', 'var(--button-fill)'], ['color', 'var(--blue)'], ['font-size', '12px'],
+    ]))
+    // 44 px squares, with margins that keep the row at the capsule's height and the tap areas within the column's sides.
+    expect(rule('.calendar-arrow')).toEqual(expect.arrayContaining([['width', '44px'], ['height', '44px'], ['margin', '-7px -16px'], ['color', 'var(--blue)']]))
+  })
+
+  it('makes each week 50 px: the numbers’ 28 px, the codes’ 12 px and the bars’ 10 px', () => {
+    expect(rule('.calendar-week')).toEqual(expect.arrayContaining([['height', '50px'], ['grid-template-columns', 'repeat(7, 1fr)']]))
+    expect(rule('.calendar-day')).toEqual(expect.arrayContaining([['height', '28px'], ['font-size', '12px']]))
+    expect(rule('.calendar-code')).toEqual(expect.arrayContaining([['top', '30px'], ['font-size', '9px'], ['font-weight', '600'], ['color', 'var(--rest-text)']]))
+    expect(rule('.calendar-bar')).toEqual(expect.arrayContaining([['top', '42px'], ['height', '6px']]))
+  })
+
+  it('rings today in blue and fills the selected day with it, both 26 px, and fades the months either side to 40%', () => {
+    expect(rule('.calendar-day::before')).toEqual(expect.arrayContaining([['width', '26px'], ['height', '26px'], ['border-radius', '50%']]))
+    expect(rule('.calendar-day.today')).toEqual([['font-weight', '700']])
+    expect(rule('.calendar-day.today::before')).toEqual([['border', '1.5px solid var(--blue)']])
+    expect(rule('.calendar-day.selected')).toEqual([['color', '#ffffff']])
+    expect(rule('.calendar-day.selected::before')).toEqual([['border', '0'], ['background', 'var(--blue)']])
+    expect(rule('.calendar-day.other:not(.selected) .calendar-num')).toEqual([['opacity', '0.4']])
+    const heads = rulesIn(css('calendar')).map((r) => r.head)
+    expect(heads.indexOf('.calendar-day.selected::before')).toBeGreaterThan(heads.indexOf('.calendar-day.today::before'))
+  })
+
+  it('colors the bars by kind, rounds them 3 px where a trip starts or ends, and draws the time line in green', () => {
+    expect([rule('.bar-duty'), rule('.bar-rest'), rule('.bar-reserve'), rule('.bar-training'), rule('.bar-jumpseat')]).toEqual([
+      [['background', 'var(--duty)']], [['background', 'var(--rest)']], [['background', 'var(--pink)']], [['background', 'var(--purple)']],
+      [['background', 'var(--green)']],
+    ])
+    expect(rule('.calendar-bar.round-start')).toEqual([['border-top-left-radius', '3px'], ['border-bottom-left-radius', '3px']])
+    expect(rule('.calendar-bar.round-end')).toEqual([['border-top-right-radius', '3px'], ['border-bottom-right-radius', '3px']])
+    expect(rule('.calendar-line')).toEqual(expect.arrayContaining([['width', '1.5px'], ['margin-left', '-0.75px'], ['background', 'var(--green)']]))
+  })
+
+  it('draws the grid lines 0.5 px in their gray, and the hairline under the calendar in iOS’s separator color', () => {
+    expect(rule('.calendar-vline')).toEqual(expect.arrayContaining([['width', '0.5px'], ['background', 'var(--grid-line)']]))
+    expect(rule('.calendar-week + .calendar-week .calendar-art::after')).toEqual(expect.arrayContaining([['height', '0.5px'], ['background', 'var(--grid-line)']]))
+    expect(rule('.calendar-rule')).toEqual(expect.arrayContaining([['height', '0.5px'], ['background', 'var(--separator)']]))
+    expect(rule('.calendar-art')).toContainEqual(['pointer-events', 'none'])
   })
 })
 

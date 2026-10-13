@@ -22,6 +22,14 @@
   --glass-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   /* The Schedule page's bars (slice 3A §4.1): iOS's bar material over the page. */
   --bar-fill: rgba(249, 249, 249, 0.94);
+  /* The month calendar (slice 3B §4.8): the app's on-duty and off-duty bars, the off-duty blue again for the small codes
+     (darker under Increase Contrast), its grid lines, and iOS's bordered-button fill and separator. */
+  --duty: #1a3373;
+  --rest: #99bfeb;
+  --rest-text: #99bfeb;
+  --grid-line: rgba(0, 0, 0, 0.15);
+  --button-fill: rgba(118, 118, 128, 0.12);
+  --separator: rgba(60, 60, 67, 0.29);
   --font: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-rounded: ui-rounded, 'SF Pro Rounded', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
@@ -47,6 +55,12 @@
     --glass-rim: rgba(255, 255, 255, 0.12);
     --glass-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     --bar-fill: rgba(29, 29, 29, 0.94);
+    --duty: #4d73e6;
+    --rest: #8ca6cc;
+    --rest-text: #8ca6cc;
+    --grid-line: rgba(255, 255, 255, 0.4);
+    --button-fill: rgba(118, 118, 128, 0.24);
+    --separator: rgba(84, 84, 88, 0.6);
   }
 }
 
@@ -73,6 +87,12 @@
   --glass-rim: rgba(255, 255, 255, 0.12);
   --glass-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   --bar-fill: rgba(29, 29, 29, 0.94);
+  --duty: #4d73e6;
+  --rest: #8ca6cc;
+  --rest-text: #8ca6cc;
+  --grid-line: rgba(255, 255, 255, 0.4);
+  --button-fill: rgba(118, 118, 128, 0.24);
+  --separator: rgba(84, 84, 88, 0.6);
 }
 
 /* Increase Contrast (Part A follow-ups spec §3): Apple's high-contrast system colors, as the app gets them from iOS,
@@ -95,6 +115,7 @@
     --bar-track: rgba(108, 108, 112, 0.2);
     --glass-fill: rgba(242, 242, 247, 0.94);
     --glass-edge: rgba(0, 0, 0, 0.3);
+    --rest-text: #2a6fb8;
   }
 
   /* The dark high-contrast set in the next block, exactly; a test checks. */
@@ -114,6 +135,7 @@
     --bar-track: rgba(174, 174, 178, 0.2);
     --glass-fill: rgba(44, 44, 46, 0.88);
     --glass-edge: rgba(255, 255, 255, 0.35);
+    --rest-text: #8ca6cc;
     --fill-green: #008932;
     --fill-blue: #1e6ef4;
     --fill-orange: #c55300;
@@ -145,6 +167,7 @@
     --bar-track: rgba(174, 174, 178, 0.2);
     --glass-fill: rgba(44, 44, 46, 0.88);
     --glass-edge: rgba(255, 255, 255, 0.35);
+    --rest-text: #8ca6cc;
     --fill-green: #008932;
     --fill-blue: #1e6ef4;
     --fill-orange: #c55300;
