@@ -47,9 +47,9 @@
 ### Task 3: Review, merge and release
 
 - [x] **Step 1:** one code review of the branch against the spec.
-- [ ] **Step 2:** ask the user to merge (one question), then to push (a separate yes).
-- [ ] **Step 3:** after the push: the Pages run, the live files against the local build, the demo scenes.
-- [ ] **Step 4:** update the memory.
+- [x] **Step 2:** ask the user to merge (one question), then to push (a separate yes).
+- [x] **Step 3:** after the push: the Pages run, the live files against the local build, the demo scenes.
+- [x] **Step 4:** update the memory.
 
 ---
 
@@ -74,3 +74,4 @@
   - **Taken:** signs of home before now no longer stop the chain (`Math.max(last.end, t)`), so after a ride back from home he counts to the next trip's homecoming. 2 tests (jumpseat and drive), red first. 2192 tests, `tsc` and build clean.
   - **Accepted, in spec §3:** a leg at home that starts before T lands, and a drive-titled event away from home (decision 7).
   - **Deliberate breaks:** the old window caught (2 failing). Measuring from now even on later passes is not caught: it only differs for a sign of home in the middle of a trip being flown, which real data can't hold.
+- **Released, 2026-10-13:** the user said "merge and push it when the review passes", in advance. After the re-check passed: fast-forward of main to `c376f37` (branch deleted; 2192 tests, `tsc` and build green on main), pushed `f2db00d..c376f37` (5 commits, incl. the UPS icon's release note). Pages run 38463936650 succeeded. Live serves `index-DncMPOoR.js`/`index-DL9IXgqK.css`; they, `index.html` and the Supabase chunk are byte-identical to the local build. Live `?demo=1&scene=base`: "Back Home In" to Lexington, as before; no console errors. Todd's real page (signed in) is for the user to check: it should say "Back Home In", Sat, Oct 17 at 3:21 AM · Orlando.
