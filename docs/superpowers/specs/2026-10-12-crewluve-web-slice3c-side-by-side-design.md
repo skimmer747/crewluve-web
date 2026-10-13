@@ -56,6 +56,7 @@ Status: approved in brainstorming on 2026-10-12. Slices 3A (the Schedule page) a
 - **Spacing as the status page's column** (`.screen`): 12 px above, 16 px at the sides, 16 px below plus the safe area, and 24 px between cards. It fills the column, with no 480 px limit.
 - **It scrolls in its own box,** which doesn't hand its scroll on to the window at its ends.
 - **The cards keep their own heights** (decision 8). In a box of fixed height, a card that clips what it holds, as the in-flight card clips its map, would otherwise shrink to fit, where the phone's page lets the window grow instead.
+- **Sizes the phone's page takes from the window come from the column** (decision 9): the location card's sun dial, 42% of the column, and the countdown's size in browsers without container units, such as Safari before 16. On a phone the window is the column; here the column is `max(320px, 40vw)` wide. A dial sized by the window covered the location card's words on iPads held upright.
 
 ### 4.4 The hairline
 
@@ -78,7 +79,7 @@ Status: approved in brainstorming on 2026-10-12. Slices 3A (the Schedule page) a
 
 ### 5.2 Crossing the line (decision 3)
 
-- **A window resized across 744 × 500 switches layouts at once,** and both pages are rebuilt:
+- **A window resized across 744 × 500 switches layouts at once,** and both pages are rebuilt (decision 9):
   - the status starts from its top;
   - the schedule opens as it does when opened: this month, today selected, and the list at its opening day.
   - Going from wide to narrow at `#schedule`, the Schedule page opens with focus on its title, and its back button works as now: it steps back to the status page's entry when the site added the schedule's, and otherwise goes to the status page in place (3A §3.3). Otherwise focus is wherever the browser leaves it.
@@ -89,6 +90,7 @@ Status: approved in brainstorming on 2026-10-12. Slices 3A (the Schedule page) a
 - **The sun and flight-tracking popups cover the whole window,** as now (slices 2B2 and 2C).
 - **While one is open,** the bar and both columns are hidden from screen readers and inert, as the status page alone is now.
 - **When one closes,** focus goes back to its button. When it closes by itself, focus goes to the heading of the card in the location card's place, or else to the title, now in the bar (popup follow-ups §4.2).
+- **A popup open as the window crosses the line closes,** as the status page is rebuilt (§5.2, decision 9). Otherwise its button would be rebuilt under it, and focus couldn't go back to it.
 
 ### 5.4 Keyboard and screen readers
 
@@ -149,7 +151,9 @@ Nothing new: no requests, storage or scripts. The content security policy is unc
   - a wide window gets the layout, with the bar's title, both columns and the hairline; a narrow one gets today's pages;
   - beside the schedule, no chevrons and no View Schedule, in a home scene and an away one;
   - `#schedule` on a wide window shows the same layout;
-  - crossing the line both ways rebuilds the pages: the schedule back on this month at today, and at `#schedule` the Schedule page opening with focus on its title;
+  - crossing the line both ways rebuilds the pages: the schedule back on this month with today selected, and at `#schedule` the Schedule page opening with focus on its title;
+  - a popup open as the window crosses the line closes, both ways;
+  - Back and Forward on a wide window keep the schedule's month;
   - the empty screen unchanged at any width.
 - **`StatusScreen`:** with a column beside it:
   - the title in the bar;
@@ -183,6 +187,7 @@ Nothing new: no requests, storage or scripts. The content security policy is unc
 | 6 | The build in §6 and the testing in §9. | User, 2026-10-12 |
 | 7 | Only one calendar is ever on the page, so 3B's note about its fixed `id` needs no change. | Design, from decision 3 |
 | 8 | The status column's cards keep their heights: in its box of fixed height, the in-flight card shrank to a sliver of its map. | Design, from the browser check while planning |
+| 9 | In the status column, the sun dial and the countdown's fallback size go by the column's width, not the window's; each layout has a status page of its own, so crossing the line rebuilds it and closes an open popup. | Design, from the reviews |
 
 ## 11. Roadmap
 
