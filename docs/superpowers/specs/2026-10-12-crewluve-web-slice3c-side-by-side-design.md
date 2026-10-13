@@ -140,6 +140,7 @@ Nothing new: no requests, storage or scripts. The content security policy is unc
 
 - **When it shows:** the app splits on every iPad, whatever its window. The site splits windows at least 744 × 500, so a narrow window in an iPad's split screen keeps one column, and computers split too.
 - **The status column never goes under 320 px.** The app's is always 40%, as narrow as 298 points on an iPad mini held upright.
+- **The sun dial goes by the status column,** 42% of it, as on a phone (decision 9): 134 px on an iPad mini held upright, and the full 160 px from a window about 952 px wide. The app's dial stays 160 points in any column.
 - **Past 1376 px the layout stops growing,** centered. No iPad is wider.
 - **The columns' edges are plain cuts.** iOS 26 softens them, and scrolls the status under its bar.
 - **The web's own parts:** the columns as named regions with focusable scroll boxes, and the hidden "Schedule" heading.
@@ -164,7 +165,8 @@ Nothing new: no requests, storage or scripts. The content security policy is unc
 - **Styles:**
   - the frame filling the window;
   - the columns' widths, 40% and at least 320 px, and the 1376 px limit;
-  - the hairline's color and the bar's title size;
+  - the hairline's color and the bar's title size, with `split.css`'s full list of rules, so none restyles the title;
+  - the sun dial and the countdown's fallback size going by the status column (decision 9);
   - no new `<style>` elements.
 - **Gates:** `npx vitest run`, `npx tsc --noEmit` and `npm run build`.
 - **Deliberate breaks** of the new code, to check that the tests catch them.
