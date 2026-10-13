@@ -3282,7 +3282,7 @@ Update the project memory with the new tip and what's next: Slice 3C, the status
 
 ## Done when
 
-- `npx vitest run`, `npx tsc --noEmit` and `npm run build` are all green, with 2100 tests in 91 files.
+- `npx vitest run`, `npx tsc --noEmit` and `npm run build` are all green, with 2100 tests in 91 files from this plan's blocks, and 2121 after the reviews.
 - The calendar shows each month as the app does, with its bars, codes and time line. The page is the window's height and only the list scrolls. Taps on days and rows, the arrows and Current Event work as the app's, and a short window scrolls the calendar away with the list (Tasks 1–12).
 - The user has signed off on the look (Task 13), and it's live on crewluve.crewlu.net, released with the user's yes (Task 14).
 
@@ -3365,7 +3365,41 @@ Update the project memory with the new tip and what's next: Slice 3C, the status
   - 320 px wide;
   - a short phone, 548 px, with January 2027's six week rows, where the list gets 97 px;
   - a phone on its side, in dark, with the calendar in the list.
-- The short phone keeps the pinned calendar (decision 1). No visual nudges were needed.
+- The short phone keeps the pinned calendar (decision 11). No visual nudges were needed.
+
+**Re-checks, after the look check**
+- Three reviewers re-checked the changes at `f27c636`, each with deliberate breaks of its own:
+  - batch A's code quality: ready to merge. It caught 16 of 20 breaks, and the 4 left were equivalent rewrites.
+  - batch B's spec: all seven findings fixed, and the spec matches decision 9. It caught 28 of 32.
+  - batch B's code quality, with the whole branch: 21 of 23 caught.
+- Both batch B reviewers found the same Important regression on their own: a turn right after opening, such as 375 × 812 to 812 × 375, sent the list to its top.
+  - The window shrinks before the calendar moves, so for a moment the bar and the pinned calendar left the list's box no height, and no day counted as showing.
+  - The turn test had missed it, as its box kept the same height whatever the window's.
+- Their Minor items:
+  - the Tab stop didn't follow focus given back after a turn, so the focused day wasn't the stop;
+  - on a turn to a short window, focus given back to the calendar scrolls the list to show it, over the list's place;
+  - only Current Event tested a tap's wait for the redraw;
+  - test gaps: a hand scroll's timing and the greyed day's color;
+  - the room a six-row month leaves the list on the shortest windows was never written down.
+
+**Changes after the re-checks** (spec decisions 10 and 11)
+- `93338bd`:
+  - a day starting right at the box's top counts as showing, so a turn right after opening keeps the day;
+  - the Tab stop follows focus, and isn't reset as the calendar mounts after a turn;
+  - tests for:
+    - the turn right after opening, with the box's height worked out from the window's;
+    - focus and the Tab stop after a turn;
+    - a day tap turning to a month of fewer rows on a short window;
+    - a hand scroll's stuck pill;
+    - the greyed day's color;
+    - overlapping legs kept apart.
+- `2178940`: the spec.
+  - Decision 10: focus is shown over the list's place on a turn to a short window.
+  - Decision 11: the room a six-row month leaves the list on the shortest windows: about 97 px on the iPhone SE, 48 px at 500 px tall.
+- **Checks:**
+  - Deliberate breaks against this round's fixes caught 5 of 5.
+  - The breaks left uncaught are equivalent rewrites. For example, which showing day a turn keeps makes no difference, since the calendar's move shifts every day alike.
+  - The suite is 2121 tests in 91 files.
 
 **Left for later** (spec §11)
 - `memo` on rows, so a tick touches only the rows whose clock changes.
