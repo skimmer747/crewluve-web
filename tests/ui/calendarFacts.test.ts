@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { dayOf, dayParts } from '../../src/time/zoned'
-import { addMonths, barKind, firstWeekday, inMonth, monthGrid, monthOf, timeLine, weekBars, type Bar } from '../../src/ui/calendarFacts'
+import { addMonths, barKind, firstWeekday, inMonth, monthGrid, monthOf, scrollDay, timeLine, weekBars, type Bar } from '../../src/ui/calendarFacts'
+import { scheduleDays } from '../../src/ui/scheduleFacts'
 import { drive, duty, flight, H, place } from '../fixtures/legs'
 
 afterEach(() => {
@@ -187,5 +188,43 @@ describe('timeLine (slice 3B §4.7)', () => {
     expect(timeLine(SUN + 7, (T0 + 168) * H, NY)).toBe(0)
     expect(timeLine(SUN, (T0 + 168) * H, NY)).toBeNull()
     expect(timeLine(SUN, (T0 - 1) * H, NY)).toBeNull()
+  })
+})
+
+describe('scrollDay (slice 3B §5.2)', () => {
+  /** Thursday 15 Oct 2026 in New York, and its midnight in the fixtures' hours. The list has Thursday, Friday and Sunday. */
+  const THU = dayOf(2026, 10, 15)
+  const T = Date.UTC(2026, 9, 15, 4) / H
+  const days = scheduleDays([
+    flight('SDF', 'RFD', T + 6, T + 8, 'A'),
+    place('layover', 'RFD', T + 8, T + 30, 'A'), // Thursday 8am to Friday 6am
+    flight('RFD', 'SDF', T + 30, T + 32, 'A'),
+    duty('training', 'CQ', 'SDF', T + 76, T + 80), // Sunday
+  ], NY)
+  const fridayNoon = (T + 36) * H
+
+  it('goes to a day that has legs', () => {
+    expect(scrollDay(THU + 1, days, fridayNoon, NY)).toBe(THU + 1)
+    expect(scrollDay(THU + 3, days, fridayNoon, NY)).toBe(THU + 3)
+  })
+
+  it('goes from a day without legs to the latest day before it that has some', () => {
+    expect(scrollDay(THU + 2, days, fridayNoon, NY)).toBe(THU + 1)
+    expect(scrollDay(THU + 20, days, fridayNoon, NY)).toBe(THU + 3)
+  })
+
+  it('stays put for a day before every leg', () => {
+    expect(scrollDay(THU - 1, days, fridayNoon, NY)).toBeNull()
+  })
+
+  it('goes from today to the day a leg happening now started, though that was yesterday', () => {
+    const friday2am = (T + 26) * H // the layover from Thursday is happening
+    expect(scrollDay(THU + 1, days, friday2am, NY)).toBe(THU)
+    expect(scrollDay(THU + 3, days, friday2am, NY)).toBe(THU + 3)
+  })
+
+  it('takes today like any other day when nothing is happening', () => {
+    const saturdayNoon = (T + 60) * H
+    expect(scrollDay(THU + 2, days, saturdayNoon, NY)).toBe(THU + 1)
   })
 })

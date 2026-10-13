@@ -1,5 +1,6 @@
 import type { Leg } from '../engine/legs'
-import { dayOf, dayParts, dayStart, MINUTE } from '../time/zoned'
+import { calendarDay, dayOf, dayParts, dayStart, MINUTE } from '../time/zoned'
+import { isHappening, type ScheduleDay } from './scheduleFacts'
 
 /** A month the calendar shows: its year, and its month, 1–12. */
 export interface Month {
@@ -162,4 +163,19 @@ export function weekBars(firstDay: number, legs: readonly Leg[], timeZone: strin
 export function timeLine(firstDay: number, now: number, timeZone: string): number | null {
   const { start, end, at } = rowSpan(firstDay, timeZone)
   return now >= start && now < end ? at(now) : null
+}
+
+/**
+ * The day whose heading a tap on calendar day `day` scrolls the list to, as EventTimelineView does on a new selection,
+ * or null to stay: the day a leg happening now started, when `day` is today; else the latest day of the list on or
+ * before `day` (slice 3B §5.2).
+ */
+export function scrollDay(day: number, days: readonly ScheduleDay[], now: number, timeZone: string): number | null {
+  if (day === calendarDay(now, timeZone)) {
+    const happening = days.flatMap((d) => d.legs).find((leg) => isHappening(leg, now))
+    if (happening) return calendarDay(happening.start, timeZone)
+  }
+  let target: number | null = null
+  for (const d of days) if (d.day <= day) target = d.day
+  return target
 }
