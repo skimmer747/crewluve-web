@@ -320,6 +320,68 @@ describe('SchedulePage’s calendar (slice 3B §3.1, §5)', () => {
     rerender(page(LEGS, at(10) + 60_000))
     expect(line()).not.toBe(before)
   })
+
+  it('turns the calendar to a tapped row’s month as it picks the row’s day', () => {
+    scrolls()
+    const { container } = render(page([...LEGS, duty('event', 'Dinner', null, T0 + 444, T0 + 446)], at(10))) // Monday 2 November, 11am
+    fireEvent.click(container.querySelector<HTMLElement>(`[data-day="${THU + 18}"] .leg`)!)
+    expect(title(container)).toBe('November 2026')
+    expect(day(container, THU + 18).className).toBe('calendar-day selected')
+  })
+
+  it('picks the day a row’s leg starts, for a leg that runs overnight', () => {
+    scrolls()
+    const { container } = render(page(LEGS, at(10)))
+    fireEvent.click(day(container, THU + 2)) // Saturday first, so Thursday isn't the selected day
+    fireEvent.click(container.querySelectorAll<HTMLElement>(`[data-day="${THU}"] .leg`)[1]) // the layover, Thursday 7:45am to Friday 6:15am
+    expect(day(container, THU).className).toBe('calendar-day today selected')
+  })
+
+  it('moves nothing with Current Event when the day it would go to has no legs', () => {
+    const scrollTo = scrolls()
+    layOut(DAYS)
+    render(page(LEGS.slice(0, 1), at(36))) // Friday noon: nothing next, nothing happening, and no legs today
+    const calls = scrollTo.mock.calls.length
+    fireEvent.click(screen.getByRole('button', { name: 'Current Event' }))
+    expect(scrollTo.mock.calls.length).toBe(calls)
+  })
+
+  it('leaves the selected day alone as the list is scrolled by hand', () => {
+    scrolls()
+    const { container } = render(page(LEGS, at(10)))
+    fireEvent.click(day(container, THU + 2))
+    fireEvent.scroll(listBox(container))
+    expect(day(container, THU + 2).className).toBe('calendar-day selected')
+  })
+
+  it('keeps focus on a tapped day', () => {
+    scrolls()
+    const { container } = render(page(LEGS, at(10)))
+    day(container, THU + 2).focus()
+    fireEvent.click(day(container, THU + 2))
+    expect(document.activeElement).toBe(day(container, THU + 2))
+  })
+
+  it('moves today’s ring at midnight, keeping the selected day and the month', () => {
+    const { container, rerender } = render(page(LEGS, at(23.5))) // Thursday 11:30pm
+    rerender(page(LEGS, at(24.5))) // Friday 12:30am
+    expect(day(container, THU + 1).className).toBe('calendar-day today')
+    expect(day(container, THU).className).toBe('calendar-day selected')
+    expect(title(container)).toBe('October 2026')
+  })
+
+  it('still shows the calendar, without bars, over the empty state when there are no legs', () => {
+    const { container } = render(page([], at(10)))
+    expect(container.querySelector('.calendar')).not.toBeNull()
+    expect(container.querySelector('.calendar-bar')).toBeNull()
+    expect(screen.getByText('No schedule data')).toBeTruthy()
+  })
+
+  it('starts the weeks on the first day of the visitor’s region when no test gives one', () => {
+    vi.spyOn(navigator, 'language', 'get').mockReturnValue('de-DE')
+    render(<SchedulePage legs={LEGS} pilot={pilot('LEX', 'SDF')} now={at(10)} timeZone={NY} h24={false} airports={testAirports} onBack={() => {}} />)
+    expect(screen.getAllByRole('columnheader')[0].getAttribute('aria-label')).toBe('Monday')
+  })
 })
 
 describe('SchedulePage on a short window (slice 3B §3.2)', () => {
