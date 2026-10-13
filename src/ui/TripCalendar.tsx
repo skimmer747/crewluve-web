@@ -1,7 +1,8 @@
-import { useMemo } from 'preact/hooks'
+import { useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks'
 import { dayName, monthTitle, weekdayColumns } from '../copy/calendar'
 import type { Leg } from '../engine/legs'
-import { addMonths, monthGrid, timeLine, weekBars, type Bar, type GridDay, type Month } from './calendarFacts'
+import { dayOf } from '../time/zoned'
+import { addMonths, inMonth, monthGrid, monthOf, timeLine, weekBars, type Bar, type GridDay, type Month } from './calendarFacts'
 import { Chevron } from './Chevron'
 
 export interface TripCalendarProps {
@@ -25,16 +26,48 @@ export interface TripCalendarProps {
 /** A place across a week, in days from its start, as a share of its width. */
 const percent = (days: number) => `${(days / 7) * 100}%`
 
+/** How far each arrow key moves, in days (slice 3B §5.7). */
+const STEPS: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }
+
 /**
  * The month calendar (TripCalendarView, CalendarWeekRowView, CalendarTripBarView; slice 3B §4): the month between its
  * arrows and Current Event, the weekday letters, and a row a week with the days' numbers, the codes over layovers and
- * rests at base, the bars, the time line and the grid lines. It keeps no state: the page says what to show.
+ * rests at base, the bars, the time line and the grid lines. The page says what to show; the calendar keeps only the
+ * keyboard's place among the days, one Tab stop that the arrow keys move (§5.7).
  */
 export function TripCalendar({ month, firstDay, legs, now, timeZone, today, selected, onSelect, onMonth, onCurrentEvent }: TripCalendarProps) {
   const weeks = useMemo(
     () => monthGrid(month, firstDay).map((days) => ({ days, bars: weekBars(days[0].day, legs, timeZone) })),
     [month.year, month.month, firstDay, legs, timeZone],
   )
+  const grid = useRef<HTMLDivElement>(null)
+  // Where the arrow keys left off, and the day to focus once the month the move turned to is drawn.
+  const [keyDay, setKeyDay] = useState<number | null>(null)
+  const focusNext = useRef<number | null>(null)
+  const stop = [keyDay, selected, today].find((day) => day !== null && inMonth(day, month)) ?? dayOf(month.year, month.month, 1)
+
+  useLayoutEffect(() => {
+    const day = focusNext.current
+    if (day === null) return
+    focusNext.current = null
+    grid.current?.querySelector<HTMLElement>(`[data-calendar-day="${day}"]`)?.focus()
+  })
+
+  const move = (e: KeyboardEvent, day: number) => {
+    const step = STEPS[e.key]
+    if (step === undefined) return
+    e.preventDefault()
+    const next = day + step
+    setKeyDay(next)
+    focusNext.current = next
+    if (!inMonth(next, month)) onMonth(monthOf(next))
+  }
+
+  const tap = (day: number) => {
+    setKeyDay(null)
+    onSelect(day)
+  }
+
   return (
     <div class="calendar">
       <div class="calendar-header">
@@ -50,7 +83,7 @@ export function TripCalendar({ month, firstDay, legs, now, timeZone, today, sele
           <Chevron size={17} weight={2.2} />
         </button>
       </div>
-      <div role="grid" aria-labelledby="calendar-title">
+      <div role="grid" aria-labelledby="calendar-title" ref={grid}>
         <div class="calendar-weekdays" role="row">
           {weekdayColumns(firstDay).map((column) => (
             <span key={column.name} role="columnheader" aria-label={column.name}>{column.letter}</span>
@@ -63,7 +96,8 @@ export function TripCalendar({ month, firstDay, legs, now, timeZone, today, sele
               {days.map((d) => (
                 <span key={d.day} role="gridcell" aria-selected={d.day === selected ? 'true' : 'false'}>
                   <button type="button" class={dayClass(d, today, selected)} data-calendar-day={d.day} aria-label={dayName(d.day)}
-                    aria-current={d.day === today ? 'date' : undefined} onClick={() => onSelect(d.day)}>
+                    aria-current={d.day === today ? 'date' : undefined} tabIndex={d.day === stop ? 0 : -1} onClick={() => tap(d.day)}
+                    onKeyDown={(e) => move(e, d.day)}>
                     <span class="calendar-num">{d.date}</span>
                   </button>
                 </span>

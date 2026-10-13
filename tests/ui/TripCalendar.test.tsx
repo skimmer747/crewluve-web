@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, render, screen } from '@testing-library/preact'
+import { useState } from 'preact/hooks'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Leg } from '../../src/engine/legs'
 import { dayOf } from '../../src/time/zoned'
@@ -143,5 +144,75 @@ describe('TripCalendar (slice 3B §4)', () => {
     const { container } = calendar({ firstDay: 1 })
     expect(screen.getAllByRole('columnheader')[0].getAttribute('aria-label')).toBe('Monday')
     expect(container.querySelector('.calendar-day')!.textContent).toBe('28')
+  })
+})
+
+describe('TripCalendar from the keyboard (slice 3B §5.7)', () => {
+  /** The days that take Tab: only ever one. */
+  const stops = (container: Element) =>
+    [...container.querySelectorAll<HTMLElement>('.calendar-day')].filter((b) => b.tabIndex === 0).map((b) => Number(b.dataset.calendarDay))
+
+  /** The calendar on a page that turns its month, as the Schedule page does. */
+  function Paged() {
+    const [month, setMonth] = useState<Month>(OCT)
+    return <TripCalendar month={month} firstDay={0} legs={LEGS} now={(MON + 17) * H} timeZone={NY} today={TODAY} selected={TODAY}
+      onSelect={() => {}} onMonth={setMonth} onCurrentEvent={() => {}} />
+  }
+
+  it('gives the days one Tab stop: the selected day in the month shown, else today, else the 1st', () => {
+    const { container, rerender } = calendar()
+    expect(stops(container)).toEqual([TODAY])
+    expect(dayButton(container, TODAY).tagName).toBe('BUTTON')
+    const again = (month: Month, selected: number) =>
+      rerender(<TripCalendar month={month} firstDay={0} legs={LEGS} now={(MON + 17) * H} timeZone={NY} today={TODAY} selected={selected}
+        onSelect={() => {}} onMonth={() => {}} onCurrentEvent={() => {}} />)
+    again(OCT, dayOf(2026, 10, 15))
+    expect(stops(container)).toEqual([dayOf(2026, 10, 15)])
+    again(OCT, dayOf(2026, 9, 30))
+    expect(stops(container)).toEqual([TODAY])
+    again({ year: 2026, month: 11 }, TODAY)
+    expect(stops(container)).toEqual([dayOf(2026, 11, 1)])
+  })
+
+  it('moves a day with the left and right arrows and a week with up and down, focus following, without selecting', () => {
+    const { container, onSelect } = calendar()
+    dayButton(container, TODAY).focus()
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowRight' })
+    expect(document.activeElement).toBe(dayButton(container, TODAY + 1))
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' })
+    expect(document.activeElement).toBe(dayButton(container, TODAY + 8))
+    expect(stops(container)).toEqual([TODAY + 8])
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowLeft' })
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowUp' })
+    expect(document.activeElement).toBe(dayButton(container, TODAY))
+    expect(onSelect).not.toHaveBeenCalled()
+  })
+
+  it('keeps the arrows from scrolling the page, and leaves other keys to the browser, which taps a day on Enter or Space', () => {
+    const { container } = calendar()
+    expect(fireEvent.keyDown(dayButton(container, TODAY), { key: 'ArrowDown' })).toBe(false)
+    expect(fireEvent.keyDown(dayButton(container, TODAY + 7), { key: 'Enter' })).toBe(true)
+    expect(fireEvent.keyDown(dayButton(container, TODAY + 7), { key: ' ' })).toBe(true)
+  })
+
+  it('turns the month when a move leaves it, landing on that day, and turns back', () => {
+    const { container } = render(<Paged />)
+    const oct31 = dayOf(2026, 10, 31)
+    dayButton(container, oct31).focus()
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowRight' })
+    expect(container.querySelector('.calendar-title')!.textContent).toBe('November 2026')
+    expect(document.activeElement).toBe(dayButton(container, oct31 + 1))
+    expect(stops(container)).toEqual([oct31 + 1])
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowUp' })
+    expect(container.querySelector('.calendar-title')!.textContent).toBe('October 2026')
+    expect(document.activeElement).toBe(dayButton(container, oct31 - 6))
+  })
+
+  it('goes back to the selected day as the Tab stop after a tap', () => {
+    const { container } = calendar()
+    dayButton(container, TODAY).focus()
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowRight' })
+    fireEvent.click(dayButton(container, TODAY + 2))
+    expect(stops(container)).toEqual([TODAY])
   })
 })
