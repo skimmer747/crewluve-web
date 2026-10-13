@@ -72,7 +72,7 @@
 - Create: `src/ui/hooks/useSideBySide.ts`
 - Test: `tests/fixtures/ui.ts`, `tests/ui/useSideBySide.test.tsx`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/fixtures/ui.ts`, add a way to size happy-dom's window, at the end of the file:
 
@@ -151,12 +151,12 @@ describe('useSideBySide (slice 3C §3)', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/useSideBySide.test.tsx`
 Expected: FAIL with `Error: Failed to resolve import "../../src/ui/hooks/useSideBySide" from "tests/ui/useSideBySide.test.tsx"`; no tests run.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/hooks/useSideBySide.ts`:
 
@@ -188,12 +188,12 @@ export function useSideBySide(): boolean {
 
 It follows changes as 3B's height check does (`ScheduleView`'s `TALL`), with `?.` because some tests stub `matchMedia` with plain objects.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/useSideBySide.test.tsx`
 Expected: PASS, 11 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 2133 tests in 92 files after this task.
 
@@ -213,7 +213,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/ui/SchedulePage.tsx`
 - Test: `tests/ui/ScheduleView.test.tsx`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/ui/ScheduleView.test.tsx`:
 
@@ -301,12 +301,12 @@ describe('ScheduleView (slice 3C §6.1)', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/ScheduleView.test.tsx tests/ui/SchedulePage.test.tsx`
 Expected: FAIL: `tests/ui/ScheduleView.test.tsx` can't load (`Failed to resolve import "../../src/ui/ScheduleView"`), while the Schedule page's 43 tests pass (`Test Files  1 failed | 1 passed (2)`, `Tests  43 passed (43)`).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Move the page's file to the view's name, so its history follows the code that stays:
 
@@ -556,12 +556,12 @@ export function SchedulePage({ onBack, ...view }: SchedulePageProps) {
 }
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/ScheduleView.test.tsx tests/ui/SchedulePage.test.tsx`
 Expected: PASS, 47 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 2138 tests in 93 files after this task.
 
@@ -580,7 +580,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/ui/hooks/useSchedulePage.ts`, `src/ui/PilotPages.tsx`
 - Test: `tests/ui/useSchedulePage.test.tsx`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 In `tests/ui/useSchedulePage.test.tsx`, let the test's pages say whether the window is wide:
 
@@ -626,12 +626,12 @@ describe('useSchedulePage on a wide window (slice 3C §5.1)', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/useSchedulePage.test.tsx`
 Expected: FAIL in 1 test (`1 failed | 11 passed (12)`): focus goes back to the status page's title, `expected <h1 tabindex="-1" class="title"></h1> to be <body>…`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/ui/hooks/useSchedulePage.ts`, take the layout:
 
@@ -690,12 +690,12 @@ with this:
   const page = useSchedulePage(false)
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/useSchedulePage.test.tsx`
 Expected: PASS, 12 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 2139 tests in 93 files after this task.
 
@@ -714,7 +714,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/ui/StatusScreen.tsx`
 - Test: `tests/ui/StatusScreen.test.tsx`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/ui/StatusScreen.test.tsx`, add this block at the end:
 
@@ -786,12 +786,12 @@ describe('StatusScreen beside the schedule (slice 3C §4, §5)', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/StatusScreen.test.tsx`
 Expected: FAIL in 3 tests (`3 failed | 80 passed (83)`): the page ignores `beside` and keeps its one column, `expected 'screen' to be 'split'`. The `<style>` test passes already; it guards the new layout.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/ui/StatusScreen.tsx`, import the children's type:
 
@@ -913,12 +913,12 @@ with this:
 
 The cards are the same in both layouts, in the same order. The one `<main>` holds the bar and both columns, so the popups, which come after it, hide all of it as they open, and focus that falls back to the title finds it in the bar.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/StatusScreen.test.tsx`
 Expected: PASS, 83 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 2143 tests in 93 files after this task.
 
@@ -938,7 +938,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/main.tsx`
 - Test: `tests/styles/styles.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/styles/styles.test.ts`, add this block at the end:
 
@@ -983,12 +983,12 @@ describe('split.css', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/styles/styles.test.ts`
 Expected: FAIL in 4 tests (`4 failed | 180 passed (184)`) with `ENOENT: no such file or directory, open '…/src/styles/split.css'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/styles/split.css`:
 
@@ -1070,12 +1070,12 @@ import './styles/split.css'
 
 `max(320px, 40%)` gives the status column 40% of the width, and never less than 320 px; `minmax(0, 1fr)` lets the schedule take the rest without its content widening it.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/styles/styles.test.ts`
 Expected: PASS, 184 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 2147 tests in 93 files after this task.
 
@@ -1094,7 +1094,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/ui/PilotPages.tsx`
 - Test: `tests/ui/PilotPages.test.tsx`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/ui/PilotPages.test.tsx`, import `within` and the scenes' type:
 
@@ -1241,12 +1241,12 @@ describe('PilotPages side by side (slice 3C)', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/PilotPages.test.tsx`
 Expected: FAIL in 6 tests (`6 failed | 17 passed (23)`): the pages ignore the window's size, `expected 'screen' to be 'split'`, and the Schedule page opens at its address, `expected 'schedule' to be 'split'`. The empty-screen test passes already.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/ui/PilotPages.tsx`, import the hook and the view:
 
@@ -1331,12 +1331,12 @@ with this:
 
 On a wide window the status always shows, whatever the address, and without `onOpenSchedule` it has no chevrons and no View Schedule. Crossing the line rebuilds the pages: the view beside the status opens fresh, at this month and today.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/PilotPages.test.tsx`
 Expected: PASS, 23 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 2154 tests in 93 files after this task.
 
@@ -1362,11 +1362,11 @@ Run `npm run build`, then start or reuse the `crewluve-preview` server from `.cl
 
 Take a small throwaway screenshot first, then the real one. If a page was built again since it was last opened, add a new query word, such as `&v=2`, so the browser doesn't show the old one.
 
-- `/?demo=1&scene=flying` at 1180 × 820, an iPad on its side; 820 × 1180, upright; 744 × 1133, an iPad mini upright; and 1920 × 1080, a computer, where the layout stops at 1376 px.
+- `/?demo=1&scene=flying` at 1180 × 820, an iPad on its side; 820 × 1180, upright; 744 × 1133, an iPad mini upright; and 1440 × 900 and 1920 × 1080, computers, where the layout stops at 1376 px.
 - The flight-tracking popup open over the layout.
-- `/?demo=1&scene=delayed`, on the ground, with the location card and its dial.
+- `/?demo=1&scene=delayed`, on the ground, with the location card and its dial, at 744 × 1133 too.
 
-Then resize across the line both ways, Tab through both columns, and scroll each with the keys.
+Then resize across the line both ways, with the browser pane showing: while it's hidden, the pane can hold back the media query's change. Tab through both columns, and scroll each column and the list's box with the keys.
 
 - [ ] **Step 3: Ask the user to sign off**
 
@@ -1406,7 +1406,7 @@ Update the project memory with the new tip and what's next: the items left from 
 
 ## Done when
 
-- `npx vitest run`, `npx tsc --noEmit` and `npm run build` are all green, with 2154 tests in 93 files.
+- `npx vitest run`, `npx tsc --noEmit` and `npm run build` are all green, with 2154 tests in 93 files from this plan's blocks, and 2156 after the reviews.
 - On a window at least 744 px wide and 500 px tall, the status and the schedule show side by side under one bar, as on the app's iPad, and phones and smaller windows keep the two pages (Tasks 1–6).
 - The user has signed off on the look (Task 7), and it's live on crewluve.crewlu.net, released with the user's yes (Task 8).
 
@@ -1432,4 +1432,36 @@ Update the project memory with the new tip and what's next: the items left from 
 
 ## Execution notes
 
-(Add notes here as the build goes: where the code had to differ from a printed block, and why.)
+**Build, 2026-10-12**
+- Tasks 1–6 were built on `slice3c` in the main folder from this plan's own blocks (`scratchpad/s3c/drive.py`), test first.
+  - Each Step 2 failed and each Step 4 passed as printed.
+  - All 15 files came out identical to the scratch copy: `3e566c0`..`1dbe70d`, 2154 tests in 93 files.
+
+**Reviews**
+- **Two reviewers at once,** each with its own frozen copy at `1dbe70d`: a spec review, and a code-quality review of the whole branch. Neither was blocked.
+- **The spec review:** matches the spec, with fixes.
+  - Important: nothing pinned the bar title's 22 px bold, which §9 promises.
+  - Minor:
+    - no test that the schedule comes back with today selected after a crossing;
+    - the countdown's fallback size, for browsers without container units such as Safari before 16, assumed a card as wide as the window, too big in the 320 px status column;
+    - Task 7's list left out 1440 × 900 and the list's keys.
+- **The code-quality review:** ready to merge.
+  - Minor:
+    - a popup open as the window crossed the line stayed open, and on close its focus went to a heading, its button rebuilt under it;
+    - the Back and Forward test couldn't tell a rebuilt column;
+    - the listener test didn't check that the function taken away was the one added;
+    - the countdown's fallback, as above.
+  - It timed each clock tick side by side at 0.87 ms with the demo's 22 legs, about the two pages' sum.
+- **The controller's own check** of the location card at 744 × 1133 found the sun dial, 42% of the window, covering the card's words. On a 320 px phone, the same card has a 134 px dial.
+
+**Changes after the reviews** (spec decision 9)
+- `ae1b6f3`: in the status column, the sun dial and the countdown's fallback go by the column's width, `max(320px, 40vw)`. Tests pin the title's 22 px bold and `split.css`'s rules.
+- `34d2060`:
+  - each layout has a status page of its own, by its `key`, so crossing the line rebuilds it and closes an open popup;
+  - one set of the schedule's props for both layouts;
+  - tests for today selected again after a crossing, the month kept through Back and Forward, and a popup across the line.
+- `6f34a6f`: the listener test checks the function taken away.
+- Not taken:
+  - re-reading the window in `useSideBySide`'s effect, the same shape as 3B's height check, which no test could pin;
+  - a generated id for the hidden heading, as there's only ever one.
+- **Checks:** deliberate breaks against the fixes and the rest caught 39 of 39. The suite is 2156 tests in 93 files.
