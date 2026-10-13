@@ -168,3 +168,8 @@ Update the project memory with the new tip and what's next: the optional page-sc
 | §5 Testing | 1, 2, 3, 4 |
 
 ## Execution notes
+- **Review (after Task 2): ready to merge,** with no correctness findings. It confirmed spec §4.2's claim: `relevantDelay` takes `status.current` whenever it's a move, the site's only snapshot comes from `safeSnapshot`, and the hand-built in-flight statuses in other tests have no current leg. Two of its three optional nits were taken:
+  - the rebuilt departure test's 132-character line is wrapped;
+  - a comment warns that the three tests which swap a leg into the snapshot leave its delay behind, so they shouldn't check it.
+  - Not taken: `0e2cda2`'s message says `lonOffset` keeps the app's spelling, but the app spells it `longitudeOffset`. Spec §3 cites only `lon1`, `minLon` and `lonSpan`; `lonOffset` stays as a name of the map's own.
+- **Suite:** 2167 tests in 95 files.

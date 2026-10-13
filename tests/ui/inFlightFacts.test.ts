@@ -42,7 +42,9 @@ describe('inFlightFacts', () => {
 
   it('takes the delay from the departure, not from the landing', () => {
     const late = engineFor(new RawBuilder(A).pilot('Sam', 'SDF', null).trip('t1', {
-      dutyPeriods: [{ start: 0, end: 600, flights: [{ dep: 'SDF', arr: 'RFD', out: 60, in: 150, actualOut: 100, actualIn: 160 }] }],
+      dutyPeriods: [{
+        start: 0, end: 600, flights: [{ dep: 'SDF', arr: 'RFD', out: 60, in: 150, actualOut: 100, actualIn: 160 }],
+      }],
     }).build())
     expect(inFlightFacts(snapAt(120, late), testAirports)!.delayMinutes).toBe(40)
   })
@@ -61,6 +63,8 @@ describe('inFlightFacts', () => {
     expect(inFlightFacts(ground, testAirports)).toBeNull()
   })
 
+  // The next three swap another leg into the snapshot's status and leave its delay behind. That's fine for what they
+  // check, but the engine never makes such a snapshot, so they shouldn't check the delay.
   it('keeps the code as the city, and no place or zone, for an airport the list doesn’t have', () => {
     const air = snapAt(100)
     const leg = flight('SDF', 'ZZZ', 0, 2)
