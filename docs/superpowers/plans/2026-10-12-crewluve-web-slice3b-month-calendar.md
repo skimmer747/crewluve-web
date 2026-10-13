@@ -83,7 +83,7 @@ Then the parts:
 - Modify: `src/time/zoned.ts`
 - Test: `tests/time/zoned.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/time/zoned.test.ts`, import the three new helpers and `HOUR`:
 
@@ -145,12 +145,12 @@ describe('dayStart (slice 3B §4.5)', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/time/zoned.test.ts`
 Expected: FAIL in 6 tests (`6 failed | 13 passed (19)`) with `TypeError: dayParts is not a function`, `TypeError: dayOf is not a function` and `TypeError: dayStart is not a function`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/time/zoned.ts`, add the three helpers after `calendarDay`:
 
@@ -187,12 +187,12 @@ export function dayStart(day: number, timeZone: string): number {
 
 `dayStart` halves a 28-hour span down to the minute, about 11 lookups. It finds the first minute of the day even where a zone skips midnight, as Chile's clocks do on 6 September 2026.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/time/zoned.test.ts`
 Expected: PASS, 19 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 2019 tests in 88 files after this task.
 
@@ -211,7 +211,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/copy/calendar.ts`
 - Test: `tests/copy/calendar.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/copy/calendar.test.ts`:
 
@@ -250,12 +250,12 @@ describe('dayName (slice 3B §5.7)', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/copy/calendar.test.ts`
 Expected: FAIL with `Error: Cannot find module '../../src/copy/calendar' imported from 'tests/copy/calendar.test.ts'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/copy/calendar.ts`:
 
@@ -290,12 +290,12 @@ export function dayName(day: number): string {
 
 The letters are the app's `veryShortWeekdaySymbols` in English, as all the site's words are.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/copy/calendar.test.ts`
 Expected: PASS, 4 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 2024 tests in 89 files after this task.
 
@@ -314,7 +314,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `src/ui/calendarFacts.ts`
 - Test: `tests/ui/calendarFacts.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/calendarFacts.test.ts`:
 
@@ -395,12 +395,12 @@ describe('monthGrid (slice 3B §4.4)', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/calendarFacts.test.ts`
 Expected: FAIL with `Error: Cannot find module '../../src/ui/calendarFacts' imported from 'tests/ui/calendarFacts.test.ts'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/ui/calendarFacts.ts`:
 
@@ -474,12 +474,12 @@ export function monthGrid(m: Month, firstDay: number): GridDay[][] {
 
 `firstWeekday` fills in the region first, so a bare "en" means the US, as `tempUnitFor` does for the weather. Browsers count the week's days from 1 = Monday to 7 = Sunday; `% 7` turns Sunday into the site's 0. Older browsers have neither `getWeekInfo()` nor `weekInfo`, and get Sunday.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/calendarFacts.test.ts`
 Expected: PASS, 8 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 2033 tests in 90 files after this task.
 
@@ -498,7 +498,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/ui/calendarFacts.ts`
 - Test: `tests/ui/calendarFacts.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/ui/calendarFacts.test.ts`, change the imports:
 
@@ -637,12 +637,12 @@ describe('timeLine (slice 3B §4.7)', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/calendarFacts.test.ts`
 Expected: FAIL in 9 tests (`9 failed | 8 passed (17)`) with `TypeError: weekBars is not a function`, `TypeError: undefined is not a function` (`barKind`) and `TypeError: timeLine is not a function`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/ui/calendarFacts.ts`, import the legs' type and two more time helpers:
 
@@ -768,12 +768,12 @@ This is `CalendarDataBuilder.buildSegments` line for line, with two differences 
 
 As in the app, a trip's start and end come from all its legs in the list, time at home included, though that draws no bar.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/calendarFacts.test.ts`
 Expected: PASS, 17 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 2042 tests in 90 files after this task.
 
@@ -792,7 +792,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/ui/calendarFacts.ts`
 - Test: `tests/ui/calendarFacts.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/ui/calendarFacts.test.ts`, import `scrollDay`, and `scheduleDays` to build the list's days:
 
@@ -851,12 +851,12 @@ describe('scrollDay (slice 3B §5.2)', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/calendarFacts.test.ts`
 Expected: FAIL in 5 tests (`5 failed | 17 passed (22)`) with `TypeError: scrollDay is not a function`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/ui/calendarFacts.ts`, import `calendarDay`, and `isHappening` and the day's type from `scheduleFacts`:
 
@@ -896,12 +896,12 @@ export function scrollDay(day: number, days: readonly ScheduleDay[], now: number
 
 It's the calendar's half of `EventTimelineView`'s `onChange(of: selectedDate)`. Current Event's half is 3A's `openingDay`, which already does what the app's `isCurrentEventScroll` branch does.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/calendarFacts.test.ts`
 Expected: PASS, 22 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 2047 tests in 90 files after this task.
 
@@ -920,7 +920,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/data/demo.ts`
 - Test: `tests/data/demo.test.ts`, `tests/ui/StatusScreen.test.tsx`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 In `tests/data/demo.test.ts`, import the schedule's and the legs' builders:
 
@@ -954,12 +954,12 @@ with this:
     const { container, names } = linksAt(14400) // home, with no trip ahead
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/data/demo.test.ts tests/data/demoScenes.test.ts tests/ui/StatusScreen.test.tsx`
 Expected: FAIL in 1 test (`1 failed | 114 passed (115)`) with `AssertionError: expected [] to match object [ { tripId: 'demo-t2', …(1) } ]`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/data/demo.ts`, move the `nothing-ahead` scene past the longer trip:
 
@@ -1030,12 +1030,12 @@ with this:
 
 The jumpseater flies the same trips, so it rests at base too; it has no drive home to move. No other scene moves: the third trip starts a week after the main one, and only `nothing-ahead` came after it.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/data/demo.test.ts tests/data/demoScenes.test.ts tests/ui/StatusScreen.test.tsx`
 Expected: PASS, 115 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 2048 tests in 90 files after this task.
 
@@ -1055,7 +1055,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/styles/tokens.css`, `src/main.tsx`
 - Test: `tests/ui/TripCalendar.test.tsx`, `tests/styles/styles.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/ui/TripCalendar.test.tsx`:
 
@@ -1302,14 +1302,14 @@ describe('calendar.css', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/TripCalendar.test.tsx tests/styles/styles.test.ts`
 Expected: FAIL:
 - `TripCalendar.test.tsx` can't load: `Error: Failed to resolve import "../../src/ui/TripCalendar" from "tests/ui/TripCalendar.test.tsx". Does the file exist?`
 - 21 style tests fail (`21 failed | 159 passed (180)`): the twelve light and dark values of the new colors, `--rest-text`'s two high-contrast values, the list of what Increase Contrast changes, and the six `calendar.css` tests, with `Error: ENOENT: no such file or directory, open 'src/styles/calendar.css'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/styles/tokens.css`, add the six colors to the light `:root`, after `--bar-fill`:
 
@@ -1703,12 +1703,12 @@ The grid lines come last in each week, after the bars and the time line, as the 
 
 The days carry `data-calendar-day`, not `data-day`. The list finds a day's section by `data-day`, and on a short window the calendar sits inside the list (Task 12).
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/TripCalendar.test.tsx tests/styles/styles.test.ts`
 Expected: PASS, 188 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 2077 tests in 91 files after this task.
 
@@ -1727,7 +1727,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/ui/TripCalendar.tsx`
 - Test: `tests/ui/TripCalendar.test.tsx`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/ui/TripCalendar.test.tsx`, import `useState`:
 
@@ -1809,7 +1809,7 @@ describe('TripCalendar from the keyboard (slice 3B §5.7)', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/TripCalendar.test.tsx`
 Expected: FAIL in 5 tests (`5 failed | 8 passed (13)`):
@@ -1817,7 +1817,7 @@ Expected: FAIL in 5 tests (`5 failed | 8 passed (13)`):
 - the arrows move nothing and scroll the page: `expected true to be false`;
 - the month never turns: `expected 'October 2026' to be 'November 2026'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/ui/TripCalendar.tsx`, change the imports:
 
@@ -1943,12 +1943,12 @@ with this:
 
 Enter and Space stay with the browser, which clicks a button on them, so a key picks a day just as a finger does. Moving alone selects nothing, as in any date picker. A tap puts the Tab stop back on the selected day.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/TripCalendar.test.tsx`
 Expected: PASS, 13 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 2082 tests in 91 files after this task.
 
@@ -1967,7 +1967,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/ui/TimelineRow.tsx`
 - Test: `tests/ui/TimelineRow.test.tsx`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 In `tests/ui/TimelineRow.test.tsx`, import `fireEvent` and `vi`:
 
@@ -2007,12 +2007,12 @@ describe('TimelineRow taps (slice 3B §5.3)', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/TimelineRow.test.tsx`
 Expected: FAIL in 1 test (`1 failed | 6 passed (7)`) with `AssertionError: expected "spy" to be called 1 times, but got 0 times`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/ui/TimelineRow.tsx`, add the prop:
 
@@ -2049,12 +2049,12 @@ with this:
       <div class={`leg glass${edge}${look.homeward ? ' homeward' : ''}`} style={{ '--leg': cssColor(look.color) }} onClick={onTap}>
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/TimelineRow.test.tsx`
 Expected: PASS, 7 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 2083 tests in 91 files after this task.
 
@@ -2073,7 +2073,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/ui/SchedulePage.tsx`, `src/styles/schedule.css`, `src/styles/tokens.css`
 - Test: `tests/ui/SchedulePage.test.tsx`, `tests/styles/styles.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/ui/SchedulePage.test.tsx`, lay the page out from the top of the list's box instead of the bar's bottom, and add a way to find the box:
 
@@ -2330,12 +2330,12 @@ with this:
     expect(rule('.day-heading')).toContainEqual(['z-index', '1'])
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/SchedulePage.test.tsx tests/styles/styles.test.ts`
 Expected: FAIL in 8 tests (`8 failed | 185 passed (193)`): the box has no Tab stop, role or name (`expected [ null, null, null ] to deeply equal [ '0', 'region', 'Legs' ]`), the window scrolls instead of the box, and the stylesheet still has the sticky bar.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/ui/SchedulePage.tsx`, measure from the top of the list's box instead of the bar:
 
@@ -2679,12 +2679,12 @@ A sticky heading stops short of its scroll box's padding, so the box has none at
 
 The status page still scrolls the window, and comes back where it was. The Schedule page is fixed to the window's edges, so the window has nothing to scroll while it shows.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/SchedulePage.test.tsx tests/styles/styles.test.ts`
 Expected: PASS, 193 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 2084 tests in 91 files after this task.
 
@@ -2703,7 +2703,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/ui/SchedulePage.tsx`
 - Test: `tests/ui/SchedulePage.test.tsx`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/ui/SchedulePage.test.tsx`, give the page a week from Sunday, so the tests don't depend on the computer's region:
 
@@ -2861,12 +2861,12 @@ describe('SchedulePage’s calendar (slice 3B §3.1, §5)', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/SchedulePage.test.tsx`
 Expected: FAIL in 12 tests (`12 failed | 13 passed (25)`): there's no calendar on the page, as in `TypeError: Cannot use 'in' operator to search for 'onclick' in null` and `TypeError: Cannot read properties of null (reading 'previousElementSibling')`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/ui/SchedulePage.tsx`, change the imports:
 
@@ -3014,12 +3014,12 @@ with this:
 
 The page keeps the selected day and the month, not the calendar, so the calendar can move into the list without losing them (Task 12). `scrollToDay` asks about reduced motion at each tap, as the sun popup does as it opens.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/SchedulePage.test.tsx`
 Expected: PASS, 25 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 2096 tests in 91 files after this task.
 
@@ -3038,7 +3038,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `src/ui/SchedulePage.tsx`
 - Test: `tests/ui/SchedulePage.test.tsx`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/ui/SchedulePage.test.tsx`, import `act`:
 
@@ -3116,12 +3116,12 @@ describe('SchedulePage on a short window (slice 3B §3.2)', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/ui/SchedulePage.test.tsx`
 Expected: FAIL in 3 tests (`3 failed | 26 passed (29)`): the calendar stays under the bar on a short window (`expected [ 'schedule-list' ] to deeply equal [ 'calendar', 'calendar-rule', …(1) ]`), and nothing listens for the window's height (`expected +0 to be 1`).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/ui/SchedulePage.tsx`, add the rule after `STUCK_SLACK`:
 
@@ -3206,12 +3206,12 @@ with this:
 
 The rule is a media query, so a phone turning on its side moves the calendar without the page measuring anything. A browser without `matchMedia` keeps the calendar pinned.
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npx vitest run tests/ui/SchedulePage.test.tsx`
 Expected: PASS, 29 tests.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass. The suite is 2100 tests in 91 files after this task.
 
@@ -3317,4 +3317,54 @@ Update the project memory with the new tip and what's next: Slice 3C, the status
 
 ## Execution notes
 
-(Add notes here as the build goes: where the code had to differ from a printed block, and why.)
+**Build, 2026-10-12**
+- Tasks 1–12 were built on `slice3b` in the main folder from this plan's own blocks (`scratchpad/s3b/drive.py`), test first.
+  - Each Step 2 failed and each Step 4 passed as printed.
+  - All 20 files came out identical to the scratch copy: `b2da015`..`e83c764`, 2100 tests in 91 files.
+
+**Reviews**
+- **Four reviewers at once,** each with its own frozen copy. None was blocked.
+  - Batch A, Tasks 1–6: a spec review and a code-quality review, at `6ef98dc`.
+  - Batch B, Tasks 7–12: a spec review, and a code-quality review that also covered the whole branch, at `e83c764`.
+- **Batch A:** both found the code matches the plan, the spec and the app.
+  - The code-quality review compared the bars with a copy of the app's Swift over 400 random schedules, and checked `dayStart` in all 417 zones, finding no bugs.
+  - Both found one Important item: a 3A test still used minute 12000 for "home, nothing ahead", which the longer third trip had made a rest at base.
+- **Batch B:**
+  - The spec review found one Important item: on a short window, a tap that turns the month measured its scroll before the calendar's height changed.
+  - The code-quality review found two: Safari's grey flash on a tapped row, and no test of the scroll targets from a scrolled list.
+
+**Changes after the reviews** (spec decision 9)
+- `9965ff0`: the StatusScreen tests take "home, nothing ahead" from the scene's own time, `DEMO_SCENES['nothing-ahead'].offset`.
+- `c3d09ed`:
+  - `rowStart` for a week row's first day;
+  - an explicit test for the next leg in the join;
+  - legs with no trip keyed by themselves;
+  - tests for both week-info paths, the time line's measure, codes, the row's edges, a 29-minute join, two legs at once, a six-row month from Monday, and both variants' rest at base.
+- `12e231f`: spec wording for `monthGrid` and the weekday letters.
+- `961f23e`:
+  - a tap's scroll waits for the redraw;
+  - one `scrollTopFor` for every scroll target, with tests from a scrolled list;
+  - a turn keeps the list's place and the calendar's focus;
+  - rows tap without the grey flash;
+  - the list box's focus ring inset;
+  - `html.schedule-open` takes the body's full height away while the page shows, for Safari before 15.4.
+- `2c87f9f`:
+  - the Tab stop back on a day picked another way;
+  - Alt, Ctrl and ⌘ arrows left to the browser;
+  - the time line once a minute;
+  - Current Event over the › arrow's tap area at 320 px;
+  - the selected circle on `--fill-blue` under Increase Contrast;
+  - tests for the arrows' weight, a greyed selected day, the line on a greyed today, and new data's bars.
+- `e9c5474`: page tests for a row tap turning the month, an overnight row's start day, Current Event with nowhere to go, a hand scroll, focus after a tap, midnight, no legs, and the region's first weekday.
+- `f27c636`: the spec, with decision 9 and the iPhone checks in §11.
+- **Checks:** deliberate breaks against the fixes caught all of them: 7 of 7 in `calendarFacts`, 9 of 9 in the page, 4 of 4 in the calendar. The suite is 2119 tests in 91 files.
+
+**Left for later** (spec §11)
+- `memo` on rows, so a tick touches only the rows whose clock changes.
+- The check in Safari on an iPhone, with 3A's list and 3B's:
+  - whether "selected" is spoken;
+  - how a row with a tap reads;
+  - whether a drag on the pinned calendar bounces the page;
+  - the calendar inside the "Legs" region on a short window.
+- For 3C: `useId` for the calendar's title.
+- Optional: moving the page's scrolling into a hook, for testing.
