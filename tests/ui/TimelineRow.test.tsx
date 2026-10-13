@@ -36,7 +36,7 @@ describe('TimelineRow (slice 3A §4.4–4.9)', () => {
     expect(card.className).toBe('leg glass')
     expect(card.style.getPropertyValue('--leg')).toBe('var(--ups)')
     const icon = card.querySelector('.leg-icon svg')!
-    expect(iconNameOf(icon)).toBe('Package')
+    expect(iconNameOf(icon)).toBe('AirplaneTilt')
     expect(icon.getAttribute('width')).toBe('15')
     expect(text('.leg-title')).toBe('UPS2961: RFD → SDF')
     expect(text('.leg-times')).toBe('6:15am edt – 7:45am edt')

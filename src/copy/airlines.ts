@@ -34,10 +34,12 @@ const NAMES: Record<string, string> = {
 // crown.fill Crown, hare.fill Rabbit, sparkles Sparkle, circle.lefthalf.filled CircleHalf,
 // globe.asia.australia.fill GlobeHemisphereEast, diamond.fill Diamond, plus Plus, chevron.up.chevron.down
 // CaretUpDown, sailboat.fill Sailboat, pawprint.fill PawPrint, location.north.fill NavigationArrow.
+// UPS breaks from the app on purpose: the app gives it shippingbox.fill, and the site the tilted plane the user chose
+// (UPS plane icon spec, decision 1). FedEx keeps the box.
 const SYMBOLS: Record<string, IconName> = {
   WN: 'Heart', DL: 'Triangle', AA: 'Star', UA: 'GlobeHemisphereWest', B6: 'AirplaneTilt', AS: 'Mountains',
   NK: 'CurrencyCircleDollar', F9: 'Leaf', G4: 'Sun', MX: 'Wind', HA: 'Leaf', XP: 'Bird', SY: 'Sun',
-  FX: 'Package', '5X': 'Package', AC: 'Leaf', LH: 'Bird', BA: 'Crown', AF: 'AirplaneTilt', CX: 'Bird',
+  FX: 'Package', '5X': 'AirplaneTilt', AC: 'Leaf', LH: 'Bird', BA: 'Crown', AF: 'AirplaneTilt', CX: 'Bird',
   KL: 'Crown', QF: 'Rabbit', EK: 'Sparkle', SQ: 'Bird', NH: 'AirplaneTilt', JL: 'Bird', KE: 'CircleHalf',
   OZ: 'AirplaneTilt', CI: 'Leaf', BR: 'GlobeHemisphereEast', TG: 'Leaf', MH: 'Diamond', QR: 'Rabbit',
   EY: 'Bird', TK: 'Bird', LX: 'Plus', OS: 'CaretUpDown', SK: 'Sailboat', EI: 'Leaf', VS: 'Sparkle',

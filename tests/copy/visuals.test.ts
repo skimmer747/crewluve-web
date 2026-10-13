@@ -16,11 +16,11 @@ describe('statusVisual', () => {
     [-1440, 'House', 'green'],
     [-60, 'Car', 'blue'],
     [30, 'Buildings', 'purple'],
-    [100, 'Package', 'ups'],
+    [100, 'AirplaneTilt', 'ups'],
     [180, 'ArrowsClockwise', 'orange'],
     [-7800, 'Bed', 'purple'],
     [1300, 'Bed', 'orange'],
-    [1700, 'Package', 'orange'],
+    [1700, 'AirplaneTilt', 'orange'],
     [1950, 'Car', 'green'],
     [4500, 'ClockCountdown', 'red'],
     [5900, 'BookOpen', 'purple'],
@@ -85,7 +85,7 @@ describe('leaveCard', () => {
 
 describe('statusVisual in the less common states', () => {
   it.each([
-    { name: 'in the air, left early', engine: twoFlights(-40), minutes: 400, visual: { icon: 'Package', color: 'green' } },
+    { name: 'in the air, left early', engine: twoFlights(-40), minutes: 400, visual: { icon: 'AirplaneTilt', color: 'green' } },
     { name: 'turn, early flight', engine: twoFlights(-40), minutes: 200, visual: { icon: 'ArrowsClockwise', color: 'green' } },
     { name: 'layover, early flight', engine: overnight(-60), minutes: 800, visual: { icon: 'Bed', color: 'green' } },
     {

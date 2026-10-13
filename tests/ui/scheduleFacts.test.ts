@@ -22,8 +22,8 @@ describe('scheduleLegs', () => {
 })
 
 describe('rowLook: flights and jumpseats (slice 3A §4.5, §4.6)', () => {
-  it('writes a company flight as Duty does, with the UPS package in UPS brown', () => {
-    expect(look(flight('RFD', 'SDF', 0, 1, 'T1', { number: '2961' }))).toEqual({ title: 'UPS2961: RFD → SDF', icon: 'Package', color: 'ups', homeward: false })
+  it('writes a company flight as Duty does, with the UPS plane in UPS brown', () => {
+    expect(look(flight('RFD', 'SDF', 0, 1, 'T1', { number: '2961' }))).toEqual({ title: 'UPS2961: RFD → SDF', icon: 'AirplaneTilt', color: 'ups', homeward: false })
   })
 
   it('gives a flight entered with its airline that code, icon and color, a FedEx pilot’s company flights too', () => {
