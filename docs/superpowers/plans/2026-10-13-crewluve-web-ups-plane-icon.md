@@ -35,7 +35,7 @@
 
 ### Task 1: The tilted plane for UPS
 
-- [ ] **Step 1: Move the tests to the plane**
+- [x] **Step 1: Move the tests to the plane**
 
 In `tests/copy/airlines.test.ts`, replace the `airlineIcon` table's first line, keeping it within 120 characters:
 
@@ -75,12 +75,12 @@ and the early departure in "statusVisual in the less common states":
     { name: 'in the air, left early', engine: twoFlights(-40), minutes: 400, visual: { icon: 'AirplaneTilt', color: 'green' } },
 ```
 
-- [ ] **Step 2: Run them and watch them fail**
+- [x] **Step 2: Run them and watch them fail**
 
 Run: `npx vitest run tests/copy/airlines.test.ts tests/ui/scheduleFacts.test.ts tests/ui/TimelineRow.test.tsx tests/copy/visuals.test.ts`
 Expected: 6 failed, each "expected 'Package' to be 'AirplaneTilt'" or the same inside an object; the new `FX → Package` case passes.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/copy/airlines.ts`, under the SF Symbol → Phosphor comment and before `const SYMBOLS`, add:
 
@@ -95,12 +95,12 @@ and in `SYMBOLS`:
   FX: 'Package', '5X': 'AirplaneTilt', AC: 'Leaf', LH: 'Bird', BA: 'Crown', AF: 'AirplaneTilt', CX: 'Bird',
 ```
 
-- [ ] **Step 4: Run them and watch them pass**
+- [x] **Step 4: Run them and watch them pass**
 
 Run: `npx vitest run tests/copy/airlines.test.ts tests/ui/scheduleFacts.test.ts tests/ui/TimelineRow.test.tsx tests/copy/visuals.test.ts`
 Expected: all pass.
 
-- [ ] **Step 5: Run the gates and commit**
+- [x] **Step 5: Run the gates and commit**
 
 Run the three gates: 2168 tests in 95 files, `tsc` clean, build clean. Then:
 
@@ -115,11 +115,11 @@ with the trailer.
 
 ### Task 2: Browser check (controller)
 
-- [ ] **Step 1: Build and open the preview**
+- [x] **Step 1: Build and open the preview**
 
 `npm run build`, then the `crewluve-preview` server from `.claude/launch.json` (port 5181) in the browser pane, at 375 × 812.
 
-- [ ] **Step 2: Check the plane**
+- [x] **Step 2: Check the plane**
 
 On `/?demo=1&scene=flying`, in light and dark:
 - the status card's icon is the tilted plane in UPS brown, inside its ring;
@@ -160,3 +160,7 @@ Update the project memory with the new tip, the site's first deliberate break fr
 | §4 Testing | 1, 2 |
 
 ## Execution notes
+- **Task 1:** built as printed; 6 tests failed first ("expected 'Package' to be 'AirplaneTilt'"), then 2168 tests in 95 files passed, `tsc` and build clean. Commit `c809af2`; 2169 after the review.
+- **Task 2:** at 375 × 812, `scene=flying`: the status card's icon is the tilted plane in UPS brown in its ring; on `#schedule` every UPS row (UPS2950, 2951, 2961, 2963, 2962, …) draws the tilted plane, the drives keep the car, and UPS2961, happening, still pulses. Dark: the planes are the lighter UPS gold. `scene=last-leg`: the plane in orange. No console errors.
+- **Review (after Task 1): ready to merge,** no findings. It confirmed both icon paths (`scheduleFacts.ts` `moveLook`, `copy/visuals.ts` `statusVisual`) go through `airlineIcon`; `UPS`, `ups` and `5X` all resolve to `5X`; a company flight with no code becomes `5X` in `normalize.ts`; nothing else draws an airline's icon. A break back to `Package` failed exactly 6 tests. Taken: a `UPS → AirplaneTilt` case in `airlines.test.ts` (2169 tests). Noted, not changed: a numbered jumpseat with no airline already shows the airline's icon on the status card but the green seat in its row (`scheduleFacts.test.ts` documents it), so it now shows the plane there instead of the box.
+

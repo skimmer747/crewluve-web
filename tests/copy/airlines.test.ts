@@ -15,7 +15,8 @@ describe('airlineIcao', () => {
 
 describe('airlineIcon', () => {
   it.each([
-    ['5X', 'AirplaneTilt'], ['FX', 'Package'], ['DL', 'Triangle'], ['WN', 'Heart'], ['IB', 'Airplane'], [null, 'Airplane'],
+    ['5X', 'AirplaneTilt'], ['UPS', 'AirplaneTilt'], ['FX', 'Package'],
+    ['DL', 'Triangle'], ['WN', 'Heart'], ['IB', 'Airplane'], [null, 'Airplane'],
   ])(
     '%s → %s', (code, icon) => expect(airlineIcon(code)).toBe(icon),
   )
