@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks'
 import { dayName, monthTitle, weekdayColumns } from '../copy/calendar'
 import type { Leg } from '../engine/legs'
 import { dayOf } from '../time/zoned'
@@ -40,11 +40,16 @@ export function TripCalendar({ month, firstDay, legs, now, timeZone, today, sele
     () => monthGrid(month, firstDay).map((days) => ({ days, bars: weekBars(days[0].day, legs, timeZone) })),
     [month.year, month.month, firstDay, legs, timeZone],
   )
+  // The time line's place in each week, worked out as the minute changes: the page gives `now` to the minute (§4.7).
+  const lines = useMemo(() => weeks.map(({ days }) => timeLine(days[0].day, now, timeZone)), [weeks, now, timeZone])
   const grid = useRef<HTMLDivElement>(null)
   // Where the arrow keys left off, and the day to focus once the month the move turned to is drawn.
   const [keyDay, setKeyDay] = useState<number | null>(null)
   const focusNext = useRef<number | null>(null)
   const stop = [keyDay, selected, today].find((day) => day !== null && inMonth(day, month)) ?? dayOf(month.year, month.month, 1)
+
+  // A day picked another way, by a row or Current Event, takes the Tab stop back from the keys.
+  useEffect(() => setKeyDay(null), [selected])
 
   useLayoutEffect(() => {
     const day = focusNext.current
@@ -55,7 +60,8 @@ export function TripCalendar({ month, firstDay, legs, now, timeZone, today, sele
 
   const move = (e: KeyboardEvent, day: number) => {
     const step = STEPS[e.key]
-    if (step === undefined) return
+    // With Alt, Ctrl or ⌘, an arrow stays the browser's: Back and Forward.
+    if (step === undefined || e.altKey || e.ctrlKey || e.metaKey) return
     e.preventDefault()
     const next = day + step
     setKeyDay(next)
@@ -68,6 +74,12 @@ export function TripCalendar({ month, firstDay, legs, now, timeZone, today, sele
     onSelect(day)
   }
 
+  // Current Event picks today, which may be the selected day already, so it takes the Tab stop back itself.
+  const currentEvent = () => {
+    setKeyDay(null)
+    onCurrentEvent()
+  }
+
   return (
     <div class="calendar">
       <div class="calendar-header">
@@ -77,7 +89,7 @@ export function TripCalendar({ month, firstDay, legs, now, timeZone, today, sele
         <span class="calendar-space" />
         <span id="calendar-title" class="calendar-title" aria-live="polite">{monthTitle(month.year, month.month)}</span>
         <span class="calendar-space" />
-        <button type="button" class="calendar-now" onClick={onCurrentEvent}>Current Event</button>
+        <button type="button" class="calendar-now" onClick={currentEvent}>Current Event</button>
         <span class="calendar-space" />
         <button type="button" class="calendar-arrow" aria-label="Next month" onClick={() => onMonth(addMonths(month, 1))}>
           <Chevron size={17} weight={2.2} />
@@ -89,8 +101,8 @@ export function TripCalendar({ month, firstDay, legs, now, timeZone, today, sele
             <span key={column.name} role="columnheader" aria-label={column.name}>{column.letter}</span>
           ))}
         </div>
-        {weeks.map(({ days, bars }) => {
-          const line = timeLine(days[0].day, now, timeZone)
+        {weeks.map(({ days, bars }, week) => {
+          const line = lines[week]
           return (
             <div key={days[0].day} class="calendar-week" role="row">
               {days.map((d) => (

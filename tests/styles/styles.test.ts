@@ -748,6 +748,8 @@ describe('calendar.css', () => {
     ]))
     // 44 px squares, with margins that keep the row at the capsule's height and the tap areas within the column's sides.
     expect(rule('.calendar-arrow')).toEqual(expect.arrayContaining([['width', '44px'], ['height', '44px'], ['margin', '-7px -16px'], ['color', 'var(--blue)']]))
+    // At 320 px the › arrow's tap area reaches the capsule's right end; the capsule stays on top and takes those taps.
+    expect(rule('.calendar-now')).toEqual(expect.arrayContaining([['position', 'relative'], ['z-index', '1']]))
   })
 
   it('makes each week 50 px: the numbers’ 28 px, the codes’ 12 px and the bars’ 10 px', () => {
@@ -762,7 +764,10 @@ describe('calendar.css', () => {
     expect(rule('.calendar-day.today')).toEqual([['font-weight', '700']])
     expect(rule('.calendar-day.today::before')).toEqual([['border', '1.5px solid var(--blue)']])
     expect(rule('.calendar-day.selected')).toEqual([['color', '#ffffff']])
-    expect(rule('.calendar-day.selected::before')).toEqual([['border', '0'], ['background', 'var(--blue)']])
+    // The readable blue fill under Increase Contrast in dark mode, where the white number needs it, as every white text does.
+    expect(rule('.calendar-day.selected::before')).toEqual([['border', '0'], ['background', 'var(--fill-blue, var(--blue))']])
+    // The number sits over its circle.
+    expect(rule('.calendar-num')).toEqual([['position', 'relative']])
     expect(rule('.calendar-day.other:not(.selected) .calendar-num')).toEqual([['opacity', '0.4']])
     const heads = rulesIn(css('calendar')).map((r) => r.head)
     expect(heads.indexOf('.calendar-day.selected::before')).toBeGreaterThan(heads.indexOf('.calendar-day.today::before'))

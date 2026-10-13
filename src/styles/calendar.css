@@ -42,8 +42,11 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Current Event: iOS's bordered button, 12 px blue words on a gray capsule. */
+/* Current Event: iOS's bordered button, 12 px blue words on a gray capsule. It sits over the › arrow's tap area, which at
+   320 px reaches its right end. */
 .calendar-now {
+  position: relative;
+  z-index: 1;
   padding: 7px 12px;
   border: 0;
   border-radius: 999px;
@@ -118,9 +121,11 @@
   color: #ffffff;
 }
 
+/* The white number sits on the readable blue fill where tokens.css has one: dark mode with Increase Contrast (Part A
+   follow-ups spec §3.3). */
 .calendar-day.selected::before {
   border: 0;
-  background: var(--blue);
+  background: var(--fill-blue, var(--blue));
 }
 
 .calendar-day.other:not(.selected) {

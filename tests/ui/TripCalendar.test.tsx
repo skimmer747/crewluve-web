@@ -145,6 +145,37 @@ describe('TripCalendar (slice 3B §4)', () => {
     expect(screen.getAllByRole('columnheader')[0].getAttribute('aria-label')).toBe('Monday')
     expect(container.querySelector('.calendar-day')!.textContent).toBe('28')
   })
+
+  it('draws the arrows’ chevrons at 17 px, as heavy as the back button’s', () => {
+    calendar()
+    for (const name of ['Previous month', 'Next month']) {
+      const svg = screen.getByRole('button', { name }).querySelector('svg')!
+      expect([svg.getAttribute('height'), svg.querySelector('polyline')!.getAttribute('stroke-width')]).toEqual(['17', '2.2'])
+    }
+  })
+
+  it('shows a day of the month before as selected, white on blue, when it is the selected day', () => {
+    const { container } = calendar({ selected: dayOf(2026, 9, 30) })
+    expect(dayButton(container, dayOf(2026, 9, 30)).className).toBe('calendar-day other selected')
+  })
+
+  it('draws the time line on today when it’s a greyed day at the edge of another month’s grid', () => {
+    const sep29 = dayOf(2026, 9, 29)
+    const { container } = calendar({ today: sep29, selected: sep29, now: Date.UTC(2026, 8, 29, 20) }) // 4pm in New York
+    const line = container.querySelector<HTMLElement>('.calendar-line')!
+    expect(line.closest('.calendar-week')).toBe(container.querySelector('.calendar-week'))
+    expect(hoursAt(line.style.left)).toBe(64) // Tuesday 4pm, 2 days and 16 hours into the week from Sunday the 27th
+  })
+
+  it('redraws the bars when new data arrives', () => {
+    const { container, rerender } = calendar()
+    expect(container.querySelectorAll('.calendar-week')[2].querySelectorAll('.calendar-bar')).toHaveLength(6)
+    rerender(<TripCalendar month={OCT} firstDay={0} legs={LEGS.slice(0, 1)} now={(MON + 17) * H} timeZone={NY} today={TODAY}
+      selected={TODAY} onSelect={() => {}} onMonth={() => {}} onCurrentEvent={() => {}} />)
+    expect([...container.querySelectorAll('.calendar-week')[2].querySelectorAll('.calendar-bar')].map((b) => b.className)).toEqual([
+      'calendar-bar bar-rest round-start round-end',
+    ])
+  })
 })
 
 describe('TripCalendar from the keyboard (slice 3B §5.7)', () => {
@@ -213,6 +244,32 @@ describe('TripCalendar from the keyboard (slice 3B §5.7)', () => {
     dayButton(container, TODAY).focus()
     fireEvent.keyDown(document.activeElement!, { key: 'ArrowRight' })
     fireEvent.click(dayButton(container, TODAY + 2))
+    expect(stops(container)).toEqual([TODAY])
+  })
+
+  it('gives the Tab stop back to a day picked another way: by a row, or by Current Event though today was selected already', () => {
+    const { container, rerender, onCurrentEvent } = calendar()
+    dayButton(container, TODAY).focus()
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' })
+    expect(stops(container)).toEqual([TODAY + 7])
+    fireEvent.click(screen.getByRole('button', { name: 'Current Event' }))
+    expect(onCurrentEvent).toHaveBeenCalledTimes(1)
+    expect(stops(container)).toEqual([TODAY])
+    dayButton(container, TODAY).focus()
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' })
+    rerender(<TripCalendar month={OCT} firstDay={0} legs={LEGS} now={(MON + 17) * H} timeZone={NY} today={TODAY} selected={TODAY + 3}
+      onSelect={() => {}} onMonth={() => {}} onCurrentEvent={() => {}} />)
+    expect(stops(container)).toEqual([TODAY + 3])
+  })
+
+  it('leaves Alt, Ctrl and ⌘ with an arrow to the browser, for Back and Forward', () => {
+    const { container } = calendar()
+    const today = dayButton(container, TODAY)
+    today.focus()
+    for (const modifier of ['altKey', 'ctrlKey', 'metaKey']) {
+      expect(fireEvent.keyDown(today, { key: 'ArrowLeft', [modifier]: true }), modifier).toBe(true)
+      expect(document.activeElement).toBe(today)
+    }
     expect(stops(container)).toEqual([TODAY])
   })
 })
