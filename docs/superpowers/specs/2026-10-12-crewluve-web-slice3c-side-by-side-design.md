@@ -55,6 +55,7 @@ Status: approved in brainstorming on 2026-10-12. Slices 3A (the Schedule page) a
 - **Without ways into the schedule** (3A §2): the cards that lead to the schedule have no chevron and take no tap, and View Schedule never shows. This is what `PilotStatusView` does with `isCompanionLayout`.
 - **Spacing as the status page's column** (`.screen`): 12 px above, 16 px at the sides, 16 px below plus the safe area, and 24 px between cards. It fills the column, with no 480 px limit.
 - **It scrolls in its own box,** which doesn't hand its scroll on to the window at its ends.
+- **The cards keep their own heights** (decision 8). In a box of fixed height, a card that clips what it holds, as the in-flight card clips its map, would otherwise shrink to fit, where the phone's page lets the window grow instead.
 
 ### 4.4 The hairline
 
@@ -181,6 +182,7 @@ Nothing new: no requests, storage or scripts. The content security policy is unc
 | 5 | The behavior in §5: the address, crossing the line, popups, the keyboard and screen readers. | User, 2026-10-12 |
 | 6 | The build in §6 and the testing in §9. | User, 2026-10-12 |
 | 7 | Only one calendar is ever on the page, so 3B's note about its fixed `id` needs no change. | Design, from decision 3 |
+| 8 | The status column's cards keep their heights: in its box of fixed height, the in-flight card shrank to a sliver of its map. | Design, from the browser check while planning |
 
 ## 11. Roadmap
 
