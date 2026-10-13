@@ -1,5 +1,7 @@
 # Crewluve Web — FlightRadar24 opens the flight's own page
 
+> **Withdrawn, 2026-10-13, the same evening.** Live, the flight page turned out to be a table of past flights under large ads. The user: "It needs to go to the live flight or we need to get rid of it. This page is awful." They chose the live map again (decision 4). The code and tests went back to their state before this spec (`515a867`), byte for byte, and the build matched the Back Home release's (`index-DncMPOoR.js`). The pre-takeoff gap in §2 stays: in the minutes between pushback and takeoff, FlightRadar24 opens its general map, and FlightAware's button covers them.
+
 Status: reported by the user on 2026-10-13 with a screenshot of the tracking popup for UPS5768: "The link to Flightradar24 doesn't seem to point at the flight". The user chose the flight page over keeping the live map. Everything through Back Home In is live (`c376f37`).
 
 ## 1. Goal
@@ -41,3 +43,4 @@ Status: reported by the user on 2026-10-13 with a screenshot of the tracking pop
 | 1 | Open FlightRadar24's flight page, not the live map. | User, 2026-10-13 |
 | 2 | Keep the app's caption, "Live tracking map": the page's Live button is one tap away. | Design |
 | 3 | A three-letter code the table can't turn into IATA keeps the live map. | Design (review) |
+| 4 | Withdrawn: back to the live map, `fr24.com/{callsign}`, as in the app. The flight page is mostly ads and a table. | User, 2026-10-13 |

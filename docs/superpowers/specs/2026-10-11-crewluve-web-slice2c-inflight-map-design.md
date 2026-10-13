@@ -156,7 +156,7 @@ It copies `FlightTrackingPopupView.swift`, as in the mockup approved on 2026-10-
   - **The header:** a blue plane icon, then the flight number in its ICAO form, 20 px bold. On the right is a close button: a 22 px gray ✕ in a circle, labelled "Close".
   - **"Track this flight"**, 15 px, secondary color.
   - **Two links**, each in a row: a 20 px icon in a 32 px column, then the name (17 px semibold) over a caption (12 px, secondary color), then a 15 px "opens elsewhere" icon in the secondary color. Each row has 14 px padding and a 14 px radius.
-    - **FlightRadar24**, "Live tracking map": a broadcast icon, on blue at 12% with blue text. It links to `https://fr24.com/{callsign}`. *2026-10-13:* now the flight number's page, `https://www.flightradar24.com/data/flights/{iata}{digits}` (FR24 flight page spec).
+    - **FlightRadar24**, "Live tracking map": a broadcast icon, on blue at 12% with blue text. It links to `https://fr24.com/{callsign}`. *2026-10-13:* briefly the flight number's page, then back to this link the same evening (FR24 flight page spec, withdrawn).
     - **FlightAware**, "Flight status & history": a GPS-fix icon, on orange at 12% with orange text. It links to `https://www.flightaware.com/live/flight/{callsign}`.
   - The links open in a new tab with `rel="noopener noreferrer"`, so the tracking sites aren't told which page sent the visitor. Following one closes the popup, as the app's buttons do. Screen readers hear "(opens in a new tab)".
 - **The callsign**, with the app's `FlightTrackingHelper` airline codes:
@@ -204,7 +204,7 @@ Everything comes from what the site already has; there are no new requests.
 1. **The plane's progress, the sky and the airport times** use the site's estimated departure and landing. Then the plane always agrees with the site's "landing in 49m" countdown. The app moves the plane on the scheduled block time, shifted by the departure delay.
 2. **The delay banner** shows only at 15 minutes or more off schedule, as everywhere on the site. The app shows any delay.
 3. **Times follow the site's 24-hour setting.** The app's map labels are always 12-hour.
-4. **FlightRadar24 opens its website.** The app tries the FlightRadar24 app first. On an iPhone with that app installed, the website may hand over to it. *2026-10-13:* the site opens the flight number's page, not the live map, so it finds the flight before takeoff too (FR24 flight page spec). That page stays in the browser even with the app installed; only its Live link may hand over.
+4. **FlightRadar24 opens its website.** The app tries the FlightRadar24 app first. On an iPhone with that app installed, the website may hand over to it. *2026-10-13:* the live map finds the flight only once FlightRadar24 tracks it, from about takeoff; between pushback and takeoff it opens the general map. A switch to the flight number's page was tried and withdrawn the same evening (FR24 flight page spec).
 5. **Screen readers get more than in the app:** the map's spoken description, an "In flight" heading for the card, "Time in Louisville" before the info bar's time, naming the city whose time it is, the delay banner in words ("Delayed 40 minutes", "Departed 20 minutes early"), and the flight number saying what it opens ("UPS2962. Opens flight tracking."), as the sun dial does.
 6. **There's no map during ground transport,** where the location card shows (B1 §8 item 9).
 7. **"EARLY DEP" uses a check in a circle,** since the site's icon set has no clock with a check badge.

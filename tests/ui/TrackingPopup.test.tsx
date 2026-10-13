@@ -32,7 +32,7 @@ describe('TrackingPopup', () => {
     render(popup())
     const radar = screen.getByRole('link', { name: 'FlightRadar24 Live tracking map (opens in a new tab)' })
     const aware = screen.getByRole('link', { name: 'FlightAware Flight status & history (opens in a new tab)' })
-    expect(radar.getAttribute('href')).toBe('https://www.flightradar24.com/data/flights/5x2962')
+    expect(radar.getAttribute('href')).toBe('https://fr24.com/UPS2962')
     expect(aware.getAttribute('href')).toBe('https://www.flightaware.com/live/flight/UPS2962')
     for (const link of [radar, aware]) {
       expect(link.getAttribute('target')).toBe('_blank')
