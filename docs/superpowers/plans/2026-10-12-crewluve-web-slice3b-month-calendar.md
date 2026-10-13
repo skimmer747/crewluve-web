@@ -3229,11 +3229,11 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Files:**
 - Modify (only if nudges are needed): `src/styles/calendar.css`, `src/styles/schedule.css`
 
-- [ ] **Step 1: Build and open the preview**
+- [x] **Step 1: Build and open the preview**
 
 Run `npm run build`, then start or reuse the `crewluve-preview` server from `.claude/launch.json` (port 5181) in the browser pane. Set the viewport to 375 × 812 for the phone's screenshots.
 
-- [ ] **Step 2: Take the screenshots, in light and in dark**
+- [x] **Step 2: Take the screenshots, in light and in dark**
 
 The browser pane can hand back the previous frame right after a page changes, so take a small throwaway screenshot first, then the real one. If a page was built again since it was last opened, add a new query word, such as `&v=2`, so the browser doesn't show the old one.
 
@@ -3244,11 +3244,11 @@ The browser pane can hand back the previous frame right after a page changes, so
 
 Then tap the arrows, Current Event, and a row of another day, and move among the days with the arrow keys.
 
-- [ ] **Step 3: Ask the user to sign off**
+- [x] **Step 3: Ask the user to sign off**
 
 Put the screenshots side by side, and ask one question: "Looks right (Recommended)" or "Change something". Point out the Current Event button, iOS's default bordered button (a gray capsule with blue words), so they can compare it with their phone. Apply their notes, then show them again.
 
-- [ ] **Step 4: Run the gates and commit any nudges**
+- [x] **Step 4: Run the gates and commit any nudges**
 
 Run: `npx vitest run`, `npx tsc --noEmit` and `npm run build`. All three must pass.
 
@@ -3358,6 +3358,14 @@ Update the project memory with the new tip and what's next: Slice 3C, the status
 - `e9c5474`: page tests for a row tap turning the month, an overnight row's start day, Current Event with nowhere to go, a hand scroll, focus after a tap, midnight, no legs, and the region's first weekday.
 - `f27c636`: the spec, with decision 9 and the iPhone checks in §11.
 - **Checks:** deliberate breaks against the fixes caught all of them: 7 of 7 in `calendarFacts`, 9 of 9 in the page, 4 of 4 in the calendar. The suite is 2119 tests in 91 files.
+
+**Look check (Task 13)**
+- The user said "Looks right" to a sheet of six screenshots of the reviewed build:
+  - light and dark at 375 px, and after a tap on the 21st, with the light SDF rest at base;
+  - 320 px wide;
+  - a short phone, 548 px, with January 2027's six week rows, where the list gets 97 px;
+  - a phone on its side, in dark, with the calendar in the list.
+- The short phone keeps the pinned calendar (decision 1). No visual nudges were needed.
 
 **Left for later** (spec §11)
 - `memo` on rows, so a tick touches only the rows whose clock changes.
