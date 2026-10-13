@@ -535,13 +535,14 @@ A **homecoming move** is a flight, jumpseat, drive, or drive-titled event that a
       - it starts no earlier than T's last flight departs
       - it starts before any *other* trip's first leg
       - it starts within 3 days of T's last flight landing
+   - *2026-10-13:* a new step goes here, before "Final flight still ahead": when the next trip starts within 24 h of T's landing and the pilot doesn't go home in between, T's homecoming is that trip's. See `2026-10-13-crewluve-web-back-home-design.md` §4.
    3. **Final flight still ahead:** if T's last flight is still ahead → "Back at Base In" when it lands at the base, otherwise "{City} In", counting to that flight's `in`.
    4. **Otherwise → no countdown** (C26). The trip is over and no ride home is logged.
 5. **Without a T:** the first standalone homecoming move that ends after t, starts within 3 days, and starts before the next trip's first leg → **"Back Home In"**. Otherwise no target.
 6. **No target, but a trip covers t and has no flight legs →** the "~N days" fallback (§4.4).
 
 **Rules for every target:**
-- Never a leg from the next trip (C14).
+- Never a leg from the next trip (C14). *2026-10-13:* unless the pilot goes straight on to it (back-home spec §4.3).
 - Never a time in the past (C3).
 - Never a scheduled time when an effective time exists.
 

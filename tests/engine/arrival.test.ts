@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { demoRaw } from '../../src/data/demo'
 import { RawBuilder } from '../../src/data/rowBuilder'
-import type { Leg } from '../../src/engine/legs'
+import { buildLegs, type Leg } from '../../src/engine/legs'
+import { buildSchedule } from '../../src/engine/normalize'
 import { resolveStatus } from '../../src/engine/status'
 import { arrivalTarget, currentTripId } from '../../src/engine/targets'
 import type { Pilot } from '../../src/engine/types'
-import { A, M, at, engineFor } from '../fixtures/engine'
+import { A, B2B, M, at, backToBackRaw, engineFor } from '../fixtures/engine'
 import { H, drive, duty, flight, pilot, sorted } from '../fixtures/legs'
 
 function arrivalAt(e: ReturnType<typeof engineFor>, minutes: number) {
@@ -82,10 +83,10 @@ describe('arrivalTarget edge cases', () => {
     expect(targetAtHour(legs, commuter, 26)).toBeNull()
   })
 
-  it('never borrows the next trip’s homecoming (C14)', () => {
+  it('never borrows the homecoming of a trip that starts more than a day after the landing (C14)', () => {
     const legs = sorted([
       flight('SDF', 'ANC', 0, 5), flight('ANC', 'SDF', 20, 25),
-      flight('SDF', 'MIA', 45, 47, 'T2'), flight('MIA', 'SDF', 60, 62, 'T2'), drive('SDF', 'LEX', true, 63, 64),
+      flight('SDF', 'MIA', 50, 52, 'T2'), flight('MIA', 'SDF', 60, 62, 'T2'), drive('SDF', 'LEX', true, 63, 64),
     ])
     expect(targetAtHour(legs, commuter, 30)).toBeNull()
   })
@@ -262,15 +263,90 @@ describe('the current trip ignores the standalone legs around it', () => {
       commuterRaw()
         .trip('t1', { dutyPeriods: [{ start: 0, end: 300, flights: [{ dep: 'ANC', arr: 'SDF', out: 60, in: 240 }] }] })
         .manualEvent('cbt', 'Recurrent CBT', 300, 360, 'SDF')
-        .trip('t2', {
+        .trip('t2', { // reports 26 hours after t1 lands, time enough to go home
           dutyPeriods: [
-            { start: 1200, end: 1500, flights: [{ dep: 'SDF', arr: 'MIA', out: 1260, in: 1440 }] },
-            { start: 2600, end: 2900, flights: [{ dep: 'MIA', arr: 'SDF', out: 2660, in: 2840 }] },
+            { start: 1800, end: 2100, flights: [{ dep: 'SDF', arr: 'MIA', out: 1860, in: 2040 }] },
+            { start: 3200, end: 3500, flights: [{ dep: 'MIA', arr: 'SDF', out: 3260, in: 3440 }] },
           ],
         })
-        .commute('t2-home', 'SDF', 'LEX', 'toHome', 2900, 2970, 't2')
+        .commute('t2-home', 'SDF', 'LEX', 'toHome', 3500, 3570, 't2')
         .build(),
     )
     expect(arrivalAt(e, 420)).toBeNull() // t1 is over and no ride home is logged for it
+  })
+})
+
+describe('back-to-back trips: the homecoming after the last one (back-home spec §4)', () => {
+  const commuter = pilot('LEX', 'SDF')
+  const local = pilot(null, 'SDF')
+  const week = (() => {
+    const schedule = buildSchedule(backToBackRaw(), B2B)
+    return { schedule, legs: buildLegs(schedule) }
+  })()
+  const weekAt = (minutes: number) => {
+    const t = B2B + minutes * M
+    return arrivalTarget(week.legs, week.schedule.pilot, resolveStatus(week.legs, week.schedule.pilot, t), t)
+  }
+
+  it.each([
+    ['in the report window (the report’s screenshot)', 4],
+    ['in the air on the first leg', 100],
+    ['on the layover in Chicago', 1000],
+    ['in the air back to the base', 1900],
+    ['at the base between the trips', 2400],
+    ['on the second trip', 3000],
+  ])('%s → back home in Orlando when the commute after the second trip lands', (_moment, minutes) => {
+    expect(weekAt(minutes)).toEqual({ label: 'home', time: B2B + 5029 * M, schedTime: B2B + 5029 * M, airport: 'MCO', delayMin: 0 })
+  })
+
+  const T1 = [flight('SDF', 'ANC', 0, 5), flight('ANC', 'SDF', 20, 25)]
+  const T2 = (start: number) => [flight('SDF', 'MIA', start, start + 2, 'T2'), flight('MIA', 'SDF', 60, 62, 'T2')]
+  const rideHome = drive('SDF', 'LEX', true, 63, 64)
+
+  it('goes on to a trip that starts exactly 24 hours after the landing, but not a minute later', () => {
+    expect(targetAtHour(sorted([...T1, ...T2(49), rideHome]), commuter, 1)).toMatchObject({ label: 'home', time: 64 * H })
+    const later = sorted([...T1, ...T2(49 + 1 / 60), rideHome])
+    expect(targetAtHour(later, commuter, 1)).toMatchObject({ label: 'base', time: 25 * H })
+    expect(targetAtHour(later, commuter, 30)).toBeNull()
+  })
+
+  it('counts the day from the actual landing, not the scheduled one (C1)', () => {
+    const lateLanding = [flight('SDF', 'ANC', 0, 5), flight('ANC', 'SDF', 20, 27, 'T1', { schedEnd: 25 * H })]
+    expect(targetAtHour(sorted([...lateLanding, ...T2(50), rideHome]), commuter, 1)).toMatchObject({ label: 'home', time: 64 * H })
+  })
+
+  it.each([
+    ['a jumpseat', flight('LEX', 'SDF', 40, 41, null)],
+    ['a drive', drive('LEX', 'SDF', false, 40, 41)],
+  ])('stops at the landing when %s from home between the trips shows the pilot went home', (_ride, fromHome) => {
+    const legs = sorted([...T1, fromHome, ...T2(45), rideHome])
+    expect(targetAtHour(legs, commuter, 1)).toMatchObject({ label: 'base', time: 25 * H })
+    expect(targetAtHour(legs, commuter, 30)).toBeNull()
+  })
+
+  it('goes on through three trips in a row', () => {
+    const legs = sorted([
+      ...T1,
+      flight('SDF', 'MIA', 30, 32, 'T2'), flight('MIA', 'SDF', 38, 40, 'T2'),
+      flight('SDF', 'ONT', 50, 52, 'T3'), flight('ONT', 'SDF', 58, 60, 'T3'),
+      drive('SDF', 'LEX', true, 61, 62),
+    ])
+    expect(targetAtHour(legs, commuter, 1)).toMatchObject({ label: 'home', time: 62 * H, airport: 'LEX' })
+  })
+
+  it('takes the next trip’s own landing at home', () => {
+    const legs = sorted([...T1, flight('SDF', 'ATL', 30, 32, 'T2'), flight('ATL', 'LEX', 36, 37, 'T2')])
+    expect(targetAtHour(legs, commuter, 1)).toMatchObject({ label: 'home', time: 37 * H, airport: 'LEX' })
+  })
+
+  it('keeps the first homecoming: a local pilot whose trip ends at home is home after it', () => {
+    const legs = sorted([...T1, ...T2(30)])
+    expect(targetAtHour(legs, local, 1)).toMatchObject({ label: 'home', time: 25 * H, airport: 'SDF' })
+  })
+
+  it('with no homecoming down the line, still counts to the landing at base, then nothing (C26)', () => {
+    const legs = sorted([...T1, ...T2(30)])
+    expect(targetAtHour(legs, commuter, 1)).toMatchObject({ label: 'base', time: 25 * H, airport: 'SDF' })
+    expect(targetAtHour(legs, commuter, 26)).toBeNull()
   })
 })

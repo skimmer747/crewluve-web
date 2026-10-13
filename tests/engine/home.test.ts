@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { demoRaw } from '../../src/data/demo'
 import { RawBuilder } from '../../src/data/rowBuilder'
 import { lastHomeArrival, leaveTarget, nextTripFlight, nextTripHomecoming } from '../../src/engine/home'
-import { A, at, engineFor } from '../fixtures/engine'
+import { buildLegs } from '../../src/engine/legs'
+import { buildSchedule } from '../../src/engine/normalize'
+import { A, B2B, M, at, backToBackRaw, engineFor } from '../fixtures/engine'
 import { H, drive, duty, flight, pilot, sorted } from '../fixtures/legs'
 
 const local = pilot(null, 'SDF')
@@ -91,6 +93,12 @@ describe('nextTripHomecoming', () => {
   it('finds when the next trip brings the pilot home', () => {
     const e = engineFor(demoRaw('driver', A))
     expect(nextTripHomecoming(e.legs, e.schedule.pilot, at(-1440))).toMatchObject({ label: 'home', time: at(2000) })
+  })
+
+  it('names the homecoming after back-to-back trips (back-home spec §4.4)', () => {
+    const schedule = buildSchedule(backToBackRaw(), B2B)
+    // At home in Orlando, before the commute to work.
+    expect(nextTripHomecoming(buildLegs(schedule), schedule.pilot, B2B - 300 * M)).toMatchObject({ label: 'home', time: B2B + 5029 * M })
   })
 
   it('is null when that trip has no homecoming logged', () => {
