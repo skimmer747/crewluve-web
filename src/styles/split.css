@@ -1,0 +1,67 @@
+/* The status and the schedule side by side on a wide window (slice 3C §4), as the app's iPad lays them out: one bar
+   across the top with the title, the status in a column of its own, a hairline, then the schedule. */
+
+/* Fixed to the window's edges, so the window itself never scrolls; each column scrolls on its own, as the app's two
+   scroll views do. The status takes 40% of the width, never less than the narrowest phone's 320 px, and the schedule
+   the rest. Past 1376 px, a 13-inch iPad on its side, the layout stops growing and sits in the middle (§4.1). */
+.split {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  max-width: 1376px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: max(320px, 40%) minmax(0, 1fr);
+  grid-template-rows: 60px minmax(0, 1fr);
+}
+
+/* The bar: the page's title in the middle, across both columns, on the page's plain color, as the Schedule page's bar
+   (§4.2). The title keeps its 22 px bold, the app's iPad title. */
+.split-bar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+}
+
+.split-bar .title {
+  margin: 0;
+}
+
+/* The status: the phone's column, spaced as .screen, in a box of its own that scrolls, and doesn't hand its scroll on
+   to the window or scroll sideways (§4.3). */
+.split-status {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px 16px calc(16px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Its cards keep their own heights. In a box of fixed height, a flex item that clips what it holds, as the in-flight
+   card clips its map, would otherwise shrink to fit, where the phone's page lets the window grow instead. */
+.split-status > * {
+  flex-shrink: 0;
+}
+
+/* Its focus ring inside its edges, which the bar and the hairline would otherwise cover. */
+.split-status:focus-visible {
+  outline-offset: -2px;
+}
+
+/* The schedule: the Schedule page below its bar, with the same 16 px sides for its list's box to span, after the app's
+   Divider, a 0.5 px hairline in iOS's separator color (§4.4, §4.5). */
+.split-schedule {
+  min-width: 0;
+  min-height: 0;
+  padding: 0 16px;
+  border-left: 0.5px solid var(--separator);
+  display: flex;
+  flex-direction: column;
+}

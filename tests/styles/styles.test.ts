@@ -837,3 +837,42 @@ describe('main.tsx', () => {
     for (const name of STYLESHEETS) expect(main, `${name}.css is not imported by src/main.tsx`).toContain(`import './styles/${name}.css'`)
   })
 })
+
+describe('split.css', () => {
+  // Read when each test runs, so a missing file fails the tests below and not the whole file.
+  const rule = (head: string) => declarations(find(rulesIn(css('split')), head)!.body)
+
+  it('fills the window as the Schedule page does, the status 40% wide but never under 320 px, up to 1376 px (slice 3C §4.1)', () => {
+    expect(rule('.split')).toEqual([
+      ['position', 'fixed'], ['top', '0'], ['right', '0'], ['bottom', '0'], ['left', '0'], ['max-width', '1376px'], ['margin', '0 auto'],
+      ['display', 'grid'], ['grid-template-columns', 'max(320px, 40%) minmax(0, 1fr)'], ['grid-template-rows', '60px minmax(0, 1fr)'],
+    ])
+  })
+
+  it('centers the title in a 60 px bar across both columns, on the page’s plain color (§4.2)', () => {
+    expect(rule('.split-bar')).toEqual([
+      ['grid-column', '1 / -1'], ['display', 'flex'], ['align-items', 'center'], ['justify-content', 'center'], ['padding', '0 16px'],
+    ])
+    expect(rule('.split-bar .title')).toEqual([['margin', '0']])
+  })
+
+  it('scrolls the status in a box of its own, spaced as the status page’s column, with its focus ring inside (§4.3)', () => {
+    expect(rule('.split-status')).toEqual([
+      ['min-height', '0'], ['overflow-x', 'hidden'], ['overflow-y', 'auto'], ['overscroll-behavior', 'contain'],
+      ['padding', '12px 16px calc(16px + env(safe-area-inset-bottom))'], ['display', 'flex'], ['flex-direction', 'column'], ['gap', '24px'],
+    ])
+    expect(declarations(find(rulesIn(css('base')), '.screen')!.body)).toEqual(expect.arrayContaining([
+      ['padding', '12px 16px calc(16px + env(safe-area-inset-bottom))'], ['gap', '24px'],
+    ]))
+    // The cards keep their heights: the in-flight card, which clips its map, shrank to fit the box in the browser.
+    expect(rule('.split-status > *')).toEqual([['flex-shrink', '0']])
+    expect(rule('.split-status:focus-visible')).toEqual([['outline-offset', '-2px']])
+  })
+
+  it('puts the schedule after a 0.5 px hairline in iOS’s separator color, with the Schedule page’s 16 px sides (§4.4, §4.5)', () => {
+    expect(rule('.split-schedule')).toEqual([
+      ['min-width', '0'], ['min-height', '0'], ['padding', '0 16px'], ['border-left', '0.5px solid var(--separator)'],
+      ['display', 'flex'], ['flex-direction', 'column'],
+    ])
+  })
+})
