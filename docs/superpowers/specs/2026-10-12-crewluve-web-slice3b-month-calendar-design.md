@@ -206,7 +206,7 @@ Copied from `EventTimelineView` and `TripCalendarView` (decision 5).
 - **At midnight,** today's ring and bold move to the new day. The selected day and the month shown stay.
 - **When new data arrives,** the bars change in place. The selected day, the month and the list's scroll stay.
 - **Days are the visitor's,** in their time zone, as the list's are (3A §4.3).
-- **The week starts** on the first day of the visitor's region, from the browser's `Intl.Locale` week information (`getWeekInfo()`, or the older `weekInfo`): Sunday in the US, Monday in much of Europe. Without it, Sunday. The app follows the phone's region the same way.
+- **The week starts** on the first day of the visitor's region, from the browser's `Intl.Locale` week information (`getWeekInfo()`, or the older `weekInfo`): Sunday in the US, Monday in much of Europe. Without it, Sunday. The app's grid follows the phone's region the same way; its letters don't (§8).
 - **With no legs at all,** the calendar still shows, without bars, above 3A's empty state (§4.12). Current Event then moves nothing.
 
 ## 6. How it's built
@@ -215,7 +215,7 @@ Copied from `EventTimelineView` and `TripCalendarView` (decision 5).
 
 - **`src/ui/calendarFacts.ts`:** the calendar as plain data, ported from `CalendarDataBuilder`:
   - `firstWeekday`: the region's first day, else Sunday;
-  - `monthGrid`: a month's week rows of days, each with its date, whether it's in the month, and whether it's today;
+  - `monthGrid`: a month's week rows of days, each with its date and whether it's in the month. Today is marked as the calendar draws, so the grid stays the same as the day changes;
   - `weekBars`: a week row's bars, with kind, ends and code;
   - `barKind`: each leg's kind (§4.5), or none for home;
   - `timeLine`: where the line sits in a week row, if anywhere;
@@ -256,6 +256,7 @@ Nothing new: no requests, storage or scripts. The content security policy is unc
 - **Right after opening, a tap on one of today's rows moves nothing,** since today is already the selected day. The app scrolls to today's heading, where its list has usually just opened anyway. Its opening selects the current moment, not the day.
 - **The time line is measured as the bars are,** so it meets them exactly on the days the clocks change. The app measures it within the day.
 - **The new month appears at once.** The app fades it in.
+- **The weekday letters start on the week's first day.** The app always prints them from Sunday, so where a week starts on Monday, its letters don't line up with its columns.
 - **The arrows take 44 px of taps.** The app's take only the chevron's size.
 - **Windows under 500 px tall** scroll the calendar away with the list. The app doesn't face such a window.
 - **Under Increase Contrast** the codes darken in light mode.
