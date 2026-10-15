@@ -81,11 +81,12 @@
   - `writer_build int`;
   - `updated_at`, set by the server;
   - `push_due bool` and `last_push_at`, for the push service (§6.1).
-- **How CrewLu writes it.** CrewLu writes the row through an RPC, `set_partner_status(p_status jsonb, p_build int)`, which runs as the caller (RLS owner).
-  - The RPC refuses a write from an older build than the stored `writer_build`. That's the same guard as `writerBuildVersion` (`PilotStatusBeaconManager.swift:333-352`), now enforced by the server.
+- **How CrewLu writes it.** CrewLu writes the row through an RPC, `set_partner_status(p_status jsonb, p_build int)`, which writes only the signed-in pilot's own row.
+  - The RPC refuses a write from an older build than the stored `writer_build` and answers `{"applied": false}`. That's the same guard as `writerBuildVersion` (`PilotStatusBeaconManager.swift:333-352`), now enforced by the server.
 - **The JSON is the existing `SharedPilotStatus`, encoded with `Codable`:**
   - dates as seconds since 1970, matching `tripLegsJSON` today;
   - `tripLegs` as a real JSON array, not a blob;
+  - `displayNameByPartner` and `quickStatusByPartner` as real JSON objects keyed by the lower-case `partners.id`, and `quickStatusTargets` as an array of those ids (the partner door trims by these names, §4.2);
   - a `schemaVersion: 1` field.
 
   Piece 2 adds a JSON Schema file and fixtures generated from real summaries, so all three projects check against the same shape.
@@ -104,7 +105,7 @@
 
 ## 5. Partners, links and devices
 
-### 5.1 Tables (names may be refined in piece 1's spec)
+### 5.1 Tables
 
 - **`partners`:** one row per person the pilot shares with.
   - `id`, `owner_id` (the pilot), `name` ("Sarah"), `created_at`.
@@ -112,18 +113,21 @@
   - The pilot's nickname and quick status for this person keep living in the summary, keyed by `partners.id` instead of the CloudKit user record name.
 - **`partner_devices`:** one row per connected device.
   - `id`, `partner_id` (on delete cascade), `owner_id`.
-  - `key_hash`: the SHA-256 of the device's 256-bit key. The plaintext key exists only on the device.
   - `kind` (`app` or `web`) and `label` ("Sarah's iPhone", "Safari on iPad").
-  - `push_token` and `push_env` (`sandbox` or `production`), app devices only.
   - `created_at` and `last_seen_at`.
-- **`partner_handoffs`:** one-time tokens that create a device.
+- **`private.partner_device_secrets`:** one row per device, which no client can read.
+  - `key_hash`: the SHA-256 of the device's 256-bit key. The plaintext key exists only on the device.
+  - `push_token` and `push_env` (`sandbox` or `production`), app devices only.
+- **`private.partner_redeem_failures`:** failed code attempts, for the throttle in §5.3.
+- **`private.partner_handoffs`:** one-time tokens that create a device.
   - `kind 'code'`: the 6-character code (from a 31-character alphabet without 0, O, 1, I or L), valid 10 minutes.
   - `kind 'move'`: a 256-bit move ticket (§8), valid 90 days.
   - Both are usable once (`used_at`).
-- **RLS:**
-  - The owner can read and write their own `partners` rows.
-  - The owner can read and delete their own `partner_devices` and `partner_handoffs` rows.
-  - Partners have no table access at all. Everything they do goes through §5.3.
+- **Access:**
+  - The pilot reads their own `partners`, `partner_devices` and `partner_status` rows through RLS. Every change goes through the pilot's RPCs (§5.3).
+  - Partners have no table access at all. Everything they do goes through the partner RPCs (§5.3).
+  - The `private` schema isn't exposed by the API, and no client role can use it.
+- **Limits:** 25 partners per pilot, 10 devices per person, 1 MB per summary, and one open code and one open move ticket per person.
 
 ### 5.2 Link format
 
@@ -156,7 +160,18 @@
 | `partner_leave(p_key)` | The device disconnects itself. |
 
 - **Every RPC that takes a key or token answers `sharing_ended` when it isn't valid.** That covers a removed person, a removed device, an unknown key, and a used or expired code. The device then shows "Sharing has ended" and returns to the welcome screen.
-- **Guessing codes.** Codes are short, so `partner_handoff_redeem` keeps a count of failures. After 30 failures in a minute, every redemption fails for the next minute. That could block hand-offs for a minute but never exposes data. Move tickets and invites are long enough not to need this.
+- **Guessing codes.** Codes are short, so `partner_handoff_redeem` keeps a count of failures. After 30 failures in a minute, every code redemption fails until those failures are a minute old. That could block hand-offs for a minute but never exposes data. Move tickets and invites are long enough to skip this, so a move-over is never delayed.
+- **Answers, not errors.** Partner RPCs answer `{"error": "sharing_ended" | "invalid_input" | "too_many_devices" | "try_later"}` instead of raising, so a failed code attempt can be recorded.
+- **The pilot's RPCs** (signed in, `authenticated` only) return jsonb and raise an error on misuse:
+  - `set_partner_status(p_status, p_build)` → `{applied}`;
+  - `partner_create(p_name)` → `{id, invite_token}`;
+  - `partner_rename(p_partner, p_name)`;
+  - `partner_new_link(p_partner)` → `{invite_token}`;
+  - `partner_remove(p_partner)`;
+  - `partner_remove_device(p_device)`;
+  - `partner_remove_all()`, which also deletes the summary;
+  - `partner_move_ticket(p_partner)` → `{ticket, expires_at}`.
+- **The full as-built API**, with every answer, the HTTP checks and the undo SQL, is in `~/Dev/Duty/supabase/partner-api.md`.
 
 ### 5.4 What the pilot sees (CrewLu)
 

@@ -89,13 +89,13 @@ In `~/Dev/Crewluve Website`: this plan (its checkboxes get ticked) and `docs/sup
 
 ### Task 0: Branch
 
-- [ ] **Step 1: Check the working tree**
+- [x] **Step 1: Check the working tree**
 
 Run: `git -C ~/Dev/Duty status --short`
 
 Expected: only the Xcode scheme lines (` M Duty.xcodeproj/xcshareddata/xcschemes/Duty.xcscheme` and four `??` scheme files). If anything else shows, stop and ask the user.
 
-- [ ] **Step 2: Create the branch**
+- [x] **Step 2: Create the branch**
 
 Run: `git -C ~/Dev/Duty switch -c feature/partner-cloud-door feature/supabase-account-backend`
 
@@ -109,7 +109,7 @@ Expected: `Switched to a new branch 'feature/partner-cloud-door'`. The scheme ch
 
 This task builds the harness that every later task stands on, so its test passes as soon as the harness exists.
 
-- [ ] **Step 1: Write `supabase/tests/package.json`**
+- [x] **Step 1: Write `supabase/tests/package.json`**
 
 ```json
 {
@@ -126,13 +126,13 @@ This task builds the harness that every later task stands on, so its test passes
 }
 ```
 
-- [ ] **Step 2: Write `supabase/tests/.gitignore`**
+- [x] **Step 2: Write `supabase/tests/.gitignore`**
 
 ```
 node_modules/
 ```
 
-- [ ] **Step 3: Write `supabase/tests/helpers/supabase_shim.sql`**
+- [x] **Step 3: Write `supabase/tests/helpers/supabase_shim.sql`**
 
 ```sql
 -- The slice of Supabase's own setup that the partner-links migrations rely on, so the tests can run them
@@ -192,7 +192,7 @@ alter default privileges in schema public grant all on functions to anon, authen
 alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
 ```
 
-- [ ] **Step 4: Write `supabase/tests/helpers/db.js`**
+- [x] **Step 4: Write `supabase/tests/helpers/db.js`**
 
 ```js
 // A test database: PGlite (Postgres in WebAssembly) with the Supabase shim and the partner-links migrations.
@@ -250,7 +250,7 @@ export async function asAdmin(db, sql, params = []) {
 }
 ```
 
-- [ ] **Step 5: Write `supabase/tests/smoke.test.js`**
+- [x] **Step 5: Write `supabase/tests/smoke.test.js`**
 
 ```js
 import assert from 'node:assert/strict'
@@ -289,13 +289,13 @@ describe('the Supabase shim', () => {
 })
 ```
 
-- [ ] **Step 6: Install and run**
+- [x] **Step 6: Install and run**
 
 Run: `cd ~/Dev/Duty/supabase/tests && npm install && npm test`
 
 Expected: `npm install` adds one package and writes `package-lock.json`. `npm test` ends with `ℹ tests 3`, `ℹ pass 3`, `ℹ fail 0`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd ~/Dev/Duty
@@ -312,7 +312,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `supabase/tests/helpers/seed.js`
 - Test: `supabase/tests/tables.test.js`
 
-- [ ] **Step 1: Write `supabase/tests/helpers/seed.js`**
+- [x] **Step 1: Write `supabase/tests/helpers/seed.js`**
 
 ```js
 // Rows written straight into the tables as the owner, for tests that run before (or around) the RPCs.
@@ -344,7 +344,7 @@ export async function seedDevice(db, owner, partnerId, kind = 'app') {
 }
 ```
 
-- [ ] **Step 2: Write the failing test, `supabase/tests/tables.test.js`**
+- [x] **Step 2: Write the failing test, `supabase/tests/tables.test.js`**
 
 ```js
 import assert from 'node:assert/strict'
@@ -425,13 +425,13 @@ describe('partner tables', () => {
 })
 ```
 
-- [ ] **Step 3: Run it and watch it fail**
+- [x] **Step 3: Run it and watch it fail**
 
 Run: `npm test`
 
 Expected: FAIL. The 5 new tests fail with `relation "public.partners" does not exist`, and the 3 smoke tests still pass.
 
-- [ ] **Step 4: Write `supabase/migrations/20261015120000_partner_links_tables.sql`**
+- [x] **Step 4: Write `supabase/migrations/20261015120000_partner_links_tables.sql`**
 
 ```sql
 -- Partner links, part 1 of 3: tables and helpers. Piece 1 of the partner-links design
@@ -527,13 +527,13 @@ revoke all on private.partner_device_secrets, private.partner_handoffs, private.
   from public, anon, authenticated;
 ```
 
-- [ ] **Step 5: Run it and watch it pass**
+- [x] **Step 5: Run it and watch it pass**
 
 Run: `npm test`
 
 Expected: `ℹ pass 8`, `ℹ fail 0`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd ~/Dev/Duty
@@ -549,7 +549,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `supabase/migrations/20261015120000_partner_links_tables.sql` (append at the end)
 - Test: `supabase/tests/helpers.test.js`
 
-- [ ] **Step 1: Write the failing test, `supabase/tests/helpers.test.js`**
+- [x] **Step 1: Write the failing test, `supabase/tests/helpers.test.js`**
 
 ```js
 import assert from 'node:assert/strict'
@@ -646,13 +646,13 @@ describe('private helpers', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npm test`
 
 Expected: FAIL. The 8 new tests fail with `function private.new_secret(integer) does not exist` (or the matching message for `hash_secret`, `new_code` or `trim_status_for`). The other 8 tests pass.
 
-- [ ] **Step 3: Append the helpers to the end of `20261015120000_partner_links_tables.sql`**
+- [x] **Step 3: Append the helpers to the end of `20261015120000_partner_links_tables.sql`**
 
 Put one blank line after the existing last line (`  from public, anon, authenticated;`), then add:
 
@@ -736,13 +736,13 @@ $$;
 revoke all on all functions in schema private from public, anon, authenticated;
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npm test`
 
 Expected: `ℹ pass 16`, `ℹ fail 0`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/Dev/Duty
@@ -759,7 +759,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `supabase/tests/helpers/rpc.js`
 - Test: `supabase/tests/status.test.js`
 
-- [ ] **Step 1: Write `supabase/tests/helpers/rpc.js`**
+- [x] **Step 1: Write `supabase/tests/helpers/rpc.js`**
 
 It holds every RPC wrapper the later tasks use. Wrappers for functions that don't exist yet are harmless, because each is only a SQL string until a test calls it.
 
@@ -808,7 +808,7 @@ export async function connected(db, { name = 'Sarah', kind = 'app' } = {}) {
 }
 ```
 
-- [ ] **Step 2: Write the failing test, `supabase/tests/status.test.js`**
+- [x] **Step 2: Write the failing test, `supabase/tests/status.test.js`**
 
 ```js
 import assert from 'node:assert/strict'
@@ -870,13 +870,13 @@ describe('set_partner_status', () => {
 })
 ```
 
-- [ ] **Step 3: Run it and watch it fail**
+- [x] **Step 3: Run it and watch it fail**
 
 Run: `npm test`
 
 Expected: FAIL. The 5 new tests fail with `function public.set_partner_status(jsonb, integer) does not exist`. The other 16 tests pass.
 
-- [ ] **Step 4: Write `supabase/migrations/20261015120100_partner_links_pilot_rpcs.sql`**
+- [x] **Step 4: Write `supabase/migrations/20261015120100_partner_links_pilot_rpcs.sql`**
 
 ```sql
 -- Partner links, part 2 of 3: what a signed-in pilot's CrewLu calls. Each RPC returns jsonb and raises on
@@ -943,13 +943,13 @@ revoke all on function public.set_partner_status(jsonb, integer) from public, an
 grant execute on function public.set_partner_status(jsonb, integer) to authenticated;
 ```
 
-- [ ] **Step 5: Run it and watch it pass**
+- [x] **Step 5: Run it and watch it pass**
 
 Run: `npm test`
 
 Expected: `ℹ pass 21`, `ℹ fail 0`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd ~/Dev/Duty
@@ -965,7 +965,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `supabase/migrations/20261015120100_partner_links_pilot_rpcs.sql` (append at the end)
 - Test: `supabase/tests/pilot_rpcs.test.js`
 
-- [ ] **Step 1: Write the failing test, `supabase/tests/pilot_rpcs.test.js`**
+- [x] **Step 1: Write the failing test, `supabase/tests/pilot_rpcs.test.js`**
 
 ```js
 import assert from 'node:assert/strict'
@@ -1092,13 +1092,13 @@ describe('pilot RPCs', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npm test`
 
 Expected: FAIL. The 10 new tests fail with `function public.partner_create(text) does not exist` (or the matching message for the other RPCs). The other 21 tests pass.
 
-- [ ] **Step 3: Append to the end of `20261015120100_partner_links_pilot_rpcs.sql`**
+- [x] **Step 3: Append to the end of `20261015120100_partner_links_pilot_rpcs.sql`**
 
 Put one blank line after the existing last line, then add:
 
@@ -1205,13 +1205,13 @@ revoke all on function public.partner_remove_all() from public, anon, authentica
 grant execute on function public.partner_remove_all() to authenticated;
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npm test`
 
 Expected: `ℹ pass 31`, `ℹ fail 0`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/Dev/Duty
@@ -1227,7 +1227,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `supabase/migrations/20261015120100_partner_links_pilot_rpcs.sql` (append at the end)
 - Test: `supabase/tests/move_ticket.test.js`
 
-- [ ] **Step 1: Write the failing test, `supabase/tests/move_ticket.test.js`**
+- [x] **Step 1: Write the failing test, `supabase/tests/move_ticket.test.js`**
 
 ```js
 import assert from 'node:assert/strict'
@@ -1284,13 +1284,13 @@ describe('partner_move_ticket', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npm test`
 
 Expected: FAIL. The 3 new tests fail with `function public.partner_move_ticket(uuid) does not exist`. The other 31 tests pass.
 
-- [ ] **Step 3: Append to the end of `20261015120100_partner_links_pilot_rpcs.sql`**
+- [x] **Step 3: Append to the end of `20261015120100_partner_links_pilot_rpcs.sql`**
 
 Put one blank line after the existing last line, then add:
 
@@ -1317,13 +1317,13 @@ revoke all on function public.partner_move_ticket(uuid) from public, anon, authe
 grant execute on function public.partner_move_ticket(uuid) to authenticated;
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npm test`
 
 Expected: `ℹ pass 34`, `ℹ fail 0`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/Dev/Duty
@@ -1339,7 +1339,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `supabase/migrations/20261015120200_partner_links_partner_rpcs.sql`
 - Test: `supabase/tests/join_view.test.js`
 
-- [ ] **Step 1: Write the failing test, `supabase/tests/join_view.test.js`**
+- [x] **Step 1: Write the failing test, `supabase/tests/join_view.test.js`**
 
 ```js
 import assert from 'node:assert/strict'
@@ -1502,13 +1502,13 @@ describe('partner_join, partner_view and partner_leave', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npm test`
 
 Expected: FAIL. The 15 new tests fail with `function public.partner_join(text, text, text) does not exist`. The other 34 tests pass.
 
-- [ ] **Step 3: Write `supabase/migrations/20261015120200_partner_links_partner_rpcs.sql`**
+- [x] **Step 3: Write `supabase/migrations/20261015120200_partner_links_partner_rpcs.sql`**
 
 ```sql
 -- Partner links, part 3 of 3: what a partner device (Crewluve, the website) calls with only the publishable
@@ -1624,13 +1624,13 @@ revoke all on function public.partner_leave(text) from public, anon, authenticat
 grant execute on function public.partner_leave(text) to anon, authenticated;
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npm test`
 
 Expected: `ℹ pass 49`, `ℹ fail 0`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/Dev/Duty
@@ -1646,7 +1646,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `supabase/migrations/20261015120200_partner_links_partner_rpcs.sql` (append at the end)
 - Test: `supabase/tests/handoff.test.js`
 
-- [ ] **Step 1: Write the failing test, `supabase/tests/handoff.test.js`**
+- [x] **Step 1: Write the failing test, `supabase/tests/handoff.test.js`**
 
 ```js
 import assert from 'node:assert/strict'
@@ -1757,13 +1757,13 @@ describe('hand-off codes and move tickets', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npm test`
 
 Expected: FAIL. The 9 new tests fail with `function public.partner_handoff_create(text) does not exist` or `function public.partner_handoff_redeem(text, text, text) does not exist`. The other 49 tests pass.
 
-- [ ] **Step 3: Append to the end of `20261015120200_partner_links_partner_rpcs.sql`**
+- [x] **Step 3: Append to the end of `20261015120200_partner_links_partner_rpcs.sql`**
 
 Put one blank line after the existing last line, then add:
 
@@ -1852,13 +1852,13 @@ revoke all on function public.partner_handoff_redeem(text, text, text) from publ
 grant execute on function public.partner_handoff_redeem(text, text, text) to anon, authenticated;
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npm test`
 
 Expected: `ℹ pass 58`, `ℹ fail 0`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/Dev/Duty
@@ -1874,7 +1874,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `supabase/migrations/20261015120200_partner_links_partner_rpcs.sql` (append at the end)
 - Test: `supabase/tests/push.test.js`
 
-- [ ] **Step 1: Write the failing test, `supabase/tests/push.test.js`**
+- [x] **Step 1: Write the failing test, `supabase/tests/push.test.js`**
 
 ```js
 import assert from 'node:assert/strict'
@@ -1928,13 +1928,13 @@ describe('partner_set_push', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npm test`
 
 Expected: FAIL. The 4 new tests fail with `function public.partner_set_push(text, text, text) does not exist`. The other 58 tests pass.
 
-- [ ] **Step 3: Append to the end of `20261015120200_partner_links_partner_rpcs.sql`**
+- [x] **Step 3: Append to the end of `20261015120200_partner_links_partner_rpcs.sql`**
 
 Put one blank line after the existing last line, then add:
 
@@ -1966,13 +1966,13 @@ revoke all on function public.partner_set_push(text, text, text) from public, an
 grant execute on function public.partner_set_push(text, text, text) to anon, authenticated;
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `npm test`
 
 Expected: `ℹ pass 62`, `ℹ fail 0`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/Dev/Duty
@@ -1989,7 +1989,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 This test pins down who can call and read what. A new function or table that isn't listed in it fails the test, so nothing ships with access nobody decided on. It passes as soon as it's written, because the earlier tasks already built correct grants. The deliberate breaks in Steps 4–5 then prove that the suite catches regressions.
 
-- [ ] **Step 1: Write `supabase/tests/privileges.test.js`**
+- [x] **Step 1: Write `supabase/tests/privileges.test.js`**
 
 ```js
 // Who can call and read what. If a new function or table appears without being listed here, a test fails,
@@ -2100,13 +2100,13 @@ describe('privileges', () => {
 })
 ```
 
-- [ ] **Step 2: Run it**
+- [x] **Step 2: Run it**
 
 Run: `npm test`
 
 Expected: `ℹ tests 68`, `ℹ pass 68`, `ℹ fail 0`.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 cd ~/Dev/Duty
@@ -2116,7 +2116,7 @@ git commit -m "test(partner-links): privileges guard for every partner function 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
-- [ ] **Step 4: Break the SQL on purpose, one change at a time**
+- [x] **Step 4: Break the SQL on purpose, one change at a time**
 
 For each row:
 1. Make the change.
@@ -2136,7 +2136,7 @@ A row whose test still passes is a gap in the suite. Write the missing test befo
 | 7 | `…tables.sql` | Replace `revoke all on schema private from public, anon, authenticated;` with `grant usage on schema private to anon, authenticated;` | "private helpers and tables are out of reach for client roles" |
 | 8 | `…partner_rpcs.sql` | Change `  if v_device.last_seen_at < now() - interval '5 minutes' then` to `  if true then` | "last seen moves forward at most every 5 minutes" |
 
-- [ ] **Step 5: Confirm the tree is clean and green**
+- [x] **Step 5: Confirm the tree is clean and green**
 
 Run: `git -C ~/Dev/Duty status --short supabase && npm test`
 
@@ -2148,7 +2148,7 @@ Expected: no output from `git status` for `supabase`, then `ℹ pass 68`, `ℹ f
 - Create: `supabase/tests/README.md`, `supabase/partner-api.md`
 - Modify: `~/Dev/Crewluve Website/docs/superpowers/specs/2026-10-15-partner-links-design.md`
 
-- [ ] **Step 1: Write `supabase/tests/README.md`**
+- [x] **Step 1: Write `supabase/tests/README.md`**
 
 ````markdown
 # CrewLu Cloud SQL tests
@@ -2188,7 +2188,7 @@ About 70 tests run in under 10 seconds.
 - **PostgREST and HTTP.** The tests call SQL directly. After applying a migration to CrewLu Cloud, run the HTTP checks from the plan that shipped it. For partner links, those are in `../partner-api.md`.
 ````
 
-- [ ] **Step 2: Write `supabase/partner-api.md`**
+- [x] **Step 2: Write `supabase/partner-api.md`**
 
 This is the contract that pieces 2–5 build against. It also holds the HTTP checks and the undo SQL for Task 13.
 
@@ -2335,7 +2335,7 @@ commit;
 ```
 ````
 
-- [ ] **Step 3: Commit in Duty**
+- [x] **Step 3: Commit in Duty**
 
 ```bash
 cd ~/Dev/Duty
@@ -2345,7 +2345,7 @@ git commit -m "docs(partner-links): API reference for pieces 2-5, test README, c
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
-- [ ] **Step 4: Bring the umbrella design in line with what was built**
+- [x] **Step 4: Bring the umbrella design in line with what was built**
 
 Make five replacements in `~/Dev/Crewluve Website/docs/superpowers/specs/2026-10-15-partner-links-design.md`.
 
@@ -2446,7 +2446,7 @@ with:
 
 Also change the heading `### 5.1 Tables (names may be refined in piece 1's spec)` to `### 5.1 Tables`.
 
-- [ ] **Step 5: Commit in the website repo**
+- [x] **Step 5: Commit in the website repo**
 
 ```bash
 cd ~/Dev/"Crewluve Website"
