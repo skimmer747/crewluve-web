@@ -70,3 +70,10 @@ Then open https://crewluve.crewlu.net/?demo=1 on a phone, and sign in with a rea
 Push to `main`. The workflow tests, builds and deploys, retrying the Pages step up to three times.
 
 Linking the site from crewlu.net/crewluve/ is a separate change in the CrewLu-Website repo. Ask first.
+
+## The app-link file
+
+`public/.well-known/apple-app-site-association` tells iPhones that `/join` links belong to the Crewluve app (partner links
+piece 1b). GitHub Pages serves it only because the upload step sets `include-hidden-files: true`: without that line,
+every dot-folder is left out of the deploy. To see what Apple has picked up (it can take up to a day), open
+https://app-site-association.cdn-apple.com/a/v1/crewluve.crewlu.net.
