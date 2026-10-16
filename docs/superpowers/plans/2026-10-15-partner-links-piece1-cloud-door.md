@@ -2459,7 +2459,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ### Task 12: Review
 
-- [ ] **Step 1: Dispatch one reviewer**
+- [x] **Step 1: Dispatch one reviewer**
 
 Use the `superpowers:code-reviewer` agent. Give it:
 - the diff: `git -C ~/Dev/Duty diff feature/supabase-account-backend...feature/partner-cloud-door -- supabase`;
@@ -2475,7 +2475,7 @@ Ask it to check, at least:
 - Postgres 17 compatibility, given that the tests run on Postgres 18;
 - the Supabase default grants, and that every revoke is right.
 
-- [ ] **Step 2: Fix what it finds, test first**
+- [x] **Step 2: Fix what it finds, test first**
 
 For each finding you accept:
 1. Write a failing test that shows it.
@@ -2485,7 +2485,7 @@ For each finding you accept:
 
 Then send the reviewer the fixes to re-check.
 
-- [ ] **Step 3: Report to the user**
+- [x] **Step 3: Report to the user**
 
 Report what the review found, what changed, and the final test count.
 
@@ -2514,6 +2514,8 @@ Also `b57f7bd4`: the tests now run in one process, because the default per-file 
 | N4 A vanished partner gave a 409; doc and comment slips | `sharing_ended` for a partner removed mid-join; not signed in is HTTP 401; the `Date` comment is fixed; redeem locks the partner before the hand-off (one lock order) | `4f190b6b`, `7ce959a5` |
 
 Tests: 89.
+
+**Final check (2026-10-15):** still ready to apply. Its one new finding, a rare deadlock between redeem's partner lock and `partner_handoff_create`'s foreign-key check, was fixed by making the partner-row locks `FOR NO KEY UPDATE` (`04946bbe`).
 
 **Deliberate breaks after the fixes.** Run each row the same way as Task 10, Step 4, and undo with `git -C ~/Dev/Duty checkout -- supabase/migrations/<file>`. All 14 were checked on 2026-10-15 (rows 13–14 after the re-review):
 
