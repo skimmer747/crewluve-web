@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Partner links piece 1b: where an invite link lands when the app can't take it. No scripts, so its own strict
+         CSP (the build injects the site's CSP into index.html only). Piece 5 replaces this page. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+    <meta name="robots" content="noindex" />
+    <meta name="referrer" content="no-referrer" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <title>CrewLuve</title>
+    <style>
+      /* The site's tokens (src/styles/tokens.css), copied because this page loads no stylesheet. */
+      :root {
+        color-scheme: light dark;
+        --bg: #ffffff;
+        --text: #000000;
+        --text-2: rgba(60, 60, 67, 0.6);
+        --card: rgba(242, 242, 247, 0.78);
+        --blue: #0088ff;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #000000;
+          --text: #ffffff;
+          --text-2: rgba(235, 235, 245, 0.6);
+          --card: rgba(44, 44, 46, 0.6);
+          --blue: #0091ff;
+        }
+      }
+      body {
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        background: var(--bg);
+        color: var(--text);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        -webkit-text-size-adjust: 100%;
+      }
+      main {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 420px;
+        padding: max(48px, env(safe-area-inset-top)) 16px 32px;
+        text-align: center;
+      }
+      img {
+        width: 72px;
+        height: 72px;
+        border-radius: 16px;
+      }
+      h1 {
+        margin: 20px 0 0;
+        font-size: 28px;
+        font-weight: 700;
+      }
+      .subtitle {
+        margin: 6px 0 0;
+        color: var(--text-2);
+        font-size: 17px;
+      }
+      .card {
+        margin: 28px 0 0;
+        padding: 16px;
+        border-radius: 20px;
+        background: var(--card);
+        text-align: left;
+        font-size: 17px;
+        line-height: 1.4;
+      }
+      .store {
+        display: block;
+        margin: 20px 0 0;
+        padding: 14px 16px;
+        border-radius: 14px;
+        background: var(--blue);
+        color: #ffffff;
+        font-size: 17px;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .note {
+        margin: 16px 0 0;
+        color: var(--text-2);
+        font-size: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img src="/icons/heart-256.png" alt="" />
+      <h1>Welcome to CrewLuve</h1>
+      <p class="subtitle">Stay connected with your pilot</p>
+      <p class="card">
+        This is an invite to follow your pilot. Open it on your iPhone or iPad with CrewLuve installed, and it connects by
+        itself.
+      </p>
+      <a class="store" href="https://apps.apple.com/app/id6759344060">Get CrewLuve on the App Store</a>
+      <p class="note">Already have it? Tap the link in your message again.</p>
+    </main>
+  </body>
+</html>
