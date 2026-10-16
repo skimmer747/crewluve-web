@@ -2504,13 +2504,24 @@ Report what the review found, what changed, and the final test count.
 
 Also `b57f7bd4`: the tests now run in one process, because the default per-file processes hung intermittently on PGlite errors. Tests: 85.
 
-**Deliberate breaks after the fixes.** Run each row the same way as Task 10, Step 4, and undo with `git -C ~/Dev/Duty checkout -- supabase/migrations/<file>`. All 12 were checked on 2026-10-15:
+**Re-review (2026-10-15).** The verdict was "ready to apply to production as is": all eight findings closed and no new holes. Its four minor findings were fixed as well:
+
+| Finding | Fix | Commit |
+|---|---|---|
+| N1 A connected device could drop its key on an old link | A distinct `key_in_use` answer; docs say to forget the key only when a `p_key`-only call answers `sharing_ended` | `4f190b6b`, `7ce959a5` |
+| N2 Move-over ids could be claimed first; web devices counted as moved | `partner_create(p_name, p_ref)` derives the id from the pilot's account plus the reference; "moved" means an `app` device; the loop's rules are documented | `7ce959a5` |
+| N3 The guard went by `ByPartner` only | Any field whose name contains "partner" is refused at write and dropped at read | `4f190b6b` |
+| N4 A vanished partner gave a 409; doc and comment slips | `sharing_ended` for a partner removed mid-join; not signed in is HTTP 401; the `Date` comment is fixed; redeem locks the partner before the hand-off (one lock order) | `4f190b6b`, `7ce959a5` |
+
+Tests: 89.
+
+**Deliberate breaks after the fixes.** Run each row the same way as Task 10, Step 4, and undo with `git -C ~/Dev/Duty checkout -- supabase/migrations/<file>`. All 14 were checked on 2026-10-15 (rows 13–14 after the re-review):
 
 | # | File | Change | Must fail |
 |---|---|---|---|
 | 1 | `…pilot_rpcs.sql` | Delete `    where ps.writer_build <= excluded.writer_build` | "a newer or equal build replaces the summary; an older build is refused" |
 | 2 | `…tables.sql` | In `trim_status_for`, replace the three lines `if s is null or jsonb_typeof(s) <> 'object' then` / `return null;` / `end if;` with `  return s;` | the trimming tests (7) |
-| 3 | `…pilot_rpcs.sql` | Change `grant execute on function public.partner_create(text, uuid) to authenticated;` to `… to anon, authenticated;` | "pilot RPCs: signed-in users only" |
+| 3 | `…pilot_rpcs.sql` | Change `grant execute on function public.partner_create(text, text) to authenticated;` to `… to anon, authenticated;` | "pilot RPCs: signed-in users only" |
 | 4 | `…partner_rpcs.sql` | Change `if not v_found or v_handoff.used_at is not null or v_handoff.expires_at <= now() then` to `if not v_found or v_handoff.expires_at <= now() then` | "a connected device makes a code that connects one more device, once" |
 | 5 | `…partner_rpcs.sql` | Replace `      insert into private.partner_redeem_failures default values;` with `      null;` | "30 wrong codes in a minute pause code redemptions, which then work again" |
 | 6 | `…partner_rpcs.sql` | In `create_device`, change `>= 10 then` to `>= 11 then` | "one link works on up to 10 devices per person" |
@@ -2520,6 +2531,8 @@ Also `b57f7bd4`: the tests now run in one process, because the default per-file 
 | 10 | `…partner_rpcs.sql` | Change `    if v_existing.partner_id = p_partner then` to `    if false then` | "joining again with the same key is safe: same device, nothing new" |
 | 11 | `…tables.sql` | Change `  foreign key (partner_id, owner_id) references public.partners (id, owner_id) on delete cascade` to `  foreign key (partner_id) references public.partners (id) on delete cascade` | "a device's pilot must be its partner's pilot, whoever writes the row" |
 | 12 | `…pilot_rpcs.sql` | Change `        updated_at = greatest(excluded.updated_at, ps.updated_at + interval '1 millisecond'),` to `        updated_at = excluded.updated_at,` | "updated_at is whole milliseconds and always moves forward, even past a later stored time" |
+| 13 | `…pilot_rpcs.sql` | Change `private.hash_secret(v_uid::text \|\| ' ' \|\| p_ref)` to `private.hash_secret(p_ref)` | "the same reference from two pilots makes two different partners" |
+| 14 | `…partner_rpcs.sql` | Change `    return jsonb_build_object('error', 'key_in_use');` to `    return jsonb_build_object('error', 'invalid_input');` | "a key another partner's device already has answers key_in_use, and nothing is made" |
 
 ### Task 13: Apply to CrewLu Cloud (needs the user's yes)
 
@@ -2652,7 +2665,7 @@ git merge --ff-only feature/partner-cloud-door
 cd supabase/tests && npm test
 ```
 
-Expected: a fast-forward, then `ℹ pass 85`, `ℹ fail 0`. The Xcode scheme changes are still uncommitted and untouched.
+Expected: a fast-forward, then `ℹ pass 89`, `ℹ fail 0`. The Xcode scheme changes are still uncommitted and untouched.
 
 - [ ] **Step 3: Pushing needs a separate, fresh yes for each repo**
 
