@@ -75,7 +75,7 @@ Add `include-hidden-files: true` to the `actions/upload-pages-artifact@v5` step 
 
 ## 4. Testing
 
-**Vitest:** a new test file, `tests/appLinks.test.ts`.
+**Vitest:** two new test files, `tests/appLinkFile.test.ts` (the file and the workflow) and `tests/joinPage.test.ts` (the page).
 
 - **The app-link file** parses as JSON, has exactly one detail with app ID `UV96Z83C7B.com.ToddAnderson.Crewluv`, and claims only `/join`.
 - **The deploy workflow's** upload step sets `include-hidden-files: true`.
