@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["UV96Z83C7B.com.ToddAnderson.Crewluv"],
+        "components": [
+          {
+            "/": "/join",
+            "comment": "Partner invites (#t=) and hand-off codes (#c=), handled by Crewluve (partner links piece 4)"
+          }
+        ]
+      }
+    ]
+  }
+}
