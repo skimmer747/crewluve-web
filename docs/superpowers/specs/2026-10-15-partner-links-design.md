@@ -26,13 +26,17 @@
   - quick statuses and display names per partner, and the flight delay.
 - **The summary is already private.** It has no crew names, hotels or pay (`SharedPilotStatus.swift:24`). Hidden flights, events, commutes and jumpseats are filtered out (`PartnerStatusGenerator.swift:349, 404, 781, 821, 855, 949`), and so are fully hidden trips (commit `0722757d`).
 - **How it travels today.** CrewLu saves the summary as a CloudKit record (`pilot-status` in `PartnerBeaconZone`) and shares it with a `CKShare` whose `publicPermission = .readOnly` (`PilotStatusBeaconManager.swift:285-291`). In other words, anyone holding the link can read it.
-- **When it's written.** It's written at most every 30 s (`PartnerBeaconAutoSync.swift:20`), and each of these triggers a write:
-  - the app becoming active;
-  - a change to hidden events;
-  - `.scheduleDidChange`;
+- **When it's written** (corrected 2026-10-16 in the piece 2 spec, §2.2). Each of these triggers a write:
+  - a change to hidden events, and `.scheduleDidChange`;
+  - coming back to the app (`syncNowIfSharing()`, `DutyApp.swift:1121`), and the trip list (`TripListView.swift:837`);
+  - the quick status sheet (`forceUpdate`), and Update Status Now;
   - a 5-minute loop while the app is open.
 
-  It's written in both sync modes.
+  How the writes behave:
+  - becoming active only resumes the loop;
+  - the 30 s minimum (`PartnerBeaconAutoSync.swift:20`) holds back only the 5-minute loop, because every other trigger resets it;
+  - a write is skipped when the status hasn't changed;
+  - it's written in both sync modes.
 - **Who can share.** Partner Sharing requires Pro (`PartnerSharingView.swift:232`).
 - **CrewLu Cloud** is Supabase project `corxvurxpnrzekbxdgye`:
   - 590 accounts on 2026-10-15, all email + password.
@@ -89,8 +93,10 @@
   - `displayNameByPartner` and `quickStatusByPartner` as real JSON objects keyed by the lower-case `partners.id`, and `quickStatusTargets` as an array of those ids (the partner door trims by these names, §4.2);
   - a `schemaVersion: 1` field.
 
-  Piece 2 adds a JSON Schema file and fixtures generated from real summaries, so all three projects check against the same shape.
-- **When it's written.** CrewLu writes the cloud row at the same moments and with the same 30 s minimum interval as the iCloud record today (§2.1). During the move-over it writes both.
+  A status sent to everyone is the top-level quick status, with `quickStatusTargets` null. A status sent to particular people goes only in `quickStatusByPartner`, so each person sees only their own (piece 2, decision P2-3). Today Crewluve shows the top-level status to everyone.
+
+  Piece 2 adds a JSON Schema file and example summaries built from test schedules, in `~/Dev/Duty/supabase/partner-status/`, so all three projects check against the same shape.
+- **When it's written.** CrewLu writes the cloud row at the same moments as the iCloud record (§2.1). It sends one write at a time, and the newest always wins. During the move-over it writes both.
 - **`updated_at`** is whole milliseconds and moves forward with every applied write, even when two of the pilot's devices write at once. Partners send it back unchanged as `p_since`.
 - **Who can write.** Only a pilot signed in to CrewLu Cloud writes the row (D6).
 
@@ -240,7 +246,7 @@ Copy follows the existing Partner Sharing screen (`PartnerSharingView.swift`).
   - when the browser comes back online.
 
   The `unchanged` answer keeps the polling cheap.
-- **How fresh it feels.** CrewLu writes at most every 30 s, so a partner usually sees a change within about a minute of the pilot's phone noticing it, often much sooner.
+- **How fresh it feels.** CrewLu writes as soon as it notices a change, and the push service sends at most one wake-up per 15 s. So a partner usually sees a change within about a minute, often much sooner.
 
 ## 7. Changes per project
 
@@ -264,13 +270,14 @@ Copy follows the existing Partner Sharing screen (`PartnerSharingView.swift`).
   - sending the push token with `partner_set_push`;
   - handling the push in place of `userInfo["ck"]`.
 - **Per-partner fields** are looked up by `partner_id` (from `partner_view`) instead of `container.userRecordID()`.
+- **Quick status:** show the partner's own entry in `quickStatusByPartner` first, then the top-level (everyone) status. That changes today's logic, which shows only the top-level status (piece 2, decision P2-3).
 - **Shared golden cases.** Crewluve's tests produce the cases (§7.4): a summary JSON plus a time in, the shown answers out.
 
 ### 7.3 Website
 
 - **Connecting:** `/join` handling, the welcome screen (§5.5), and the device key kept in local storage. Password sign-in is removed. A pilot who wants to preview adds themselves as a partner ("Me") and opens that link.
 - **Data:** `partner_view` replaces the nine table reads. The network guard (`src/data/readOnlyFetch.ts`) allows only the §5.3 RPCs the site uses, plus weather and `airports.json`.
-- **Logic:** what feeds the screens is reworked to follow Crewluve's logic, starting from the summary's legs and fields. The site's own legs builder (`src/engine/normalize.ts`, `legs.ts` and friends) is retired. Every golden case must pass, and the screens keep their current look.
+- **Logic:** what feeds the screens is reworked to follow Crewluve's logic, starting from the summary's legs and fields. The site's own legs builder (`src/engine/normalize.ts`, `legs.ts` and friends) is retired. Every golden case must pass, and the screens keep their current look. The quick status follows Crewluve's new rule: the partner's own entry first, then the everyone-status.
 - **Demo mode** uses Crewluve's demo summary, so the demo matches too.
 - **App-link file:** the apple-app-site-association file ships early (§9, piece 1b).
 
@@ -319,7 +326,8 @@ Each piece gets its own spec → plan → build → review → release, in its o
 | 6 | **Remove iCloud sharing** | Duty, Crewluv | most partners moved | both |
 | — | **App fixes from D10** (sun times, callsign split) | Crewluv | — | partners |
 
-- **Release order:** 1 and 1b first. 3 must be live before 4 ships, otherwise moved partners lose background alerts. 2 and 4 can be reviewed in parallel. 5 follows 4.
+- **Release order:** 1 and 1b first. 3 must be live before 4 ships, otherwise moved partners lose background alerts. 2 and 4 can be reviewed in parallel. CrewLu (2) goes live after Crewluve (4), because invite links need the new Crewluve (piece 2, decision P2-1). 5 follows 4.
+- **Piece 2's spec:** `docs/superpowers/specs/2026-10-16-partner-links-piece2-crewlu-design.md`.
 - **Branch state to sort out first:**
   - Duty is on `feature/supabase-account-backend`, with someone else's uncommitted scheme files.
   - Crewluv is on `hotfix/icloud-account-unavailable`, 13 commits ahead of `main`.

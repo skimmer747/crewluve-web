@@ -1,0 +1,426 @@
+# Partner Links Piece 2: CrewLu on Crewlu Cloud
+
+- **Status:** design approved in brainstorming on 2026-10-16. Next: the user reviews this spec, then plan 2a.
+- **Part of:** the partner-links design, `docs/superpowers/specs/2026-10-15-partner-links-design.md`, §7.1, §8 and §9 (piece 2).
+- **Repo:** CrewLu, `~/Dev/Duty`, on a new branch off `feature/supabase-account-backend` (§9).
+- **Contract:** `~/Dev/Duty/supabase/partner-api.md`, the partner door from piece 1, live since 2026-10-15.
+
+## 1. Goal
+
+1. **CrewLu writes the partner summary to Crewlu Cloud**, in the cloud's format, next to the iCloud record.
+2. **Partner Sharing runs on Crewlu Cloud when the pilot is signed in:** one invite link per person, a partner list with devices, and a partner page.
+3. **Everyone already connected through iCloud moves over by themselves,** through move tickets in the iCloud record. Once all of them are on the new Crewluve, the iCloud share ends.
+4. **New invites need Crewlu Cloud.** A pilot who isn't signed in keeps their iCloud partners and is asked to sign in.
+
+## 2. What's there now (checked 2026-10-16)
+
+All paths are in `~/Dev/Duty` unless they say Crewluv.
+
+### 2.1 Partner Sharing on iCloud
+
+- **The share.** `PilotStatusBeaconManager` (`Duty/Utils/PartnerBeacon/PilotStatusBeaconManager.swift`, `@MainActor @Observable`, `.shared`) keeps one `CKShare` with `publicPermission = .readOnly` for everyone.
+  - Partners are the share's participants. Each one's id is their iCloud user record name (`stableID`, 453-468).
+  - Their name is the pilot's nickname (`partnerNickname.<id>`), else their iCloud name (365-389).
+- **Removing and stopping.**
+  - `removePartner` (513) calls `stopSharing()` when the last participant goes.
+  - `stopSharing` (560-588) deletes the share and the record, and wipes every per-partner setting (`clearAllLocalPartnerState`, 653).
+- **The build guard.** A device refuses to write when the record carries a newer `writerBuildVersion` than its own `CFBundleVersion` (330-352). The message is `SyncGuidanceCopy.staleLocalBuildMessage`.
+
+### 2.2 When the summary is written
+
+`PartnerBeaconAutoSync` (`Duty/Utils/PartnerBeacon/PartnerBeaconAutoSync.swift`) writes while `partnerBeacon.isSharing` is set. Its triggers:
+- a change to hidden events, and `.scheduleDidChange`;
+- coming back to the app (`syncNowIfSharing()`, `Duty/App/DutyApp.swift:1121`, which runs beside the Crewlu Cloud sync, not after it), and the trip list (`Duty/Views/Trip/TripListView.swift:837`);
+- `forceUpdate`, from the quick status sheet;
+- a 5-minute loop while the app is open.
+
+How the writes behave:
+- **Becoming active** only resumes the loop.
+- **The 30 s minimum** (line 20) holds back only the 5-minute loop, because every other trigger resets it.
+- **A write is skipped** when the status `isEquivalent` to the last one sent, ignoring `lastUpdated` and `localTimeAtPilot`. `lastSentStatus` is set even when the write failed.
+- **Pro isn't checked here.** Only the screen checks it (`Duty/Views/Settings/PartnerSharingView.swift:232`).
+- **Update Status Now and the screen's `onAppear`** call `beaconManager.updateStatus` directly (`PartnerSharingView.swift:506-535`), not through `PartnerBeaconAutoSync`.
+
+### 2.3 The summary and per-partner settings
+
+- **Who builds it.** `PartnerStatusGenerator` builds `SharedPilotStatus` (`Duty/Models/SharedPilotStatus.swift:25-119`). Three of its fields are `Data` blobs: `tripLegsJSON`, `quickStatusByPartnerJSON` and `displayNameByPartnerJSON`.
+- **Per-partner settings** live in UserDefaults and are mirrored across the pilot's devices by `PartnerDataKVSync.swift`:
+  - `crewluve.quickStatusByPartner`: `[id: PartnerQuickStatusEntry]` (`SharedPilotStatus.swift:12`), written with the default `JSONEncoder`, so `expiry` counts seconds from 2001. The key `__everyone__` means everyone;
+  - `crewluve.displayNameByPartner`: `[id: String]`;
+  - the nicknames.
+- **The top-level quick status** is taken from the first entry sorted by key (`PartnerStatusGenerator.swift:183-259`):
+  - `quickStatusTargets` is nil when `__everyone__` exists, else that first key;
+  - `isSleeping` is true when any entry is "Sleeping".
+- **The quick status sheet** (`Duty/Views/Settings/PartnerQuickStatusSheet.swift:479-570`):
+  - Send To with every partner picked (when there's more than one) writes `__everyone__` plus each id;
+  - otherwise it writes only the picked ids.
+- **What Crewluve shows.** Crewluve shows the top-level quick status to every partner. It never reads `quickStatusByPartnerJSON` or `quickStatusTargets` (checked on Crewluv `hotfix/icloud-account-unavailable`: `PilotStatusView.swift:625-639`). So today a quick status sent to one person shows for everyone. Display names are already per person (`PartnerStatusReceiver.swift:223-240`).
+
+### 2.4 Invites today
+
+- **One link for everyone.** Every invite is the same share link, wrapped as `crewluv://accept-share?url=…` (`ShareLinkView`, `PartnerSharingView.swift:1540-1704`).
+- **Pending invites** are labels kept on one device only for 14 days (`PendingPartnerInvites.swift`). A newly accepted participant takes a pending label:
+  - by itself when there's one (`PartnerSharingView.swift:1325-1352`);
+  - through the Match Invite sheet when there are more (1464-1537).
+
+### 2.5 Crewlu Cloud in CrewLu
+
+- **The client.**
+  - `SupabaseClientProvider.shared` (supabase-swift 2.46.0). RPCs are called as in `Duty/Utils/Sync/SyncTransport.swift:125-141`.
+  - The SDK encodes dates as ISO-8601, so the summary must be encoded before it's handed over.
+- **The account.**
+  - `AccountController.shared` has `isSignedIn` and `currentUserID`. A pilot can be signed in while their schedule syncs through iCloud.
+  - Signing out posts no notification (160-170), and Sign Out asks for no confirmation (`Duty/Views/Account/CrewluCloudDetailView.swift:110-113`).
+  - An expired session shows as `SupabaseSyncEngine.shared.sessionExpired`.
+- **The owner rule.** `SyncOwnerGuard.allowsSync(uid:)` (`Duty/Utils/Sync/SyncOwnerGuard.swift:19-22`) is true with no owner stamp, or when the stamp is that account. The app's wording when it fails: "This phone's schedule belongs to a different Crewlu Cloud account." (`Duty/Views/Account/CrewluCloudHeroCard.swift:108-113`).
+- **The spelling.** The app writes "Crewlu Cloud" (98 strings, and never "CrewLu Cloud").
+- **The server.** `partner_create` with a reference it already knows returns that partner unchanged, without renaming (`supabase/migrations/20261015120100_partner_links_pilot_rpcs.sql:98-128`).
+
+### 2.6 Tests and build
+
+- **Existing tests.** `DutyTests/PartnerBeaconModeIndependenceTests.swift` (64 lines) keeps the iCloud side independent of `SyncBackendMode`. Nothing tests the manager, auto-update, key-value sync, invites or encoding.
+- **Stand-ins.** `DutyTests/Helpers/AccountStubs.swift` and `StubSyncTransport.swift`.
+- **The build.** iOS 18, Swift 5 mode. New files in `Duty/` and `DutyTests/` need no project-file edit.
+- **The user runs CrewLu's tests** (⌘U). Claude runs the SQL tests in `supabase/tests`.
+- **Branches.** `feature/supabase-account-backend` (5d05f342) holds the live Crewlu Cloud code, 471 commits ahead of `main` (2.6.5, July).
+
+## 3. Decisions (brainstorm, 2026-10-16)
+
+| # | Decision |
+|---|---|
+| P2-1 | **CrewLu ships after Crewluve.** Its release follows Crewluve's piece 4, because invite links need the new Crewluve. The order is a release-day checklist item, with no feature switch. |
+| P2-2 | **Partners still on iCloud are marked.** Their row says "Connected through iCloud" with a "Needs Crewluve update" tag. Their page says they move over automatically after updating Crewluve. |
+| P2-3 | **A quick status reaches only the people picked** in Send To, or everyone. The cloud summary carries per-person entries plus an everyone-status. Crewluve (piece 4) and the website (piece 5) show the partner's own entry first. This fixes §2.3. |
+| P2-4 | **New parts beside the iCloud code,** in `Duty/Utils/PartnerCloud/`. The iCloud code changes only for the tickets, the settings lookup and ending the share, so piece 6 removes it cleanly. |
+| P2-5 | **Signed in, the screen runs on Crewlu Cloud.** Not signed in, it shows a prompt, plus today's screen minus inviting while an iCloud share exists. |
+| P2-6 | **Signing out asks first when there are cloud partners.** Partners keep the last status. |
+| P2-7 | **The example summaries are built from test schedules,** not from anyone's real schedule. |
+
+## 4. The parts
+
+### 4.1 New
+
+| File | Does |
+|---|---|
+| `Duty/Utils/PartnerCloud/PartnerCloudAPI.swift` | A protocol for the pilot RPCs and the `partners` and `partner_devices` reads, its live version over `SupabaseClientProvider.shared`, and one error type: `notSignedIn` (401), `refused(code)` (400, 404, 409, 413) and `unavailable` (network, 5xx). Tests use a stand-in. |
+| `Duty/Utils/PartnerCloud/PartnerSummaryEncoder.swift` | Pure. Turns a `SharedPilotStatus`, the per-person settings and the cloud partner ids into the cloud JSON (§5.1). |
+| `Duty/Utils/PartnerCloud/PartnerSummaryCloudWriter.swift` | Sends the summary (§5.2). |
+| `Duty/Utils/PartnerCloud/PartnerCloudStore.swift` | `@MainActor @Observable`, `.shared`. The account's partners and devices, cached per account, and the actions (§6). |
+| `Duty/Utils/PartnerCloud/PartnerSettings.swift` | Reads and writes the per-person settings: by cloud id first, then iCloud id, and the reverse lookup for the iCloud record (§6.6). |
+| `Duty/Utils/PartnerCloud/PartnerMoveOver.swift` | The move-over: a pure decision function and the runner that makes the calls (§7). |
+| `Duty/Utils/PartnerCloud/PartnerMoveOverNotes.swift` | The move-over's notes, synced across the pilot's devices (§7.1). |
+| `Duty/Views/Settings/PartnerDetailView.swift` | The partner page (§6.3). |
+| `Duty/Views/Settings/PartnerCloudPrompt.swift` | The sign-in prompt section (§6.1). |
+| `Duty/Views/Settings/ActivityShareSheet.swift` | A small share sheet that can open after the invite is created. SwiftUI's `ShareLink` needs the link before the tap. |
+
+### 4.2 Changed
+
+| File | Change |
+|---|---|
+| `PartnerBeaconAutoSync.swift` | It writes, and resumes its loop, while iCloud sharing **or** Crewlu Cloud sharing is on, so `resumeMonitoringIfNeeded` and `syncNowIfSharing` check both. It also calls the cloud writer next to the iCloud write in `performUpdate` and `forceUpdate`. Without this, cloud-only sharing would never restart the loop, because today both checks read only `partnerBeacon.isSharing`. |
+| `PilotStatusBeaconManager.swift` | It writes `moveTicketByPartnerJSON` into the record (§7.4), and gains `endICloudShare()`, which keeps cloud partners' settings. `removePartner` no longer calls `stopSharing()` while Crewlu Cloud sharing is on. |
+| `PartnerStatusGenerator.swift` | It builds the iCloud record's per-person maps through `PartnerSettings`, so a moved-over person's old Crewluve sees the settings stored under their cloud id. |
+| `PartnerSharingView.swift` | The Crewlu Cloud version when signed in (§6.2), and today's version with the prompt when not (§6.1). Update Status Now and `onAppear` go through `PartnerBeaconAutoSync.forceUpdate`. |
+| `ShareLinkView` (in `PartnerSharingView.swift`) | The invite link and its copy (§6.4). |
+| `PartnerQuickStatusSheet.swift` | When signed in, it lists the cloud partners, and the nickname renames the cloud partner (§6.5). |
+| `PartnerDataKVSync.swift` | It also syncs the move-over notes. |
+| `CrewluCloudDetailView.swift` | Sign Out asks first when there are cloud partners (§6.7). |
+| `SyncGuidanceCopy.swift` | Adds the cloud version of the newer-build message (§5.2). |
+
+**How it fits together.** Every trigger goes through `PartnerBeaconAutoSync`. It generates the summary once, then hands it to the iCloud writer (while an iCloud share exists) and to the cloud writer. The screens talk to `PartnerCloudStore`, which talks to `PartnerCloudAPI`. The move-over reads the iCloud participants and the cloud store, then hands tickets to the iCloud writer.
+
+## 5. The cloud summary (part 2a)
+
+### 5.1 Its shape
+
+The JSON object passed as `p_status`:
+- **Every stored field of `SharedPilotStatus`, under its Swift name,** except the three `Data` blobs. Every date counts seconds from 1970, as a number. That includes the dates inside trip legs and quick statuses, so the encoder converts the saved quick statuses, which count from 2001.
+- **`tripLegs`:** the `TripLeg` list from `tripLegsJSON`, or null when the iCloud record would carry none.
+- **`displayNameByPartner`:** `{cloud id: name}` for current cloud partners whose name isn't empty, or null when there are none.
+- **`quickStatusByPartner`:** `{cloud id: {status, icon, expiry}}` for current cloud partners, without expired entries, or null when there are none. `expiry` is null for no limit.
+- **The everyone-status.** `quickStatus`, `quickStatusIcon` and `quickStatusExpiry` hold the `__everyone__` entry while it hasn't expired, with `quickStatusTargets: null`. Without one, those three are null and `quickStatusTargets` is `[]`.
+- **`isSleeping`:** true only when the everyone-status is "Sleeping".
+- **`schemaVersion: 1`.**
+- **Never in it:** the three blobs, `__everyone__`, iCloud ids, or move tickets.
+- **Cloud ids** are lower-case, as the server returns them. Swift's `UUID().uuidString` is upper-case, so ids always come from the server's answers.
+
+**What partners see** (piece 1's door). Each partner gets their own entries and the everyone-status, and nothing else that's per person.
+
+### 5.2 Sending it
+
+- **When.** `performUpdate` and `forceUpdate` call it, so it runs on every trigger in §2.2, including Update Status Now and the quick status sheet.
+- **Only when all three hold:**
+  - the pilot is signed in;
+  - `SyncOwnerGuard.allowsSync(uid:)` is true for that account;
+  - that account's cached partner list isn't empty. `PartnerCloudStore` refreshes it at launch and on coming back to the app (§6.2), so a newly signed-in device starts writing without anyone opening the screen.
+- **Skipped** when the encoded summary, ignoring `lastUpdated` and `localTimeAtPilot`, equals the last one the server applied for that account. This record is kept apart from the iCloud writer's.
+- **One write at a time.** A summary that arrives during a write waits, and replaces any older waiting one. It's sent when the write in flight finishes.
+- **`p_build`** is `CFBundleVersion` as an integer, the same number the iCloud guard uses.
+- **The answers:**
+  - `{"applied": true}` records this summary as the last applied one;
+  - `{"applied": false}` means a newer CrewLu on another device wrote first. The screen shows: "Another of your devices has a newer version of CrewLu. Update CrewLu on this device to share your status from here." Nothing is resent until the next trigger.
+- **Errors:**
+  - `notSignedIn` writes nothing, and the screen shows the expired sign-in prompt (§6.1);
+  - `unavailable` keeps the summary waiting, and the next trigger retries it;
+  - `refused` is a bug. It's logged with `debugLog`, and that summary isn't retried.
+
+### 5.3 One contract for three apps
+
+The contract lives in `supabase/partner-status/` in Duty:
+- **`schema.json`:** a JSON Schema (2020-12) of the object in §5.1, with every field, its type and whether it can be null. Unknown fields are refused at the top level, in quick status entries and in trip legs, so a new field has to be added on purpose.
+- **`examples/*.json`:** home, in flight with legs, layover, turn, commuting, a hidden trip left out, an everyone-status, a status for one partner, and display names. Each is built from a test schedule.
+
+Who checks it:
+- **CrewLu's tests** build each example's status and settings in code, and check that the encoder's JSON equals the file. They read it through `#filePath`.
+- **The SQL tests** check that each example matches the schema (with `ajv` as a test-only dependency), and that `set_partner_status` accepts it. Then `partner_view` shows partner A only A's entries plus the everyone-status, and a status sent only to A stays hidden from partner B.
+- **Crewluve (piece 4) and the website (piece 5)** copy these files.
+
+`partner-api.md` points to them from its summary section.
+
+## 6. The partner screens (part 2b)
+
+### 6.1 Which screen
+
+The whole screen still needs Pro first, as today. After that:
+
+| State | At the top | Below |
+|---|---|---|
+| Signed in, and the schedule on this phone is that account's | — | The Crewlu Cloud screen (§6.2) |
+| Signed in, schedule belongs to another account | "This phone's schedule belongs to a different Crewlu Cloud account." with See Your Options, which opens the Crewlu Cloud screen | Today's screen minus inviting, while an iCloud share exists |
+| Session expired | "Your Crewlu Cloud sign-in expired. Sign in again to keep sharing." with Sign In | The same |
+| Not signed in, iCloud share running | "Partner Sharing now uses Crewlu Cloud." / "Sign in to keep sharing." with Sign In | Today's screen without Invite Another Partner, and without Re-share on pending invites. Its partners keep getting updates. |
+| Not signed in, never shared | "Partner Sharing uses Crewlu Cloud." / "Sign in to start sharing." with Sign In | — |
+
+Sign In opens the Crewlu Cloud screen (`CrewluCloudDetailView`).
+
+### 6.2 The Crewlu Cloud screen
+
+- **The hero** is as today:
+  - "Sharing Active" while there's a cloud partner or an iCloud share is running;
+  - "Updated … ago" counts from the later of the last applied cloud write and the last iCloud write;
+  - the newer-build message (§5.2) appears in the error section.
+- **Shared With**, one row per person. A row's kind is decided in this order: still on iCloud, then connected, then not opened yet.
+  - **connected:** blue initial, the name, "2 devices · seen today", and today's quick-status bubble.
+    - "Seen" is the newest `last_seen_at` among their devices: "seen today", "seen yesterday" or "seen 3 days ago", by calendar day in local time.
+    - The count reads "1 device" or "N devices".
+  - **still on iCloud** (an accepted iCloud participant with no `app` device): the name with the orange "Needs Crewluve update" tag, then "Connected through iCloud" (P2-2);
+  - **not opened yet** (no devices): today's orange row, "Pending invite" and "Sent … ago", from `created_at`;
+  - **sent before the update:** a pending label that's still open. It keeps today's row until it's accepted or 14 days old.
+- **Tapping a row** opens the partner page. Pending labels from before the update stay untappable, as today.
+- **Swipes:**
+  - connected and iCloud rows: Remove, with today's alert;
+  - not opened yet: Delete, with no alert as today, and Re-share, which is Send Link Again;
+  - sent before the update: Delete drops the label, and Re-share creates a cloud partner with that name, opens the share sheet and drops the label.
+- **Actions:**
+  - Invite Another Partner;
+  - Update Status Now (through `forceUpdate`);
+  - Stop Sharing with Everyone, with today's alert. It calls `partner_remove_all`, ends any iCloud share, and clears every per-person setting and the move-over notes;
+  - Start Sharing, shown with no partners, opens the invite sheet.
+- **The list refreshes** at launch and on coming back to the app while signed in, on opening the screen, on pull to refresh, and after each action.
+- **About Partner Sharing:** "Secure via iCloud" becomes "Secure via Crewlu Cloud": "Your status is stored in your Crewlu Cloud account. Each partner gets a private link and sees only your status."
+
+### 6.3 The partner page (`PartnerDetailView`)
+
+- **The header:** the initial, the name, and "Sees you as {display name}". The display name defaults to the pilot's first name.
+- **Devices.** The icon follows the kind: an iPhone for `app`, "{label}", "Crewluve · seen …"; a globe for `web`, "Website · seen …". The footer says "Swipe a device to remove it."
+  - **Removing one** asks "Remove This Device?" / "{label} stops seeing your status. {name}'s other devices stay connected.", then calls `partner_remove_device`.
+  - **With no devices:** "Not opened yet", with the footer "{name} connects by tapping the invite link."
+  - **Still on iCloud:** "iCloud · older Crewluve", "Still connected", with the footer "{name} moves over automatically after updating Crewluve."
+- **Send Link Again** opens the share sheet with their link (§6.4).
+- **New Link** asks "Make a New Link?" / "The current link stops working. Devices already connected stay connected." Then it calls `partner_new_link` and opens the share sheet with the new link.
+- **Nickname and Quick Status** opens `PartnerQuickStatusSheet` for this person (§6.5).
+- **Remove {name}** uses today's alert: "Remove Partner?" / "Remove {name}? They will no longer see your status." It then removes them as in §7.5 and returns to the list.
+- **Errors:**
+  - `unavailable` says "Couldn't reach Crewlu Cloud. Check your connection and try again.";
+  - `PT404`, someone already removed from another device, refreshes and returns to the list.
+
+### 6.4 Invites (`ShareLinkView`)
+
+- **Today's three steps stay.** Step 2's detail becomes: "Type who you're sharing with. This becomes their name in your list." Step 3 becomes "Share their invite link": "Tap "Share Invite Link" and send it however you like. When they tap it on their iPhone or iPad, Crewluve connects by itself."
+- **The buttons:** Share Invite Link, Copy Invite Link, and Get Crewluve App Store Link, which is unchanged.
+- **The message:** "Tap this link to see my status in Crewluve.", with the subject "Pilot Status" as today.
+- **The link:** `https://crewluve.crewlu.net/join#t=<invite_token>`.
+- **The first tap** calls `partner_create(name, ref)`, with a UUID made when the sheet opens. A spinner shows on the button, then it opens `ActivityShareSheet`, or copies the link.
+  - A repeat tap sends the same reference, so it gets the same partner. If the name has changed, it calls `partner_rename`.
+  - Closing without sending leaves a "Pending invite" row, as today.
+- **Errors:**
+  - `unavailable` says "Couldn't create the invite. Check your connection and try again.";
+  - `PT409` says "You can share with up to 25 people. Remove someone to invite another."
+- **Send Link Again and Re-share** open the share sheet straight away, with the same message and the partner's current `invite_token`.
+
+### 6.5 The quick status sheet
+
+When signed in:
+- **Its partners and ids** are the cloud partners.
+- **The nickname** calls `partner_rename`, so every device of the pilot sees it. An empty nickname keeps the current name, because a cloud partner's name can't be empty.
+- **Display Name and the quick status** are saved under the cloud id. Send To with everyone picked still writes `__everyone__` plus each id.
+
+### 6.6 Per-person settings
+
+- **The same keys as today.** Settings stay in `crewluve.displayNameByPartner` and `crewluve.quickStatusByPartner`, synced as today, but keyed by cloud id for cloud partners.
+- **The lookup** for a moved-over person tries the cloud id first, then the iCloud id. The iCloud record maps them back to iCloud ids, through the notes (§7.1).
+- **Nicknames** of cloud partners live on Crewlu Cloud (`partners.name`), not in the nickname keys.
+- **Clean-up is unchanged.** Pruning expired statuses and the on-duty clearing in `PartnerBeaconAutoSync` work as before, because they don't look at the keys.
+
+### 6.7 Signing out and switching accounts
+
+- **Sign Out asks first,** but only with cloud partners: "Sign Out?" / "Your partners stop getting updates until you sign back in.", with the buttons Sign Out and Cancel.
+- **After signing out:**
+  - this device forgets that account's cached partner list, and stops cloud writes;
+  - partners keep the last status;
+  - the screen shows the prompt (§6.1).
+
+  `PartnerCloudStore` watches `AccountController.isSignedIn`, since no notification is posted.
+- **Signing in to another account** loads that account's partners. The writer still follows the owner rule (§5.2).
+
+## 7. The move-over (part 2c)
+
+### 7.1 The notes
+
+The notes are kept in UserDefaults and synced by `PartnerDataKVSync`:
+- `crewluve.cloudPartnerByICloudID`: `{iCloud id: cloud id}`;
+- `crewluve.moveTicketByICloudID`: `{iCloud id: ticket}`;
+- `crewluve.removedICloudPartners`: the iCloud ids the pilot removed.
+
+Any device on this version writes the same tickets and the same looked-up settings into the iCloud record, even one that isn't signed in.
+
+### 7.2 When it runs
+
+It runs when three things hold:
+- the pilot is signed in;
+- `SyncOwnerGuard.allowsSync(uid:)` is true;
+- an iCloud share exists.
+
+Then it runs:
+- after the share is fetched at launch, and on coming back to the app;
+- when Partner Sharing opens;
+- when the iCloud participants change.
+
+### 7.3 Each run
+
+Its inputs are the accepted iCloud participants with their names, the cloud partners and devices, the notes, and this device's open pending labels. The decision function returns the steps, and the runner does them in this order.
+
+1. **Create.** Each accepted participant gets a cloud partner. Anyone in the removed list is skipped, and so is anyone without an iCloud id.
+   - The call is `partner_create(name, ref: iCloud id)`. The name is their current name in the list, nickname or iCloud name, cut to 60 characters.
+   - The answer goes into `cloudPartnerByICloudID`.
+   - The name is set only here, at creation. After that, the cloud name is the one that counts.
+2. **Copy settings.** Display name and quick status move from the iCloud id to the cloud id, but only where the cloud id has no entry yet.
+3. **Tickets.** Each mapped person without an `app` device gets `partner_move_ticket(cloud id)`, saved in `moveTicketByICloudID`. A ticket is dropped once its person has an `app` device or is removed.
+4. **Hand over.** When the tickets change, the iCloud record is written again, even if the status didn't change.
+5. **End the iCloud share,** when all of these hold:
+   - every accepted participant is mapped and has an `app` device;
+   - no participant lacks an iCloud id;
+   - no pending label is open on this device.
+
+   Then `endICloudShare()`:
+   - deletes the share and the record, and clears `partnerBeacon.isSharing`;
+   - keeps the cloud partners and their cloud-id settings;
+   - clears the iCloud-id settings, the iCloud nicknames, the notes and the pending labels.
+
+Every step is safe to repeat. A run that stops partway, offline or on a server error, is finished by the next one.
+
+### 7.4 The ticket field in the iCloud record
+
+- **The field:** `moveTicketByPartnerJSON`, a JSON object `{iCloud user record name: ticket}` stored as `Data`, like `displayNameByPartnerJSON`.
+- **How Crewluve uses it (piece 4):**
+  1. it finds its own ticket by `container.userRecordID().recordName`;
+  2. it redeems it with `partner_handoff_redeem(p_token, p_device_key, p_kind: 'app', p_label)`.
+- **Tickets are never written to Crewlu Cloud.**
+
+### 7.5 Removing someone
+
+- **Someone mapped to an iCloud participant:**
+  1. CrewLu removes them from the iCloud share (`removePartner`);
+  2. it adds their iCloud id to the removed list;
+  3. then it calls `partner_remove`.
+
+  If the iCloud step fails, the error shows and nothing is removed from Crewlu Cloud.
+- **A cloud-only partner:** `partner_remove`.
+- **The last iCloud participant.** While Crewlu Cloud sharing is on, removing the last one ends the iCloud share through `endICloudShare()`, not `stopSharing()`.
+
+### 7.6 Special cases
+
+- **Late joiners.** Someone who accepts an old iCloud link after the update is moved over like everyone else. A pending label from before the update names them through today's matching, and their cloud partner is renamed to match.
+- **The share ended on another device.** A device that finds the iCloud share gone drops its own pending labels, because their link no longer works.
+- **A person iCloud can't identify** gets no ticket. They stay on iCloud with the "Needs Crewluve update" tag, and the share stays up for them. Piece 6 deals with anyone left.
+- **An older CrewLu** on another of the pilot's devices can't write the iCloud record once this build has, because of the build guard (§2.1).
+
+## 8. Testing
+
+### 8.1 CrewLu's tests
+
+The user runs these with ⌘U. They use a stand-in for `PartnerCloudAPI`, like `AccountStubs`.
+- **The encoder:**
+  - each example in `supabase/partner-status/examples/` comes out exactly;
+  - dates count from 1970, and saved quick statuses are converted from 2001;
+  - expired statuses and partners who aren't on Crewlu Cloud are left out;
+  - the everyone-status and Sleeping rules hold;
+  - no blobs, no `__everyone__`, no iCloud ids and no tickets.
+- **The cloud writer:**
+  - it writes only when all three conditions hold;
+  - one write at a time, and the newest wins;
+  - it skips an unchanged summary;
+  - it keeps and retries after `unavailable`, and drops after `refused`;
+  - `applied: false` sets the newer-build message;
+  - its last-applied record changes only on success.
+- **The partner list:** every row kind and its tag, device counts, the "seen" wording, and the hero's "Sharing Active".
+- **The move-over's decision function:**
+  - creating, skipping removed people and people without an iCloud id;
+  - copying settings without overwriting;
+  - asking for tickets and stopping once someone has an `app` device;
+  - ending the share, or holding it for a pending label or an unidentified person.
+- **Settings:**
+  - the lookup order;
+  - the iCloud record's reverse lookup;
+  - `endICloudShare()` keeps the cloud ids' settings;
+  - Stop Sharing with Everyone clears everything.
+- **The invite sheet's logic:** the same reference on repeat taps, a rename when the name changed, and the error messages.
+- **Signing out** clears that account's cache.
+- **`PartnerBeaconModeIndependenceTests`** keeps its iCloud checks, which stay true until piece 6. It gains one: Crewlu Cloud sharing depends on being signed in, not on `SyncBackendMode`.
+
+### 8.2 The SQL tests (`supabase/tests`, run by Claude)
+
+- **Every example** matches the schema and is accepted by `set_partner_status`.
+- **Each partner** gets only their own entries plus the everyone-status from `partner_view`.
+- **A status sent to one partner** stays hidden from the others.
+
+### 8.3 On real phones before release
+
+This needs the user, a test partner, and Crewluve piece 4 on TestFlight.
+
+1. Invite the test partner, then connect in Crewluve.
+2. Remove a device, use New Link, then remove the person.
+3. An iCloud partner moves over without a tap after updating Crewluve, and the iCloud share ends by itself.
+4. Sign out: the partner keeps the last status. Sign back in: updates resume.
+5. A quick status sent to one person reaches only them.
+
+## 9. Building and releasing
+
+- **Three plans,** in this order:
+  - **2a, the summary:** `PartnerCloudAPI`, the cached partner list the writer needs, the encoder, the writer, the auto-update hook and the contract files;
+  - **2b, the screens:** the rest of `PartnerCloudStore`, the screens, invites, settings, and sign-out;
+  - **2c, the move-over.**
+
+  All three ship in one CrewLu release.
+- **The branch:** a new branch off `feature/supabase-account-backend`, merged back into it. Each plan starts by checking that the tree is clean apart from the Xcode scheme files, which are left alone.
+- **No database change.** Piece 1 is live.
+- **The release:**
+  - the user sets the version and submits;
+  - it goes live after Crewluve piece 4 (P2-1), which itself needs the push service (piece 3) live;
+  - §8.3 passes first.
+
+## 10. Changes to other docs
+
+- **The umbrella design:**
+  - §2.1's write triggers corrected (as in §2.2 here);
+  - §4.1 and §6.2 no longer promise a 30 s minimum;
+  - §4.1 gets the everyone-status rule (P2-3);
+  - §7.2 and §7.3: show the partner's own quick status first;
+  - §9: CrewLu ships after Crewluve (P2-1).
+- **`partner-api.md`:** the summary section points to `supabase/partner-status/`.
+
+## 11. Not in piece 2
+
+- **Other pieces:** the push service (3), Crewluve (4), the website (5) and removing iCloud sharing (6).
+- **Live updates of the partner list.** No realtime, as in D12.
+- **Changing what Delete Account says.** Crewlu Cloud already deletes the partners and the summary along with the account.
