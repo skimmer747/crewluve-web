@@ -1,6 +1,6 @@
 # Partner Links Piece 2: CrewLu on Crewlu Cloud
 
-- **Status:** design approved in brainstorming on 2026-10-16. Next: the user reviews this spec, then plan 2a.
+- **Status:** design approved in brainstorming on 2026-10-16, and the user approved this spec the same day. Next: plan 2a.
 - **Part of:** the partner-links design, `docs/superpowers/specs/2026-10-15-partner-links-design.md`, §7.1, §8 and §9 (piece 2).
 - **Repo:** CrewLu, `~/Dev/Duty`, on a new branch off `feature/supabase-account-backend` (§9).
 - **Contract:** `~/Dev/Duty/supabase/partner-api.md`, the partner door from piece 1, live since 2026-10-15.
@@ -82,7 +82,7 @@ How the writes behave:
 - **Stand-ins.** `DutyTests/Helpers/AccountStubs.swift` and `StubSyncTransport.swift`.
 - **The build.** iOS 18, Swift 5 mode. New files in `Duty/` and `DutyTests/` need no project-file edit.
 - **The user runs CrewLu's tests** (⌘U). Claude runs the SQL tests in `supabase/tests`.
-- **Branches.** `feature/supabase-account-backend` (5d05f342) holds the live Crewlu Cloud code, 471 commits ahead of `main` (2.6.5, July).
+- **Branches.** `feature/supabase-account-backend` holds the live Crewlu Cloud code, 477 commits ahead of `main` (2.6.5, July). This spec was checked at `5d05f342`. Plan 2a starts from `282a6cc0`. The commits between the two add the Appendix B history migration, comment warnings in old migration files, their SQL tests and docs. No Swift file changed.
 
 ## 3. Decisions (brainstorm, 2026-10-16)
 
