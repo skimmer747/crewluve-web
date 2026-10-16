@@ -404,7 +404,7 @@ Tests: 2,204.
 
 ### Task 5: Merge and push (each needs the user's yes)
 
-- [ ] **Step 1: Ask about merging (one question)**
+- [x] **Step 1: Ask about merging (one question)**
 
 On a yes:
 
@@ -414,7 +414,7 @@ git switch main && git merge --ff-only partner-links-1b && npm test && git branc
 
 Expected: a fast-forward, then `Tests  2197 passed (2197)`.
 
-- [ ] **Step 2: Ask about pushing (a separate question)**
+- [x] **Step 2: Ask about pushing (a separate question)**
 
 On a yes, push and watch the deploy:
 
@@ -430,7 +430,7 @@ Expected: a run id, then `success`. If the run id is empty, the push hasn't regi
 
 ### Task 6: Release checks
 
-- [ ] **Step 1: Check the live site**
+- [x] **Step 1: Check the live site**
 
 Fetch these with `redirect: 'manual'` (for example in a `ctx_execute` JavaScript snippet):
 
@@ -455,7 +455,19 @@ Apple can take up to a day to fetch it.
 - **If it's still 404:** note that in the plan, and check again before Crewluve's piece 4 goes to TestFlight.
 - **If Apple refuses the file:** for example, it never appears after a day while the site serves it. Stop and tell the user. The fallback is putting the site behind Cloudflare's proxy to set `Content-Type: application/json`, which is a DNS change and their decision.
 
-- [ ] **Step 3: Record the results and update the project memory**
+**Released 2026-10-15, about 22:45 EDT.**
+- **Push:** with the user's yes, `5fb8fbc..4426345`. Pages run 38843308478: build and deploy both succeeded.
+- **Live checks:**
+  - app-link file: 200, no redirect, `application/octet-stream`, and its JSON equals the file;
+  - `/join`: 200, no redirect, the page is served;
+  - `/join/`: 404 (expected);
+  - `/.DS_Store`: 404;
+  - `/`: the same `index-DncMPOoR.js`.
+- **Apple's CDN:** still 404. It may be holding the 404 it saw when it was asked before the file existed.
+  - Check `https://app-site-association.cdn-apple.com/a/v1/crewluve.crewlu.net` again.
+  - It must answer with the file before Crewluve's piece 4 goes to TestFlight. That's on piece 4's checklist.
+
+- [x] **Step 3: Record the results and update the project memory**
 
 1. Tick this plan with the date and results, and commit it.
 2. Update `project-crewluve-web-status.md` and its `MEMORY.md` line: piece 1b is live, along with the Apple CDN status.
