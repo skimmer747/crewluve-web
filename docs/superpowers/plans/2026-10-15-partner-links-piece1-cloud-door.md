@@ -29,10 +29,11 @@
   - `~/Dev/Duty` has uncommitted changes to `Duty.xcodeproj/xcshareddata/xcschemes/*` that aren't part of this work.
   - Never run `git add -A` or `git add .` in that repo. Add the exact paths each task lists.
 - **CrewLu Cloud stays untouched until Task 13, which starts only after the user says yes.** The Supabase MCP in this setup runs with `--read-only`: it can check the database, but the user applies the SQL in the Supabase SQL editor.
-- **Node:** any version from 20 up. Once `npm install` has run, the tests need no network.
+- **Node:** 23.6 or later (the tests run in one process, with `--test-isolation=none`). Once `npm install` has run, the tests need no network.
 - **Running the tests.** Every test command runs from `~/Dev/Duty/supabase/tests` as `npm test`, and it finishes in under 10 seconds.
-  - If it ever hangs, something has loaded PGlite's pgcrypto extension.
-  - The shim exists so that nothing does (see `tests/README.md`).
+  - If it ever hangs, either something has loaded PGlite's pgcrypto extension (the shim exists so that nothing does), or the runner is back in Node's default one-process-per-file mode.
+  - See `tests/README.md` for both.
+  - *(Added during Task 12: the one-process mode came out of the review fixes; Tasks 1–10 ran in the default mode.)*
 
 ## Decisions made while planning
 
@@ -2488,6 +2489,38 @@ Then send the reviewer the fixes to re-check.
 
 Report what the review found, what changed, and the final test count.
 
+**What the review found and what changed (2026-10-15).** The verdict was "ready after fixes": 2 important findings, 6 minor, nothing critical. Each fix was test first:
+
+| Finding | Fix | Commit |
+|---|---|---|
+| 1 Trimming fails open (base64 `…JSON` blobs, arrays, string targets) | `trim_status_for` fails closed; `set_partner_status` refuses those shapes (22023) | `0903bfcb` |
+| 2 A lost answer strands a partner | Devices make their own keys (`p_device_key`); `partner_join` and `partner_handoff_redeem` are safe to repeat (`used_by_device`); `partner_create` takes `p_id`; `partner_move_ticket` returns the open ticket | `c91a64d7`, `598dbe7c` |
+| 3 Pilot errors come back as HTTP 500 | `PT404`, `PT409` and `PT413`; removes answer ok when already gone | `0e8a5bbe` |
+| 4 `p_since` can hide a newer summary | `updated_at` is whole milliseconds and always moves forward | `bc850dd8` |
+| 5 Limits are check-then-act | Partner-row lock in `create_device`, per-pilot lock in `partner_create`, global lock on the code throttle. A per-IP throttle wasn't added: it's documented as a known limit | `c91a64d7`, `598dbe7c` |
+| 6 Device owner not tied to the partner's owner | Composite foreign key | `4345f691` |
+| 7 Apply and check gaps | `create schema private` (no `if not exists`); three more HTTP checks; possible advisor INFO noted in Task 13 | `4345f691`, `2e5201ea` |
+| 8 Doc gaps and missing input caps | 200-character caps; `partner-api.md` rewritten | `598dbe7c`, `2e5201ea` |
+
+Also `b57f7bd4`: the tests now run in one process, because the default per-file processes hung intermittently on PGlite errors. Tests: 85.
+
+**Deliberate breaks after the fixes.** Run each row the same way as Task 10, Step 4, and undo with `git -C ~/Dev/Duty checkout -- supabase/migrations/<file>`. All 12 were checked on 2026-10-15:
+
+| # | File | Change | Must fail |
+|---|---|---|---|
+| 1 | `…pilot_rpcs.sql` | Delete `    where ps.writer_build <= excluded.writer_build` | "a newer or equal build replaces the summary; an older build is refused" |
+| 2 | `…tables.sql` | In `trim_status_for`, replace the three lines `if s is null or jsonb_typeof(s) <> 'object' then` / `return null;` / `end if;` with `  return s;` | the trimming tests (7) |
+| 3 | `…pilot_rpcs.sql` | Change `grant execute on function public.partner_create(text, uuid) to authenticated;` to `… to anon, authenticated;` | "pilot RPCs: signed-in users only" |
+| 4 | `…partner_rpcs.sql` | Change `if not v_found or v_handoff.used_at is not null or v_handoff.expires_at <= now() then` to `if not v_found or v_handoff.expires_at <= now() then` | "a connected device makes a code that connects one more device, once" |
+| 5 | `…partner_rpcs.sql` | Replace `      insert into private.partner_redeem_failures default values;` with `      null;` | "30 wrong codes in a minute pause code redemptions, which then work again" |
+| 6 | `…partner_rpcs.sql` | In `create_device`, change `>= 10 then` to `>= 11 then` | "one link works on up to 10 devices per person" |
+| 7 | `…tables.sql` | Replace `revoke all on schema private from public, anon, authenticated;` with `grant usage on schema private to anon, authenticated;` | "private helpers and tables are out of reach for client roles" |
+| 8 | `…partner_rpcs.sql` | Change `  if v_device.last_seen_at < now() - interval '5 minutes' then` to `  if true then` | "last seen moves forward at most every 5 minutes" |
+| 9 | `…pilot_rpcs.sql` | Change `  if v_unknown is not null then` to `  if false then` | "per-partner fields must be shaped for trimming, or the summary is refused" |
+| 10 | `…partner_rpcs.sql` | Change `    if v_existing.partner_id = p_partner then` to `    if false then` | "joining again with the same key is safe: same device, nothing new" |
+| 11 | `…tables.sql` | Change `  foreign key (partner_id, owner_id) references public.partners (id, owner_id) on delete cascade` to `  foreign key (partner_id) references public.partners (id) on delete cascade` | "a device's pilot must be its partner's pilot, whoever writes the row" |
+| 12 | `…pilot_rpcs.sql` | Change `        updated_at = greatest(excluded.updated_at, ps.updated_at + interval '1 millisecond'),` to `        updated_at = excluded.updated_at,` | "updated_at is whole milliseconds and always moves forward, even past a later stored time" |
+
 ### Task 13: Apply to CrewLu Cloud (needs the user's yes)
 
 - [ ] **Step 1: Take a "before" snapshot of the policies (read-only MCP)**
@@ -2573,18 +2606,22 @@ Run `mcp__supabase__get_advisors` with type `security`. Compare it with the base
 | `anon_security_definer_function_executable` | 1 (`handle_new_user`) | 7: plus the 6 partner RPCs |
 | `authenticated_security_definer_function_executable` | 2 (`delete_my_account`, `handle_new_user`) | 16: plus all 14 RPCs |
 | `auth_leaked_password_protection` | 1 | 1 |
+| `rls_enabled_no_policy` (INFO, may appear) | 0 | up to 3: the private tables |
 
-The new findings are intended: these RPCs are the door, and each one checks a secret or `auth.uid()`. If any other new finding appears, stop and report it to the user.
+The new findings are intended: these RPCs are the door, and each one checks a secret or `auth.uid()`. The private tables have RLS on and no policies on purpose, because no client may read them. If any other new finding appears, stop and report it to the user.
 
 - [ ] **Step 6: Run the HTTP checks**
 
-Run the four `curl` commands under "Checks after applying to CrewLu Cloud" in `supabase/partner-api.md`.
+Run the seven `curl` commands under "Checks after applying to CrewLu Cloud" in `supabase/partner-api.md`.
 
 Expected:
 1. `{"error": "sharing_ended"}`
 2. `{"error": "sharing_ended"}`
 3. `401`
 4. `401`
+5. `406`
+6. `[]`
+7. `0`
 
 - [ ] **Step 7: If anything is off, undo**
 
@@ -2615,7 +2652,7 @@ git merge --ff-only feature/partner-cloud-door
 cd supabase/tests && npm test
 ```
 
-Expected: a fast-forward, then `ℹ pass 68`, `ℹ fail 0`. The Xcode scheme changes are still uncommitted and untouched.
+Expected: a fast-forward, then `ℹ pass 85`, `ℹ fail 0`. The Xcode scheme changes are still uncommitted and untouched.
 
 - [ ] **Step 3: Pushing needs a separate, fresh yes for each repo**
 

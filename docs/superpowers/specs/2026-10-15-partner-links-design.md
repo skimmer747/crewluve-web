@@ -68,7 +68,7 @@
 | D8 | **Alerts:** a cloud push service sends the same kind of silent wake-up iCloud sends today. Crewluve's alert logic is unchanged. |
 | D9 | **Screens:**<br>• CrewLu's partner list shows device counts.<br>• A partner's page shows their devices, Send Link Again, New Link, Nickname and Quick Status, and Remove.<br>• The welcome screen offers an instruction, Paste Invite Link, the 6-character code, and Try Demo. |
 | D10 | Bugs the website found in the app get **fixed in the app**, as separate items: sun times off by up to 2 h, and the callsign split for 5X, B6 and F9. |
-| D11 | *(technical)* **Each device holds its own random key.** Partners are not Supabase users, so the 19 owner policies don't change. |
+| D11 | *(technical)* **Each device makes and holds its own random key.** Partners are not Supabase users, so the 19 owner policies don't change, and a device whose answer was lost retries with the same key. |
 | D12 | *(technical)* **No realtime in version 1.**<br>• Crewluve refreshes on the wake-up push and a timer.<br>• The website polls while visible.<br>• Live pings are a later option (§11). |
 
 ## 4. The data: CrewLu's summary in CrewLu Cloud
@@ -91,6 +91,7 @@
 
   Piece 2 adds a JSON Schema file and fixtures generated from real summaries, so all three projects check against the same shape.
 - **When it's written.** CrewLu writes the cloud row at the same moments and with the same 30 s minimum interval as the iCloud record today (§2.1). During the move-over it writes both.
+- **`updated_at`** is whole milliseconds and moves forward with every applied write, even when two of the pilot's devices write at once. Partners send it back unchanged as `p_since`.
 - **Who can write.** Only a pilot signed in to CrewLu Cloud writes the row (D6).
 
 ### 4.2 What partners can see
@@ -102,6 +103,10 @@
   - catering and notes;
   - hidden flights, events and trips.
 - **New: partners see only their own per-partner fields.** Today every iCloud participant can read every partner's nickname and quick status. The partner door (§5.3) now trims `displayNameByPartner` and `quickStatusByPartner` down to the caller's own entry. It also drops the top-level quick status when `quickStatusTargets` doesn't include the caller.
+- **The trimming fails closed.**
+  - A per-partner map in any other shape reaches nobody.
+  - Any other per-partner field is dropped.
+  - `set_partner_status` refuses those shapes up front, including today's base64 `…JSON` blobs.
 
 ## 5. Partners, links and devices
 
@@ -116,13 +121,15 @@
   - `kind` (`app` or `web`) and `label` ("Sarah's iPhone", "Safari on iPad").
   - `created_at` and `last_seen_at`.
 - **`private.partner_device_secrets`:** one row per device, which no client can read.
-  - `key_hash`: the SHA-256 of the device's 256-bit key. The plaintext key exists only on the device.
+  - `key_hash`: the SHA-256 of the 256-bit key the device made for itself and saved before joining. The plaintext key exists only on the device.
   - `push_token` and `push_env` (`sandbox` or `production`), app devices only.
 - **`private.partner_redeem_failures`:** failed code attempts, for the throttle in §5.3.
 - **`private.partner_handoffs`:** one-time tokens that create a device.
   - `kind 'code'`: the 6-character code (from a 31-character alphabet without 0, O, 1, I or L), valid 10 minutes.
   - `kind 'move'`: a 256-bit move ticket (§8), valid 90 days.
   - Both are usable once (`used_at`).
+  - A move ticket's text is kept until it's used, so `partner_move_ticket` gives each of the pilot's devices the same open ticket.
+  - `used_by_device` lets the device that used a code or ticket repeat the call after a lost answer.
 - **Access:**
   - The pilot reads their own `partners`, `partner_devices` and `partner_status` rows through RLS. Every change goes through the pilot's RPCs (§5.3).
   - Partners have no table access at all. Everything they do goes through the partner RPCs (§5.3).
@@ -152,8 +159,8 @@
 
 | RPC | Does |
 |---|---|
-| `partner_join(p_invite, p_kind, p_label)` | Checks the invite and creates a device. Returns `{device_key, partner_id}` once. Refuses past 10 devices per person. |
-| `partner_handoff_redeem(p_token, p_kind, p_label)` | Same as join, for a hand-off code or a move ticket. Marks it used. |
+| `partner_join(p_invite, p_device_key, p_kind, p_label)` | Checks the invite and adds the device under the key it made. Returns `{device_id, partner_id}`. Repeating the call with the same key returns the same device. Refuses past 10 devices per person. |
+| `partner_handoff_redeem(p_token, p_device_key, p_kind, p_label)` | Same as join, for a hand-off code or a move ticket. Marks it used. The device that used it can repeat the call. |
 | `partner_view(p_key, p_since)` | Returns `{status, partner_id, updated_at}`, with `status` trimmed per §4.2. The name the pilot gave this person stays in CrewLu. Returns `{unchanged: true}` when nothing is newer than `p_since`. Updates `last_seen_at` at most every 5 minutes. |
 | `partner_handoff_create(p_key)` | Creates a 6-character code for this device's person. |
 | `partner_set_push(p_key, p_token, p_env)` | Saves the app's push token. |
@@ -162,15 +169,15 @@
 - **Every RPC that takes a key or token answers `sharing_ended` when it isn't valid.** That covers a removed person, a removed device, an unknown key, and a used or expired code. The device then shows "Sharing has ended" and returns to the welcome screen.
 - **Guessing codes.** Codes are short, so `partner_handoff_redeem` keeps a count of failures. After 30 failures in a minute, every code redemption fails until those failures are a minute old. That could block hand-offs for a minute but never exposes data. Move tickets and invites are long enough to skip this, so a move-over is never delayed.
 - **Answers, not errors.** Partner RPCs answer `{"error": "sharing_ended" | "invalid_input" | "too_many_devices" | "try_later"}` instead of raising, so a failed code attempt can be recorded.
-- **The pilot's RPCs** (signed in, `authenticated` only) return jsonb and raise an error on misuse:
+- **The pilot's RPCs** (signed in, `authenticated` only) return jsonb and are safe to repeat. They raise an error on misuse, with codes that map to plain HTTP statuses (403, 400, 404, 409, 413):
   - `set_partner_status(p_status, p_build)` → `{applied}`;
-  - `partner_create(p_name)` → `{id, invite_token}`;
+  - `partner_create(p_name, p_id)` → `{id, invite_token}`, where the same `p_id` returns the same partner;
   - `partner_rename(p_partner, p_name)`;
   - `partner_new_link(p_partner)` → `{invite_token}`;
-  - `partner_remove(p_partner)`;
-  - `partner_remove_device(p_device)`;
+  - `partner_remove(p_partner)`, ok when they're already gone;
+  - `partner_remove_device(p_device)`, ok when it's already gone;
   - `partner_remove_all()`, which also deletes the summary;
-  - `partner_move_ticket(p_partner)` → `{ticket, expires_at}`.
+  - `partner_move_ticket(p_partner)` → `{ticket, expires_at}`, the same ticket while it's open.
 - **The full as-built API**, with every answer, the HTTP checks and the undo SQL, is in `~/Dev/Duty/supabase/partner-api.md`.
 
 ### 5.4 What the pilot sees (CrewLu)
@@ -281,15 +288,15 @@ Copy follows the existing Partner Sharing screen (`PartnerSharingView.swift`).
 ## 8. The move-over
 
 1. **Pilot updates CrewLu while on CrewLu Cloud.** CrewLu does three things:
-   - it creates a `partners` row for each existing iCloud participant, named with the partner's current display name;
-   - it creates a move ticket for each one;
-   - it writes `moveTicketByPartnerJSON` into the iCloud record, keyed by CloudKit user record name (the same key `displayNameByPartnerJSON` uses).
+   - it creates a `partners` row for each existing iCloud participant, named with the partner's current display name, with a `p_id` derived from the pilot and the participant so the pilot's iPhone and iPad create the same partner;
+   - it gets each one's move ticket (`partner_move_ticket` gives every device the same open ticket);
+   - it writes `moveTicketByPartnerJSON` into the iCloud record, keyed by CloudKit user record name (the same key `displayNameByPartnerJSON` uses). Tickets never go in the CrewLu Cloud summary: `set_partner_status` refuses per-partner fields it can't trim.
 
    It repeats this whenever a new participant appears, and it keeps writing both the iCloud record and the cloud row.
-2. **Partner updates Crewluve.** On an iCloud fetch, Crewluve finds its own ticket and calls `partner_handoff_redeem`. It saves the key and switches its source to CrewLu Cloud.
+2. **Partner updates Crewluve.** On an iCloud fetch, Crewluve finds its own ticket. It makes and saves its device key, redeems the ticket with it, and switches its source to CrewLu Cloud. A lost answer is simply retried with the same key.
    - If the redeem or the first cloud fetch fails, it stays on iCloud and tries again on the next fetch. The move never drops a partner onto the welcome screen.
    - Once moved, Crewluve ignores iCloud entirely, so CrewLu stopping the share later doesn't show "Sharing has ended".
-3. **Every ticket is used.** CrewLu stops the iCloud share and deletes the record (`stopSharing`, `PilotStatusBeaconManager.swift:560-588`).
+3. **Every participant has a device.** A device row means that partner has moved. CrewLu then stops the iCloud share and deletes the record (`stopSharing`, `PilotStatusBeaconManager.swift:560-588`).
 4. **Either app may update first.** An updated Crewluve whose pilot hasn't updated simply stays on iCloud.
 5. **Pilots not on CrewLu Cloud:** iCloud keeps working, with the prompt from §7.1.
 6. **Website visitors using the pilot's password** stay signed in until the website piece ships. Then the pilot sends them their link.
