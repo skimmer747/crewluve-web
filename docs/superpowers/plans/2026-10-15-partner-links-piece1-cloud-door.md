@@ -2538,7 +2538,7 @@ Tests: 89.
 
 ### Task 13: Apply to CrewLu Cloud (needs the user's yes)
 
-- [ ] **Step 1: Take a "before" snapshot of the policies (read-only MCP)**
+- [x] **Step 1: Take a "before" snapshot of the policies (read-only MCP)**
 
 Run with `mcp__supabase__execute_sql`:
 
@@ -2549,7 +2549,7 @@ select tablename, policyname, cmd, roles::text as roles, qual, with_check
 
 Expected: 21 rows as of 2026-10-15: one owner policy on each of 18 tables, plus 3 on `profiles`. Save the result in the scratchpad as `policies-before.json`.
 
-- [ ] **Step 2: Ask the user (one question)**
+- [x] **Step 2: Ask the user (one question)**
 
 Ask whether to apply now. Say what it does:
 - adds a `private` schema, 6 tables and 22 functions (14 RPCs and 8 helpers);
@@ -2558,7 +2558,7 @@ Ask whether to apply now. Say what it does:
 
 Say what they'll do: paste one script into the Supabase SQL editor and press Run. If the answer isn't yes, stop here.
 
-- [ ] **Step 3: Put the script on the clipboard**
+- [x] **Step 3: Put the script on the clipboard**
 
 ```bash
 cd ~/Dev/Duty/supabase/migrations
@@ -2573,7 +2573,7 @@ Tell the user:
 
 Wait for them to report back.
 
-- [ ] **Step 4: Check the tables, functions and privileges (read-only MCP)**
+- [x] **Step 4: Check the tables, functions and privileges (read-only MCP)**
 
 Run with `mcp__supabase__execute_sql`, one query at a time:
 
@@ -2611,7 +2611,7 @@ Expected:
 
 Then run the Step 1 policies query again. Expected: 24 rows. The 21 from `policies-before.json` are unchanged, and the 3 new ones are `partner_devices_owner_read`, `partner_status_owner_read` and `partners_owner_read`.
 
-- [ ] **Step 5: Check the security advisors**
+- [x] **Step 5: Check the security advisors**
 
 Run `mcp__supabase__get_advisors` with type `security`. Compare it with the baseline from 2026-10-15:
 
@@ -2625,7 +2625,7 @@ Run `mcp__supabase__get_advisors` with type `security`. Compare it with the base
 
 The new findings are intended: these RPCs are the door, and each one checks a secret or `auth.uid()`. The private tables have RLS on and no policies on purpose, because no client may read them. If any other new finding appears, stop and report it to the user.
 
-- [ ] **Step 6: Run the HTTP checks**
+- [x] **Step 6: Run the HTTP checks**
 
 Run the seven `curl` commands under "Checks after applying to CrewLu Cloud" in `supabase/partner-api.md`.
 
@@ -2638,7 +2638,7 @@ Expected:
 6. `[]`
 7. `0`
 
-- [ ] **Step 7: If anything is off, undo**
+- [x] **Step 7: If anything is off, undo**
 
 Tell the user what's off. Then copy the undo SQL to the clipboard:
 
@@ -2648,9 +2648,20 @@ sed -n '/^## Undo/,$p' ~/Dev/Duty/supabase/partner-api.md | sed -n '/^```sql$/,/
 
 Ask them to paste and run it in the same SQL editor, then re-run Step 4's tables query. Expected: no rows.
 
-- [ ] **Step 8: Record the result**
+- [x] **Step 8: Record the result**
 
 Tick this task in this plan, noting the date, then commit the plan in the website repo.
+
+**Applied 2026-10-15 (evening, EDT).** The user pasted the 698-line script (all three migrations as of `04946bbe`, one transaction) into the SQL editor and got "Success. No rows returned". The checks:
+- **Tables:** 6, all with RLS on, owned by `postgres`.
+- **RPCs:** 14, all security definer with `search_path=""`. Exactly the 6 partner RPCs are callable by anon.
+- **Private schema:** 8 helpers, none callable by clients.
+- **Public partner tables:** anon has no access; signed-in users can read but not write.
+- **Policies:** 24. The original 21 are unchanged (fingerprint `a04c4825a9ba5c2352dc19f5c3b7375c` before and after), and the 3 new ones are present.
+- **Advisors:** as expected: `rls_enabled_no_policy` 3 (INFO), anon security definer 7, authenticated security definer 16, search_path 4, leaked passwords 1.
+- **HTTP checks:** all seven as expected (`sharing_ended`, `sharing_ended`, 401, 401, 406, `[]`, 0).
+
+The undo wasn't needed.
 
 ### Task 14: Finish
 
