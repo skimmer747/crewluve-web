@@ -64,6 +64,18 @@ describe('the /join page', () => {
     expect(token(ours, 'card'), '--card is the site\'s --glass-fill').toBe(token(site, 'glass-fill'))
   })
 
+  it('keeps the color blocks in the site\'s order, so dark Increase Contrast wins over plain Increase Contrast', () => {
+    const html = page()
+    const at = [
+      ':root {',
+      '@media (prefers-color-scheme: dark) {',
+      '@media (prefers-contrast: more) {',
+      '@media (prefers-color-scheme: dark) and (prefers-contrast: more) {',
+    ].map((header) => html.indexOf(header))
+    expect(at.every((i) => i > -1)).toBe(true)
+    expect([...at].sort((a, b) => a - b)).toEqual(at)
+  })
+
   it('fills the button the way the site does, so it stays readable under Increase Contrast', () => {
     expect(block(page(), '.store {')).toContain('background: var(--fill-blue, var(--blue));')
   })

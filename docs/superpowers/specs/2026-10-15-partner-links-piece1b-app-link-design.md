@@ -56,19 +56,21 @@ Add `include-hidden-files: true` to the `actions/upload-pages-artifact@v5` step 
 **File:** `public/join.html`. GitHub Pages serves it at `/join`.
 
 - **A single static page, with no scripts.** It copies the site's look:
-  - the system font stack and the site's black-and-white colors, light and dark;
+  - the system font stack and the site's colors, copied from `src/styles/tokens.css`: light, dark, and both with Increase Contrast. The blocks stay in the site's order, so dark Increase Contrast wins;
+  - a button filled with `var(--fill-blue, var(--blue))`, as the site does, so white text stays readable under Increase Contrast;
   - the CrewLuve heart (`/icons/heart-256.png`).
 - **Copy:**
   - Title: **Welcome to CrewLuve**
   - Subtitle: **Stay connected with your pilot**
   - Card: **This is an invite to follow your pilot. Open it on your iPhone or iPad with CrewLuve installed, and it connects by itself.**
   - Button: **Get CrewLuve on the App Store**, linking to `https://apps.apple.com/app/id6759344060`.
-  - Footnote: **Already have it? Tap the link in your message again.**
+  - Footnote: **Already have it? Tap the link in your message again.** The review suggested wording that also fits QR hand-offs, and the user kept this one.
 - **Head:**
   - `noindex`;
   - `referrer: no-referrer`;
   - the site's favicon and touch icon;
-  - its own strict CSP: `default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'`.
+  - its own strict CSP: `default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'`, placed before any link, style or image;
+  - a Messages preview card: `og:title` "CrewLuve", `og:description` "Stay connected with your pilot", and `og:image` `https://crewluve.crewlu.net/icons/heart-256.png` (it must be an absolute address).
 
   The build only injects the CSP into `index.html`, so this page carries its own.
 - **The fragment** (`#t=…` or `#c=…`) stays in the address bar, unread. Piece 5 will read it.
@@ -107,3 +109,5 @@ Add `include-hidden-files: true` to the `actions/upload-pages-artifact@v5` step 
 | 2 | Claim only `/join` in the app-link file. |
 | 3 | Publish dot-folders with `include-hidden-files: true` rather than rename or move the file. Apple requires the `.well-known` location. |
 | 4 | Serve the page as `join.html`, so `/join` needs no redirect. If GitHub Pages turns out to redirect, use `join/index.html` instead: browsers keep the `#` part across a redirect. |
+| 5 | After review: the page follows the site's Increase Contrast colors, and its button uses the site's fill. A test keeps all four color modes, and their order, in step with `src/styles/tokens.css`. |
+| 6 | After review, the user's choice: add a Messages preview card (`og:` tags), and keep the approved footnote rather than the suggested "Already have it? Open the link again." |

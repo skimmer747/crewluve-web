@@ -40,7 +40,7 @@
 
 ### Task 0: Branch
 
-- [ ] **Step 1: Check the tree and branch**
+- [x] **Step 1: Check the tree and branch**
 
 Run: `git status --short && git switch -c partner-links-1b`
 
@@ -53,7 +53,7 @@ Expected: no output from `git status`, then `Switched to a new branch 'partner-l
 - Modify: `.github/workflows/deploy-pages.yml` (the `actions/upload-pages-artifact@v5` step)
 - Test: `tests/appLinkFile.test.ts`
 
-- [ ] **Step 1: Write the failing test, `tests/appLinkFile.test.ts`**
+- [x] **Step 1: Write the failing test, `tests/appLinkFile.test.ts`**
 
 ```ts
 import { readFileSync } from 'node:fs'
@@ -85,7 +85,7 @@ describe('the app-link file', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/appLinkFile.test.ts`
 
@@ -93,7 +93,7 @@ Expected: FAIL, 2 tests:
 1. `ENOENT: no such file or directory, open '…/public/.well-known/apple-app-site-association'`
 2. the workflow test's `toMatch` failing on `include-hidden-files: true`
 
-- [ ] **Step 3: Create `public/.well-known/apple-app-site-association`**
+- [x] **Step 3: Create `public/.well-known/apple-app-site-association`**
 
 The file has no extension, and its content is exactly this:
 
@@ -115,7 +115,7 @@ The file has no extension, and its content is exactly this:
 }
 ```
 
-- [ ] **Step 4: Publish dot-folders**
+- [x] **Step 4: Publish dot-folders**
 
 In `.github/workflows/deploy-pages.yml`, replace:
 
@@ -136,13 +136,13 @@ with:
           include-hidden-files: true
 ```
 
-- [ ] **Step 5: Run it and watch it pass**
+- [x] **Step 5: Run it and watch it pass**
 
 Run: `npx vitest run tests/appLinkFile.test.ts`
 
 Expected: `Tests  2 passed (2)`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add public/.well-known/apple-app-site-association .github/workflows/deploy-pages.yml tests/appLinkFile.test.ts
@@ -157,7 +157,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `public/join.html`
 - Test: `tests/joinPage.test.ts`
 
-- [ ] **Step 1: Write the failing test, `tests/joinPage.test.ts`**
+- [x] **Step 1: Write the failing test, `tests/joinPage.test.ts`**
 
 ```ts
 import { readFileSync } from 'node:fs'
@@ -187,13 +187,13 @@ describe('the /join page', () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/joinPage.test.ts`
 
 Expected: FAIL, 3 tests, each with `ENOENT: no such file or directory, open '…/public/join.html'`.
 
-- [ ] **Step 3: Create `public/join.html`**
+- [x] **Step 3: Create `public/join.html`**
 
 ```html
 <!doctype html>
@@ -305,7 +305,7 @@ Expected: FAIL, 3 tests, each with `ENOENT: no such file or directory, open '…
 </html>
 ```
 
-- [ ] **Step 4: Run it and watch it pass, then run everything**
+- [x] **Step 4: Run it and watch it pass, then run everything**
 
 Run: `npx vitest run tests/joinPage.test.ts && npm test && npm run build`
 
@@ -314,13 +314,13 @@ Expected:
 - then `Tests  2197 passed (2197)`;
 - then a build that lists `dist/assets/index-DncMPOoR.js`. The app bundle is unchanged.
 
-- [ ] **Step 5: Check that the build carries both files**
+- [x] **Step 5: Check that the build carries both files**
 
 Run: `ls dist/.well-known/apple-app-site-association dist/join.html && cmp dist/.well-known/apple-app-site-association public/.well-known/apple-app-site-association && echo same`
 
 Expected: both paths listed, then `same`.
 
-- [ ] **Step 6: Look at the page**
+- [x] **Step 6: Look at the page**
 
 1. Start the `crewluve-preview` server with `preview_start`. It serves `dist/` on port 5181.
 2. Open `http://localhost:5181/join.html`, and take a screenshot.
@@ -335,7 +335,7 @@ Expected: it matches the approved mockup, in light and dark:
 
 The browser console shows no CSP errors (`read_console_messages`). Stop the server afterwards.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add public/join.html tests/joinPage.test.ts
@@ -349,7 +349,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Files:**
 - Modify: `docs/DEPLOY.md` (append at the end)
 
-- [ ] **Step 1: Append this section to `docs/DEPLOY.md`**
+- [x] **Step 1: Append this section to `docs/DEPLOY.md`**
 
 ```markdown
 
@@ -361,7 +361,7 @@ every dot-folder is left out of the deploy. To see what Apple has picked up (it 
 https://app-site-association.cdn-apple.com/a/v1/crewluve.crewlu.net.
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add docs/DEPLOY.md
@@ -372,7 +372,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ### Task 4: Review
 
-- [ ] **Step 1: Dispatch one reviewer**
+- [x] **Step 1: Dispatch one reviewer**
 
 Use the `superpowers:code-reviewer` agent on `git diff main...partner-links-1b`, against the piece 1b design. Ask it to check:
 - the JSON matches Apple's `applinks` format (`appIDs`, `components`);
@@ -382,7 +382,25 @@ Use the `superpowers:code-reviewer` agent on `git diff main...partner-links-1b`,
 - nothing else gets published by `include-hidden-files: true`;
 - the tests guard each of these.
 
-- [ ] **Step 2: Fix what it finds, test first, then report to the user**
+- [x] **Step 2: Fix what it finds, test first, then report to the user**
+
+**Review (2026-10-15):** approve, with one should-fix. All fixed in `c12dafb`:
+
+| # | Finding | Outcome |
+|---|---|---|
+| 1 | The page ignored Increase Contrast, which the rest of the site supports. White on the base blue is 3.2–3.5:1. | It copies the site's Increase Contrast tokens, and `.store` fills with `var(--fill-blue, var(--blue))`. A test checks all four modes against `src/styles/tokens.css`. |
+| 2 | The workflow test could count the flag from another step or a script | It reads only the upload step's own lines (the reviewer's regex) |
+| 3 | Nothing tested where the CSP sits | A test that it comes before any `<link>`, `<style>` or `<img>` |
+| 4 | The footnote doesn't fit QR hand-offs | The user kept the approved wording |
+| 5 | Optional: a Messages preview card | The user chose to add it: `og:title`, `og:description`, and an absolute `og:image` |
+| 6 | The workflow comment was loose | Reworded |
+
+The reviewer also checked:
+- GitHub Pages serves `/index` from `index.html` with no redirect, so `/join` will come from `join.html`.
+- `/join/` would 404, so links must have no trailing slash.
+- Apple's CDN accepts `application/octet-stream` app-link files from other sites.
+
+Tests: 2,204.
 
 ### Task 5: Merge and push (each needs the user's yes)
 
