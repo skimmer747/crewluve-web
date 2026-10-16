@@ -35,7 +35,7 @@ jobs:
         with:
           path: dist
           # Publish dot-folders too: iPhones read the app-link file from /.well-known/ (partner links piece 1b).
-          # Only tracked files reach dist/, and .DS_Store is git-ignored.
+          # The only dot-folder in CI's dist/ is the tracked public/.well-known; Vite writes none, and .DS_Store is git-ignored.
           include-hidden-files: true
 
   deploy:

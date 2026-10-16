@@ -21,7 +21,8 @@ describe('the app-link file', () => {
 
   it('is published, because the deploy uploads dot-folders', () => {
     const workflow = read('.github/workflows/deploy-pages.yml')
-    const upload = workflow.slice(workflow.indexOf('actions/upload-pages-artifact'), workflow.indexOf('\n  deploy:'))
-    expect(upload).toMatch(/^\s+include-hidden-files: true$/m)
+    // The upload step's own lines (indented under its "- uses:"), so the flag can't count from another step or a script.
+    const step = workflow.match(/^ {6}- uses: actions\/upload-pages-artifact@v\d+\n((?: {8,}.*\n|[ \t]*\n)*)/m)?.[1] ?? ''
+    expect(step).toMatch(/^ {8}with:\n(?: {10}.*\n)*? {10}include-hidden-files: true$/m)
   })
 })

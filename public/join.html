@@ -14,6 +14,10 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <title>CrewLuve</title>
+    <!-- The preview card Messages builds when the pilot texts an invite link. -->
+    <meta property="og:title" content="CrewLuve" />
+    <meta property="og:description" content="Stay connected with your pilot" />
+    <meta property="og:image" content="https://crewluve.crewlu.net/icons/heart-256.png" />
     <style>
       /* The site's tokens (src/styles/tokens.css), copied because this page loads no stylesheet. */
       :root {
@@ -31,6 +35,23 @@
           --text-2: rgba(235, 235, 245, 0.6);
           --card: rgba(44, 44, 46, 0.6);
           --blue: #0091ff;
+        }
+      }
+      /* Increase Contrast, as the site does it. The dark button keeps a darker fill, because white on --blue (#5cb8ff)
+         would be hard to read. */
+      @media (prefers-contrast: more) {
+        :root {
+          --text-2: rgba(60, 60, 67, 0.678);
+          --card: rgba(242, 242, 247, 0.94);
+          --blue: #1e6ef4;
+        }
+      }
+      @media (prefers-color-scheme: dark) and (prefers-contrast: more) {
+        :root {
+          --text-2: rgba(235, 235, 245, 0.678);
+          --card: rgba(44, 44, 46, 0.88);
+          --blue: #5cb8ff;
+          --fill-blue: #1e6ef4;
         }
       }
       body {
@@ -78,7 +99,7 @@
         margin: 20px 0 0;
         padding: 14px 16px;
         border-radius: 14px;
-        background: var(--blue);
+        background: var(--fill-blue, var(--blue));
         color: #ffffff;
         font-size: 17px;
         font-weight: 600;
