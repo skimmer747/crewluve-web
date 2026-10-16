@@ -2665,11 +2665,11 @@ The undo wasn't needed.
 
 ### Task 14: Finish
 
-- [ ] **Step 1: Ask about merging (one question)**
+- [x] **Step 1: Ask about merging (one question)**
 
 Ask whether to merge `feature/partner-cloud-door` into `feature/supabase-account-backend` locally (a fast-forward).
 
-- [ ] **Step 2: On a yes, merge and re-test**
+- [x] **Step 2: On a yes, merge and re-test**
 
 ```bash
 cd ~/Dev/Duty
@@ -2680,7 +2680,7 @@ cd supabase/tests && npm test
 
 Expected: a fast-forward, then `ℹ pass 89`, `ℹ fail 0`. The Xcode scheme changes are still uncommitted and untouched.
 
-- [ ] **Step 3: Pushing needs a separate, fresh yes for each repo**
+- [x] **Step 3: Pushing needs a separate, fresh yes for each repo**
 
 Duty:
 ```bash
@@ -2692,7 +2692,9 @@ Website (this plan and the spec; the push redeploys the unchanged site):
 git -C ~/Dev/"Crewluve Website" push origin main
 ```
 
-- [ ] **Step 4: Update the project memory**
+**Done 2026-10-15.** The user chose to merge locally: `feature/supabase-account-backend` was fast-forwarded to `04946bbe`, its 89 tests pass, and the feature branch was deleted. With a separate yes, both repos were pushed.
+
+- [x] **Step 4: Update the project memory**
 
 Update `project-crewluve-web-status.md` and its `MEMORY.md` line:
 - piece 1 is live, with its date and commits;
