@@ -1116,7 +1116,7 @@ through `partner_view`. One contract for the three apps.
 So show the partner's own quick status first, then the one for everyone.
 ```
 
-- [ ] **Step 8: Point the API doc to the contract, and correct its rule on per-partner names**
+- [x] **Step 8: Point the API doc to the contract, and correct its rule on per-partner names**
 
 In `supabase/partner-api.md`, replace:
 
@@ -1142,7 +1142,7 @@ with:
 - **No other per-partner fields.** Any other field whose name contains `partner`, in any case, is refused, including today's base64 blobs `displayNameByPartnerJSON` and `quickStatusByPartnerJSON`. Encode the maps as real JSON objects.
 ```
 
-- [ ] **Step 9: Add the contract to the tests README**
+- [x] **Step 9: Add the contract to the tests README**
 
 In `supabase/tests/README.md`, replace:
 
@@ -1173,7 +1173,7 @@ with:
 168 tests run in about 20 seconds,
 ```
 
-- [ ] **Step 10: Run every SQL test**
+- [x] **Step 10: Run every SQL test**
 
 Run:
 
@@ -1183,7 +1183,7 @@ cd ~/Dev/Duty/supabase/tests && npm test
 
 Expected: `ℹ tests 168`, `ℹ pass 168`, `ℹ fail 0`, in about 20 seconds.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 Run:
 
@@ -3856,11 +3856,11 @@ Expected: the new commit. Don't push.
 
 **Files:** none.
 
-- [ ] **Step 1: Ask how to merge**
+- [x] **Step 1: Ask how to merge**
 
 2a changes nothing a pilot sees: with no cloud partners yet (they come with 2b's invites), it only reads the partner list when the app opens. So it's safe in a build before 2b and 2c. Ask the user one question: merge into `feature/supabase-account-backend` now (a fast-forward, then delete the branch), or keep the branch until 2b.
 
-- [ ] **Step 2: Push only with a fresh yes**
+- [x] **Step 2: Push only with a fresh yes**
 
 Ask separately before pushing `feature/supabase-account-backend` in `~/Dev/Duty`, and separately again before pushing `main` in `~/Dev/Crewluve Website`.
 
@@ -3901,3 +3901,5 @@ Filled in during the build: any place the code ends up different from the printe
     - Update Status Now and the screen's `onAppear` still skip the cloud writer until 2b routes them through `forceUpdate` (spec §4.2).
 - **Task 11, the user's run (2026-10-17).** ⌘U on the iPhone simulator: 1,434 XCTest tests ran with 0 failures and 1 skip, and all 9 Swift Testing tests passed. The six classes ran 5, 2, 17, 10, 18 and 4 tests, as in Task 11's table. The skip is `StoreKitEntitlementLifecycleTests.test_expiredSubscription_clearsLocalEntitlement`, which this branch doesn't touch: StoreKit's test session never showed the expiry.
 - **Task 12** wrote the decisions into the spec's §12. Writing up `unavailable` turned up one more difference from §5.2: a forced summary that fails that way loses its force (spec §12.3). 2b decides whether to keep it.
+- **Task 13 (2026-10-17).** The user chose to merge now. `feature/supabase-account-backend` moved forward `282a6cc0..4ff32814` with `git fetch . feature/partner-cloud-summary:feature/supabase-account-backend`, so no file changed on disk while Xcode had the project open, and `feature/partner-cloud-summary` was deleted. With a separate yes for each, Duty's branch was pushed (`282a6cc0..4ff32814`), then the website's `main` (`4426345..430624a`). Pages run 39041916142 succeeded, and the live site serves the same files as before the push.
+- **Task 1's Steps 8–11** were done in `fcd49e0f` but hadn't been ticked; they're ticked now.
