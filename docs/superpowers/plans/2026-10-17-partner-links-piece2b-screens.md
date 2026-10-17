@@ -75,7 +75,7 @@ These refine the spec. Task 18 writes them into it.
   - *Per-person settings:* the iCloud clean-ups no longer clear them (spec §12.4). Orphaned iCloud-id entries now stay until Stop Sharing with Everyone or 2c's end of the share; they're inert, because the cloud summary carries only cloud partners' entries.
   - *The iCloud record:* until 2c builds it per participant, it still carries every per-person setting, cloud partners' included. So a quick status sent only to a Crewlu Cloud partner would also show to iCloud partners on an older Crewluve. 2b and 2c ship together, so no release has this.
   - *Accounts:* actions run only for the account the list follows; Sign Out asks first while partners get updates; an expired sign-in shows the prompt.
-  - *Network:* one small read when the screen opens, after each action and on pull to refresh, plus the actions themselves.
+  - *Network:* small reads of the list when the screen opens (one, and one more after its first update), after each action, on coming back to it and on pull to refresh, plus the actions themselves.
   - *Privacy:* invite tokens stay in memory, and a link carries its token after the `#`.
   - *A crash:* one force unwrap, the invite link's `URLComponents.url`, which can't be nil with those parts; nothing else new traps.
 - **Is this what a brilliant Apple engineer would do?** It uses SwiftUI and Observation as the app does, `UIActivityViewController` where a link is made by the tap, today's rows, alerts and buttons, and the app's own pieces (`SyncOwnerGuard`, `PartnerSettings`, `PartnerDataKVSync`, `debugLog`). The rules are pure and tested; the store has one stand-in API.
@@ -129,7 +129,7 @@ Outside both repos: the Mac harness (`$HARNESS`, Task 2) and the compile-only cl
 
 ### Task 0: Branch
 
-- [ ] **Step 1: Check the working tree**
+- [x] **Step 1: Check the working tree**
 
 Run:
 
@@ -139,7 +139,7 @@ git -C ~/Dev/Duty status --short
 
 Expected: only the Xcode scheme lines (` M Duty.xcodeproj/xcshareddata/xcschemes/Duty.xcscheme` and four `??` scheme files). If anything else shows, stop and ask the user.
 
-- [ ] **Step 2: Create the branch**
+- [x] **Step 2: Create the branch**
 
 Run:
 
@@ -156,7 +156,7 @@ Expected: `Switched to a new branch 'feature/partner-cloud-screens'`, then `4ff3
 
 The seam gains the six calls the screens make (decision 1), the invite link's shape, and the stand-in's versions of them. Nothing uses them yet: Task 2's harness builds the stand-in, and Task 14 builds the live version.
 
-- [ ] **Step 1: Add the actions to the seam**
+- [x] **Step 1: Add the actions to the seam**
 
 The header no longer says the actions come later; `PartnerCloudInvite` is `partner_create`'s answer and builds the link (`supabase/partner-api.md`, "Links"); the protocol gains the actions.
 
@@ -261,7 +261,7 @@ with:
 }
 ```
 
-- [ ] **Step 2: Add them to the live version**
+- [x] **Step 2: Add them to the live version**
 
 Each call goes through the same `call` as 2a's, so it asks for the session first and its errors map the same way.
 
@@ -383,7 +383,7 @@ with:
     private func call<T>(_ body: () async throws -> T) async throws -> T {
 ```
 
-- [ ] **Step 3: Add them to the tests' stand-in**
+- [x] **Step 3: Add them to the tests' stand-in**
 
 Each action is recorded and can be made to fail; `partner_create` answers, as the server does, with an id that follows from the reference. A held read now answers with the list as it was when the read arrived, as the server would, so a test can change the list while a read is out.
 
@@ -507,7 +507,7 @@ with:
 }
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 Run:
 
@@ -525,7 +525,7 @@ The harness from plan 2a, made again: it was temporary. A Swift package that com
 
 What changed since 2a: the stand-in for the live API has the six actions, and `run.sh` also copies `PendingPartnerInvites.swift` and 2b's three new test files.
 
-- [ ] **Step 1: Write the package**
+- [x] **Step 1: Write the package**
 
 File: `$HARNESS/Package.swift`
 
@@ -557,7 +557,7 @@ let package = Package(
 )
 ```
 
-- [ ] **Step 2: Write the stand-ins**
+- [x] **Step 2: Write the stand-ins**
 
 File: `$HARNESS/Sources/UIKit/UIKitStandIn.swift`
 
@@ -608,7 +608,7 @@ struct LivePartnerCloudAPI: PartnerCloudAPI {
 }
 ```
 
-- [ ] **Step 3: Write the runner**
+- [x] **Step 3: Write the runner**
 
 File: `$HARNESS/run.sh`
 
@@ -667,7 +667,7 @@ Expected: `Executed 47 tests, with 0 failures`: 2a's tests, with Task 1's stand-
 
 The screens act through the store (spec §4.2, "How it fits together"). This task adds the actions and their rules (decisions 2, 3 and 6), the list's first-read flag the screen uses while names load, and the change that makes screens redraw on every account change (decision 4).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 The header, `import Observation` for `withObservationTracking`, and thirteen tests at the end.
 
@@ -920,7 +920,7 @@ private final class RedrawCounter: @unchecked Sendable {
 }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -930,7 +930,7 @@ Run:
 
 Expected: the build fails, with errors such as `value of type 'PartnerCloudStore' has no member 'invite'`.
 
-- [ ] **Step 3: Write the actions**
+- [x] **Step 3: Write the actions**
 
 The header; `hasLoadedList` and `signInExpired`; the read-again flag; `sharingAccount()` reading the list's account first; `accountChanged()` resetting the new flags; `refresh()` reading once more when asked during a read; and the actions with their helpers.
 
@@ -1257,7 +1257,7 @@ with:
     /// launch. The store, and the Supabase client it uses, are made on the first activation.
 ```
 
-- [ ] **Step 4: Run the tests to see them pass**
+- [x] **Step 4: Run the tests to see them pass**
 
 Run:
 
@@ -1267,7 +1267,7 @@ Run:
 
 Expected: `Executed 60 tests, with 0 failures`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -1285,7 +1285,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 
 Spec §12.4 asks whether a forced summary that fails with `unavailable` stays forced: it does (decision 5). The writer's answers about the sign-in go to the store's one flag (decision 3), and a test pins the redraws (decision 4).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `import Observation`, and 2a's last test, `test_anExpiredSignIn_isReported`, replaced by four. The writer's `.signInExpired` problem goes, so that test changes on purpose: the expired sign-in is now the store's to show.
 
@@ -1426,7 +1426,7 @@ private final class Redraws: @unchecked Sendable {
 }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -1436,7 +1436,7 @@ Run:
 
 Expected: `Executed 63 tests, with 3 failures`: `test_aForcedSummaryThatCantReachCrewluCloud_staysOwed` (`("2") is not equal to ("3")`) and two in `test_anExpiredSignIn_isReportedToThePartnerList_andAWorkingAnswerClearsIt`. The other two new tests pass already: one checks that nothing leaks between accounts, and Task 3 made the redraws work.
 
-- [ ] **Step 3: Change the writer**
+- [x] **Step 3: Change the writer**
 
 The header, the `Problem` enum without `.signInExpired`, the owed accounts, `submit` forcing an owed summary, and `send`.
 
@@ -1603,7 +1603,7 @@ with:
             case .unavailable:
 ```
 
-- [ ] **Step 4: Run the tests to see them pass**
+- [x] **Step 4: Run the tests to see them pass**
 
 Run:
 
@@ -1613,7 +1613,7 @@ Run:
 
 Expected: `Executed 63 tests, with 0 failures`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -1631,7 +1631,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 
 Removing a Crewlu Cloud partner forgets their settings (decision 11), and the iCloud clean-ups get one place that says which keys are theirs to clear: only the nicknames (decision 10, used by Task 9).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 One replacement in `DutyTests/PartnerSettingsTests.swift`:
 
@@ -1708,7 +1708,7 @@ with:
 }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -1718,7 +1718,7 @@ Run:
 
 Expected: the build fails, with errors such as `type 'PartnerSettings' has no member 'isSleepingKey'`.
 
-- [ ] **Step 3: Write forgetting, and the iCloud clean-up's keys**
+- [x] **Step 3: Write forgetting, and the iCloud clean-up's keys**
 
 3 replacements, in order, in `Duty/Utils/PartnerCloud/PartnerSettings.swift`:
 
@@ -1826,7 +1826,7 @@ with:
 }
 ```
 
-- [ ] **Step 4: Run the tests to see them pass**
+- [x] **Step 4: Run the tests to see them pass**
 
 Run:
 
@@ -1836,7 +1836,7 @@ Run:
 
 Expected: `Executed 67 tests, with 0 failures`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -1854,7 +1854,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 
 The Crewlu Cloud list's rules, pure (spec §6.2, decision 8): the rows and their kinds, the tags, which rows open a page, the device and "seen" lines, and the hero's "Sharing Active" and "Updated … ago".
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 File: `DutyTests/PartnerListTests.swift`
 
@@ -1991,7 +1991,7 @@ final class PartnerListTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -2001,7 +2001,7 @@ Run:
 
 Expected: the build fails: `cannot find 'PartnerList' in scope` (or `cannot find type 'PartnerListRow' in scope`, depending on which use the compiler reaches first).
 
-- [ ] **Step 3: Write the rows**
+- [x] **Step 3: Write the rows**
 
 File: `Duty/Utils/PartnerCloud/PartnerList.swift`
 
@@ -2125,7 +2125,7 @@ enum PartnerList {
 }
 ```
 
-- [ ] **Step 4: Run the tests to see them pass**
+- [x] **Step 4: Run the tests to see them pass**
 
 Run:
 
@@ -2135,7 +2135,7 @@ Run:
 
 Expected: `Executed 76 tests, with 0 failures`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -2153,7 +2153,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 
 Spec §6.1's table as a function (decision 9), the prompt's words, and what a failed invite or action says (§6.3, §6.4).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 File: `DutyTests/PartnerSharingScreenTests.swift`
 
@@ -2245,7 +2245,7 @@ final class PartnerSharingScreenTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -2255,7 +2255,7 @@ Run:
 
 Expected: the build fails: `cannot find 'PartnerSharingScreen' in scope`, `cannot find type 'PartnerSharingScreen' in scope`, or the same for `PartnerSharingPrompt`, and `type 'PartnerCloudError' has no member 'inviteMessage'`.
 
-- [ ] **Step 3: Write it**
+- [x] **Step 3: Write it**
 
 File: `Duty/Utils/PartnerCloud/PartnerSharingScreen.swift`
 
@@ -2351,7 +2351,7 @@ extension PartnerCloudError {
 }
 ```
 
-- [ ] **Step 4: Run the tests to see them pass**
+- [x] **Step 4: Run the tests to see them pass**
 
 Run:
 
@@ -2361,7 +2361,7 @@ Run:
 
 Expected: `Executed 82 tests, with 0 failures`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -2379,7 +2379,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 
 The invite sheet's logic (spec §6.4, decision 7): one reference per sheet, the same partner for every tap, a rename when the name changes.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 File: `DutyTests/PartnerInviteLinkTests.swift`
 
@@ -2508,7 +2508,7 @@ final class PartnerInviteLinkTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -2518,7 +2518,7 @@ Run:
 
 Expected: the build fails: `cannot find 'PartnerInviteLink' in scope`.
 
-- [ ] **Step 3: Write it**
+- [x] **Step 3: Write it**
 
 File: `Duty/Utils/PartnerCloud/PartnerInviteLink.swift`
 
@@ -2571,7 +2571,7 @@ final class PartnerInviteLink {
 }
 ```
 
-- [ ] **Step 4: Run the tests to see them pass**
+- [x] **Step 4: Run the tests to see them pass**
 
 Run:
 
@@ -2581,7 +2581,7 @@ Run:
 
 Expected: `Executed 90 tests, with 0 failures`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -2598,7 +2598,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 
 Spec §12.4's first item, and §7.5's last iCloud partner (decision 10). This is CloudKit code the harness can't build, so Task 14's compile, the review and the user's run check it; Task 5's test pins the keys it clears.
 
-- [ ] **Step 1: Change the clean-ups, and add endICloudShare**
+- [x] **Step 1: Change the clean-ups, and add endICloudShare**
 
 `removePartner` ends the share without wiping settings while Crewlu Cloud sharing is on; `stopSharing` shares its record deletion with the new `endICloudShare()`; and the self-heal and the clean-ups clear only what iCloud sharing alone uses.
 
@@ -2820,7 +2820,7 @@ with:
         // Drop any local pre-share labels too — otherwise the hybrid auto-bind would
 ```
 
-- [ ] **Step 2: Run the harness: nothing it tests changes**
+- [x] **Step 2: Run the harness: nothing it tests changes**
 
 Run:
 
@@ -2830,7 +2830,7 @@ Run:
 
 Expected: `Executed 90 tests, with 0 failures`.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 Run:
 
@@ -2848,7 +2848,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 
 Three small pieces the screens use (spec §4.1, §5.2, §6.1). Views are checked by Task 14's compile and by the user (Tasks 16 and 17).
 
-- [ ] **Step 1: Write the share sheet**
+- [x] **Step 1: Write the share sheet**
 
 SwiftUI's `ShareLink` needs its link before the tap, but an invite link is made by the tap (spec §4.1). The message and Mail's subject are spec §6.4's.
 
@@ -2919,7 +2919,7 @@ struct ActivityShareSheet: UIViewControllerRepresentable {
 }
 ```
 
-- [ ] **Step 2: Write the prompt**
+- [x] **Step 2: Write the prompt**
 
 It copies the approved mockup: a cloud, the words, and a filled blue button like the screen's Subscribe to Pro.
 
@@ -2979,7 +2979,7 @@ struct PartnerCloudPrompt: View {
 }
 ```
 
-- [ ] **Step 3: Add the Crewlu Cloud newer-build message**
+- [x] **Step 3: Add the Crewlu Cloud newer-build message**
 
 One replacement in `Duty/Utils/SyncGuidanceCopy.swift`:
 
@@ -3010,7 +3010,7 @@ with:
     /// cases the old `Bool` collapsed into a single "Unavailable".
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 Run:
 
@@ -3028,7 +3028,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 
 Spec §6.3 and §6.5, as in the approved mockup. The quick status sheet gains two optional inputs (decision 13), so its call from today's screen stays as it is.
 
-- [ ] **Step 1: Teach the quick status sheet about Crewlu Cloud partners**
+- [x] **Step 1: Teach the quick status sheet about Crewlu Cloud partners**
 
 The header; `Person`, `people` and `renameOnCrewluCloud`; Send To's people; the nickname's starting value; Send To's rows; and `sendUpdate`, which renames on Crewlu Cloud first and leaves the iCloud nickname to iCloud partners.
 
@@ -3355,7 +3355,7 @@ with:
         }
 ```
 
-- [ ] **Step 2: Write the partner page**
+- [x] **Step 2: Write the partner page**
 
 File: `Duty/Views/Settings/PartnerDetailView.swift`
 
@@ -3681,7 +3681,7 @@ struct PartnerDetailView: View {
 }
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 Run:
 
@@ -3698,7 +3698,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 
 The screen itself (spec §6.1, §6.2, §6.4): which screen shows, the Crewlu Cloud list and its swipes, the invite sheet, Update Status Now and the first appearance through `forceUpdate`, Stop Sharing with Everyone on Crewlu Cloud, pull to refresh, the About and help copy, and the prompt above today's screen without inviting.
 
-- [ ] **Step 1: Change the screen**
+- [x] **Step 1: Change the screen**
 
 The big ones: the body switches between the Crewlu Cloud screen and the prompt; `startSharing()` (iCloud invites) and the iCloud share sheets go; the Crewlu Cloud list and its actions are new; `ShareLinkView` becomes the Crewlu Cloud invite sheet.
 
@@ -5179,7 +5179,7 @@ with:
                     helpSection(
 ```
 
-- [ ] **Step 2: Run the harness: nothing it tests changes**
+- [x] **Step 2: Run the harness: nothing it tests changes**
 
 Run:
 
@@ -5189,7 +5189,7 @@ Run:
 
 Expected: `Executed 90 tests, with 0 failures`.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 Run:
 
@@ -5206,7 +5206,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 
 Spec §6.7: only while Crewlu Cloud partners get updates from this phone.
 
-- [ ] **Step 1: Ask before signing out**
+- [x] **Step 1: Ask before signing out**
 
 3 replacements, in order, in `Duty/Views/Account/CrewluCloudDetailView.swift`:
 
@@ -5292,7 +5292,7 @@ with:
             get: { errorMessage != nil },
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 Run:
 
@@ -5306,7 +5306,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 
 **Files:** none. A build in a separate clone of the branch, with its own build folder and its own copy of the Swift packages, so it can't disturb the user's open Xcode or touch a simulator. It compiles the app and `DutyTests`, including the views and the iCloud manager the harness can't build.
 
-- [ ] **Step 1: Make the clone**
+- [x] **Step 1: Make the clone**
 
 Use a scratch folder outside both repos as `$BUILD`, for example `export BUILD=<your scratchpad>/partner-screens-build`. `Config.xcconfig` is ignored by git, so it's copied; never print it.
 
@@ -5318,7 +5318,7 @@ rm -rf "${BUILD:?set BUILD first}" && mkdir -p "$BUILD" && git clone -q --shared
 
 Expected: the branch's last commit: Task 13's `feat(partners): Sign Out asks first…`, or a later fix from Task 15.
 
-- [ ] **Step 2: Build for testing**
+- [x] **Step 2: Build for testing**
 
 It takes several minutes, so run it in the background and wait for it to finish.
 
@@ -5336,11 +5336,11 @@ If the log says the packages don't match `Package.resolved`, delete `$BUILD/pack
 
 **Files:** whatever the review finds.
 
-- [ ] **Step 1: Ask for a review**
+- [x] **Step 1: Ask for a review**
 
 Use superpowers:requesting-code-review with a read-only reviewer: it reads `git -C ~/Dev/Duty diff 4ff32814..feature/partner-cloud-screens`, this plan, the approved mockups described in it, and the spec (§6, §7.5, §8.1, §12), and runs no `xcodebuild` and no simulator. State facts neutrally, and don't tell it what not to flag.
 
-- [ ] **Step 2: Act on it**
+- [x] **Step 2: Act on it**
 
 For each finding, fix it test-first where the harness can test it, re-run `"$HARNESS/run.sh"`, and commit. If any Swift changed, run Task 14 again. Note each fix in this plan's Execution notes.
 
@@ -5348,7 +5348,7 @@ For each finding, fix it test-first where the harness can test it, re-run `"$HAR
 
 **Files:** none.
 
-- [ ] **Step 1: Ask the user to run the tests in Xcode**
+- [x] **Step 1: Ask the user to run the tests in Xcode**
 
 Send them these steps:
 
@@ -5356,21 +5356,21 @@ Send them these steps:
 2. Press **⌘U** (Product → Test) and wait for it to finish.
 3. Press **⌘6** to open the Test navigator. Red marks show failures.
 
-Expected: no failures. The partner classes, counted before Task 15's fixes:
+Expected: no failures. The partner classes, counted after Task 15's fixes:
 
 | Class | Tests |
 |---|---|
 | `PartnerCloudErrorTests` | 5 |
-| `PartnerSettingsTests` | 6 (four new) |
+| `PartnerSettingsTests` | 9 (seven new) |
 | `PartnerSummaryEncoderTests` | 17 |
-| `PartnerCloudStoreTests` | 23 (thirteen new) |
-| `PartnerSummaryCloudWriterTests` | 21 (one replaced by four) |
+| `PartnerCloudStoreTests` | 27 (seventeen new) |
+| `PartnerSummaryCloudWriterTests` | 25 (one replaced by eight) |
 | `PartnerListTests` | 9 (new) |
 | `PartnerSharingScreenTests` | 6 (new) |
 | `PartnerInviteLinkTests` | 8 (new) |
 | `PartnerBeaconModeIndependenceTests` | 4 |
 
-- [ ] **Step 2: If anything fails, stop**
+- [x] **Step 2: If anything fails, stop**
 
 Ask for the test's name and its message. Fix the cause, never the test's expected value, then ask for another run.
 
@@ -5378,11 +5378,11 @@ Ask for the test's name and its message. Fix the cause, never the test's expecte
 
 **Files:** none.
 
-- [ ] **Step 1: Offer the look, and say what it touches**
+- [x] **Step 1: Offer the look, and say what it touches**
 
 Ask the user one question: do they want to see the screens in the simulator now? It's their choice, because it uses their real Crewlu Cloud account: inviting a test partner makes a real (unconnected) partner there until they remove it, and the simulator becomes the newest CrewLu to write their summary, which is fine because the release build will be newer. Nobody can see that summary yet: Crewluve piece 4 isn't out.
 
-- [ ] **Step 2: If yes, send the steps**
+- [x] **Step 2: If yes, send the steps**
 
 1. In Xcode, check the scheme says **Duty** and the destination is an iPhone **simulator**.
 2. Press **⌘R** (Product → Run). The app opens in the simulator.
@@ -5399,7 +5399,7 @@ Note anything that looks wrong with a screenshot (⌘S in the simulator saves on
 **Files (in `~/Dev/Crewluve Website`):**
 - Modify: `docs/superpowers/specs/2026-10-16-partner-links-piece2-crewlu-design.md`, and this plan
 
-- [ ] **Step 1: Add the planning decisions to the spec**
+- [x] **Step 1: Add the planning decisions to the spec**
 
 At the end of the spec, after §12, add `## 13. Decisions made while planning 2b`, followed by this plan's "Decisions made while planning" list, copied as it stands, and any changes from the review (Task 15). Then update its status line.
 
@@ -5415,7 +5415,7 @@ with:
 Plans 2a and 2b are built (`docs/superpowers/plans/2026-10-16-partner-links-piece2a-summary.md`, `docs/superpowers/plans/2026-10-17-partner-links-piece2b-screens.md`); next: plan 2c.
 ```
 
-- [ ] **Step 2: Tick this plan and commit**
+- [x] **Step 2: Tick this plan and commit**
 
 Run:
 
@@ -5442,3 +5442,32 @@ Ask separately before pushing `feature/supabase-account-backend` in `~/Dev/Duty`
 ## Execution notes
 
 Filled in during the build: any place the code ends up different from the printed blocks, and why.
+
+- **Tasks 0–13 (2026-10-17).** A script applied the plan's own steps to `~/Dev/Duty`. Every Run step gave the printed result, and the 23 files matched the scratch copy byte for byte. Commits `c18be7c4`…`e31920aa`. Task 5's and Task 8's failing runs also printed the compiler's "failed to produce diagnostic for expression" beside the expected errors; the builds failed as planned.
+- **Task 14** passed on `e31920aa`: 0 errors, only the StoreKit warning.
+- **Task 15, the review (2026-10-17).** The verdict was "with fixes": nothing Critical, two Important findings and ten Minor ones. These commits came after the printed blocks:
+  - **`3abc7223`, the settings:**
+    - the clean-ups' UserDefaults work moved into `PartnerSettings` (`clearQuickStatus`, `forgetICloudSharing`, `forgetEverything`), so spec §8.1's two settings tests exist now: ending the iCloud share keeps Crewlu Cloud partners' settings, and Stop Sharing with Everyone clears everything;
+    - **found while fixing:** clearing one person's quick status left a status sent to everyone, so that person kept seeing it. Clearing now ends the everyone-status too; the others keep the copy Send To saved for each of them (P2-3).
+  - **`6825b862`, the writer and what the screens say:**
+    - a summary already waiting when a forced write fails is sent too, not skipped as unchanged;
+    - `isForcedSummaryOwed` lets Update Status Now and the quick status sheet say "Couldn't reach Crewlu Cloud. Check your connection and try again." when the forced write didn't get there, as they do for iCloud failures; the update is kept and the next one sends it. Opening the screen stays quiet;
+    - the quick status sheet's Clear uses `clearQuickStatus`;
+    - tests for both branches of the owed rule the review found untested: `notSignedIn` keeps it owed, and a refusal settles it.
+  - **`7e867c52`, the store:** `remove` itself forgets the person's settings and syncs that (`settingsChanged`, `PartnerDataKVSync` in the app), so the two screens no longer repeat it; New Link keeps the new link in the list if the read after it fails; a name cut at 60 characters is trimmed again.
+  - **`d56a6805`, the iCloud side (Important):** an iCloud clean-up on a device that doesn't know about Crewlu Cloud sharing (signed out, another account's schedule, the list not read yet) could still clear Crewlu Cloud partners' settings on every device through key-value sync. Now removing the last iCloud partner always ends the share with `endICloudShare()`, which forgets only its own partners' settings (by their iCloud ids), the nicknames and the pending invites; and Stop Sharing with Everyone below the sign-in prompt ends only the iCloud share. On the Crewlu Cloud screen it still clears everything.
+  - **`7dd59e45`, the expired sign-in (Important):** for a pilot whose schedule syncs through iCloud, Sign In led to a Crewlu Cloud screen that shows them signed in, with no hint to sign out and back in. **The user chose** to say what to do: "Your Crewlu Cloud sign-in expired." / "Sign out, then sign back in, to keep sharing." with **Open Crewlu Cloud**; the expired alerts use the same words.
+  - **`31d26315`, the screen:** a failed first read shows Retry even with no saved partners (a new, offline device used to show only Start Sharing); the screen watches only the sync engine's expiry, not every published change; invite taps are busy at once; coming back from a partner page reads both lists.
+  - **`027e53d7`:** a test that spaces around a long name don't count toward its 60 characters.
+  - **Results:** harness 101/101; 66 of 66 deliberate breaks caught (plan 2b's original ones whose code is unchanged, plus 16 for the fixes); the first run missed one, the trim before the cut, now tested. Task 14 passed again on `31d26315`, and on the tip, `027e53d7`.
+  - **Declined:** returning from invite and New Link before the list is read again. It saves about two small reads, and the list being current after every action matters more.
+  - **Left for piece 6:** `ensureShare()`, `shareURL` and `CloudSharingSheet` have no callers; they go with the rest of iCloud sharing.
+  - **The review's merge note:** until 2c, the iCloud record still carries cloud partners' per-person settings (see "Will it break anything?"). Don't send a TestFlight build from a branch with 2b but not 2c.
+- **Task 16, the user's run (2026-10-17).** ⌘U on the iPhone simulator, on `027e53d7`: 1,488 XCTest tests ran with 0 failures and 1 skip, and all 9 Swift Testing tests passed. The partner classes ran 5, 9, 17, 27, 25, 9, 6, 8 and 4 tests, as in Task 16's table: 54 more than 2a's run (1,434), all of them 2b's. The skip is the same as in 2a's run: `StoreKitEntitlementLifecycleTests.test_expiredSubscription_clearsLocalEntitlement`, which this branch doesn't touch: StoreKit's test session never showed the expiry.
+- **Task 17, the look (2026-10-17).**
+  - **The simulator** said "Not Sharing", though the user shares with two people through iCloud. During Task 16's run the app's health check had logged "iCloud account not available" there, so most likely it couldn't reach iCloud and fell back to the simulator's saved state. The first explanation given, that Xcode builds read a different iCloud environment, was wrong: the user then ran the branch on their phone from Xcode, and it found the share.
+  - **On the phone,** with the user's two iCloud partners: both rows had "Needs Crewluve update" and "Connected through iCloud"; Mom's page had "Sees you as", the "iCloud · older Crewluve / Still connected" device, the move-over footer and no link buttons, as designed. The status went to the same share they read ("Updated 14 sec ago").
+  - **Found:** at the phone's text size, RuthAnne's tag wrapped onto two lines. **The user chose** to keep the tag beside the name when both fit and put it below the name when they don't (`ViewThatFits`), in the Crewlu Cloud list and in the iCloud screen's pending invite row. Commit `8f162e61`; Task 14 passed on it: 0 errors, only the StoreKit warning.
+  - **The rest, on the phone with `8f162e61`:** RuthAnne's tag sat below her name, and inviting Test, its page (Not opened yet, Send Link Again, New Link), the Sign Out question and removing Test went as described.
+  - **For later looks:** on a device signed in to the pilot's own iCloud, Stop Sharing with Everyone and Remove act on their real partners, and iCloud key-value sync carries per-person settings to their other devices.
+- **Task 18 (2026-10-17).** The spec's §13 has the plan's decisions, the review's changes, the look's, and where the build differs from §6, §7.5 and §12.3.

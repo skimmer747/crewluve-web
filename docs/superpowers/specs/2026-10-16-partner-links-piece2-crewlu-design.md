@@ -1,6 +1,6 @@
 # Partner Links Piece 2: CrewLu on Crewlu Cloud
 
-- **Status:** design approved in brainstorming on 2026-10-16, and the user approved this spec the same day. Plan 2a is built (`docs/superpowers/plans/2026-10-16-partner-links-piece2a-summary.md`); next: plan 2b.
+- **Status:** design approved in brainstorming on 2026-10-16, and the user approved this spec the same day. Plans 2a and 2b are built (`docs/superpowers/plans/2026-10-16-partner-links-piece2a-summary.md`, `docs/superpowers/plans/2026-10-17-partner-links-piece2b-screens.md`); next: plan 2c.
 - **Part of:** the partner-links design, `docs/superpowers/specs/2026-10-15-partner-links-design.md`, §7.1, §8 and §9 (piece 2).
 - **Repo:** CrewLu, `~/Dev/Duty`, on a new branch off `feature/supabase-account-backend` (§9).
 - **Contract:** `~/Dev/Duty/supabase/partner-api.md`, the partner door from piece 1, live since 2026-10-15.
@@ -478,3 +478,64 @@ This changes one case: a forced summary that fails this way doesn't pass its for
 - **`PilotStatusBeaconManager.selfHealOrphanedPartnerState()`** deletes both per-person settings keys, on every device, whenever the iCloud manager finds no share. 2b must keep it from deleting cloud partners' settings.
 - **Update Status Now and the screen's `onAppear`** call the iCloud manager directly, so they skip the cloud writer until 2b routes them through `forceUpdate` (§4.2). 2b also decides whether a forced summary that fails with `unavailable` stays forced (§12.3).
 - **How the screen reads per-account state.** `problem` and `lastAppliedAt` follow the signed-in account (decision 12), partly through values that Observation doesn't track: the sign-in and UserDefaults. 2b checks that the screen redraws after a sign-out and after an account switch.
+
+## 13. Decisions made while planning 2b
+
+Plan 2b (`docs/superpowers/plans/2026-10-17-partner-links-piece2b-screens.md`) is built on CrewLu's `feature/partner-cloud-screens` branch. What follows refines the sections above, and holds where they differ.
+
+### 13.1 The plan's decisions
+
+1. **`PartnerCloudAPI` gains six partner actions:** `partner_create(name, ref)`, `partner_rename`, `partner_new_link`, `partner_remove`, `partner_remove_device` and `partner_remove_all`. `partner_move_ticket` waits for 2c.
+2. **The store acts only for the account its list follows,** and reads the list again after each action, unless Crewlu Cloud couldn't be reached or wants a sign-in, when nothing changed there. A read asked for while one is out runs once more after it, because the one that's out may predate the action.
+3. **One "sign in again" flag, on the store.** Every `notSignedIn` answer sets it, from the list, an action or the summary; any answer that works clears it, and so does any change of account. The screen shows the expired prompt for it or for the sync engine's `sessionExpired`. The writer no longer keeps its own `.signInExpired` problem, which would have stayed up after signing in again until the next applied write.
+4. **The screen redraws on every account change** (§12.4). `sharingAccount()` reads the list's account first, even signed out, so `problem` and `lastAppliedAt` follow every sign-in, sign-out and switch. Whose schedule the phone holds lives in UserDefaults, so the screen reads it again each time it appears, for instance on coming back from the Crewlu Cloud screen.
+5. **A forced summary that doesn't reach Crewlu Cloud stays owed** (§12.4): after `unavailable` or `notSignedIn`, that account's next summary is forced too, so Update Status Now isn't lost to a dropped connection. Any answer from Crewlu Cloud settles it.
+6. **Names are cleaned as Crewlu Cloud keeps them:** trimmed, and at most 60 code points, the way Postgres counts, without cutting a character in half. A cloud partner's name can't be empty, so an empty rename keeps the current name (§6.5).
+7. **The invite sheet makes one reference when it opens** (§6.4). Every tap sends it, so Share then Copy, or a tap after a failed one, gets one partner. A repeat tap renames them when the name differs from the one Crewlu Cloud is known to have; after a failed tap that isn't known, so the next tap renames.
+8. **The rows come in the approved mockup's order:** connected, still on iCloud, not opened yet, then pending invites from before the update, oldest first within each. Only accepted iCloud participants are listed. Until 2c's move-over links them, every accepted iCloud participant is "still on iCloud".
+9. **Which screen** (§6.1): signed out, the prompt to keep sharing or to start; signed in, an expired sign-in comes first, then a schedule that's another account's, and otherwise the Crewlu Cloud screen.
+10. **The iCloud clean-ups keep the per-person settings** (§12.4). `selfHealOrphanedPartnerState()` clears only the nicknames and the pending invites. The new `endICloudShare()` deletes the share and the record and clears the same. `removePartner` uses it when the last iCloud partner goes while Crewlu Cloud sharing is on, and `stopSharing()` otherwise, as today. 2c adds the move-over notes to it.
+11. **Removing a Crewlu Cloud partner forgets their settings** and syncs that to the pilot's devices. Their id is never used again.
+12. **Update Status Now and the screen's first appearance go through `forceUpdate`** (§12.4). They wait for the Crewlu Cloud write, so the spinner covers it, then read both lists. Since `forceUpdate` writes iCloud only while an iCloud share exists, opening the screen no longer writes an iCloud record for a pilot who never shared. Coming back from a partner page only reads the lists again.
+13. **The quick status sheet** takes its Send To people and a rename action from the partner page; the signed-out screen still calls it as today. On Crewlu Cloud the rename comes first, so if it fails nothing has changed.
+14. **Re-share on a pending invite from before the update** uses the label's id as the reference, so a second try makes no second partner.
+15. **Stop Sharing with Everyone** goes to Crewlu Cloud first (`partner_remove_all`). If that fails, nothing changes. Then comes today's `stopSharing()`: any iCloud share, every per-person setting and the pending invites.
+16. **Copy and looks the spec didn't give**, approved with the plan:
+    - the help sheet's "How to Set It Up" and "Privacy & Security" describe invite links and Crewlu Cloud;
+    - Copy Invite Link shows "Copied" for 2 seconds;
+    - a row with a spinner while the list loads, or "Couldn't reach Crewlu Cloud." with Retry;
+    - the partner page: no title in its bar (the header has the name), an orange initial while not opened yet, an envelope for "Not opened yet", an iPhone or a globe for each device;
+    - error alerts are titled "Error", as Partner Sharing's are today;
+    - a person's quick-status bubble shows on every row that has one, not only connected rows.
+
+### 13.2 Changes from the review
+
+The review of the built branch (plan Task 15) led to these changes, each with its own tests where the Mac harness can run them:
+- **The iCloud clean-ups can't reach Crewlu Cloud partners' settings any more.** A device that didn't know about Crewlu Cloud sharing (signed out, holding another account's schedule, or before its first read of the list) could still clear those settings on every device through key-value sync. Now removing the last iCloud partner always ends the share with `endICloudShare()`, which forgets only its own partners' settings, by their iCloud ids, plus the nicknames and the pending invites. Below the sign-in prompt, Stop Sharing with Everyone ends only the iCloud share. This replaces decision 10's "and `stopSharing()` otherwise".
+- **An expired sign-in says what to do** (the user's choice): "Your Crewlu Cloud sign-in expired." / "Sign out, then sign back in, to keep sharing.", with Open Crewlu Cloud. Before, Sign In took a pilot whose schedule syncs through iCloud to a Crewlu Cloud screen that showed them signed in, with no hint. The expired alerts use the same words.
+- **The clean-ups' settings work lives in `PartnerSettings`** (`clearQuickStatus`, `forgetICloudSharing`, `forgetEverything`), so §8.1's two settings tests exist: ending the iCloud share keeps Crewlu Cloud partners' settings, and Stop Sharing with Everyone clears everything.
+- **Clearing one person's quick status also ends a status sent to everyone,** found while fixing. Before, that person kept seeing it. The others keep the copy Send To saved for each of them (P2-3).
+- **A summary already waiting when a forced write fails is sent too,** not skipped as unchanged. The owed rule's other branches got tests: `notSignedIn` keeps it owed, and a refusal settles it.
+- **Update Status Now and the quick status sheet say when Crewlu Cloud missed the update:** "Couldn't reach Crewlu Cloud. Check your connection and try again.", as they do for iCloud failures. The update stays owed, and the next one sends it. Opening the screen stays quiet.
+- **The store's `remove`** forgets the person's settings and syncs that itself (decision 11), so the screens don't repeat it.
+- **New Link keeps the new link in the list** if the read after it fails.
+- **A name cut at 60 characters is trimmed again** (decision 6), so it never ends in a space.
+- **The screen:** a failed first read shows Retry even with no saved partners; the screen watches only the sync engine's expiry, not its every change; invite taps show they're busy at once; coming back from a partner page reads both lists.
+- **Declined:** returning from invite and New Link before the list is read again. It saves about two small reads, and a current list after every action matters more.
+
+### 13.3 Changes from the look
+
+The user's look on their phone (plan Task 17), with their two iCloud partners, found one thing: at a large text size, a long name wrapped the orange tag onto two lines. **The user chose** to keep the tag beside the name when both fit, and to put it below the name when they don't, for "Needs Crewluve update" and "Pending invite", on the Crewlu Cloud screen and below the prompt.
+
+### 13.4 Where the build differs from §6, §7.5 and §12.3
+
+- **§6.1's expired prompt** says "Sign out, then sign back in, to keep sharing." with Open Crewlu Cloud (§13.2), not "Sign in again to keep sharing." with Sign In.
+- **§6.2's Stop Sharing with Everyone** clears everything only on the Crewlu Cloud screen. Below the prompt, it ends just the iCloud share.
+- **§7.5's last iCloud participant:** removing them always ends the iCloud share through `endICloudShare()`, whether or not Crewlu Cloud sharing is on.
+- **§12.3's case no longer happens:** a forced summary that fails passes its force on (decision 5). Decisions 4, 5, 10 and 12 finish §12.4.
+
+### 13.5 Left for later
+
+- **Until 2c, the iCloud record carries every per-person setting,** Crewlu Cloud partners' included, so a quick status sent only to a Crewlu Cloud partner would also show to iCloud partners on an older Crewluve. No TestFlight build should come from a branch with 2b but not 2c.
+- **`ensureShare()`, `shareURL` and `CloudSharingSheet` have no callers.** They go with the rest of iCloud sharing in piece 6.
+- **Testing with the pilot's own iCloud reaches their real partners.** Stop Sharing with Everyone and Remove act on them, and key-value sync carries per-person settings to every device on that account.
