@@ -5429,7 +5429,7 @@ Expected: the new commit. Don't push.
 
 **Files:** none.
 
-- [ ] **Step 1: Ask how to merge**
+- [x] **Step 1: Ask how to merge**
 
 2b shows pilots Crewlu Cloud screens and makes invite links, which only the new Crewluve (piece 4) can take; the release waits for 2c and Crewluve anyway (P2-1). Ask the user one question: merge into `feature/supabase-account-backend` now (a fast-forward with `git fetch . feature/partner-cloud-screens:feature/supabase-account-backend`, so no file changes on disk while Xcode is open, then delete the branch), or keep the branch until 2c.
 
@@ -5471,3 +5471,4 @@ Filled in during the build: any place the code ends up different from the printe
   - **The rest, on the phone with `8f162e61`:** RuthAnne's tag sat below her name, and inviting Test, its page (Not opened yet, Send Link Again, New Link), the Sign Out question and removing Test went as described.
   - **For later looks:** on a device signed in to the pilot's own iCloud, Stop Sharing with Everyone and Remove act on their real partners, and iCloud key-value sync carries per-person settings to their other devices.
 - **Task 18 (2026-10-17).** The spec's §13 has the plan's decisions, the review's changes, the look's, and where the build differs from §6, §7.5 and §12.3.
+- **Task 19 (2026-10-17).** The user chose to keep `feature/partner-cloud-screens` (`8f162e61`) until 2c, so `feature/supabase-account-backend` stays at `4ff32814`, safe for a TestFlight build. 2c builds on the 2b branch, and both merge together. With the user's yes, the branch was pushed to GitHub as a backup (`origin/feature/partner-cloud-screens` = `8f162e61`, 20 commits on `4ff32814`).
