@@ -1,6 +1,6 @@
 # Partner Links Piece 2: CrewLu on Crewlu Cloud
 
-- **Status:** design approved in brainstorming on 2026-10-16, and the user approved this spec the same day. Next: plan 2a.
+- **Status:** design approved in brainstorming on 2026-10-16, and the user approved this spec the same day. Plan 2a is built (`docs/superpowers/plans/2026-10-16-partner-links-piece2a-summary.md`); next: plan 2b.
 - **Part of:** the partner-links design, `docs/superpowers/specs/2026-10-15-partner-links-design.md`, §7.1, §8 and §9 (piece 2).
 - **Repo:** CrewLu, `~/Dev/Duty`, on a new branch off `feature/supabase-account-backend` (§9).
 - **Contract:** `~/Dev/Duty/supabase/partner-api.md`, the partner door from piece 1, live since 2026-10-15.
@@ -424,3 +424,57 @@ This needs the user, a test partner, and Crewluve piece 4 on TestFlight.
 - **Other pieces:** the push service (3), Crewluve (4), the website (5) and removing iCloud sharing (6).
 - **Live updates of the partner list.** No realtime, as in D12.
 - **Changing what Delete Account says.** Crewlu Cloud already deletes the partners and the summary along with the account.
+
+## 12. Decisions made while planning 2a
+
+Plan 2a (`docs/superpowers/plans/2026-10-16-partner-links-piece2a-summary.md`) is built on CrewLu's `feature/partner-cloud-summary` branch. What follows refines the sections above, and holds where they differ.
+
+### 12.1 The plan's decisions
+
+1. **`PartnerCloudAPI` starts with the three calls 2a uses:** `set_partner_status`, and the `partners` and `partner_devices` reads. Plan 2b adds the partner actions, together with the screens that call them and their tests.
+2. **The live version has its own file,** `LivePartnerCloudAPI.swift`. It's the only one that imports the Supabase SDK, so the rest builds and tests without it.
+3. **How failures map** (`PartnerCloudError`):
+
+   | What the SDK throws | Becomes |
+   |---|---|
+   | `PostgrestError` with code `22023`, `PT404`, `PT409` or `PT413` | `refused(code)` |
+   | `PostgrestError` with `42501` (no sign-in), `28000` or `PGRST301`–`PGRST303`; `HTTPError` 401 or 403; an `AuthError` that `SupabaseSyncEngine.isSessionRevoked` calls final | `notSignedIn` |
+   | `HTTPError` with another 4xx; a `DecodingError` | `refused("HTTP …")` or `refused("decoding")` |
+   | anything else: the network, 5xx, other codes, other `AuthError`s | `unavailable` |
+
+   Before each call, the live version asks for the session, which renews it. A sign-in that can't be renewed then shows as `notSignedIn`. Without this, the SDK would send the call without the sign-in.
+4. **The partner list saves only the ids, per account** (`partnerCloud.partnerIDs.<account id>` in UserDefaults), so a relaunched app keeps writing before its first refresh. Names, devices and invite tokens stay in memory, because an invite token is a link anyone could use. Signing out deletes every saved list.
+5. **A refresh that changes the ids starts the updates** (`syncNowIfSharing`), so a newly signed-in device writes without anyone opening a screen. With no partners the devices aren't read, so a pilot who shares with no one costs one small read per return to the app.
+6. **The store starts at the first activation, not at launch.** `DutyApp.init` only registers for it, so launch doesn't make the Supabase client any earlier than today.
+7. **`forceUpdate` sends even an unchanged summary,** as it already does for iCloud. A summary Crewlu Cloud refused isn't sent again, even forced.
+8. **When the iCloud share ends, the loop keeps going for Crewlu Cloud partners** (`iCloudSharingEnded()`, called by `clearLocalSharingState`). It stops itself once neither kind of sharing is on.
+9. **A pilot who shares only through Crewlu Cloud never starts `PilotStatusBeaconManager`.** AutoSync keeps reading the iCloud flag from UserDefaults, and skips the iCloud write and its start-up wait.
+10. **The examples** are one made-up schedule at nine moments: Alex lives in Atlanta and flies from Louisville (trip Z55120). All nine carry the same seven legs. The partners are `aaaaaaaa-…` (A) and `bbbbbbbb-…` (B).
+11. **The examples test skips on a device.** `#filePath` finds the files only when the tests run on the Mac's simulator (see `DutyTests/Helpers/FixtureLoading.swift`).
+12. **The newer-build message, and the screen's use of `problem` and `lastAppliedAt`,** come with the screens in 2b.
+13. **Ajv 8.17.1 checks the examples against the schema** in the SQL tests. It's their second dev dependency.
+14. **`partner-api.md` is corrected:** the server refuses any field whose name contains `partner`, in any case, not only `ByPartner`.
+
+### 12.2 Changes from the review
+
+The review of the built branch (plan Task 10) led to these changes, each with its own tests:
+- **"Nothing new" is decided just before sending,** not when a summary is handed over (§5.2's skip). Before, a status that went back to the last applied one while another write was in flight was dropped.
+- **A waiting summary goes out only for the account it was made for,** and only while that account still shares from this phone. Before, one could go out after a sign-out, or under another account's sign-in.
+- **A changed partner list sends the summary again,** even an unchanged one. The last applied record holds the partner ids too, because Stop Sharing with Everyone deletes the server's copy.
+- **A forced summary stays forced** when a newer one replaces it while it waits.
+- **`problem` and `lastAppliedAt` are kept per account,** and the screen gets the signed-in account's. One account's answers never show for another account, or after a sign-out.
+- **A new account's refresh doesn't wait** for the last account's to finish.
+- **HTTP 408 and 429 are `unavailable`,** because they mean "try again later". In decision 3's table, they move from "another 4xx" to "anything else".
+- **The schema holds the quick status rules across fields** (§5.1, P2-3): a status for everyone comes with null `quickStatusTargets`; without one, its three fields are null and the targets are empty; and `isSleeping` is true only when that status is Sleeping. Both maps are null rather than empty.
+
+### 12.3 Where the build differs from §5.2 and §8.1
+
+**After `unavailable`, the summary is dropped.** §5.2 says the writer "keeps the summary waiting", and §8.1 that it "keeps and retries". The next trigger sends a fresh summary instead, because the last applied one didn't change.
+
+This changes one case: a forced summary that fails this way doesn't pass its force on. If nothing changes by the next trigger, that summary matches the last applied one and is skipped, so the server keeps that one, with its older `lastUpdated`.
+
+### 12.4 Left for plan 2b
+
+- **`PilotStatusBeaconManager.selfHealOrphanedPartnerState()`** deletes both per-person settings keys, on every device, whenever the iCloud manager finds no share. 2b must keep it from deleting cloud partners' settings.
+- **Update Status Now and the screen's `onAppear`** call the iCloud manager directly, so they skip the cloud writer until 2b routes them through `forceUpdate` (§4.2). 2b also decides whether a forced summary that fails with `unavailable` stays forced (§12.3).
+- **How the screen reads per-account state.** `problem` and `lastAppliedAt` follow the signed-in account (decision 12), partly through values that Observation doesn't track: the sign-in and UserDefaults. 2b checks that the screen redraws after a sign-out and after an account switch.

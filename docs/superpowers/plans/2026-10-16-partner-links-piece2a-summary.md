@@ -127,7 +127,7 @@ Outside both repos: the Mac harness (`$HARNESS`, Task 3) and the compile-only cl
 
 ### Task 0: Branch
 
-- [ ] **Step 1: Check the working tree**
+- [x] **Step 1: Check the working tree**
 
 Run:
 
@@ -137,7 +137,7 @@ git -C ~/Dev/Duty status --short
 
 Expected: only the Xcode scheme lines (` M Duty.xcodeproj/xcshareddata/xcschemes/Duty.xcscheme` and four `??` scheme files). If anything else shows, stop and ask the user.
 
-- [ ] **Step 2: Create the branch**
+- [x] **Step 2: Create the branch**
 
 Run:
 
@@ -155,7 +155,7 @@ Expected: `Switched to a new branch 'feature/partner-cloud-summary'`, then `282a
 
 The contract comes first: CrewLu's encoder is then written to produce these examples exactly (Task 5).
 
-- [ ] **Step 1: Add Ajv to the SQL tests**
+- [x] **Step 1: Add Ajv to the SQL tests**
 
 Run:
 
@@ -165,7 +165,7 @@ cd ~/Dev/Duty/supabase/tests && npm install --save-dev --save-exact --no-audit -
 
 Expected: `added 5 packages` (Ajv and its four dependencies). `package.json`'s `devDependencies` now lists `"ajv": "8.17.1"` after PGlite.
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 File: `supabase/tests/partner_status.test.js`
 
@@ -319,7 +319,7 @@ describe('the partner summary contract (supabase/partner-status)', () => {
 })
 ```
 
-- [ ] **Step 3: Run it to see it fail**
+- [x] **Step 3: Run it to see it fail**
 
 Run:
 
@@ -329,7 +329,7 @@ cd ~/Dev/Duty/supabase/tests && node --no-maglev --test partner_status.test.js
 
 Expected: exit code 1, with `ENOENT: no such file or directory` for `partner-status/schema.json`.
 
-- [ ] **Step 4: Write the schema**
+- [x] **Step 4: Write the schema**
 
 File: `supabase/partner-status/schema.json`
 
@@ -475,7 +475,7 @@ File: `supabase/partner-status/schema.json`
 }
 ```
 
-- [ ] **Step 5: Write the nine examples**
+- [x] **Step 5: Write the nine examples**
 
 They're the encoder's output for `DutyTests/Helpers/PartnerSummaryExamples.swift` (Task 5), one trip leg per line. Dates are whole seconds. Copy them exactly: CrewLu's tests compare against them.
 
@@ -1058,7 +1058,7 @@ File: `supabase/partner-status/examples/display-names.json`
 }
 ```
 
-- [ ] **Step 6: Run the test to see it pass**
+- [x] **Step 6: Run the test to see it pass**
 
 Run:
 
@@ -1068,7 +1068,7 @@ cd ~/Dev/Duty/supabase/tests && node --no-maglev --test partner_status.test.js
 
 Expected: `ℹ pass 25` and `ℹ fail 0`.
 
-- [ ] **Step 7: Write the folder's README**
+- [x] **Step 7: Write the folder's README**
 
 File: `supabase/partner-status/README.md`
 
@@ -1201,7 +1201,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 
 `PartnerCloudErrorTests` needs the Supabase SDK, so it runs only in Xcode: Task 9 compiles it and Task 11 runs it. The other partner-cloud tests run in the Mac harness from Task 3 on.
 
-- [ ] **Step 1: Write the error-mapping tests**
+- [x] **Step 1: Write the error-mapping tests**
 
 File: `DutyTests/PartnerCloudErrorTests.swift`
 
@@ -1273,7 +1273,7 @@ final class PartnerCloudErrorTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 2: Write the seam**
+- [x] **Step 2: Write the seam**
 
 File: `Duty/Utils/PartnerCloud/PartnerCloudAPI.swift`
 
@@ -1333,7 +1333,7 @@ protocol PartnerCloudAPI: Sendable {
 }
 ```
 
-- [ ] **Step 3: Write the live version**
+- [x] **Step 3: Write the live version**
 
 File: `Duty/Utils/PartnerCloud/LivePartnerCloudAPI.swift`
 
@@ -1474,7 +1474,7 @@ extension PartnerCloudError {
 }
 ```
 
-- [ ] **Step 4: Write the tests' stand-in**
+- [x] **Step 4: Write the tests' stand-in**
 
 File: `DutyTests/Helpers/StubPartnerCloudAPI.swift`
 
@@ -1589,7 +1589,7 @@ actor StubPartnerCloudAPI: PartnerCloudAPI {
 }
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -1605,7 +1605,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 
 A Swift package that compiles CrewLu's partner-cloud files and their tests unchanged, on the Mac, with stand-ins for the few app types they touch. `run.sh` copies whatever partner-cloud files exist so far from `~/Dev/Duty` (or `$DUTY`), then runs `swift test`. It needs no Xcode project, no simulator and no network, and it builds into its own `.build` folder. The test target uses the same concurrency settings as `DutyTests` (Swift 5 mode, Approachable Concurrency, member import visibility).
 
-- [ ] **Step 1: Write the package**
+- [x] **Step 1: Write the package**
 
 File: `$HARNESS/Package.swift`
 
@@ -1637,7 +1637,7 @@ let package = Package(
 )
 ```
 
-- [ ] **Step 2: Write the stand-ins**
+- [x] **Step 2: Write the stand-ins**
 
 File: `$HARNESS/Sources/UIKit/UIKitStandIn.swift`
 
@@ -1682,7 +1682,7 @@ struct LivePartnerCloudAPI: PartnerCloudAPI {
 }
 ```
 
-- [ ] **Step 3: Write the runner**
+- [x] **Step 3: Write the runner**
 
 File: `$HARNESS/run.sh`
 
@@ -1737,7 +1737,7 @@ Expected: `Executed 0 tests, with 0 failures`. The first build takes about a min
 - Create: `Duty/Utils/PartnerCloud/PartnerSettings.swift`
 - Test: `DutyTests/PartnerSettingsTests.swift`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 File: `DutyTests/PartnerSettingsTests.swift`
 
@@ -1787,7 +1787,7 @@ final class PartnerSettingsTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -1795,9 +1795,9 @@ Run:
 "$HARNESS/run.sh"
 ```
 
-Expected: the build fails with `cannot find 'PartnerSettings' in scope`.
+Expected: the build fails because `PartnerSettings` doesn't exist yet: `cannot find 'PartnerSettings' in scope`, or `cannot find type 'PartnerSettings' in scope`, depending on which use the compiler reaches first.
 
-- [ ] **Step 3: Write the settings**
+- [x] **Step 3: Write the settings**
 
 File: `Duty/Utils/PartnerCloud/PartnerSettings.swift`
 
@@ -1844,7 +1844,7 @@ enum PartnerSettings {
 }
 ```
 
-- [ ] **Step 4: Run the tests to see them pass**
+- [x] **Step 4: Run the tests to see them pass**
 
 Run:
 
@@ -1854,7 +1854,7 @@ Run:
 
 Expected: `Executed 2 tests, with 0 failures`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -1870,7 +1870,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 - Create: `Duty/Utils/PartnerCloud/PartnerSummaryEncoder.swift`, `DutyTests/Helpers/PartnerSummaryExamples.swift`
 - Test: `DutyTests/PartnerSummaryEncoderTests.swift`
 
-- [ ] **Step 1: Write the examples' schedule**
+- [x] **Step 1: Write the examples' schedule**
 
 File: `DutyTests/Helpers/PartnerSummaryExamples.swift`
 
@@ -2202,7 +2202,7 @@ enum PartnerSummaryExamples {
 }
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 File: `DutyTests/PartnerSummaryEncoderTests.swift`
 
@@ -2441,7 +2441,7 @@ final class PartnerSummaryEncoderTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 3: Run them to see them fail**
+- [x] **Step 3: Run them to see them fail**
 
 Run:
 
@@ -2449,9 +2449,9 @@ Run:
 "$HARNESS/run.sh"
 ```
 
-Expected: the build fails with `cannot find 'PartnerSummaryEncoder' in scope`.
+Expected: the build fails because `PartnerSummaryEncoder` doesn't exist yet: `cannot find 'PartnerSummaryEncoder' in scope`, or `cannot find type 'PartnerSummaryEncoder' in scope`, depending on which use the compiler reaches first.
 
-- [ ] **Step 4: Write the encoder**
+- [x] **Step 4: Write the encoder**
 
 File: `Duty/Utils/PartnerCloud/PartnerSummaryEncoder.swift`
 
@@ -2666,7 +2666,7 @@ private struct Leg: Encodable {
 }
 ```
 
-- [ ] **Step 5: Run the tests to see them pass**
+- [x] **Step 5: Run the tests to see them pass**
 
 Run:
 
@@ -2676,7 +2676,7 @@ Run:
 
 Expected: `Executed 19 tests, with 0 failures`, with nothing skipped: the harness reaches the examples through `$HARNESS/Tests/supabase`. If `test_everyExample_comesOutExactly` fails, the message shows both JSONs; stop and compare them with Task 1's files rather than changing either.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Run:
 
@@ -2692,7 +2692,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 - Create: `Duty/Utils/PartnerCloud/PartnerCloudStore.swift`
 - Test: `DutyTests/PartnerCloudStoreTests.swift`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 File: `DutyTests/PartnerCloudStoreTests.swift`
 
@@ -2887,7 +2887,7 @@ final class PartnerCloudStoreTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -2895,9 +2895,9 @@ Run:
 "$HARNESS/run.sh"
 ```
 
-Expected: the build fails with `cannot find 'PartnerCloudStore' in scope`.
+Expected: the build fails because `PartnerCloudStore` doesn't exist yet: `cannot find 'PartnerCloudStore' in scope`, or `cannot find type 'PartnerCloudStore' in scope`, depending on which use the compiler reaches first.
 
-- [ ] **Step 3: Write the store**
+- [x] **Step 3: Write the store**
 
 File: `Duty/Utils/PartnerCloud/PartnerCloudStore.swift`
 
@@ -3063,7 +3063,7 @@ final class PartnerCloudStore {
 }
 ```
 
-- [ ] **Step 4: Run the tests to see them pass**
+- [x] **Step 4: Run the tests to see them pass**
 
 Run:
 
@@ -3073,7 +3073,7 @@ Run:
 
 Expected: `Executed 28 tests, with 0 failures`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -3089,7 +3089,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 - Create: `Duty/Utils/PartnerCloud/PartnerSummaryCloudWriter.swift`
 - Test: `DutyTests/PartnerSummaryCloudWriterTests.swift`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 File: `DutyTests/PartnerSummaryCloudWriterTests.swift`
 
@@ -3298,7 +3298,7 @@ final class PartnerSummaryCloudWriterTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -3306,9 +3306,9 @@ Run:
 "$HARNESS/run.sh"
 ```
 
-Expected: the build fails with `cannot find 'PartnerSummaryCloudWriter' in scope`.
+Expected: the build fails because `PartnerSummaryCloudWriter` doesn't exist yet: `cannot find 'PartnerSummaryCloudWriter' in scope`, or `cannot find type 'PartnerSummaryCloudWriter' in scope`, depending on which use the compiler reaches first.
 
-- [ ] **Step 3: Write the writer**
+- [x] **Step 3: Write the writer**
 
 File: `Duty/Utils/PartnerCloud/PartnerSummaryCloudWriter.swift`
 
@@ -3446,7 +3446,7 @@ final class PartnerSummaryCloudWriter {
 }
 ```
 
-- [ ] **Step 4: Run the tests to see them pass**
+- [x] **Step 4: Run the tests to see them pass**
 
 Run:
 
@@ -3456,7 +3456,7 @@ Run:
 
 Expected: `Executed 39 tests, with 0 failures`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -3474,7 +3474,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 
 These are app files the harness can't build, so they're checked by Task 9's compile and Task 11's test run. Every edit replaces text that appears exactly once.
 
-- [ ] **Step 1: Add the independence test**
+- [x] **Step 1: Add the independence test**
 
 In `DutyTests/PartnerBeaconModeIndependenceTests.swift`, replace:
 
@@ -3514,7 +3514,7 @@ with:
 }
 ```
 
-- [ ] **Step 2: Let the loop run while either kind of sharing is on**
+- [x] **Step 2: Let the loop run while either kind of sharing is on**
 
 In `PartnerBeaconAutoSync.swift`, four edits. First, after `stopMonitoring()`, the iCloud-ended hook and the two sharing checks, used by `resumeMonitoringIfNeeded`:
 
@@ -3692,7 +3692,7 @@ with:
         guard isSharingAnywhere else { return }
 ```
 
-- [ ] **Step 3: Keep the loop when the iCloud share ends**
+- [x] **Step 3: Keep the loop when the iCloud share ends**
 
 In `Duty/Utils/PartnerBeacon/PilotStatusBeaconManager.swift`, replace:
 
@@ -3711,7 +3711,7 @@ with:
     }
 ```
 
-- [ ] **Step 4: Register the partner list at launch**
+- [x] **Step 4: Register the partner list at launch**
 
 In `Duty/App/DutyApp.swift`, replace:
 
@@ -3732,7 +3732,7 @@ with:
         // Register iCloud KVS observer
 ```
 
-- [ ] **Step 5: Run the harness: the hook must not change what it tests**
+- [x] **Step 5: Run the harness: the hook must not change what it tests**
 
 Run:
 
@@ -3742,7 +3742,7 @@ Run:
 
 Expected: `Executed 39 tests, with 0 failures`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Run:
 
@@ -3756,7 +3756,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 
 **Files:** none. A build in a separate clone of the branch, with its own build folder and its own copy of the Swift packages, so it can't disturb the user's open Xcode or touch a simulator. It compiles the app and `DutyTests`, including the two test files the harness can't build.
 
-- [ ] **Step 1: Make the clone**
+- [x] **Step 1: Make the clone**
 
 Use a scratch folder outside both repos as `$BUILD`, for example `export BUILD=<your scratchpad>/partner-cloud-build`. `Config.xcconfig` is ignored by git, so it's copied; never print it.
 
@@ -3766,9 +3766,9 @@ Run:
 rm -rf "${BUILD:?set BUILD first}" && mkdir -p "$BUILD" && git clone -q --shared ~/Dev/Duty "$BUILD/duty" && git -C "$BUILD/duty" switch -q feature/partner-cloud-summary && cp ~/Dev/Duty/Config.xcconfig "$BUILD/duty/" && cp -R "$(ls -dt ~/Library/Developer/Xcode/DerivedData/Duty-*/SourcePackages | head -1)" "$BUILD/packages" && git -C "$BUILD/duty" log --oneline -1
 ```
 
-Expected: the branch's last commit, `feat(partners): every partner update also goes to Crewlu Cloud…`.
+Expected: the branch's last commit: Task 8's `feat(partners): every partner update also goes to Crewlu Cloud…`, or a later fix from Task 10.
 
-- [ ] **Step 2: Build for testing**
+- [x] **Step 2: Build for testing**
 
 It takes several minutes, so run it in the background and wait for it to finish.
 
@@ -3786,11 +3786,11 @@ If the log says the packages don't match `Package.resolved`, delete `$BUILD/pack
 
 **Files:** whatever the review finds.
 
-- [ ] **Step 1: Ask for a review**
+- [x] **Step 1: Ask for a review**
 
 Use superpowers:requesting-code-review with a read-only reviewer: it reads `git -C ~/Dev/Duty diff 282a6cc0..feature/partner-cloud-summary`, this plan and the spec (§5, §8.1), and runs no `xcodebuild` and no simulator. State facts neutrally, and don't tell it what not to flag.
 
-- [ ] **Step 2: Act on it**
+- [x] **Step 2: Act on it**
 
 For each finding, fix it test-first, re-run `"$HARNESS/run.sh"` and `npm test`, and commit. If any Swift changed, run Task 9 again. Note each fix in this plan's Execution notes.
 
@@ -3798,7 +3798,7 @@ For each finding, fix it test-first, re-run `"$HARNESS/run.sh"` and `npm test`, 
 
 **Files:** none.
 
-- [ ] **Step 1: Ask the user to run the tests in Xcode**
+- [x] **Step 1: Ask the user to run the tests in Xcode**
 
 Send them these steps:
 
@@ -3806,18 +3806,18 @@ Send them these steps:
 2. Press **⌘U** (Product → Test) and wait for it to finish.
 3. Press **⌘6** to open the Test navigator. Red marks show failures.
 
-Expected: no failures. The new and changed classes:
+Expected: no failures. The new and changed classes, counted after Task 10's fixes:
 
 | Class | Tests |
 |---|---|
 | `PartnerCloudErrorTests` | 5 |
 | `PartnerSettingsTests` | 2 |
 | `PartnerSummaryEncoderTests` | 17 |
-| `PartnerCloudStoreTests` | 9 |
-| `PartnerSummaryCloudWriterTests` | 11 |
+| `PartnerCloudStoreTests` | 10 |
+| `PartnerSummaryCloudWriterTests` | 18 |
 | `PartnerBeaconModeIndependenceTests` | 4 (one new) |
 
-- [ ] **Step 2: If anything fails, stop**
+- [x] **Step 2: If anything fails, stop**
 
 Ask for the test's name and its message. Fix the cause, never the test's expected value, then ask for another run.
 
@@ -3826,7 +3826,7 @@ Ask for the test's name and its message. Fix the cause, never the test's expecte
 **Files (in `~/Dev/Crewluve Website`):**
 - Modify: `docs/superpowers/specs/2026-10-16-partner-links-piece2-crewlu-design.md`, and this plan
 
-- [ ] **Step 1: Add the planning decisions to the spec**
+- [x] **Step 1: Add the planning decisions to the spec**
 
 At the end of the spec, after §11, add `## 12. Decisions made while planning 2a`, followed by this plan's "Decisions made while planning" list, copied as it stands, and any changes from the review (Task 10). Then update its status line.
 
@@ -3842,7 +3842,7 @@ with:
 and the user approved this spec the same day. Plan 2a is built (`docs/superpowers/plans/2026-10-16-partner-links-piece2a-summary.md`); next: plan 2b.
 ```
 
-- [ ] **Step 2: Tick this plan and commit**
+- [x] **Step 2: Tick this plan and commit**
 
 Run:
 
@@ -3869,3 +3869,35 @@ Ask separately before pushing `feature/supabase-account-backend` in `~/Dev/Duty`
 ## Execution notes
 
 Filled in during the build: any place the code ends up different from the printed blocks, and why.
+
+- **Tasks 4–7, the failing runs (2026-10-16).** The compiler names a missing type either as `cannot find 'X' in scope` or as `cannot find type 'X' in scope`, depending on which use it reaches first, and the order can change from one build to the next. Task 7's run printed only the second form, so each expected message now accepts either. The code is unchanged.
+- **Task 9's clone step** expected Task 8's commit message. After Task 10's fixes the branch ends with a fix instead, so the step now accepts any `(partners)` commit.
+- **Task 10, the review (2026-10-16).** The verdict was "with fixes": three Important findings and seven Minor ones, all checked by running. These commits came after the printed blocks:
+  - **`6f0333be`, the writer and the store:**
+    - "Nothing new" is decided just before sending: a status that went back while another write was in flight used to be dropped.
+    - A waiting summary goes out only for the account it was made for: one could go out after a sign-out, or under another account's sign-in.
+    - A changed partner list sends the summary again, because Stop Sharing with Everyone deletes the server's copy.
+    - A forced summary stays forced when a newer one replaces it.
+    - `problem` and `lastAppliedAt` belong to the account that wrote.
+    - The store no longer makes a new account's refresh wait for the last account's.
+    - Seven new tests, and the sign-out test now signs out the way the app does.
+    - Results: harness 46/46; 47 of 47 deliberate breaks of the new logic caught.
+  - **`199198bd`:** HTTP 408 and 429 mean "try again later", with tests for 403, 408 and 429.
+  - **`e27bd9a2`:**
+    - The schema now holds the quick status rules across fields: a status for everyone comes with null targets, otherwise its fields are null, and Sleeping only with it. Both maps are null rather than empty.
+    - The README says how the examples are made, and to hide expired statuses.
+    - AutoSync's header comment is updated.
+    - Results: SQL 169/169; 19 of 19 deliberate breaks of the schema caught.
+  - **`4ff32814`, after the re-check.**
+    - The re-check found every fix held, and its verdict was "ready to merge". It found one new Minor: `problem` and `lastAppliedAt` still showed the last account's answers after a sign-out.
+    - They're now kept per account, and the screen gets the signed-in account's.
+    - Results: harness 47/47; 48 of 48 deliberate breaks caught.
+  - **The spec's wording for `unavailable`:** §5.2 says it "keeps the summary waiting". The writer drops it instead, and the next update sends a fresh one, because the last applied summary didn't change. Task 12 records this.
+  - **Left as is:**
+    - the AutoSync hook has no behavior tests: it would have to be pulled apart, so Task 9's compile and Task 11's run check it;
+    - a second account check inside the live API: the writer checks just before the call.
+  - **For plan 2b:**
+    - `PilotStatusBeaconManager.selfHealOrphanedPartnerState()` deletes both per-person settings keys, on every device, whenever the iCloud manager finds no share. 2b must keep it from deleting Crewlu Cloud partners' settings.
+    - Update Status Now and the screen's `onAppear` still skip the cloud writer until 2b routes them through `forceUpdate` (spec §4.2).
+- **Task 11, the user's run (2026-10-17).** ⌘U on the iPhone simulator: 1,434 XCTest tests ran with 0 failures and 1 skip, and all 9 Swift Testing tests passed. The six classes ran 5, 2, 17, 10, 18 and 4 tests, as in Task 11's table. The skip is `StoreKitEntitlementLifecycleTests.test_expiredSubscription_clearsLocalEntitlement`, which this branch doesn't touch: StoreKit's test session never showed the expiry.
+- **Task 12** wrote the decisions into the spec's §12. Writing up `unavailable` turned up one more difference from §5.2: a forced summary that fails that way loses its force (spec §12.3). 2b decides whether to keep it.
