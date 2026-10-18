@@ -102,7 +102,7 @@ In `~/Dev/Crewluve Website`: this plan, ticked as it goes, and the piece 3 spec 
 
 **Files:** none. A worktree for the new branch, beside `~/Dev/Duty` (decision 13).
 
-- [ ] **Step 1: Check the working tree**
+- [x] **Step 1: Check the working tree**
 
 Run:
 
@@ -112,7 +112,7 @@ git -C ~/Dev/Duty status --short
 
 Expected: only the Xcode scheme lines (` M Duty.xcodeproj/xcshareddata/xcschemes/Duty.xcscheme` and four `??` scheme files). If anything else shows, stop and ask the user.
 
-- [ ] **Step 2: Check the release line's tip**
+- [x] **Step 2: Check the release line's tip**
 
 Run:
 
@@ -122,7 +122,7 @@ git -C ~/Dev/Duty log --oneline -1 feature/supabase-account-backend
 
 Expected: `71c1b29a docs(plan): a re-import can put back crew another device took off…`, 3.0.2's build 199. If it differs, stop and ask: this plan was checked against `71c1b29a`.
 
-- [ ] **Step 3: Make the worktree, on a new branch**
+- [x] **Step 3: Make the worktree, on a new branch**
 
 This adds a folder, `~/Dev/Duty-partner-push`, and the branch `feature/partner-push`. It changes nothing in `~/Dev/Duty`: its branch, its files and Xcode stay as they are.
 
@@ -134,7 +134,7 @@ git -C ~/Dev/Duty worktree add -q -b feature/partner-push ~/Dev/Duty-partner-pus
 
 Expected: `71c1b29a docs(plan): a re-import can put back crew…`.
 
-- [ ] **Step 4: Copy the test packages and run the tests**
+- [x] **Step 4: Copy the test packages and run the tests**
 
 The packages are ignored by git, so the worktree has none. Copying `~/Dev/Duty`'s means nothing is downloaded.
 
@@ -154,7 +154,7 @@ Expected: `ℹ tests 172`, `ℹ pass 172`, `ℹ fail 0`. From here on, every pat
 
 PGlite has none of the three, so the shim gives each the schema and the signatures the migration calls, and keeps what they're given (decision 1). `asService` runs SQL as partner-push's secret key does.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 3 replacements, in order, in `supabase/tests/smoke.test.js`:
 
@@ -244,7 +244,7 @@ with:
 })
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -254,7 +254,7 @@ cd ~/Dev/Duty-partner-push/supabase/tests && node --no-maglev --test smoke.test.
 
 Expected: the file fails to load, with `does not provide an export named 'asService'` (`ℹ fail 1`).
 
-- [ ] **Step 3: Add asService**
+- [x] **Step 3: Add asService**
 
 One replacement in `supabase/tests/helpers/db.js`:
 
@@ -281,7 +281,7 @@ export const asService = (db, sql, params = []) => asRole(db, 'service_role', { 
 export const asAuthAdmin = (db, sql, params = []) => asRole(db, 'supabase_auth_admin', null, sql, params)
 ```
 
-- [ ] **Step 4: Add the stand-ins to the shim**
+- [x] **Step 4: Add the stand-ins to the shim**
 
 2 replacements, in order, in `supabase/tests/helpers/supabase_shim.sql`:
 
@@ -405,7 +405,7 @@ language sql as $$
 $$;
 ```
 
-- [ ] **Step 5: Run the whole suite**
+- [x] **Step 5: Run the whole suite**
 
 Run:
 
@@ -415,7 +415,7 @@ cd ~/Dev/Duty-partner-push/supabase/tests && npm test
 
 Expected: `ℹ tests 173`, `ℹ pass 173`, `ℹ fail 0`, in about 25 seconds.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Run:
 
@@ -433,7 +433,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty-partner-push status --short`
 
 Spec §5.2 and §5.5, decisions 2 and 3: the migration starts with the extensions, the state table, the password and the address, and `partner_push_claim`. The privileges guard learns the service RPCs, and checks RLS on every private table.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 File: `supabase/tests/push_service.test.js`
 
@@ -671,7 +671,7 @@ with:
   })
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -681,7 +681,7 @@ cd ~/Dev/Duty-partner-push/supabase/tests && node --no-maglev --test push_servic
 
 Expected: `ℹ tests 14`, `ℹ pass 4`, `ℹ fail 10`. The migration doesn't exist yet, so the push service's tests and the guard's checks of the new functions and table fail.
 
-- [ ] **Step 3: Write the migration**
+- [x] **Step 3: Write the migration**
 
 File: `supabase/migrations/20261018120000_partner_links_push.sql`
 
@@ -778,7 +778,7 @@ revoke all on function public.partner_push_claim(text, boolean) from public, ano
 grant execute on function public.partner_push_claim(text, boolean) to service_role;
 ```
 
-- [ ] **Step 4: Run the whole suite**
+- [x] **Step 4: Run the whole suite**
 
 Run:
 
@@ -788,7 +788,7 @@ cd ~/Dev/Duty-partner-push/supabase/tests && npm test
 
 Expected: `ℹ tests 181`, `ℹ pass 181`, `ℹ fail 0`, in about 25 seconds.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -806,7 +806,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty-partner-push status --short`
 
 Spec §5.3: dropping dead tokens, marking pilots due again, and keeping a new signing token.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 2 replacements, in order, in `supabase/tests/push_service.test.js`:
 
@@ -939,7 +939,7 @@ with:
   const PRIVATE_TABLES = ['partner_device_secrets', 'partner_handoffs', 'partner_redeem_failures', 'partner_push_state']
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -949,7 +949,7 @@ cd ~/Dev/Duty-partner-push/supabase/tests && node --no-maglev --test push_servic
 
 Expected: `ℹ tests 18`, `ℹ pass 12`, `ℹ fail 6`. Report doesn't exist yet.
 
-- [ ] **Step 3: Add report to the migration**
+- [x] **Step 3: Add report to the migration**
 
 One replacement in `supabase/migrations/20261018120000_partner_links_push.sql`:
 
@@ -990,7 +990,7 @@ revoke all on function public.partner_push_report(text, text[], uuid[], text) fr
 grant execute on function public.partner_push_report(text, text[], uuid[], text) to service_role;
 ```
 
-- [ ] **Step 4: Run the whole suite**
+- [x] **Step 4: Run the whole suite**
 
 Run:
 
@@ -1000,7 +1000,7 @@ cd ~/Dev/Duty-partner-push/supabase/tests && npm test
 
 Expected: `ℹ tests 185`, `ℹ pass 185`, `ℹ fail 0`, in about 25 seconds.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -1018,7 +1018,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty-partner-push status --short`
 
 Spec §5.1 and §5.4, decision 5: the check, its job every 15 seconds, and the daily clean-up of its history.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 2 replacements, in order, in `supabase/tests/push_service.test.js`:
 
@@ -1142,7 +1142,7 @@ describe('the 15-second check (spec §5.1)', () => {
 })
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -1152,7 +1152,7 @@ cd ~/Dev/Duty-partner-push/supabase/tests && node --no-maglev --test push_servic
 
 Expected: `ℹ tests 16`, `ℹ pass 11`, `ℹ fail 5`. The check and its jobs don't exist yet.
 
-- [ ] **Step 3: Add the check and the jobs**
+- [x] **Step 3: Add the check and the jobs**
 
 One replacement in `supabase/migrations/20261018120000_partner_links_push.sql`:
 
@@ -1209,7 +1209,7 @@ select cron.schedule('partner-push-history', '17 4 * * *', $$
 $$);
 ```
 
-- [ ] **Step 4: Run the whole suite**
+- [x] **Step 4: Run the whole suite**
 
 Run:
 
@@ -1219,7 +1219,7 @@ cd ~/Dev/Duty-partner-push/supabase/tests && npm test
 
 Expected: `ℹ tests 190`, `ℹ pass 190`, `ℹ fail 0`, in about 25 seconds.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -1237,7 +1237,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty-partner-push status --short`
 
 Spec §9 step 5, decisions 2 and 4: the probe, the caller the check and the probe share, and the undo in the migration's header, which the tests run.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 2 replacements, in order, in `supabase/tests/push_service.test.js`:
 
@@ -1343,7 +1343,7 @@ describe("the setup's check, a second run and the undo (spec §9)", () => {
 })
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -1353,7 +1353,7 @@ cd ~/Dev/Duty-partner-push/supabase/tests && node --no-maglev --test push_servic
 
 Expected: `ℹ tests 19`, `ℹ pass 17`, `ℹ fail 2`. The probe and the undo fail. The second-run test already passes: the script's first `create table` stops a second run.
 
-- [ ] **Step 3: Add the probe, the shared caller and the undo**
+- [x] **Step 3: Add the probe, the shared caller and the undo**
 
 4 replacements, in order, in `supabase/migrations/20261018120000_partner_links_push.sql`:
 
@@ -1487,7 +1487,7 @@ $$;
 revoke all on function private.partner_push_probe() from public, anon, authenticated;
 ```
 
-- [ ] **Step 4: Run the whole suite**
+- [x] **Step 4: Run the whole suite**
 
 Run:
 
@@ -1497,7 +1497,7 @@ cd ~/Dev/Duty-partner-push/supabase/tests && npm test
 
 Expected: `ℹ tests 193`, `ℹ pass 193`, `ℹ fail 0`, in about 25 seconds.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -1515,7 +1515,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty-partner-push status --short`
 
 Spec §6.2 and §7: the signing token, each push's request, and what Apple's answers mean. The tests import the function's own file: Node 23.6 and later run TypeScript by stripping its types, with an `ExperimentalWarning`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 File: `supabase/tests/partner_push.test.js`
 
@@ -1633,7 +1633,7 @@ describe("partner-push's parts (spec §6.2)", () => {
 })
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -1643,7 +1643,7 @@ cd ~/Dev/Duty-partner-push/supabase/tests && node --no-maglev --test partner_pus
 
 Expected: the file fails to load, with `Cannot find module` (`ℹ fail 1`).
 
-- [ ] **Step 3: Write the parts**
+- [x] **Step 3: Write the parts**
 
 File: `supabase/functions/partner-push/index.ts`
 
@@ -1729,7 +1729,7 @@ export function outcome(status: number, reason?: string): Outcome {
 }
 ```
 
-- [ ] **Step 4: Run the whole suite**
+- [x] **Step 4: Run the whole suite**
 
 Run:
 
@@ -1739,7 +1739,7 @@ cd ~/Dev/Duty-partner-push/supabase/tests && npm test
 
 Expected: `ℹ tests 199`, `ℹ pass 199`, `ℹ fail 0`, in about 25 seconds.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -1757,7 +1757,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty-partner-push status --short`
 
 Spec §6.2 and §7, decisions 6 to 12: claim, the pushes, the one renewal, report, and the logs. Stand-ins for fetch play Apple and PostgREST. The last three tests run it against the real claim and report, in PGlite, through a stand-in that calls them as PostgREST does.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 2 replacements, in order, in `supabase/tests/partner_push.test.js`:
 
@@ -2230,7 +2230,7 @@ describe('partner-push against the real claim and report (spec §5, §6)', () =>
 })
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -2240,7 +2240,7 @@ cd ~/Dev/Duty-partner-push/supabase/tests && node --no-maglev --test partner_pus
 
 Expected: the file fails to load, with `does not provide an export named 'AT_ONCE'` (`ℹ fail 1`).
 
-- [ ] **Step 3: Write the run**
+- [x] **Step 3: Write the run**
 
 One replacement in `supabase/functions/partner-push/index.ts`:
 
@@ -2426,7 +2426,7 @@ export function makeHandler({ config, fetch, now, log }: Deps) {
 }
 ```
 
-- [ ] **Step 4: Run the whole suite**
+- [x] **Step 4: Run the whole suite**
 
 Run:
 
@@ -2436,7 +2436,7 @@ cd ~/Dev/Duty-partner-push/supabase/tests && npm test
 
 Expected: `ℹ tests 214`, `ℹ pass 214`, `ℹ fail 0`, in about 25 seconds.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -2454,7 +2454,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty-partner-push status --short`
 
 Spec §6.3 and §9, decisions 8 and 11: one push to a made-up token on Apple's test service, and Apple's answer.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 2 replacements, in order, in `supabase/tests/partner_push.test.js`:
 
@@ -2579,7 +2579,7 @@ with:
 })
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -2589,7 +2589,7 @@ cd ~/Dev/Duty-partner-push/supabase/tests && node --no-maglev --test partner_pus
 
 Expected: `ℹ tests 25`, `ℹ pass 21`, `ℹ fail 4`. The probe's four tests fail; Task 7's pass.
 
-- [ ] **Step 3: Add the probe**
+- [x] **Step 3: Add the probe**
 
 5 replacements, in order, in `supabase/functions/partner-push/index.ts`:
 
@@ -2752,7 +2752,7 @@ with:
           p_secret: secret,
 ```
 
-- [ ] **Step 4: Run the whole suite**
+- [x] **Step 4: Run the whole suite**
 
 Run:
 
@@ -2762,7 +2762,7 @@ cd ~/Dev/Duty-partner-push/supabase/tests && npm test
 
 Expected: `ℹ tests 218`, `ℹ pass 218`, `ℹ fail 0`, in about 25 seconds.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -2780,7 +2780,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty-partner-push status --short`
 
 Spec §6 and §6.1, decisions 6 and 12: its settings from Supabase's environment, and serving only where Deno is. A test checks the file has no imports, so it can be pasted whole.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 3 replacements, in order, in `supabase/tests/partner_push.test.js`:
 
@@ -2917,7 +2917,7 @@ describe('partner-push in Supabase (spec §6, §6.1)', () => {
 })
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -2927,7 +2927,7 @@ cd ~/Dev/Duty-partner-push/supabase/tests && node --no-maglev --test partner_pus
 
 Expected: the file fails to load, with `does not provide an export named 'configFromEnv'` (`ℹ fail 1`).
 
-- [ ] **Step 3: Add the settings and the entry point**
+- [x] **Step 3: Add the settings and the entry point**
 
 One replacement in `supabase/functions/partner-push/index.ts`:
 
@@ -2985,7 +2985,7 @@ if (deno) {
 }
 ```
 
-- [ ] **Step 4: Run the whole suite**
+- [x] **Step 4: Run the whole suite**
 
 Run:
 
@@ -2995,7 +2995,7 @@ cd ~/Dev/Duty-partner-push/supabase/tests && npm test
 
 Expected: `ℹ tests 222`, `ℹ pass 222`, `ℹ fail 0`, in about 25 seconds.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -3012,7 +3012,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty-partner-push status --short`
 
 Spec §12: the partner door's "Pushes" section for piece 4, the undo's order, and what the tests now stand in for.
 
-- [ ] **Step 1: Add the Pushes section and the undo's order**
+- [x] **Step 1: Add the Pushes section and the undo's order**
 
 3 replacements, in order, in `supabase/partner-api.md`:
 
@@ -3101,7 +3101,7 @@ This removes everything piece 1's three partner-links migrations added. It touch
 begin;
 ````
 
-- [ ] **Step 2: Update the tests' README**
+- [x] **Step 2: Update the tests' README**
 
 4 replacements, in order, in `supabase/tests/README.md`:
 
@@ -3235,7 +3235,7 @@ with:
 - **The rest of the advisor.** The guards copy three of its lints. After applying a migration, check CrewLu Cloud's advisor too.
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 Run:
 
@@ -3249,7 +3249,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty-partner-push status --short`
 
 **Files:** whatever the review finds.
 
-- [ ] **Step 1: Run the whole suite**
+- [x] **Step 1: Run the whole suite**
 
 Run:
 
@@ -3259,11 +3259,11 @@ cd ~/Dev/Duty-partner-push/supabase/tests && npm test
 
 Expected: `ℹ tests 222`, `ℹ pass 222`, `ℹ fail 0`, in about 25 seconds.
 
-- [ ] **Step 2: Ask for a review**
+- [x] **Step 2: Ask for a review**
 
 Use superpowers:requesting-code-review with a read-only reviewer. It reads `git -C ~/Dev/Duty-partner-push diff 71c1b29a..feature/partner-push`, this plan and the spec (`~/Dev/Crewluve Website/docs/superpowers/specs/2026-10-18-partner-links-piece3-push-design.md`), and it may run `npm test` in `~/Dev/Duty-partner-push/supabase/tests`; nothing else. It changes nothing, contacts nothing and runs no Xcode. State facts neutrally, and don't tell it what not to flag.
 
-- [ ] **Step 3: Act on it**
+- [x] **Step 3: Act on it**
 
 For each finding, fix it test-first, run `npm test` again, and commit with the exact paths. Note each fix in this plan's Execution notes. Nothing goes onto Crewlu Cloud before this (spec §10).
 
@@ -3350,28 +3350,33 @@ The check starts at once.
 Send the user these steps:
 
 1. In a new query, run `select private.partner_push_probe();`. It answers with a number.
-2. Wait five seconds, then run:
+2. Wait five seconds, then run this, with that number in place of `N`:
 
 ```sql
-select status_code, content, error_msg from net._http_response order by created desc limit 1;
+select status_code, content, error_msg, timed_out from net._http_response where id = N;
 ```
 
 Or, with the user's yes, Claude runs that `select` through its read-only connection.
 
-Expected: `status_code` 200 and `content` `{"probe":{"status":400,"reason":"BadDeviceToken"}}`: Apple accepted the key and the Team ID, over HTTP/2, and turned down the made-up token (spec §9). Otherwise:
+Expected: `status_code` 200 and `content` `{"probe":{"sandbox":{"status":400,"reason":"BadDeviceToken"},"production":{"status":400,"reason":"BadDeviceToken"}}}`. Both of Apple's services accepted the key and the Team ID, over HTTP/2, and turned down the made-up token (spec §9). Otherwise:
 
-| `content` says | What's wrong |
+| What it says | What's wrong |
 |---|---|
-| `"reason":"InvalidProviderToken"` | `APNS_KEY_ID`, `APNS_TEAM_ID` or `APNS_PRIVATE_KEY` |
+| no row yet | wait a few more seconds and run the `select` again |
+| `timed_out` true | partner-push took over 30 seconds: look at its logs (**Edge Functions** → **partner-push** → **Logs**), where the probe also logs its answer |
+| `error_msg` set | pg_net couldn't connect to partner-push: read the message, and partner-push's logs |
+| `"reason":"InvalidProviderToken"` for both services | `APNS_KEY_ID`, `APNS_TEAM_ID` or `APNS_PRIVATE_KEY` |
+| a 403 for one service only | most likely a key made for the other environment only: make one for **Sandbox & Production**. Its new Key ID means the old signing token isn't used |
 | `"reason":"TopicDisallowed"` or `"BadTopic"` | `APNS_TOPIC`, or a key whose topic isn't Crewluve |
+| `"reason":"TooManyProviderTokenUpdates"` | probes too close together: wait 20 minutes |
 | `partner-push is missing …` | the secret it names |
 | `APNS_PRIVATE_KEY isn't the text of a .p8 key` | the key's text: paste the whole file again |
 | `Missing authorization header` or `Invalid JWT` | JWT verification is still on |
 | `Requested function was not found` | the function's name isn't `partner-push` |
 | `claim answered 401` | the secret key: check `SUPABASE_SECRET_KEYS` |
-| `{"probe":{"error":…}}` | Supabase's fetch couldn't reach Apple over HTTP/2. Stop: partner-push moves to Deno's `node:http2` (spec §9), a change of its own, test-first |
+| `"error":…` for a service | Supabase's fetch couldn't reach Apple over HTTP/2. Stop: partner-push moves to Deno's `node:http2` (spec §9), a change of its own, test-first |
 
-After fixing a secret, run the probe again: partner-push reads its secrets on every call (decision 12), and the script needn't run again. A turned-down token isn't kept (decision 8).
+After fixing a secret, run the probe again: partner-push reads its secrets on every call (decision 12), and the script needn't run again. A stored signing token made with another key or team isn't used, and one Apple turned down isn't kept (decision 8, and the review's fix).
 
 - [ ] **Step 7: The check is running**
 
@@ -3387,7 +3392,7 @@ Expected: five rows, `succeeded`, about 15 seconds apart (spec §9 step 6).
 
 - [ ] **Step 8: The security advisor**
 
-In the dashboard, open **Advisors** → **Security Advisor** and refresh it, or Claude reads it with a yes. Expected: nothing about piece 3's functions or table (`partner_push_claim`, `partner_push_report`, `partner_push_state`, `call_partner_push`, `partner_push_tick`, `partner_push_probe`, `push_secret`, `require_push_password`). Note the probe's and the check's results in this plan's Execution notes.
+In the dashboard, open **Advisors** → **Security Advisor** and refresh it, or Claude reads it with a yes. Expected: one new INFO finding, `rls_enabled_no_policy` on `private.partner_push_state`, as piece 1's three private tables already have (its RLS is on with no policies, on purpose: no client reaches it). Nothing else about piece 3's functions or table (`partner_push_claim`, `partner_push_report`, `partner_push_state`, `call_partner_push`, `partner_push_tick`, `partner_push_probe`, `push_secret`, `require_push_password`). Note the probe's and the check's results in this plan's Execution notes.
 
 ### Task 13: Record the decisions
 
@@ -3441,3 +3446,17 @@ Ask separately before each push: `feature/supabase-account-backend` (or `feature
 ## Execution notes
 
 Filled in during the build: any place the code ends up different from the printed blocks, and why, and the setup's results.
+
+- **Tasks 0–10, 2026-10-18:** applied by a script from the plan's own steps (the same steps the replay checked). Every Run step gave the printed result, test-first failures included, and the branch's tree is identical to the scratch branch's (`b36b1a1f`). The worktree `~/Dev/Duty-partner-push` is on `feature/partner-push` at `884ac136`; `~/Dev/Duty` stayed on `feature/supabase-account-backend`, with only its scheme lines changed.
+- **Task 11, step 1:** `ℹ tests 222`, `ℹ pass 222`, `ℹ fail 0`.
+- **Task 11, the review (2026-10-18):** a read-only reviewer read `71c1b29a..884ac136`, this plan and the spec, and ran the tests. Verdict: "Ready to merge: with fixes", nothing Critical. Taken, each test-first in its own commit:
+  - **Important:** a stored signing token outlived a change of Apple key, so a fixed Key ID didn't take effect for up to 40 minutes (the probe kept answering with the old key), and a new token no push got an answer for was kept. `3066a521`: a stored token naming another key or team isn't used, and a new one is kept only once Apple has answered a push and turned it down for none.
+  - **The probe tried only Apple's test service,** so a key made for Sandbox only passed it. `0d7e211d`: it sends the made-up token a push on each service and answers for each, `{"probe":{"sandbox":…,"production":…}}`. This refines spec §6.3.
+  - **Small fixes,** `901f9e1f`: strict TypeScript 5.9 (`pemBytes`'s declared `Uint8Array` is a `Uint8Array<ArrayBufferLike>`, which `importKey` refuses; an unused parameter); a 20-second timeout on each call to Crewlu Cloud; the setup's two 500s are logged too (decision 7); the last catch-all logs only an error's name (decision 11).
+  - **Retries never stopped.** `f8c4bedb`: report marks a pilot due again only within an hour of their status changing, since Apple drops a push after an hour. This refines spec §7.
+  - **A test gap,** `0aa6449f`: the renewal, too, sends at most 10 at a time.
+  - **Docs:** `f24599fa` (a token's environment follows the build's provisioning profile, not Debug or Release; what the undo's order rests on) and `79af8aae` (the tests' count, and how to check partner-push's types with the website's TypeScript).
+  - **This plan:** Task 12's probe step (read by the probe's own id, both services, `timed_out`, `TooManyProviderTokenUpdates`) and the advisor's expected INFO finding.
+  - **Not taken, for later:** tests that the push and call timeouts in use are 10 and 20 seconds, not only the constants; a partial index on `push_due` (the table has one row per pilot); keeping the last run's result in SQL; dropping a `DeviceTokenNotForTopic` token when the same run proved the topic.
+  - 228 tests pass after the fixes, and partner-push type-checks with `--strict --noUnusedLocals --noUnusedParameters`.
+- **Task 11, the re-check of `884ac136..79af8aae`:** "Ready to merge: yes". Every fix does what it says; nothing regressed; 228 of 228 pass and the type check is clean; 14 of its 17 spot-check breaks were caught, 1 changed nothing, and the 2 left are the accepted timeout literals. Taken from its minor points: `0f6313a7` (a pilot at 59 minutes is still tried again, so the hour is pinned from both sides), `57322833` (why retries stop after an hour, and the contract says they do), and two clearer rows in Task 12 step 6 (`timed_out` and `error_msg`; a 403 for one service only). Left as is: after a renewal, "Apple answered" can count a first-round answer to the old token, which the 40-minute limit rules out; and a claim that commits after the 20-second timeout loses that run's pushes, as spec §7's "partner-push stops after claiming" already allows.
