@@ -4999,7 +4999,7 @@ Expected: the new commit. Don't push.
 
 2b and 2c are meant to merge together (Task 0). Ask the user one question: merge `feature/partner-cloud-screens` into `feature/supabase-account-backend` now, or keep it apart a while longer. To merge without changing any file on disk while Xcode is open: `git -C ~/Dev/Duty fetch . feature/partner-cloud-screens:feature/supabase-account-backend`, a fast-forward that works only while `feature/supabase-account-backend` is still `4ff32814`. Then switch to it (`git -C ~/Dev/Duty switch feature/supabase-account-backend`: the same commit, so no files change) and delete the 2c branch with `git -C ~/Dev/Duty branch -d feature/partner-cloud-screens`.
 
-- [ ] **Step 2: Push only with a fresh yes**
+- [x] **Step 2: Push only with a fresh yes**
 
 Ask separately before each push: `feature/supabase-account-backend` (or the branch, if kept apart) in `~/Dev/Duty`, and `main` in `~/Dev/Crewluve Website`. The release still waits for Crewluve piece 4 (P2-1), and spec §8.3's checks on real phones need it on TestFlight.
 
@@ -5044,3 +5044,4 @@ Filled in during the build: any place the code ends up different from the printe
 - **Task 15, the look (2026-10-17).** **The user chose** to wait for a TestFlight build. Step 1's first point no longer held: which iCloud environment an Xcode build uses isn't settled (spec §14.5). If the phone build reached Production, this build's writes would fail until the ticket field is deployed (spec §14.4), and once a build-199 write landed, the build guard would stop the App Store's 3.0.1 from writing over it. The move-over first runs for real on TestFlight.
 - **Task 16 (2026-10-17).** The spec's §14 has the plan's decisions, the review's changes, I2's acceptance, C1's release step, why the look waits for TestFlight, where the build differs from §6.7 and §7, and what's left. Beyond the printed step, §9's release list gained C1's step, as the review's verdict asked.
 - **Task 17 (2026-10-17).** **The user chose** to keep `feature/partner-cloud-screens` apart until 3.0.2 is archived from `feature/supabase-account-backend` (`8d97710e`): merged, that branch would carry 2b and 2c into 3.0.2. Step 1's fast-forward no longer applies, but the merge will be clean: that branch's only commit not here is its build-199 bump, the same as `6760e08d`, and `git merge-tree` gives exactly this branch's tree. With the user's yes, the branch went to GitHub at `19d6e633` as a backup.
+- **Task 17's pushes (2026-10-17).** Each with the user's own yes: the Duty branch to GitHub at `19d6e633`, and the website's `main` at `94e5c57`, whose deploy passed its tests and republished the site.
