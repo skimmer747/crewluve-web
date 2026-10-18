@@ -3437,7 +3437,7 @@ Ask the user one question: merge `feature/partner-push` into `feature/supabase-a
 
 Only once the branch is merged: `rm -rf ~/Dev/Duty-partner-push/supabase/tests/node_modules && git -C ~/Dev/Duty worktree remove ~/Dev/Duty-partner-push && git -C ~/Dev/Duty branch -d feature/partner-push`. If it's kept apart, keep the worktree.
 
-- [ ] **Step 3: Push only with a fresh yes**
+- [x] **Step 3: Push only with a fresh yes**
 
 Ask separately before each push: `feature/supabase-account-backend` (or `feature/partner-push`, if kept apart) in `~/Dev/Duty`, and `main` in `~/Dev/Crewluve Website`.
 
@@ -3471,4 +3471,5 @@ Filled in during the build: any place the code ends up different from the printe
   - **The clipboard:** the first copies weren't UTF-8 (with the sandbox off, the shell had no `LANG`), so the comments' `§` arrived as `¬ß`, harmless in comments; later copies used `LANG=en_US.UTF-8` and matched the files byte for byte.
   - **After the setup,** `ed8a6045` corrected the probe's comment in the migration. It's a comment outside any function, which Crewlu Cloud doesn't keep, so what was applied is unchanged.
 - **Task 14:** the user chose "Merge now". `git -C ~/Dev/Duty merge --ff-only feature/partner-push` moved `feature/supabase-account-backend` from `71c1b29a` to `ed8a6045`, all 20 commits in `supabase/`, and `npm test` in `~/Dev/Duty` passed 228 of 228. The worktree and `feature/partner-push` are removed. Pushes are asked one at a time.
+- **Pushed, each with the user's own yes:** CrewLu `feature/supabase-account-backend` `71c1b29a..ed8a6045`, and the website's `main` `94e5c57..dffa432`. Pages run 39170362564 succeeded, and the live site still serves `index-DncMPOoR.js` and `index-DL9IXgqK.css` (docs only). This last note is committed locally and goes out with the next push.
 
