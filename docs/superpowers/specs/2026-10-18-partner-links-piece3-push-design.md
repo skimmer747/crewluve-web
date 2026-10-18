@@ -1,6 +1,6 @@
 # Partner Links Piece 3: the Push Service
 
-- **Status:** design approved in brainstorming on 2026-10-18. Waiting for the user's review of this spec.
+- **Status:** approved by the user on 2026-10-18. Plan: `docs/superpowers/plans/2026-10-18-partner-links-piece3-push.md`.
 - **Part of:** the partner-links design, `docs/superpowers/specs/2026-10-15-partner-links-design.md`, §6.1 and §9 (piece 3).
 - **Repo:** CrewLu, `~/Dev/Duty`, in `supabase/` only, on a new branch off `feature/supabase-account-backend` (§11).
 - **Contract:** `~/Dev/Duty/supabase/partner-api.md`, the partner door from piece 1. This piece adds its "Pushes" section (§12).
