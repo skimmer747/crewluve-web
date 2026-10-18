@@ -1,6 +1,6 @@
 # Partner Links Piece 3: the Push Service
 
-- **Status:** approved by the user on 2026-10-18. Plan: `docs/superpowers/plans/2026-10-18-partner-links-piece3-push.md`.
+- **Status:** approved by the user on 2026-10-18, built and set up on Crewlu Cloud (`docs/superpowers/plans/2026-10-18-partner-links-piece3-push.md`).
 - **Part of:** the partner-links design, `docs/superpowers/specs/2026-10-15-partner-links-design.md`, §6.1 and §9 (piece 3).
 - **Repo:** CrewLu, `~/Dev/Duty`, in `supabase/` only, on a new branch off `feature/supabase-account-backend` (§11).
 - **Contract:** `~/Dev/Duty/supabase/partner-api.md`, the partner door from piece 1. This piece adds its "Pushes" section (§12).
@@ -189,3 +189,44 @@ The plan gives each step click by click.
 - The website, which polls (umbrella §6.2).
 - Per-partner push settings.
 - Realtime pings for open screens (umbrella §11).
+
+## 14. Decisions made while planning
+
+The plan is `docs/superpowers/plans/2026-10-18-partner-links-piece3-push.md`. Its Execution notes give each change below by commit.
+
+### 14.1 The plan's decisions
+
+These refine §3–§12. They're copied as the plan has them.
+
+1. **The tests' shim stands in for `pg_cron`, `pg_net` and the Vault,** which PGlite doesn't have (spec §10): the same schemas, and the signatures the migration calls, keeping what they're given. Nothing runs on a schedule, no request leaves, and secrets aren't encrypted. The migration creates the two extensions only where Postgres has them.
+2. **One script, run once.** A second run fails at its `create table` and changes nothing, because the SQL editor runs a script as one transaction. Its undo is in its header, as in piece 1, and the tests run that undo.
+3. **The password and the address are Vault secrets the script makes:** `partner_push_secret`, 32 random bytes, and `partner_push_url`. Claim and report raise SQLSTATE `28000` on a wrong or missing password, which PostgREST answers with 403; partner-push then answers 401. A missing password never matches, even if the Vault loses its secret.
+4. **The check and the probe share one caller,** `private.call_partner_push(body)`: the address and the password from the Vault, a 30-second timeout, and the body `{}` or `{"probe": true}`. Neither sends a token.
+5. **The cron history:** at 04:17 UTC, the `partner-push-history` job deletes the runs of this piece's two jobs that ended over a day ago, and no other job's.
+6. **partner-push uses the default secret key from `SUPABASE_SECRET_KEYS`, in the `apikey` header only.** This refines spec §6.1, which names `SUPABASE_SERVICE_ROLE_KEY`. Supabase stops the legacy keys at the end of 2026, Crewlu Cloud already has the new keys (CrewLu uses its publishable key), and Supabase refuses a new secret key in `Authorization`.
+7. **The settings are checked before claiming.** A missing setting, or an `APNS_PRIVATE_KEY` that isn't a key, answers 500 by name and claims nobody, so no push is lost and the probe shows the problem at setup. While it's broken, a due pilot makes the check call every 15 seconds, which the function's logs show.
+8. **A new signing token is kept only if Apple accepted it.** If Apple answers `InvalidProviderToken` or `ExpiredProviderToken` to it, it isn't reported, so a fixed key or Team ID takes effect at the next run, not up to 40 minutes later. This refines spec §6.2 step 6 and §6.3.
+9. **At most one renewal per run** (spec §7). `ExpiredProviderToken` on the stored token makes one new token for the whole run, and each push it turned down is sent once more with it. A token made in the same run that Apple calls expired isn't renewed again: that push counts as failed.
+10. **Report is called only when there's something to report:** dead tokens, pilots to try again, or a new signing token.
+11. **The logs:** one line per run with the counts, and one per push that failed or will be tried again, with Apple's status and reason. An error's message isn't logged, because Deno's fetch errors name the address, and so the token. The probe's answer shows the whole message and its cause, since its token is made up.
+12. **partner-push reads its settings on every call,** so a changed secret is used at once, with no redeploy.
+13. **Built in a worktree, `~/Dev/Duty-partner-push`,** on the new branch `feature/partner-push` (spec §11). `~/Dev/Duty` stays on the release line for archiving, and Xcode never sees the branch. The worktree's tests use a copy of `~/Dev/Duty`'s test packages, so nothing is downloaded.
+14. **The Apple key is for Crewluve only, in both environments** (`Sandbox & Production`, `Topic Specific`, `com.ToddAnderson.Crewluv`), so a leaked key can't send to other apps. Debug builds register `sandbox` tokens and TestFlight and the App Store `production` ones, so it needs both. An existing key that covers both and Crewluve works too (spec §9 step 1).
+15. **The privileges guard checks RLS on every private partner-links table,** as a second lock. `partner_push_state` has it on, as piece 1's private tables do.
+
+### 14.2 Changes from the review
+
+A read-only review of the built branch found nothing Critical and one Important issue; its re-check found the fixes right. Taken:
+
+- **A stored signing token must name the current key and team** (the Important issue). Otherwise a key changed during setup kept signing with the old one for up to 40 minutes, and the probe kept giving the old key's answer. A token made in a run that no push got an answer for isn't kept either. This refines decision 8: a new token is kept only once Apple has answered a push and turned it down for none.
+- **The probe tries both of Apple's services** (refines §6.3): a push to the made-up token on `api.sandbox.push.apple.com` and on `api.push.apple.com`, answered as `{"probe":{"sandbox":{…},"production":{…}}}`, so a key made for one environment only shows at setup.
+- **Retries stop an hour after the status changed** (refines §7): report marks a pilot due again only while `partner_status.updated_at` is under an hour old. A change that old isn't worth a wake-up, and a push Apple held for a phone that's off would have expired.
+- **Smaller fixes:** strict TypeScript 5.9; a 20-second timeout on each call to Crewlu Cloud; the setup's two 500s are logged (decision 7); the last catch-all logs only an error's name (decision 11); a test that the renewal sends at most 10 at a time; the contract's note that a push token's environment follows the build's provisioning profile (`aps-environment`), not Debug or Release.
+- **Left for later:** tests that the timeouts in use are the constants; a partial index on `push_due`; keeping the last run's result in SQL; dropping a `DeviceTokenNotForTopic` token when the same run proved the topic.
+
+### 14.3 The setup, 2026-10-18
+
+- **The Apple key is Team Scoped** (decision 14, as built): Apple offers Topic Specific only for a key with one environment, and partner-push needs one key for both. Key ID `GBMNP339CQ`, Sandbox & Production.
+- **The probe** answered `400 BadDeviceToken` on both services: the key, the Team ID and HTTP/2 from Supabase's `fetch` all work, so partner-push stays on `fetch` (§9 step 5).
+- **The check** runs every 15 seconds and succeeds. The security advisor shows only the expected `rls_enabled_no_policy` INFO for `private.partner_push_state`.
+- **Two setup slips the steps now warn about:** the dashboard names a new function itself unless **Function Name** is set before deploying, and a secret's value is the file's text, not its name.

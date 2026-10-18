@@ -3271,11 +3271,11 @@ For each finding, fix it test-first, run `npm test` again, and commit with the e
 
 **Files:** none. The Apple Developer account and Crewlu Cloud change here, by the user's hands (spec §9). Claude never sees the Apple key (spec §8). Claude's Supabase connection is read-only, so it can only read what the setup made, and only with the user's yes.
 
-- [ ] **Step 1: Ask before going live**
+- [x] **Step 1: Ask before going live**
 
 Ask the user one question: set it up now? It's the spec's decision 2 (on as soon as it's built and reviewed), but it changes Crewlu Cloud, so it gets its own yes. From the SQL script on, the check runs every 15 seconds, but it calls partner-push only when a pilot whose partner has a new Crewluve is due, so nothing is sent until piece 4. If not now, stop here: Tasks 13 and 14 wait too.
 
-- [ ] **Step 2: The Apple push key**
+- [x] **Step 2: The Apple push key**
 
 Send the user these steps:
 
@@ -3290,7 +3290,7 @@ Send the user these steps:
 
 If you already have an APNs key that covers both environments and Crewluve, you can use it instead.
 
-- [ ] **Step 3: partner-push in Supabase**
+- [x] **Step 3: partner-push in Supabase**
 
 Claude puts the function's file on the clipboard. Run it with the sandbox off: from inside it, `pbcopy` doesn't reach the user's clipboard.
 
@@ -3312,7 +3312,7 @@ Then send the user these steps:
 6. Click **Deploy function**, and wait for the success message.
 7. On partner-push's page, open its settings (the **Details** tab), turn off the switch for JWT verification (labeled like **Verify JWT**), and save. The check sends no sign-in: the password guards partner-push instead (spec §6.1).
 
-- [ ] **Step 4: Its four secrets**
+- [x] **Step 4: Its four secrets**
 
 Send the user these steps:
 
@@ -3324,7 +3324,7 @@ Send the user these steps:
    - `APNS_TOPIC`: `com.ToddAnderson.Crewluv`
 3. Check that `SUPABASE_SECRET_KEYS` is in the list of secrets Supabase supplies (decision 6).
 
-- [ ] **Step 5: The SQL script**
+- [x] **Step 5: The SQL script**
 
 Claude puts the script on the clipboard, again with the sandbox off:
 
@@ -3341,11 +3341,11 @@ Then send the user these steps:
 1. In the left sidebar, click **SQL Editor**, and start a new query.
 2. Paste (⌘V) and click **Run**.
 3. If it warns about a destructive operation, that's the clean-up job's `delete`, which runs once a day: confirm it.
-4. Expected: `Success. No rows returned`. If it says something `already exists`, the script ran before: stop and ask.
+4. Expected: the result of the script's last `select`, a `schedule` column holding `2` (the clean-up job's number; the check's is `1`). If it says something `already exists`, the script ran before: stop and ask.
 
 The check starts at once.
 
-- [ ] **Step 6: The probe**
+- [x] **Step 6: The probe**
 
 Send the user these steps:
 
@@ -3378,7 +3378,7 @@ Expected: `status_code` 200 and `content` `{"probe":{"sandbox":{"status":400,"re
 
 After fixing a secret, run the probe again: partner-push reads its secrets on every call (decision 12), and the script needn't run again. A stored signing token made with another key or team isn't used, and one Apple turned down isn't kept (decision 8, and the review's fix).
 
-- [ ] **Step 7: The check is running**
+- [x] **Step 7: The check is running**
 
 A minute after the script, the user runs, or Claude with a yes:
 
@@ -3390,7 +3390,7 @@ select status, start_time, return_message from cron.job_run_details
 
 Expected: five rows, `succeeded`, about 15 seconds apart (spec §9 step 6).
 
-- [ ] **Step 8: The security advisor**
+- [x] **Step 8: The security advisor**
 
 In the dashboard, open **Advisors** → **Security Advisor** and refresh it, or Claude reads it with a yes. Expected: one new INFO finding, `rls_enabled_no_policy` on `private.partner_push_state`, as piece 1's three private tables already have (its RLS is on with no policies, on purpose: no client reaches it). Nothing else about piece 3's functions or table (`partner_push_claim`, `partner_push_report`, `partner_push_state`, `call_partner_push`, `partner_push_tick`, `partner_push_probe`, `push_secret`, `require_push_password`). Note the probe's and the check's results in this plan's Execution notes.
 
@@ -3399,7 +3399,7 @@ In the dashboard, open **Advisors** → **Security Advisor** and refresh it, or 
 **Files (in `~/Dev/Crewluve Website`):**
 - Modify: `docs/superpowers/specs/2026-10-18-partner-links-piece3-push-design.md`, and this plan
 
-- [ ] **Step 1: Add the planning decisions to the spec**
+- [x] **Step 1: Add the planning decisions to the spec**
 
 At the end of the spec, after §13, add `## 14. Decisions made while planning`, followed by this plan's "Decisions made while planning" list, copied as it stands, then any changes from the review (Task 11) and the setup's results (Task 12). Then update its status line.
 
@@ -3415,7 +3415,7 @@ with:
 - **Status:** approved by the user on 2026-10-18, built and set up on Crewlu Cloud (`docs/superpowers/plans/2026-10-18-partner-links-piece3-push.md`).
 ```
 
-- [ ] **Step 2: Tick this plan and commit**
+- [x] **Step 2: Tick this plan and commit**
 
 Run:
 
@@ -3460,3 +3460,14 @@ Filled in during the build: any place the code ends up different from the printe
   - **Not taken, for later:** tests that the push and call timeouts in use are 10 and 20 seconds, not only the constants; a partial index on `push_due` (the table has one row per pilot); keeping the last run's result in SQL; dropping a `DeviceTokenNotForTopic` token when the same run proved the topic.
   - 228 tests pass after the fixes, and partner-push type-checks with `--strict --noUnusedLocals --noUnusedParameters`.
 - **Task 11, the re-check of `884ac136..79af8aae`:** "Ready to merge: yes". Every fix does what it says; nothing regressed; 228 of 228 pass and the type check is clean; 14 of its 17 spot-check breaks were caught, 1 changed nothing, and the 2 left are the accepted timeout literals. Taken from its minor points: `0f6313a7` (a pilot at 59 minutes is still tried again, so the hour is pinned from both sides), `57322833` (why retries stop after an hour, and the contract says they do), and two clearer rows in Task 12 step 6 (`timed_out` and `error_msg`; a 403 for one service only). Left as is: after a renewal, "Apple answered" can count a first-round answer to the old token, which the 40-minute limit rules out; and a claim that commits after the 20-second timeout loses that run's pushes, as spec §7's "partner-push stops after claiming" already allows.
+- **Task 12, the setup (2026-10-18, by the user):**
+  - **The Apple key:** `AuthKey_GBMNP339CQ.p8`, Sandbox & Production, **Team Scoped (All Topics)**. Apple offers Topic Specific only for a key with one environment, so decision 14 is built as a team-scoped key; Crewluve-only keys would take two, one per environment, and partner-push holding both. The older `AuthKey_P2NGCHJ9SF.p8` (November 2025) is untouched.
+  - **partner-push:** first deployed under Supabase's made-up name, `smart-responder`; the name has to go in the editor's **Function Name** box before deploying, since renaming keeps the address. It was deleted and deployed again as `partner-push`; only `partner-push` is deployed, with `verify_jwt` false.
+  - **The secrets:** `APNS_KEY_ID`, `APNS_TEAM_ID` and `APNS_TOPIC` checked against the dashboard's SHA-256 digests. `APNS_PRIVATE_KEY` first held the file's name (its digest matched the name's), and the first probe (request 1) answered `500 {"error":"APNS_PRIVATE_KEY isn't the text of a .p8 key"}`, as decision 7 meant; it was replaced with the file's text.
+  - **The SQL script** ran at about 21:49 UTC. The editor showed its last `select`'s result, `schedule` `2`, not "No rows returned"; Step 5 now says so.
+  - **The probe** (request 2, 21:55:40 UTC): `200 {"probe":{"sandbox":{"status":400,"reason":"BadDeviceToken"},"production":{"status":400,"reason":"BadDeviceToken"}}}`. Both services accept the key and the Team ID, over HTTP/2 from Supabase's `fetch`, so `node:http2` isn't needed. The new signing token was kept at 21:55:40.
+  - **The check:** `partner-push` succeeded every 15 seconds (five runs, 21:55:17 to 21:56:17 UTC). `partner-push-history` first runs at 04:17 UTC.
+  - **The security advisor:** `rls_enabled_no_policy` INFO × 5 (piece 1's three private tables, `partner_push_state`, and `repair.crew_member_strays_20261017` from the 2026-10-17 crew fix); 0028 × 6 and 0029 × 15 unchanged (piece 1's RPCs and `delete_my_account`); leaked-password protection, 1. Nothing about piece 3's functions.
+  - **The clipboard:** the first copies weren't UTF-8 (with the sandbox off, the shell had no `LANG`), so the comments' `§` arrived as `¬ß`, harmless in comments; later copies used `LANG=en_US.UTF-8` and matched the files byte for byte.
+  - **After the setup,** `ed8a6045` corrected the probe's comment in the migration. It's a comment outside any function, which Crewlu Cloud doesn't keep, so what was applied is unchanged.
+
