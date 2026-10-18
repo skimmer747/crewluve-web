@@ -1,6 +1,6 @@
 # Partner Links Piece 2: CrewLu on Crewlu Cloud
 
-- **Status:** design approved in brainstorming on 2026-10-16, and the user approved this spec the same day. Plans 2a and 2b are built (`docs/superpowers/plans/2026-10-16-partner-links-piece2a-summary.md`, `docs/superpowers/plans/2026-10-17-partner-links-piece2b-screens.md`); next: plan 2c.
+- **Status:** design approved in brainstorming on 2026-10-16, and the user approved this spec the same day. Plans 2a, 2b and 2c are built (`docs/superpowers/plans/2026-10-16-partner-links-piece2a-summary.md`, `docs/superpowers/plans/2026-10-17-partner-links-piece2b-screens.md`, `docs/superpowers/plans/2026-10-17-partner-links-piece2c-move-over.md`).
 - **Part of:** the partner-links design, `docs/superpowers/specs/2026-10-15-partner-links-design.md`, §7.1, §8 and §9 (piece 2).
 - **Repo:** CrewLu, `~/Dev/Duty`, on a new branch off `feature/supabase-account-backend` (§9).
 - **Contract:** `~/Dev/Duty/supabase/partner-api.md`, the partner door from piece 1, live since 2026-10-15.
@@ -405,6 +405,7 @@ This needs the user, a test partner, and Crewluve piece 4 on TestFlight.
 - **The branch:** a new branch off `feature/supabase-account-backend`, merged back into it. Each plan starts by checking that the tree is clean apart from the Xcode scheme files, which are left alone.
 - **No database change.** Piece 1 is live.
 - **The release:**
+  - before any TestFlight build, the ticket field goes into iCloud's Production schema (§14.4);
   - the user sets the version and submits;
   - it goes live after Crewluve piece 4 (P2-1), which itself needs the push service (piece 3) live;
   - §8.3 passes first.
@@ -539,3 +540,80 @@ The user's look on their phone (plan Task 17), with their two iCloud partners, f
 - **Until 2c, the iCloud record carries every per-person setting,** Crewlu Cloud partners' included, so a quick status sent only to a Crewlu Cloud partner would also show to iCloud partners on an older Crewluve. No TestFlight build should come from a branch with 2b but not 2c.
 - **`ensureShare()`, `shareURL` and `CloudSharingSheet` have no callers.** They go with the rest of iCloud sharing in piece 6.
 - **Testing with the pilot's own iCloud reaches their real partners.** Stop Sharing with Everyone and Remove act on them, and key-value sync carries per-person settings to every device on that account.
+
+## 14. Decisions made while planning 2c
+
+Plan 2c (`docs/superpowers/plans/2026-10-17-partner-links-piece2c-move-over.md`) is built on CrewLu's `feature/partner-cloud-screens` branch, after 2b. What follows refines the sections above, and holds where they differ.
+
+### 14.1 The plan's decisions
+
+1. **`PartnerCloudAPI` gains `partner_move_ticket`** (`moveTicket(for:)`). Its `expires_at` isn't kept: the move-over asks again on every run until someone has moved over, and an open ticket comes back the same while an expired or used one is replaced.
+2. **The move-over's calls go through `PartnerCloudStore`,** for the account its list follows. Making someone's partner (with their iCloud id as the reference) and asking for a ticket don't read the list after each call: the runner notes each new partner first, then reads the list once, so the list never shows anyone twice. `readListNow()` waits for a read that starts after it asks, even when one is already out, because the move-over decides from it.
+3. **A moved-over person's settings live under their Crewlu Cloud id** (spec §6.6). Step 2 moves them there from the iCloud id: an entry already under the Crewlu Cloud id stays, and the iCloud id's entry goes either way, so a status cleared later can't come back from it. By either id, reads try the Crewlu Cloud id first, then the iCloud id, and writes and clears go to the Crewlu Cloud id and drop the iCloud id's copy. So the screen below the sign-in prompt and its quick status sheet, which still use iCloud ids, reach the same settings.
+4. **The iCloud record's per-person fields are for the share's participants only** (spec §13.5): each by their iCloud id, looked up Crewlu Cloud id first, plus a status for everyone. The record's top-level quick status and `isSleeping`, which an older Crewluve shows every partner, come from those entries alone, so nothing meant for someone on Crewlu Cloud alone reaches an older Crewluve. The iCloud manager saves the participants iCloud identifies each time it reads the share, on that device only. Before a device has read the share on this version, its record keeps every setting, as before, plus each linked person's under their iCloud id. The JSON fields have sorted keys, so an unchanged record encodes the same.
+5. **The tickets go into the record from the notes** (`moveTicketByPartnerJSON`, spec §7.4), for the share's participants, on every write by any device on this version, signed in or not. `SharedPilotStatus` doesn't change. The runner writes the record again whenever it doesn't carry the notes' tickets, not only when they change, so a write that failed is made again by the next run.
+6. **When it runs** (spec §7.2): on every activation (at launch, once the share is read, and on coming back), whenever Partner Sharing appears (so also on coming back to it after signing in from its prompt), and when the share's participants change on that screen. Each run reads the share's participants and the Crewlu Cloud list first, and decides nothing if either can't be read. One run at a time: a run asked for meanwhile runs once more after it. Remove and Stop Sharing with Everyone wait for a run that's out, so it can't make someone again.
+7. **A refusal skips that person; anything else stops the run.** Crewlu Cloud refusing a partner (PT409: 25 already) leaves that person on iCloud. Being offline or needing a sign-in stops the run, keeping what it noted, and the next run picks up.
+8. **One row per person** (spec §6.2): someone the notes link to a partner in the list is that partner's row, with its name, still on iCloud until they have an `app` device and connected after. Rows still on iCloud keep the share's order, linked or not. Their partner page is found by either id, so it stays open when the move-over links them. Until they move over, it shows the iCloud device row and no link buttons, and the nickname renames them on Crewlu Cloud.
+9. **Removing someone in the iCloud share** (spec §7.5): they leave the share first, and if that fails nothing else changes. If the move-over linked them, their iCloud id goes on the removed list and their ticket goes. The iCloud manager does this, so it happens from either screen, signed in or not. Then their Crewlu Cloud partner goes, if they have one.
+10. **Late joiners** (spec §7.6): when today's matching names someone from a pending invite, their Crewlu Cloud partner takes that name, at once if it's made, or once the run that's out has made it; someone not linked yet is made with it. The name they see the pilot as is cleared under both ids, as the matching already does for the iCloud id.
+11. **The share ends only when nobody reads through it** (spec §7.3, step 5): every accepted participant is linked and has an `app` device, iCloud can identify them all, and no pending invite is open on this device. Someone the pilot removed who joins again through the old iCloud link holds it up too, until removed again: nobody is cut off. Participants who never accepted don't count, as in 2b's list. Settings still under an iCloud id move over before it ends.
+12. **The notes** (spec §7.1) are three UserDefaults keys, synced by key-value storage as plain dictionaries and a list. Ending the iCloud share (`endICloudShare()`, and the clean-up on finding it gone) and Stop Sharing with Everyone forget them, through `PartnerSettings`.
+13. **Sign Out asks first only when it stops someone's updates** (the user's choice; spec §6.7): someone reads through Crewlu Cloud, or has an invite out. Someone still on iCloud, linked or not, keeps getting updates through the iCloud record, signed in or not. Before this launch has read the list, any Crewlu Cloud partner counts, as in 2b.
+14. **`PartnerQuickStatusEntry` and `PartnerCloudSettings` are `Equatable`,** so the move-over knows when settings changed, and the tests compare them. `PartnerCloudStore.cleanName` is `nonisolated`, so the pure decision uses it.
+
+### 14.2 Changes from the review
+
+The review of the built branch (plan Task 13) found one Critical, two Important and eleven Minor issues, and the same reviewer's re-check found two more. These changes followed, each with its own tests where the Mac harness can run them:
+- **A removal that can't reach Crewlu Cloud waits for it** (I1). Before, removing a linked person below the sign-in prompt, or while Crewlu Cloud couldn't be reached, never reached Crewlu Cloud, so after signing back in they got updates again. Now a synced list, `crewluve.cloudPartnersToRemove`, holds the Crewlu Cloud partners to remove. It's kept apart from the notes (§7.1), so ending the iCloud share doesn't forget it:
+  - removing a linked person adds their partner (`noteRemoved`);
+  - Stop Sharing with Everyone below the prompt adds everyone linked, except people removed earlier, whose partners were dealt with then (R2, from the re-check);
+  - `PartnerCloudStore.remove` and Stop Sharing with Everyone on Crewlu Cloud take off what they removed;
+  - each run does the waiting removals first, with or without an iCloud share. One not in this account's list waits, a refusal drops it, and being offline stops the run.
+- **Removing the last iCloud partner notes their removal before the share can end** (R1, from the re-check). Ending the share forgets the links, so `noteRemoved` now runs straight after the share is saved.
+- **Runs wait for removals** (M5, M11). `holdingRuns(_:)` puts off runs while a removal or Stop Sharing with Everyone goes on. `remove(cloudID:iCloudID:)` keeps §7.5's order in one tested place, and both screens remove through it.
+- **A sign-out or an account switch during a run decides nothing** (M1): the run checks the account again before it moves settings or decides about the share.
+- **Crewlu Cloud's PT409 (25 partners already) stops the run's creates** (M8): nobody else can be made. This refines decision 7.
+- **The partner page opens by value** (M6), so linking someone doesn't close it, and it stays until its removal is done (M7).
+- **A late joiner's rename runs in a `Task`** (M4), and the unused `PartnerSharingView.clearStatusForPartner(_:)` is gone (M10).
+- **Tests for the reviewer's cases:** a refused ticket; a share nobody accepted, which ends unless a pending invite is open on this device (M2); and someone removed who still has the app, who reads through Crewlu Cloud and so counts as moved over.
+- **Declined:**
+  - **M3,** checking the record's tickets against this device's last write: the device that wrote without them writes again on its own next run, and an exact check costs one more iCloud read per run.
+  - **M9,** list waiters shared across accounts: one woken early finds the list unloaded and decides nothing.
+  - **R3,** a waiting removal lost when two devices sync the whole key at once (last writer wins): every partner setting synced today has the same limit (§14.7).
+  - **The optional items:** Remove showing no progress while a run finishes, and today's invite matching being able to push a wrong label to Crewlu Cloud.
+
+### 14.3 Accepted: anyone in the iCloud share can read every ticket
+
+**The user chose** to accept this (I2). Every participant of the public iCloud share can read every ticket in the record, so one could redeem someone else's: they'd get a device on that person's partner, and that person would look moved over. They already see the status through iCloud. The partner page lists each device, so a stray one can be removed, and the move-over then hands that person a fresh ticket.
+
+### 14.4 A release step: the ticket field in iCloud's Production schema
+
+The review's Critical finding (C1), with no code change. CloudKit's Production schema doesn't learn new fields from saves, so before any TestFlight or App Store build with 2c:
+1. In the CloudKit Console, container `iCloud.com.toddanderson.duty`, check that the Development schema's `SharedPilotStatus` record type has `moveTicketByPartnerJSON`, of type Bytes. A save in Development adds it; if it isn't there, add it by hand.
+2. Deploy Schema Changes to Production. This deploys every change waiting in Development, and the Console lists them before it does.
+
+Without it, every write that carries a ticket fails, and so may every other write from this version, because each one clears the field when there's no ticket. Partners on an older Crewluve would stop getting updates. `Duty/Documentation/CLOUDKIT_DEPLOYMENT_GUIDE.md` has the Console's steps.
+
+### 14.5 The look waits for TestFlight
+
+**The user chose** to wait for a TestFlight build rather than run 2c from Xcode on their phone (plan Task 15). Which iCloud environment an Xcode build uses isn't settled:
+- CrewLu's Debug build doesn't choose one (it has no `com.apple.developer.icloud-container-environment` entitlement), so by Apple's rule it uses Development;
+- yet in 2b's look, such a build on the pilot's phone found their two iCloud partners.
+
+If it reached Production, this build's writes would fail until §14.4 is done. A TestFlight build always uses Production, can't come before §14.4, and is where §8.3's checks happen. So the move-over first runs for real there.
+
+### 14.6 Where the build differs from §6.7 and §7
+
+- **§6.7's Sign Out asks first only when it stops someone's updates** (decision 13): someone reads through Crewlu Cloud, or has an invite out. People still on iCloud keep getting updates through the iCloud record.
+- **§7.2's runs** come on every activation, whenever Partner Sharing appears, and when the share's participants change there (decision 6). A run also comes with no iCloud share while removals wait (§14.2).
+- **§7.3's step 2 moves settings rather than copying them** (decision 3): an entry already under the Crewlu Cloud id stays, and the iCloud id's entry goes either way, so a status cleared later can't come back from it.
+- **§7.3's step 4** writes the record again whenever it doesn't carry the notes' tickets, not only when they change (decision 5), so the next run makes a write that failed again.
+- **§7.3's step 5** (decision 11): participants who never accepted don't count, so a share nobody accepted ends unless a pending invite is open on this device; someone removed who joins again holds it up until removed again; and someone removed who still has the app counts as moved over.
+- **§7.5's removals** go through `remove(cloudID:iCloudID:)`, which waits for a run that's out. A Crewlu Cloud removal that can't be made waits in the removal list (§14.2).
+- **Stop Sharing with Everyone below the prompt** (§13.4) ends the iCloud share, and linked people's Crewlu Cloud partners wait in the removal list for the next signed-in run. Crewlu Cloud partners who were never in the iCloud share stay, with their settings.
+
+### 14.7 Left for later
+
+- **A partner's second device on an older Crewluve stops getting updates when the share ends.** Step 5 needs one `app` device per person, not all of their devices. Their ticket goes once they have an `app` device, so that second device can't redeem one either: piece 4 needs another way for it to join.
+- **Stale entries in the removal list.** One whose partner went some other way than through CrewLu's store, or one for another account's partner, waits for good. It acts on nothing, since ids are never used again, but while it's there each activation reads the Crewlu Cloud list once, even with no iCloud share. Stop Sharing with Everyone on Crewlu Cloud clears the list. Two devices syncing the whole key at once can also lose an entry (R3).

@@ -123,7 +123,7 @@ Outside both repos: the Mac harness (`$HARNESS`, Task 2) and the compile-only cl
 
 ### Task 0: Check the branch
 
-- [ ] **Step 1: Check the working tree**
+- [x] **Step 1: Check the working tree**
 
 Run:
 
@@ -133,7 +133,7 @@ git -C ~/Dev/Duty status --short
 
 Expected: only the Xcode scheme lines (` M Duty.xcodeproj/xcshareddata/xcschemes/Duty.xcscheme` and four `??` scheme files). On 2026-10-17 the checkout also had an untracked `docs/superpowers/plans/2026-10-17-detach-dead-trip-children.md` from other work: leave it alone too. If anything else shows, stop and ask the user.
 
-- [ ] **Step 2: Check the branch and its tip**
+- [x] **Step 2: Check the branch and its tip**
 
 Run:
 
@@ -150,7 +150,7 @@ Expected: `feature/partner-cloud-screens`, then `8f162e61 fix(partners): after t
 
 The seam gains `partner_move_ticket` (decision 1), and the tests' stand-in answers it. Nothing uses it yet: Task 2's harness builds the stand-in, and Task 12 builds the live version.
 
-- [ ] **Step 1: Add the call to the seam**
+- [x] **Step 1: Add the call to the seam**
 
 One replacement in `Duty/Utils/PartnerCloud/PartnerCloudAPI.swift`:
 
@@ -175,7 +175,7 @@ with:
 }
 ```
 
-- [ ] **Step 2: Add it to the live version**
+- [x] **Step 2: Add it to the live version**
 
 It goes through the same `call` as the other actions, so it asks for the session first and its errors map the same way.
 
@@ -219,7 +219,7 @@ with:
     private func call<T>(_ body: () async throws -> T) async throws -> T {
 ```
 
-- [ ] **Step 3: Add it to the tests' stand-in**
+- [x] **Step 3: Add it to the tests' stand-in**
 
 It's recorded like the other actions and can be made to fail. It answers `ticket-<id>`, unless a test gives another ticket, as the server does when one has expired or been used.
 
@@ -281,7 +281,7 @@ with:
 }
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 Run:
 
@@ -299,7 +299,7 @@ The harness from plans 2a and 2b, made again: it was temporary. A Swift package 
 
 What changed since 2b: the stand-in for the live API has the move ticket, and `run.sh` also copies 2c's two new test files. Task 9 adds the iCloud manager's stand-in, which needs a type Task 6 makes.
 
-- [ ] **Step 1: Write the package**
+- [x] **Step 1: Write the package**
 
 File: `$HARNESS/Package.swift`
 
@@ -331,7 +331,7 @@ let package = Package(
 )
 ```
 
-- [ ] **Step 2: Write the stand-ins**
+- [x] **Step 2: Write the stand-ins**
 
 File: `$HARNESS/Sources/UIKit/UIKitStandIn.swift`
 
@@ -388,7 +388,7 @@ final class PartnerDataKVSync {
 }
 ```
 
-- [ ] **Step 3: Write the runner**
+- [x] **Step 3: Write the runner**
 
 File: `$HARNESS/run.sh`
 
@@ -448,7 +448,7 @@ Expected: `Executed 101 tests, with 0 failures`: 2b's tests, with Task 1's stand
 
 What the move-over remembers (spec §7.1, decision 12), the tickets the iCloud record carries (§7.4, decision 5), and noting someone the pilot removed (§7.5, decision 9).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 File: `DutyTests/PartnerMoveOverNotesTests.swift`
 
@@ -542,7 +542,7 @@ final class PartnerMoveOverNotesTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -552,7 +552,7 @@ Run:
 
 Expected: the build fails: `cannot find 'PartnerMoveOverNotes' in scope`.
 
-- [ ] **Step 3: Write the notes**
+- [x] **Step 3: Write the notes**
 
 File: `Duty/Utils/PartnerCloud/PartnerMoveOverNotes.swift`
 
@@ -651,7 +651,7 @@ struct PartnerMoveOverNotes: Equatable, Sendable {
 }
 ```
 
-- [ ] **Step 4: Run the tests to see them pass**
+- [x] **Step 4: Run the tests to see them pass**
 
 Run:
 
@@ -661,7 +661,7 @@ Run:
 
 Expected: `Executed 108 tests, with 0 failures`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -679,7 +679,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 
 Spec §6.6 and decisions 3, 4 and 12: settings by either id, moving them over, the iCloud record's per-person fields for the share's participants only, and the clean-ups forgetting the notes.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 The header, two of 2b's tests extended to the notes, and twelve new tests at the end.
 
@@ -954,7 +954,7 @@ with:
 }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -964,7 +964,7 @@ Run:
 
 Expected: the build fails, with errors such as `type 'PartnerSettings' has no member 'quickStatus'` and `requires that 'PartnerQuickStatusEntry' conform to 'Equatable'`.
 
-- [ ] **Step 3: Make the quick status comparable**
+- [x] **Step 3: Make the quick status comparable**
 
 One replacement in `Duty/Models/SharedPilotStatus.swift`:
 
@@ -992,7 +992,7 @@ struct PartnerQuickStatusEntry: Codable, Equatable, Sendable {
     let expiry: Date?     // nil = no limit
 ```
 
-- [ ] **Step 4: Write the settings**
+- [x] **Step 4: Write the settings**
 
 The header; `PartnerCloudSettings` is `Equatable`; the participants' key; Clear by both ids; the clean-ups forget the notes; and the new section: the lookup, the writes, the move, saving, and the iCloud record.
 
@@ -1308,7 +1308,7 @@ with:
     /// Saved as PartnerQuickStatusSheet saves them; an empty map isn't kept.
 ```
 
-- [ ] **Step 5: Run the tests to see them pass**
+- [x] **Step 5: Run the tests to see them pass**
 
 Run:
 
@@ -1318,7 +1318,7 @@ Run:
 
 Expected: `Executed 120 tests, with 0 failures`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Run:
 
@@ -1336,7 +1336,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 
 Decision 2: making someone's partner and asking for their ticket, for the account the list follows, without reading the list after each; and reading the list for the move-over, after any read that's out.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 One replacement in `DutyTests/PartnerCloudStoreTests.swift`:
 
@@ -1435,7 +1435,7 @@ with:
 /// Counts Observation's change calls, which may come from any thread.
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -1445,7 +1445,7 @@ Run:
 
 Expected: the build fails, with errors such as `value of type 'PartnerCloudStore' has no member 'moveTicket'`.
 
-- [ ] **Step 3: Write the calls**
+- [x] **Step 3: Write the calls**
 
 The header; the waiters `readListNow()` leaves; `refresh()` letting them go when its reads are done; the two calls; `readListNow()`; and `act` reading the list again only when asked.
 
@@ -1591,7 +1591,7 @@ with:
             let error = error as? PartnerCloudError ?? .unavailable
 ```
 
-- [ ] **Step 4: Run the tests to see them pass**
+- [x] **Step 4: Run the tests to see them pass**
 
 Run:
 
@@ -1601,7 +1601,7 @@ Run:
 
 Expected: `Executed 126 tests, with 0 failures`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -1620,7 +1620,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 
 Spec §7.3 and §8.1 as a pure function (decisions 7, 11): whom to make, whose settings move, who gets a ticket, and whether the share ends. Task 9 adds the runner to the same file.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 File: `DutyTests/PartnerMoveOverTests.swift`
 
@@ -1769,7 +1769,7 @@ final class PartnerMoveOverTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -1779,7 +1779,7 @@ Run:
 
 Expected: the build fails: `cannot find 'PartnerMoveOver' in scope`.
 
-- [ ] **Step 3: Write the decision**
+- [x] **Step 3: Write the decision**
 
 File: `Duty/Utils/PartnerCloud/PartnerMoveOver.swift`
 
@@ -1884,7 +1884,7 @@ enum PartnerMoveOver {
 }
 ```
 
-- [ ] **Step 4: Let the decision clean names**
+- [x] **Step 4: Let the decision clean names**
 
 Names are cleaned as Crewlu Cloud keeps them, by the store's own `cleanName`, which is pure. On the main actor it couldn't be called from the decision.
 
@@ -1917,7 +1917,7 @@ with:
         for character in name.trimmingCharacters(in: .whitespacesAndNewlines) {
 ```
 
-- [ ] **Step 5: Run the tests to see them pass**
+- [x] **Step 5: Run the tests to see them pass**
 
 Run:
 
@@ -1927,7 +1927,7 @@ Run:
 
 Expected: `Executed 136 tests, with 0 failures`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Run:
 
@@ -1944,7 +1944,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 
 Spec §13.5's gap, closed (decisions 4 and 5): the generator builds the record's per-person fields through Task 4's `PartnerSettings.iCloudRecord`, for the participants the iCloud manager saves each time it reads the share, and the manager writes the notes' tickets into the record. This is SwiftData and CloudKit code the harness can't build, so Task 12's compile, the review and the user's run check it; Task 4's tests pin the fields, and Task 3's the tickets.
 
-- [ ] **Step 1: Build the record's per-person fields per participant**
+- [x] **Step 1: Build the record's per-person fields per participant**
 
 The quick statuses are pruned as before, and the Sleeping flag beside them still covers everyone; the record's fields come from `PartnerSettings.iCloudRecord`.
 
@@ -2032,7 +2032,7 @@ with:
         // Per-partner custom names are resolved on the receiving side via displayNameByPartnerJSON
 ```
 
-- [ ] **Step 2: Save the participants, and write the tickets**
+- [x] **Step 2: Save the participants, and write the tickets**
 
 `PartnerInfo` gains the iCloud id iCloud gives (nil when it can't identify someone); the participants it identifies are saved each time the share is read, and forgotten with it; every write puts the notes' tickets in the record, and clears the field when there are none.
 
@@ -2251,7 +2251,7 @@ with:
     /// Re-fetch the CKShare from CloudKit and refresh the partner list.
 ```
 
-- [ ] **Step 3: Run the harness: nothing it tests changes**
+- [x] **Step 3: Run the harness: nothing it tests changes**
 
 Run:
 
@@ -2261,7 +2261,7 @@ Run:
 
 Expected: `Executed 136 tests, with 0 failures`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 Run:
 
@@ -2278,7 +2278,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 
 What the runner (Task 9) needs from the app's iCloud side: the participants as it sees them, a read of the share that says whether it worked, the tickets the record carries, and writing the record again (decisions 5, 6). Removing someone notes it (decision 9), the late joiners' matching clears their display name under both ids (decision 10), and the notes sync to the pilot's devices (decision 12). Compile-only, as in Task 7.
 
-- [ ] **Step 1: Give the move-over its view of the share**
+- [x] **Step 1: Give the move-over its view of the share**
 
 `fetchExistingShare()` and `refreshParticipants()` say whether they read the share; the move-over's participants and the record's tickets; a removal notes it; `clearDisplayName` clears both ids; the clean-up on finding the share gone forgets the notes too.
 
@@ -2606,7 +2606,7 @@ with:
         PartnerSettings.forgetICloudSharing(ids: iCloudPartnerIDs)
 ```
 
-- [ ] **Step 2: Write the record again on request**
+- [x] **Step 2: Write the record again on request**
 
 One replacement in `Duty/Utils/PartnerBeacon/PartnerBeaconAutoSync.swift`:
 
@@ -2640,7 +2640,7 @@ with:
     /// it self-gates on sharing, starts monitoring if it wasn't running yet, and bypasses
 ```
 
-- [ ] **Step 3: Sync the notes**
+- [x] **Step 3: Sync the notes**
 
 Plain dictionaries and a list, as key-value sync carries them; the external change handler already copies any synced key.
 
@@ -2754,7 +2754,7 @@ with:
 // MARK: - Notification Name
 ```
 
-- [ ] **Step 4: Run the harness: nothing it tests changes**
+- [x] **Step 4: Run the harness: nothing it tests changes**
 
 Run:
 
@@ -2764,7 +2764,7 @@ Run:
 
 Expected: `Executed 136 tests, with 0 failures`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -2782,7 +2782,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 
 Spec §7.2 and §7.3, and decisions 2, 5, 6, 7 and 10: one run at a time, both lists read first, each step in order, and late joiners renamed. The runner's iCloud side is a struct of closures, so the harness tests it with a stand-in, and the app's wiring sits in its `shared` value.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 The file's header, and a second test class at its end.
 
@@ -3142,7 +3142,7 @@ final class PartnerMoveOverRunnerTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -3152,7 +3152,7 @@ Run:
 
 Expected: the build fails: `cannot find type 'PartnerMoveOverRunner' in scope` (or `cannot find 'PartnerMoveOverRunner' in scope`).
 
-- [ ] **Step 3: Write the runner**
+- [x] **Step 3: Write the runner**
 
 2 replacements, in order, in `Duty/Utils/PartnerCloud/PartnerMoveOver.swift`:
 
@@ -3444,7 +3444,7 @@ final class PartnerMoveOverRunner {
 }
 ```
 
-- [ ] **Step 4: Start it at launch**
+- [x] **Step 4: Start it at launch**
 
 Next to the store's: it registers for activation, so launch makes nothing earlier than today.
 
@@ -3474,7 +3474,7 @@ with:
         // Register iCloud KVS publisher for cross-device iOS-version mismatch detection
 ```
 
-- [ ] **Step 5: Give the harness the iCloud manager's stand-in**
+- [x] **Step 5: Give the harness the iCloud manager's stand-in**
 
 The runner's `shared` value reaches for the iCloud manager and AutoSync. The file is Task 2's with those two stand-ins added, so write it whole.
 
@@ -3533,7 +3533,7 @@ final class PartnerDataKVSync {
 }
 ```
 
-- [ ] **Step 6: Run the tests to see them pass**
+- [x] **Step 6: Run the tests to see them pass**
 
 Run:
 
@@ -3543,7 +3543,7 @@ Run:
 
 Expected: `Executed 152 tests, with 0 failures`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 Run:
 
@@ -3561,7 +3561,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 
 Spec §6.2 with the move-over (decision 8): someone linked to their Crewlu Cloud partner is one row, still on iCloud until they have the app; each row says who it is on Crewlu Cloud and in the iCloud share. And when Sign Out asks first (decision 13, the user's choice).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 2 replacements, in order, in `DutyTests/PartnerListTests.swift`:
 
@@ -3686,7 +3686,7 @@ with:
 }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -3696,7 +3696,7 @@ Run:
 
 Expected: the build fails, with errors such as `extra argument 'cloudPartnerByICloudID' in call` and `extra argument 'cloudID' in call`.
 
-- [ ] **Step 3: Link the rows**
+- [x] **Step 3: Link the rows**
 
 4 replacements, in order, in `Duty/Utils/PartnerCloud/PartnerList.swift`:
 
@@ -3870,7 +3870,7 @@ with:
         cloudPartners > 0 || iCloudSharing
 ```
 
-- [ ] **Step 4: Run the tests to see them pass**
+- [x] **Step 4: Run the tests to see them pass**
 
 Run:
 
@@ -3880,7 +3880,7 @@ Run:
 
 Expected: `Executed 158 tests, with 0 failures`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -3897,7 +3897,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 
 The screens use Tasks 4, 9 and 10 (decisions 3, 6, 8, 9, 10 and 13). They look as approved in 2b: no new looks or words. Views are checked by Task 12's compile, the review and the user (Tasks 14 and 15).
 
-- [ ] **Step 1: Partner Sharing**
+- [x] **Step 1: Partner Sharing**
 
 The rows linked by the notes; the partner page opened by either id; Remove from both for anyone in the iCloud share; runs on every appearance and when the participants change; late joiners' names; and settings read by either id.
 
@@ -4303,7 +4303,7 @@ with:
     }
 ```
 
-- [ ] **Step 2: The partner page**
+- [x] **Step 2: The partner page**
 
 It finds its row the way the list does, by the id it was opened with, so it stays open when the move-over links someone; the iCloud device row and no link buttons until they move over; and Remove from both.
 
@@ -4562,7 +4562,7 @@ with:
     }
 ```
 
-- [ ] **Step 3: The quick status sheet**
+- [x] **Step 3: The quick status sheet**
 
 Its reads and writes go through `PartnerSettings`, so a linked person's settings follow their Crewlu Cloud id whichever id the sheet was opened with. The Sleeping flag now says whether anyone is told Sleeping, as everything else that saves the settings does.
 
@@ -4744,7 +4744,7 @@ with:
         beaconManager.errorMessage = nil
 ```
 
-- [ ] **Step 4: Sign Out asks only when it stops someone's updates**
+- [x] **Step 4: Sign Out asks only when it stops someone's updates**
 
 2 replacements, in order, in `Duty/Views/Account/CrewluCloudDetailView.swift`:
 
@@ -4810,7 +4810,7 @@ with:
                             run { try await account.signOut() }
 ```
 
-- [ ] **Step 5: The share's people, as the list shows them**
+- [x] **Step 5: The share's people, as the list shows them**
 
 Both screens' rows take the accepted participants from here.
 
@@ -4844,7 +4844,7 @@ with:
         guard let data = statusRecord?[Self.moveTicketsKey] as? Data else { return [:] }
 ```
 
-- [ ] **Step 6: Run the harness: nothing it tests changes**
+- [x] **Step 6: Run the harness: nothing it tests changes**
 
 Run:
 
@@ -4854,7 +4854,7 @@ Run:
 
 Expected: `Executed 158 tests, with 0 failures`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 Run:
 
@@ -4868,7 +4868,7 @@ Expected: the new commit's line. `git -C ~/Dev/Duty status --short` shows only t
 
 **Files:** none. A build in a separate clone of the branch, with its own build folder and its own copy of the Swift packages, so it can't disturb the user's open Xcode or touch a simulator. It compiles the app and `DutyTests`, including the views and the iCloud code the harness can't build.
 
-- [ ] **Step 1: Make the clone**
+- [x] **Step 1: Make the clone**
 
 Use a scratch folder outside both repos as `$BUILD`, for example `export BUILD=<your scratchpad>/partner-moveover-build`. `Config.xcconfig` is ignored by git, so it's copied; never print it.
 
@@ -4880,7 +4880,7 @@ rm -rf "${BUILD:?set BUILD first}" && mkdir -p "$BUILD" && git clone -q --shared
 
 Expected: the branch's last commit: Task 11's `feat(partners): Partner Sharing moves iCloud partners over…`, or a later fix from Task 13.
 
-- [ ] **Step 2: Build for testing**
+- [x] **Step 2: Build for testing**
 
 It takes several minutes, so run it in the background and wait for it to finish.
 
@@ -4898,11 +4898,11 @@ If the log says the packages don't match `Package.resolved`, delete `$BUILD/pack
 
 **Files:** whatever the review finds.
 
-- [ ] **Step 1: Ask for a review**
+- [x] **Step 1: Ask for a review**
 
 Use superpowers:requesting-code-review with a read-only reviewer: it reads `git -C ~/Dev/Duty diff 8f162e61..feature/partner-cloud-screens`, this plan, and the spec (§6.2, §6.6, §6.7, §7, §8.1, §13), and runs no `xcodebuild` and no simulator. State facts neutrally, and don't tell it what not to flag.
 
-- [ ] **Step 2: Act on it**
+- [x] **Step 2: Act on it**
 
 For each finding, fix it test-first where the harness can test it, re-run `"$HARNESS/run.sh"`, and commit. If any Swift changed, run Task 12 again. Note each fix in this plan's Execution notes.
 
@@ -4910,7 +4910,7 @@ For each finding, fix it test-first where the harness can test it, re-run `"$HAR
 
 **Files:** none.
 
-- [ ] **Step 1: Ask the user to run the tests in Xcode**
+- [x] **Step 1: Ask the user to run the tests in Xcode**
 
 Send them these steps:
 
@@ -4935,7 +4935,7 @@ Expected: no failures, and 1,545 XCTest tests (2b's run had 1,488). The partner 
 | `PartnerMoveOverTests` | 10 (new) |
 | `PartnerMoveOverRunnerTests` | 16 (new) |
 
-- [ ] **Step 2: If anything fails, stop**
+- [x] **Step 2: If anything fails, stop**
 
 Ask for the test's name and its message. Fix the cause, never the test's expected value, then ask for another run.
 
@@ -4943,14 +4943,14 @@ Ask for the test's name and its message. Fix the cause, never the test's expecte
 
 **Files:** none.
 
-- [ ] **Step 1: Offer the look, and say what it does**
+- [x] **Step 1: Offer the look, and say what it does**
 
 Ask the user one question: do they want to see the move-over on their phone now? It's their choice, and it's for real:
 - The simulator can't show it: it can't reach iCloud. Their phone runs Xcode builds and sees their real iCloud share.
 - Signed in, the build makes Crewlu Cloud partners for their iCloud partners (named as in their list), asks for their tickets, and writes the tickets into the iCloud record. Their partners' Crewluve ignores the tickets until piece 4. This is what the release will do, but the app can't undo it without also removing those people from the iCloud share.
 - Key-value sync carries the notes to their other devices, and the record gets this build's number, as in 2b's look.
 
-- [ ] **Step 2: If yes, send the steps**
+- [x] **Step 2: If yes, send the steps**
 
 1. Connect your iPhone. In Xcode, at the top of the window, check the scheme says **Duty**, and pick your iPhone as the destination.
 2. Press **⌘R** (Product → Run). CrewLu opens on your phone.
@@ -4965,7 +4965,7 @@ Note anything that looks wrong with a screenshot (press the side button and volu
 **Files (in `~/Dev/Crewluve Website`):**
 - Modify: `docs/superpowers/specs/2026-10-16-partner-links-piece2-crewlu-design.md`, and this plan
 
-- [ ] **Step 1: Add the planning decisions to the spec**
+- [x] **Step 1: Add the planning decisions to the spec**
 
 At the end of the spec, after §13, add `## 14. Decisions made while planning 2c`, followed by this plan's "Decisions made while planning" list, copied as it stands, and any changes from the review (Task 13), and where the build differs from §6.7 and §7. Then update its status line.
 
@@ -4981,7 +4981,7 @@ with:
 Plans 2a, 2b and 2c are built (`docs/superpowers/plans/2026-10-16-partner-links-piece2a-summary.md`, `docs/superpowers/plans/2026-10-17-partner-links-piece2b-screens.md`, `docs/superpowers/plans/2026-10-17-partner-links-piece2c-move-over.md`).
 ```
 
-- [ ] **Step 2: Tick this plan and commit**
+- [x] **Step 2: Tick this plan and commit**
 
 Run:
 
@@ -5008,3 +5008,38 @@ Ask separately before each push: `feature/supabase-account-backend` (or the bran
 ## Execution notes
 
 Filled in during the build: any place the code ends up different from the printed blocks, and why.
+
+- **Tasks 0–11 (2026-10-17).** A script applied the plan's own steps to `~/Dev/Duty`. Every Run step gave the printed result, including each test-first failure, and the 23 files matched the scratch copy byte for byte. Commits `4ac90d1b`…`01cf1559`; the harness ran 158 tests with 0 failures.
+- **Task 12** passed on `01cf1559`: 0 errors, only the StoreKit warning.
+- **Another session's merge (2026-10-17, 4:12 PM).** While this branch was checked out in `~/Dev/Duty`, another session merged `fix/detach-dead-trip-children` into it (`cbbe3aa8`: sync fixes for dead trip rows, 12 files, none of them partner files; its only shared file, `DutyApp.swift`, merged cleanly). **The user chose to keep it:** it merges with 2b and 2c. It brings 19 tests of its own to Task 14's run. At 4:52 PM a build bump also landed here (`6760e08d`, "release: bump build to 199 (3.0.2)", `project.pbxproj` only). **The user chose** to hold any release from this branch, and the sessions involved were told.
+- **Task 13, the review (2026-10-17).** The verdict was "with fixes": one Critical, two Important and eleven Minor findings.
+  - **C1, a release step, with no code:** CloudKit's Production schema doesn't learn new fields from saves. Before any TestFlight or App Store build, `moveTicketByPartnerJSON` (Bytes, on `SharedPilotStatus`, container `iCloud.com.toddanderson.duty`) must be deployed to Production in the CloudKit Console (Deploy Schema Changes; `Duty/Documentation/CLOUDKIT_DEPLOYMENT_GUIDE.md`). Without it, every iCloud write from this version fails, and partners on an older Crewluve stop getting updates. Xcode builds use the Development environment (no `icloud-container-environment` entitlement, Run uses Debug), which adds the field by itself on the first write.
+  - **I1, `51841254`:** removing a moved-over person below the sign-in prompt, or when Crewlu Cloud couldn't be reached, didn't reach Crewlu Cloud, so after signing back in they got updates again. Now a synced list (`crewluve.cloudPartnersToRemove`), kept apart from the notes so that ending the iCloud share doesn't forget it, holds Crewlu Cloud partners to remove:
+    - `noteRemoved` adds a linked person's partner;
+    - Stop Sharing with Everyone below the prompt adds everyone linked;
+    - `store.remove` and Stop Sharing on Crewlu Cloud clear what they removed;
+    - each run does the waiting removals first, with or without an iCloud share. One not in this account's list waits, a refusal drops it, and being offline stops the run.
+  - **I2, accepted (the user's choice):** every participant of the public iCloud share can read every ticket in the record, so one could redeem someone else's: they'd get a device on that person's partner, and that person would look moved over. They already see the status through iCloud. The partner page lists each device, so a stray one can be removed, and the move-over then hands that person a fresh ticket.
+  - **`1ed3e4b5`, the runner:**
+    - M5 and M11: `holdingRuns(_:)` defers runs while a removal or Stop Sharing goes on; `remove(cloudID:iCloudID:)` is spec §7.5's order in one tested place;
+    - M1: a sign-out or account switch mid-run decides nothing;
+    - M8: PT409 stops a run's creates;
+    - tests of the reviewer's cases: a refused ticket, a share nobody accepted (M2), and someone removed who has the app.
+  - **`73a81da6`, the screens:**
+    - M6: the partner page opens by value, so linking someone doesn't close it;
+    - M7: the page stays until its removal is done;
+    - M4: a late joiner's rename runs in a `Task`;
+    - M10: the dead `PartnerSharingView.clearStatusForPartner(_:)` is deleted;
+    - both screens remove through the runner, and Stop Sharing with Everyone holds runs.
+  - **`54a815d0`:** two tests tightened. The first run of the fixes' 19 deliberate breaks missed three.
+  - **The re-check (same reviewer) found R1, fixed in `19d6e633`:** removing the last iCloud partner ended the share, which forgets the links, before `noteRemoved` ran, so their Crewlu Cloud removal was never queued. Now `noteRemoved` runs straight after the save. Also R2: Stop Sharing below the prompt skips people removed earlier, whose partners were dealt with then. And R4: the comments say a removal that can't reach Crewlu Cloud is retried only for someone the move-over linked.
+  - **Declined:**
+    - **M3**, the record's tickets checked against this device's last write: the device that wrote without them rewrites on its own next run, and an exact check costs one more iCloud read per run.
+    - **M9**, list waiters shared across accounts: one woken early finds the list unloaded and decides nothing.
+    - **R3**, a waiting removal can be lost when two devices sync the whole key (last writer wins): the same limit applies to every partner setting synced today.
+    - **The optional items:** Remove showing no progress while a run finishes, and today's invite matching able to push a wrong label to Crewlu Cloud.
+  - **Results:** the harness runs 173 tests with 0 failures; all 19 of the fixes' deliberate breaks are caught; Task 12 passed again on `73a81da6` and on `19d6e633`, with 0 errors and only the StoreKit warning.
+  - **The re-check's confirmation (2026-10-17):** R1 and R2 fixed, nothing else changed behaviour. The verdict was ready to merge, once the spec records C1 as a release step, the I2 acceptance and R3 (Task 16).
+- **Task 14, the user's run (2026-10-17).** ⌘U on the iPhone simulator, on `19d6e633`: 1,579 XCTest tests ran with 0 failures, and all 9 Swift Testing tests passed. That's the table's 1,545, plus Task 13's 15 (one more in `PartnerCloudStoreTests`, two in `PartnerMoveOverNotesTests`, two in `PartnerMoveOverTests` and ten in `PartnerMoveOverRunnerTests`), plus the merged sync fix's 19 (`DeadChildDetacherTests`' 9, and 8, 1 and 1 more in `TripDocumentTests`, `LocalPurgeServiceTests` and `SupabaseSyncEngineTests`). Every class ran the count expected. 3 tests skipped, where 2a's and 2b's runs skipped 1: the simulator is now signed in to Crewlu Cloud, so `StoreKitEntitlementLifecycleTests`, which this branch doesn't touch, skips all three of its tests in `setUpWithError`, its guard against writing to a live profiles row.
+- **Task 15, the look (2026-10-17).** **The user chose** to wait for a TestFlight build. Step 1's first point no longer held: which iCloud environment an Xcode build uses isn't settled (spec §14.5). If the phone build reached Production, this build's writes would fail until the ticket field is deployed (spec §14.4), and once a build-199 write landed, the build guard would stop the App Store's 3.0.1 from writing over it. The move-over first runs for real on TestFlight.
+- **Task 16 (2026-10-17).** The spec's §14 has the plan's decisions, the review's changes, I2's acceptance, C1's release step, why the look waits for TestFlight, where the build differs from §6.7 and §7, and what's left. Beyond the printed step, §9's release list gained C1's step, as the review's verdict asked.
