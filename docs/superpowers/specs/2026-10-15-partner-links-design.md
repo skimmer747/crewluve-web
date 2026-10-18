@@ -328,6 +328,7 @@ Each piece gets its own spec → plan → build → review → release, in its o
 
 - **Release order:** 1 and 1b first. 3 must be live before 4 ships, otherwise moved partners lose background alerts. 2 and 4 can be reviewed in parallel. CrewLu (2) goes live after Crewluve (4), because invite links need the new Crewluve (piece 2, decision P2-1). 5 follows 4.
 - **Piece 2's spec:** `docs/superpowers/specs/2026-10-16-partner-links-piece2-crewlu-design.md`.
+- **Piece 3's spec:** `docs/superpowers/specs/2026-10-18-partner-links-piece3-push-design.md`.
 - **Branch state to sort out first:**
   - Duty is on `feature/supabase-account-backend`, with someone else's uncommitted scheme files.
   - Crewluv is on `hotfix/icloud-account-unavailable`, 13 commits ahead of `main`.
