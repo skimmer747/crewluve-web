@@ -1,6 +1,6 @@
 # Partner Links Piece 4: Crewluve on Crewlu Cloud
 
-- **Status:** design approved in brainstorming on 2026-10-18. Next: the user reviews this spec, then plan 4a.
+- **Status:** design approved in brainstorming on 2026-10-18, and the user approved this spec the same day. Plan 4a: `docs/superpowers/plans/2026-10-18-partner-links-piece4a-source.md`.
 - **Part of:** the partner-links design, `docs/superpowers/specs/2026-10-15-partner-links-design.md`, §5.5, §6, §7.2, §8 and §9 (piece 4).
 - **Repo:** Crewluve, `~/Dev/Crewluv`, on a new branch off its release line (§11).
 - **Contract:** `~/Dev/Duty/supabase/partner-api.md`, the partner door from piece 1 (live since 2026-10-15), including its "Pushes" section from piece 3 (live since 2026-10-18).
