@@ -1,6 +1,6 @@
 # Partner Links Piece 4: Crewluve on Crewlu Cloud
 
-- **Status:** design approved in brainstorming on 2026-10-18, and the user approved this spec the same day. Plan 4a: `docs/superpowers/plans/2026-10-18-partner-links-piece4a-source.md`.
+- **Status:** design approved in brainstorming on 2026-10-18, and the user approved this spec the same day. Plan 4a is built (`docs/superpowers/plans/2026-10-18-partner-links-piece4a-source.md`); next: plan 4b.
 - **Part of:** the partner-links design, `docs/superpowers/specs/2026-10-15-partner-links-design.md`, §5.5, §6, §7.2, §8 and §9 (piece 4).
 - **Repo:** Crewluve, `~/Dev/Crewluv`, on a new branch off its release line (§11).
 - **Contract:** `~/Dev/Duty/supabase/partner-api.md`, the partner door from piece 1 (live since 2026-10-15), including its "Pushes" section from piece 3 (live since 2026-10-18).
@@ -471,3 +471,41 @@ This needs TestFlight builds of CrewLu (2b and 2c, after piece 2's iCloud schema
 - The app fixes from D10 (sun times, the callsign split), which are separate items.
 - Use on Another Device and Disconnect for devices still on iCloud.
 - Following more than one pilot, and live pings (umbrella §11).
+
+## 14. Decisions made while planning 4a
+
+Plan 4a (`docs/superpowers/plans/2026-10-18-partner-links-piece4a-source.md`) made these decisions, and its review changed some of them, as each says. They refine the sections above, and where they differ, these hold: a refresh asked for during a read no longer simply joins it (§5.1), and the source runs the 60-second check while a screen is in front (§5.5).
+
+1. **The door starts with the two calls 4a uses,** `partner_view` and `partner_set_push`. Joining, codes and leaving come with plan 4b's screens, as piece 2's `PartnerCloudAPI` grew with its plans.
+2. **The door's network is a closure** (`LivePartnerDoor.Transport`, URLSession by default), so the tests answer for Crewlu Cloud and no request leaves the Mac.
+3. **The summary decodes as sent,** with every field but four optional. The translation fills in what `SharedPilotStatus.from(record:)` fills in for iCloud: "Home", false, no cities. Only `pilotId`, `pilotFirstName`, `lastUpdated` and `appVersion` are required.
+4. **The legs become `tripLegsJSON` with sorted keys,** so the same legs always give the same bytes. The alerts compare those bytes.
+5. **The quick status is chosen each time the screen resolves** (`PilotReading.status(at:)`), and the screen also wakes when the shown one expires (`PilotReading.change(after:)`), so an expired personal status gives way to the one for everyone.
+6. **The test summaries come from Crewlu Cloud's own trimming.** `trim-examples.mjs` runs `private.trim_status_for` in piece 1's local test database and writes 18 files. Only the trimmed ones are kept in Crewluve. The untrimmed examples stay in CrewLu (this refines spec §10.1).
+7. **The source says how each refresh ended** (`RefreshOutcome`). The screen keeps its messages and its iCloud account check, which now runs only off Crewlu Cloud. A share that's gone from iCloud resets the share data for every caller (a push, the background refresh), not only the screen.
+8. **The display name saved for the alerts follows every reading:** saved when there is one, removed when there's none. Before, an iCloud record without any names left the last saved one. *Changed by the review:* when an iCloud read can't look up this partner's user record, the saved name stays, and it titles the alerts and the screen.
+9. **`p_since` is dropped after any failed read,** not only an HTTP 400 (spec §5.2), because the door reports both as unavailable. The next read gets the whole summary, and counts as unchanged if `updated_at` is the same.
+10. **A refresh asked for during a read gets one more read once that read ends** (`ReadQueue`), shared by every refresh asked for meanwhile. So a push that lands mid-read isn't answered by a read that began before its change. *Changed by the review:* the plan had it join the read under way.
+11. **The screen hears how every read went** (`.pilotStatusDidUpdate`, with the outcome and when the read began), whoever asked for it, in place of `.cloudKitPushReceived`. A push or the background refresh no longer makes the screen read again, but still moves "Synced". *Changed by the review:* the plan had the screen hear only of new readings (`.pilotReadingDidChange`).
+12. **The 60-second check is `RepeatingRefresh`, kept by the source.** Each screen registers when it appears or comes to the front, and leaves when it goes from the front (iPad can show several). The timer runs while any screen is in front. A tick reads only on Crewlu Cloud, and only while a screen in front isn't showing the demo, so in 4a it never reads. *Changed by the review:* the plan started it from the screen only on Crewlu Cloud, so a device that connected or left mid-session kept the wrong state until it left the front.
+13. **What a push means is `PushRoute`:** on Crewlu Cloud, a silent push without `ck` refreshes and iCloud's are ignored; on iCloud, iCloud's refresh, as before. iOS is told "new data" for a new status or sharing ended, "no data" for unchanged, no status yet or not connected, and "failed" for a failed read. The background refresh is rescheduled after every push but a failed one, as before. *Added by the review:* a read still going after 25 seconds is reported as failed and carries on, since iOS allows about 30.
+14. **The registrar notes each try for the diagnostics** ("Sent (sandbox)", "Couldn't reach Crewlu Cloud", "Couldn't read this device's key", "Refused: …", "Sharing ended"). The debug diagnostics sheet shows it, with the build's environment.
+15. **A key with no saved connection is read on every refresh until it answers** (spec §5.3). If its partner has no summary yet and iCloud has a share, the device stays on iCloud, so plan 4c's move-over can use the same key.
+16. **Reset Share Data also forgets the source's iCloud reading** (`forgetICloudReading()`), as it forgot the screen's status before.
+17. **The screen uses `PilotStatusSource.shared` directly.** The harness compiles it but doesn't test it, so it has nothing to inject: Task 13's build and the user's run check it. *Since the review,* the 60-second check's gating lives in the source, where the harness tests it.
+
+### What 4a's review added
+
+Decisions 8, 10–13 and 17 above say what the review changed in them. The review also added:
+
+- **A read that ends after sharing ended brings nothing back.** Forgetting the connection moves a generation on, and a Crewlu Cloud answer or failure from before then reports sharing ended. A lost key clears the reading and the screen. A summary for another partner of the same pilot is new even at the same `updated_at`.
+- **Adopting a key left by a reinstall sends the push token,** as §6.1 asks of connecting.
+- **Only "no such item" means no key,** and so does a key that isn't text, which the next save replaces. Any other Keychain failure is a failed read that keeps the connection, and the push registration is tried again on coming to the front.
+- **Crewlu Cloud failures are logged** (§5.4): the call, and the network error, the HTTP status, an unknown refusal or where the answer failed to decode. Never the request, which holds the key and the token.
+- **The background refresh ends its task when iOS asks,** or when the read ends, whichever comes first, since the read can't be cut short while others may share it.
+- **Left for later:**
+  - the first Crewlu Cloud summary's legs are compared with iCloud's bytes, whose key order can differ (plan 4c, at the switch);
+  - the pilot's id and name kept with the connection (plan 4b);
+  - once a device's key can change mid-read (plan 4b), the generation moves on at every connection change and also guards `sharing_ended`, so a late one for an old key can't delete the new key;
+  - a leftover key's `partner_view` ahead of an iCloud read can wait up to 20 seconds (plan 4c);
+  - with no legs, the title shows the first name, not the nickname (older than piece 4; a follow-up).

@@ -46,16 +46,16 @@ These refine the spec. Task 17 writes them into it.
 5. **The quick status is chosen each time the screen resolves** (`PilotReading.status(at:)`), and the screen also wakes when the shown one expires (`PilotReading.change(after:)`), so an expired personal status gives way to the one for everyone.
 6. **The test summaries come from Crewlu Cloud's own trimming.** `trim-examples.mjs` runs `private.trim_status_for` in piece 1's local test database and writes 18 files. Only the trimmed ones are kept in Crewluve. The untrimmed examples stay in CrewLu (this refines spec §10.1).
 7. **The source says how each refresh ended** (`RefreshOutcome`). The screen keeps its messages and its iCloud account check, which now runs only off Crewlu Cloud. A share that's gone from iCloud resets the share data for every caller (a push, the background refresh), not only the screen.
-8. **The display name saved for the alerts follows every reading:** saved when there is one, removed when there's none. Before, an iCloud record without any names left the last saved one.
+8. **The display name saved for the alerts follows every reading:** saved when there is one, removed when there's none. Before, an iCloud record without any names left the last saved one. *Changed by the review:* when an iCloud read can't look up this partner's user record, the saved name stays, and it titles the alerts and the screen.
 9. **`p_since` is dropped after any failed read,** not only an HTTP 400 (spec §5.2), because the door reports both as unavailable. The next read gets the whole summary, and counts as unchanged if `updated_at` is the same.
-10. **A refresh asked for during another joins it,** so a push that lands during the 60-second check makes one read.
-11. **The screen hears of new readings from the source** (`.pilotReadingDidChange`), in place of `.cloudKitPushReceived`. A push or the background refresh no longer makes the screen read again.
-12. **The 60-second check is `RepeatingRefresh`,** started when the screen appears and whenever the app comes to the front, and stopped when it leaves the front. It runs only on Crewlu Cloud and outside the demo, so in 4a it never starts.
-13. **What a push means is `PushRoute`:** on Crewlu Cloud, a silent push without `ck` refreshes and iCloud's are ignored; on iCloud, iCloud's refresh, as before. iOS is told "new data" for a new status or sharing ended, "no data" for unchanged, no status yet or not connected, and "failed" for a failed read. The background refresh is rescheduled after every push but a failed one, as before.
-14. **The registrar notes each try for the diagnostics** ("Sent (sandbox)", "Couldn't reach Crewlu Cloud", "Refused: …", "Sharing ended"). The debug diagnostics sheet shows it, with the build's environment.
+10. **A refresh asked for during a read gets one more read once that read ends** (`ReadQueue`), shared by every refresh asked for meanwhile. So a push that lands mid-read isn't answered by a read that began before its change. *Changed by the review:* the plan had it join the read under way.
+11. **The screen hears how every read went** (`.pilotStatusDidUpdate`, with the outcome and when the read began), whoever asked for it, in place of `.cloudKitPushReceived`. A push or the background refresh no longer makes the screen read again, but still moves "Synced". *Changed by the review:* the plan had the screen hear only of new readings (`.pilotReadingDidChange`).
+12. **The 60-second check is `RepeatingRefresh`, kept by the source.** Each screen registers when it appears or comes to the front, and leaves when it goes from the front (iPad can show several). The timer runs while any screen is in front. A tick reads only on Crewlu Cloud, and only while a screen in front isn't showing the demo, so in 4a it never reads. *Changed by the review:* the plan started it from the screen only on Crewlu Cloud, so a device that connected or left mid-session kept the wrong state until it left the front.
+13. **What a push means is `PushRoute`:** on Crewlu Cloud, a silent push without `ck` refreshes and iCloud's are ignored; on iCloud, iCloud's refresh, as before. iOS is told "new data" for a new status or sharing ended, "no data" for unchanged, no status yet or not connected, and "failed" for a failed read. The background refresh is rescheduled after every push but a failed one, as before. *Added by the review:* a read still going after 25 seconds is reported as failed and carries on, since iOS allows about 30.
+14. **The registrar notes each try for the diagnostics** ("Sent (sandbox)", "Couldn't reach Crewlu Cloud", "Couldn't read this device's key", "Refused: …", "Sharing ended"). The debug diagnostics sheet shows it, with the build's environment.
 15. **A key with no saved connection is read on every refresh until it answers** (spec §5.3). If its partner has no summary yet and iCloud has a share, the device stays on iCloud, so plan 4c's move-over can use the same key.
 16. **Reset Share Data also forgets the source's iCloud reading** (`forgetICloudReading()`), as it forgot the screen's status before.
-17. **The screen uses `PilotStatusSource.shared` directly.** It isn't built in the harness, so it has nothing to inject: Task 13's compile and the user's run check it.
+17. **The screen uses `PilotStatusSource.shared` directly.** The harness compiles it but doesn't test it, so it has nothing to inject: Task 13's build and the user's run check it. *Since the review,* the 60-second check's gating lives in the source, where the harness tests it.
 
 ## The four questions
 
@@ -123,7 +123,7 @@ Outside both repos: the Mac harness (`$HARNESS`, Task 1) and the compile-only cl
 
 ### Task 0: Branch
 
-- [ ] **Step 1: Check the working tree**
+- [x] **Step 1: Check the working tree**
 
 Run:
 
@@ -133,7 +133,7 @@ git -C ~/Dev/Crewluv status --short
 
 Expected: only `?? .claude/` and `?? .superpowers/`. If anything else shows, stop and ask the user.
 
-- [ ] **Step 2: Check the branch and its tip**
+- [x] **Step 2: Check the branch and its tip**
 
 Run:
 
@@ -143,7 +143,7 @@ git -C ~/Dev/Crewluv branch --show-current && git -C ~/Dev/Crewluv log --oneline
 
 Expected: `hotfix/icloud-account-unavailable`, then `739abd3 chore(crewluv): bump version to 1.1.6 (build 42)`. If either differs, stop and ask: this plan was checked against `739abd3`.
 
-- [ ] **Step 3: Create the branch**
+- [x] **Step 3: Create the branch**
 
 Run:
 
@@ -163,7 +163,7 @@ A Swift package that compiles Crewluve's model and service files and their tests
 
 `trim-examples.mjs` is for Task 2.
 
-- [ ] **Step 1: Write the package**
+- [x] **Step 1: Write the package**
 
 File: `$HARNESS/Package.swift`
 
@@ -197,7 +197,7 @@ let package = Package(
 )
 ```
 
-- [ ] **Step 2: Write the runner**
+- [x] **Step 2: Write the runner**
 
 File: `$HARNESS/run.sh`
 
@@ -252,7 +252,7 @@ rm -f "$out"
 exit $code
 ```
 
-- [ ] **Step 3: Write the summaries' script**
+- [x] **Step 3: Write the summaries' script**
 
 It uses piece 1's local test database in `~/Dev/Duty/supabase/tests`, whose packages are already installed there.
 
@@ -294,7 +294,7 @@ await db.close()
 console.log(`${readdirSync(out).filter((name) => name.endsWith('.json')).length} files`)
 ```
 
-- [ ] **Step 4: Run today's tests**
+- [x] **Step 4: Run today's tests**
 
 Run:
 
@@ -311,7 +311,7 @@ Expected: `Test run with 29 tests in 5 suites passed`: Crewluve's Swift Testing 
 
 CrewLu's nine example summaries (`~/Dev/Duty/supabase/partner-status/examples/`), each as partner_view gives it to partner A and to partner B. Crewlu Cloud's own trimming makes them (decision 6), so the tests check the translation against what Crewlu Cloud really sends.
 
-- [ ] **Step 1: Make the summaries**
+- [x] **Step 1: Make the summaries**
 
 Run:
 
@@ -321,7 +321,7 @@ node --no-maglev "$HARNESS/trim-examples.mjs" ~/Dev/Crewluv/CrewluvTests/Fixture
 
 Expected: `18 files`. `--no-maglev` keeps Node 23.11 from hanging with PGlite.
 
-- [ ] **Step 2: Check they're the ones the plan was checked with**
+- [x] **Step 2: Check they're the ones the plan was checked with**
 
 Run:
 
@@ -331,7 +331,7 @@ cd ~/Dev/Crewluv/CrewluvTests/Fixtures/PartnerSummary && ls | LC_ALL=C sort | gr
 
 Expected: `b977c271979f59cb`. If it differs, CrewLu's examples have changed since this plan was written: stop and ask.
 
-- [ ] **Step 3: Say where they come from**
+- [x] **Step 3: Say where they come from**
 
 File: `CrewluvTests/Fixtures/PartnerSummary/README.md`
 
@@ -350,7 +350,7 @@ with keys sorted. When CrewLu's examples change, make them again the same way.
 `CloudSummaryTests` reads them.
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 Run:
 
@@ -368,7 +368,7 @@ Expected: the new commit's line. `git -C ~/Dev/Crewluv status --short` shows onl
 
 Spec §5.4 and decisions 3–5: Crewlu Cloud's summary decodes as sent and becomes today's `SharedPilotStatus`. Every field of the same name is copied, the legs become iCloud's blob, and the name and the quick status are this partner's.
 
-- [ ] **Step 1: Write the fixtures' reader**
+- [x] **Step 1: Write the fixtures' reader**
 
 The tests find the fixtures beside them on the Mac's disk. That works in the harness and on a simulator. On a phone the suite skips.
 
@@ -441,7 +441,7 @@ enum PartnerSummaryFixtures {
 }
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Each fixture's status, field by field; the legs; the display name; the quick status's rules, with a fixed clock; and what decoding needs.
 
@@ -689,7 +689,7 @@ struct CloudSummaryTests {
 }
 ```
 
-- [ ] **Step 3: Run them to see them fail**
+- [x] **Step 3: Run them to see them fail**
 
 Run:
 
@@ -699,7 +699,7 @@ Run:
 
 Expected: the build fails: `cannot find type 'CloudSummary' in scope` (or `cannot find 'CloudSummary' in scope`).
 
-- [ ] **Step 4: Write the summary**
+- [x] **Step 4: Write the summary**
 
 File: `Crewluv/Models/CloudSummary.swift`
 
@@ -890,7 +890,7 @@ extension CloudSummary {
 }
 ```
 
-- [ ] **Step 5: Run the tests to see them pass**
+- [x] **Step 5: Run the tests to see them pass**
 
 Run:
 
@@ -900,7 +900,7 @@ Run:
 
 Expected: `Test run with 45 tests in 6 suites passed`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Run:
 
@@ -918,7 +918,7 @@ Expected: the new commit's line. `git -C ~/Dev/Crewluv status --short` shows onl
 
 Spec §6.1: `sandbox` for every build Xcode installs, Debug or Release, and `production` for TestFlight and the App Store. It's read from the build's own provisioning profile, which is what decides it.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 File: `CrewluvTests/PushEnvironmentTests.swift`
 
@@ -976,7 +976,7 @@ struct PushEnvironmentTests {
 }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -986,7 +986,7 @@ Run:
 
 Expected: the build fails: `cannot find 'PushEnvironment' in scope`.
 
-- [ ] **Step 3: Write the environment**
+- [x] **Step 3: Write the environment**
 
 File: `Crewluv/Utils/PushEnvironment.swift`
 
@@ -1036,7 +1036,7 @@ nonisolated enum PushEnvironment: String, Sendable {
 }
 ```
 
-- [ ] **Step 4: Run the tests to see them pass**
+- [x] **Step 4: Run the tests to see them pass**
 
 Run:
 
@@ -1046,7 +1046,7 @@ Run:
 
 Expected: `Test run with 51 tests in 7 suites passed`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -1064,7 +1064,7 @@ Expected: the new commit's line. `git -C ~/Dev/Crewluv status --short` shows onl
 
 Spec §5.2 and decisions 1–2: `partner_view` and `partner_set_push` over HTTPS, with the publishable key in the `apikey` header only. Each call answers, or throws one `PartnerDoorError`: a refusal, or unavailable.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 A stand-in for the network records each request and answers it.
 
@@ -1248,7 +1248,7 @@ private final class StandInNetwork {
 }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -1258,7 +1258,7 @@ Run:
 
 Expected: the build fails, with errors such as `cannot find 'PartnerDoorError' in scope` and `cannot find type 'LivePartnerDoor' in scope`. Which ones it lists depends on which file the compiler reaches first.
 
-- [ ] **Step 3: Write the door**
+- [x] **Step 3: Write the door**
 
 File: `Crewluv/Services/PartnerCloud/PartnerDoor.swift`
 
@@ -1327,7 +1327,7 @@ struct PartnerViewAnswer: Sendable {
 }
 ```
 
-- [ ] **Step 4: Write its live version**
+- [x] **Step 4: Write its live version**
 
 The publishable key is the website's (`~/Dev/Crewluve Website/src/cloud.ts`). It's public by design, as on the website.
 
@@ -1461,7 +1461,7 @@ private struct ViewAnswer: Decodable {
 }
 ```
 
-- [ ] **Step 5: Run the tests to see them pass**
+- [x] **Step 5: Run the tests to see them pass**
 
 Run:
 
@@ -1471,7 +1471,7 @@ Run:
 
 Expected: `Test run with 62 tests in 8 suites passed`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Run:
 
@@ -1489,7 +1489,7 @@ Expected: the new commit's line. `git -C ~/Dev/Crewluv status --short` shows onl
 
 Spec §5.3: each device makes its own key and keeps it in the Keychain, for this device only and readable once the phone has been unlocked since it started. `KeychainDeviceKeyStoreTests` runs only in Xcode (Task 15): the harness can't reach the iOS Keychain, so `run.sh` leaves it out.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 File: `CrewluvTests/DeviceKeyTests.swift`
 
@@ -1587,7 +1587,7 @@ struct KeychainDeviceKeyStoreTests {
 }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -1597,7 +1597,7 @@ Run:
 
 Expected: the build fails: `cannot find 'DeviceKey' in scope`.
 
-- [ ] **Step 3: Write the key and its store**
+- [x] **Step 3: Write the key and its store**
 
 File: `Crewluv/Services/PartnerCloud/DeviceKeyStore.swift`
 
@@ -1681,7 +1681,7 @@ struct KeychainDeviceKeyStore: DeviceKeyStore {
 }
 ```
 
-- [ ] **Step 4: Run the tests to see them pass**
+- [x] **Step 4: Run the tests to see them pass**
 
 Run:
 
@@ -1691,7 +1691,7 @@ Run:
 
 Expected: `Test run with 64 tests in 9 suites passed`. The Keychain tests wait for Task 15.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -1708,7 +1708,7 @@ Expected: the new commit's line. `git -C ~/Dev/Crewluv status --short` shows onl
 
 Spec §5.1: the CloudKit read that the screen, the push handler and the background refresh each wrote out, now once. It picks the database and the owner as they did, reads the `pilot-status` record, and looks up the pilot's name for this partner by their own iCloud user record name. It says when there's no share, and when the share is gone. Task 8 tests it through a stand-in; CloudKit can't run in the harness, so the harness only compiles it.
 
-- [ ] **Step 1: Write the read**
+- [x] **Step 1: Write the read**
 
 File: `Crewluv/Services/ICloudStatusFetcher.swift`
 
@@ -1802,7 +1802,7 @@ final class ICloudStatusFetcher: ICloudStatusFetching {
 }
 ```
 
-- [ ] **Step 2: Check it compiles**
+- [x] **Step 2: Check it compiles**
 
 Run:
 
@@ -1812,7 +1812,7 @@ Run:
 
 Expected: `Test run with 64 tests in 9 suites passed`.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 Run:
 
@@ -1830,7 +1830,7 @@ Expected: the new commit's line. `git -C ~/Dev/Crewluv status --short` shows onl
 
 Spec §5.1–§5.3 and decisions 7–10, 15 and 16: the one place that reads the status. It reads Crewlu Cloud once connected and iCloud otherwise, hands each new status to the alerts once, sends `since` back, forgets the key and the connection when sharing ends, and tries a key a reinstall left. Nothing uses it yet: Tasks 10 and 12 do.
 
-- [ ] **Step 1: Write the stand-ins**
+- [x] **Step 1: Write the stand-ins**
 
 Crewlu Cloud, iCloud, the Keychain and the alerts, each answering from a script, and statuses made from a few fields.
 
@@ -1974,7 +1974,7 @@ enum Make {
 }
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 File: `CrewluvTests/PilotStatusSourceTests.swift`
 
@@ -2324,7 +2324,7 @@ final class PilotStatusSourceTests {
 }
 ```
 
-- [ ] **Step 3: Run them to see them fail**
+- [x] **Step 3: Run them to see them fail**
 
 Run:
 
@@ -2334,7 +2334,7 @@ Run:
 
 Expected: the build fails, with errors such as `cannot find type 'StatusNotifying' in scope` or `cannot find 'PilotStatusSource' in scope`, depending on which file the compiler reaches first.
 
-- [ ] **Step 4: Write the connection**
+- [x] **Step 4: Write the connection**
 
 File: `Crewluv/Models/PartnerConnection.swift`
 
@@ -2368,7 +2368,7 @@ struct PartnerConnection {
 }
 ```
 
-- [ ] **Step 5: Write the reading**
+- [x] **Step 5: Write the reading**
 
 File: `Crewluv/Models/PilotReading.swift`
 
@@ -2429,7 +2429,7 @@ enum PilotReading {
 }
 ```
 
-- [ ] **Step 6: Write the source**
+- [x] **Step 6: Write the source**
 
 File: `Crewluv/Services/PilotStatusSource.swift`
 
@@ -2721,7 +2721,7 @@ final class PilotStatusSource {
 }
 ```
 
-- [ ] **Step 7: Run the tests to see them pass**
+- [x] **Step 7: Run the tests to see them pass**
 
 Run:
 
@@ -2731,7 +2731,7 @@ Run:
 
 Expected: `Test run with 88 tests in 10 suites passed`.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 Run:
 
@@ -2749,7 +2749,7 @@ Expected: the new commit's line. `git -C ~/Dev/Crewluv status --short` shows onl
 
 Spec §5.5 and decision 12: a loop that runs an action every 60 seconds until stopped. The tests drive it with a clock they tick by hand.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 File: `CrewluvTests/RepeatingRefreshTests.swift`
 
@@ -2874,7 +2874,7 @@ private final class HandClock {
 }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -2884,7 +2884,7 @@ Run:
 
 Expected: the build fails: `cannot find 'RepeatingRefresh' in scope`.
 
-- [ ] **Step 3: Write the timer**
+- [x] **Step 3: Write the timer**
 
 File: `Crewluv/Services/RepeatingRefresh.swift`
 
@@ -2937,7 +2937,7 @@ final class RepeatingRefresh {
 }
 ```
 
-- [ ] **Step 4: Run the tests to see them pass**
+- [x] **Step 4: Run the tests to see them pass**
 
 Run:
 
@@ -2947,7 +2947,7 @@ Run:
 
 Expected: `Test run with 91 tests in 11 suites passed`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -2964,7 +2964,7 @@ Expected: the new commit's line. `git -C ~/Dev/Crewluv status --short` shows onl
 
 Spec §5.1, §5.4 and §5.5, and decisions 5, 7, 11, 12, 16 and 17. The screen's model asks the source instead of reading CloudKit itself, and keeps its messages and its iCloud discovery. It shows what a push or the background refresh read when the source says so. It re-resolves at leg changes, as before, and when a quick status expires. It runs the 60-second check while the app is in front. The harness compiles `PartnerStatusReceiver`; `ContentView` waits for Task 13.
 
-- [ ] **Step 1: Read through the source**
+- [x] **Step 1: Read through the source**
 
 The header, the stored properties and `init`; the push observer becomes the source's; the reset forgets the source's iCloud reading; `checkForSharedData` asks the source; `refresh`, `hasRecordedConnection` and `resolveAndSchedule` follow; the leg log moves to the source (Task 8), and the 60-second check takes its place.
 
@@ -3594,7 +3594,7 @@ with:
 }
 ```
 
-- [ ] **Step 2: Start and stop the check with the app**
+- [x] **Step 2: Start and stop the check with the app**
 
 2 replacements, in order, in `Crewluv/Views/Welcome/ContentView.swift`:
 
@@ -3648,7 +3648,7 @@ with:
             .pasteShareLinkAlert(isPresented: $showPasteShareAlert)
 ```
 
-- [ ] **Step 3: Check it compiles**
+- [x] **Step 3: Check it compiles**
 
 Run:
 
@@ -3658,7 +3658,7 @@ Run:
 
 Expected: `Test run with 91 tests in 11 suites passed`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 Run:
 
@@ -3677,7 +3677,7 @@ Expected: the new commit's line. `git -C ~/Dev/Crewluv status --short` shows onl
 
 Spec §6 and decisions 13–14: on Crewlu Cloud the token goes to `partner_set_push`, and a registration that couldn't reach Crewlu Cloud is tried again on coming to the front. `sharing_ended` ends sharing. A silent push means "check now" as `PushRoute` says, and iOS is told how it went.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 File: `CrewluvTests/PushRegistrarTests.swift`
 
@@ -3880,7 +3880,7 @@ struct PushRouteTests {
 }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -3890,7 +3890,7 @@ Run:
 
 Expected: the build fails, with errors such as `cannot find type 'PushRegistrar' in scope` or `cannot find 'PushRoute' in scope`, depending on which file the compiler reaches first.
 
-- [ ] **Step 3: Write the routes**
+- [x] **Step 3: Write the routes**
 
 File: `Crewluv/Services/PushRoute.swift`
 
@@ -3942,7 +3942,7 @@ extension RefreshOutcome {
 }
 ```
 
-- [ ] **Step 4: Note each registration for the diagnostics**
+- [x] **Step 4: Note each registration for the diagnostics**
 
 3 replacements, in order, in `Crewluv/Services/NotificationDiagnostics.swift`:
 
@@ -4028,7 +4028,7 @@ with:
 }
 ```
 
-- [ ] **Step 5: Write the registrar**
+- [x] **Step 5: Write the registrar**
 
 File: `Crewluv/Services/PushRegistrar.swift`
 
@@ -4109,7 +4109,7 @@ final class PushRegistrar {
 }
 ```
 
-- [ ] **Step 6: Run the tests to see them pass**
+- [x] **Step 6: Run the tests to see them pass**
 
 Run:
 
@@ -4119,7 +4119,7 @@ Run:
 
 Expected: `Test run with 105 tests in 13 suites passed`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 Run:
 
@@ -4136,7 +4136,7 @@ Expected: the new commit's line. `git -C ~/Dev/Crewluv status --short` shows onl
 
 Spec §6 and decisions 11, 13 and 14: the token goes to the registrar, a push asks the source, and the background refresh does too. The screen's `.cloudKitPushReceived` goes, since the source tells it (Task 10). Coming to the front tries an owed registration again, and the diagnostics sheet shows the last one. These need UIKit, BackgroundTasks or SwiftUI's iOS views, so Task 13 compiles them.
 
-- [ ] **Step 1: Send the token, and ask the source on a push**
+- [x] **Step 1: Send the token, and ask the source on a push**
 
 3 replacements, in order, in `Crewluv/App/AppDelegate.swift`:
 
@@ -4312,7 +4312,7 @@ private extension BackgroundFetchOutcome {
 }
 ```
 
-- [ ] **Step 2: Retire the push notification's name**
+- [x] **Step 2: Retire the push notification's name**
 
 One replacement in `Crewluv/App/CrewluvApp.swift`:
 
@@ -4337,7 +4337,7 @@ extension Notification.Name {
 }
 ```
 
-- [ ] **Step 3: Read through the source in the background**
+- [x] **Step 3: Read through the source in the background**
 
 2 replacements, in order, in `Crewluv/Services/BackgroundRefreshManager.swift`:
 
@@ -4463,7 +4463,7 @@ private struct BackgroundReadFailed: Error {
 // MARK: - CancellableHandle
 ```
 
-- [ ] **Step 4: Try an owed registration on coming to the front**
+- [x] **Step 4: Try an owed registration on coming to the front**
 
 One replacement in `Crewluv/Views/Welcome/ContentView.swift`:
 
@@ -4490,7 +4490,7 @@ with:
                 }
 ```
 
-- [ ] **Step 5: Show the registration in the diagnostics**
+- [x] **Step 5: Show the registration in the diagnostics**
 
 2 replacements, in order, in `Crewluv/Views/Status/NotificationDiagnosticsView.swift`:
 
@@ -4550,7 +4550,7 @@ with:
     }
 ```
 
-- [ ] **Step 6: Check the rest still compiles**
+- [x] **Step 6: Check the rest still compiles**
 
 Run:
 
@@ -4560,7 +4560,7 @@ Run:
 
 Expected: `Test run with 105 tests in 13 suites passed`. Nothing in the harness uses the retired name.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 Run:
 
@@ -4574,7 +4574,7 @@ Expected: the new commit's line. `git -C ~/Dev/Crewluv status --short` shows onl
 
 **Files:** none. A build in a separate clone of the branch, with its own build folder, so it can't disturb the user's open Xcode or touch a simulator. It compiles the app and `CrewluvTests`, including the wiring and the Keychain tests the harness can't build. Crewluve has no packages to copy.
 
-- [ ] **Step 1: Make the clone**
+- [x] **Step 1: Make the clone**
 
 Use a scratch folder outside both repos as `$BUILD`, for example `export BUILD=<your scratchpad>/partner-cloud-source-build`.
 
@@ -4586,7 +4586,7 @@ rm -rf "${BUILD:?set BUILD first}" && mkdir -p "$BUILD" && git clone -q --shared
 
 Expected: the branch's last commit: Task 12's `feat(crewluv): pushes and the background refresh read through the status source`, or a later fix from Task 14.
 
-- [ ] **Step 2: Build for testing**
+- [x] **Step 2: Build for testing**
 
 It takes a few minutes, so run it in the background and wait for it to finish.
 
@@ -4602,11 +4602,11 @@ Expected: `exit 0`, `errors: 0` and `warnings: 0`. Nothing to commit.
 
 **Files:** whatever the review finds.
 
-- [ ] **Step 1: Ask for a review**
+- [x] **Step 1: Ask for a review**
 
 Use superpowers:requesting-code-review with a read-only reviewer: it reads `git -C ~/Dev/Crewluv diff 739abd3..feature/partner-cloud-source`, this plan, the spec (§5, §6, §9, §10.1) and `~/Dev/Duty/supabase/partner-api.md`, and runs no `xcodebuild` and no simulator. State facts neutrally, and don't tell it what not to flag.
 
-- [ ] **Step 2: Act on it**
+- [x] **Step 2: Act on it**
 
 For each finding, fix it test-first where the harness can test it, re-run `"$HARNESS/run.sh"`, and commit. If any Swift changed, run Task 13 again. Note each fix in this plan's Execution notes.
 
@@ -4614,7 +4614,7 @@ For each finding, fix it test-first where the harness can test it, re-run `"$HAR
 
 **Files:** none.
 
-- [ ] **Step 1: Ask the user to run the tests in Xcode**
+- [x] **Step 1: Ask the user to run the tests in Xcode**
 
 Send them these steps:
 
@@ -4622,7 +4622,7 @@ Send them these steps:
 2. Press **⌘U** (Product → Test) and wait for it to finish.
 3. Press **⌘6** to open the Test navigator. Red marks show failures.
 
-Expected: no failures. The new suites, counted before Task 14's fixes:
+Expected: no failures. The new suites, counted after Task 14's fixes (before them: 5 Keychain, 24 source and 8 registrar tests, and no `OneTimeCompletionTests`):
 
 | Suite | Tests |
 |---|---|
@@ -4630,13 +4630,14 @@ Expected: no failures. The new suites, counted before Task 14's fixes:
 | `PushEnvironmentTests` | 6 |
 | `LivePartnerDoorTests` | 11 |
 | `DeviceKeyTests` | 2 |
-| `KeychainDeviceKeyStoreTests` | 5 |
-| `PilotStatusSourceTests` | 24 |
+| `KeychainDeviceKeyStoreTests` | 6 |
+| `PilotStatusSourceTests` | 42 |
 | `RepeatingRefreshTests` | 3 |
-| `PushRegistrarTests` | 8 |
+| `PushRegistrarTests` | 9 |
 | `PushRouteTests` | 6 |
+| `OneTimeCompletionTests` | 3 |
 
-- [ ] **Step 2: If anything fails, stop**
+- [x] **Step 2: If anything fails, stop**
 
 Ask for the test's name and its message. Fix the cause, never the test's expected value, then ask for another run.
 
@@ -4644,20 +4645,21 @@ Ask for the test's name and its message. Fix the cause, never the test's expecte
 
 **Files:** none.
 
-- [ ] **Step 1: Offer the look, and say what it shows**
+- [x] **Step 1: Offer the look, and say what it shows**
 
 Ask the user one question: do they want to check, on their phone, that Crewluve still works on iCloud? It's their choice. 4a changes how every read is done, but nothing they'll see, so the look is about nothing having broken:
 - Crewluve still shows the pilot's status, and pull-to-refresh still works.
 - A change in CrewLu still wakes Crewluve and alerts, through iCloud's push.
 - Running from Xcode replaces the App Store's Crewluve on that phone with this build, keeping its data, until the App Store version is installed again.
 
-- [ ] **Step 2: If yes, send the steps**
+- [x] **Step 2: If yes, send the steps**
 
 1. Connect the iPhone that has Crewluve following a pilot. In Xcode, at the top of the window, check the scheme says **Crewluv**, and pick that iPhone as the destination.
 2. Press **⌘R** (Product → Run). Crewluve opens and shows the pilot's status as before.
 3. Pull down on the status to refresh. The sync line says "Synced just now".
 4. Press and hold the sync line. The diagnostics sheet opens. Under **Crewlu Cloud Pushes** it says **On Crewlu Cloud: No**, **Environment: sandbox** and **Last Registration: Never**, which is right before plan 4b. Close it.
 5. Leave Crewluve (swipe up to the Home Screen). In CrewLu, on the pilot's phone, set a quick status such as **Call Me** for this partner. Within a minute or so, Crewluve's alert arrives, as it did before.
+6. Open Crewluve again, wait a minute, and leave it open in front. In CrewLu, clear the quick status. Within a minute or so, Crewluve shows the change by itself, and the sync line says "Synced just now" without pulling down.
 
 Note anything that looks wrong with a screenshot (press the side button and volume up together).
 
@@ -4666,7 +4668,7 @@ Note anything that looks wrong with a screenshot (press the side button and volu
 **Files (in `~/Dev/Crewluve Website`):**
 - Modify: `docs/superpowers/specs/2026-10-18-partner-links-piece4-crewluve-design.md`, and this plan
 
-- [ ] **Step 1: Add the planning decisions to the spec**
+- [x] **Step 1: Add the planning decisions to the spec**
 
 At the end of the spec, after §13, add `## 14. Decisions made while planning 4a`, followed by this plan's "Decisions made while planning" list, copied as it stands, and any changes from the review (Task 14). Then update its status line.
 
@@ -4682,7 +4684,7 @@ with:
 Plan 4a is built (`docs/superpowers/plans/2026-10-18-partner-links-piece4a-source.md`); next: plan 4b.
 ```
 
-- [ ] **Step 2: Tick this plan and commit**
+- [x] **Step 2: Tick this plan and commit**
 
 Run:
 
@@ -4709,3 +4711,55 @@ Ask separately before each push: the branch Crewluve's work ends up on, in `~/De
 ## Execution notes
 
 Filled in during the build: any place the code ends up different from the printed blocks, and why.
+
+**Tasks 0–13 went as printed.** Each step was applied to `~/Dev/Crewluv` from the same data as this plan's blocks, and each Run step gave the printed result (`fe45730` to `5eafc68`). Task 13: exit 0, no errors, no warnings.
+
+**Task 14's review** found nothing critical, four important issues and some minor ones. Each fix was made test-first on `feature/partner-cloud-source`, after the printed blocks:
+
+1. **A refresh asked for during a read reads again once that read ends** (`a697b8e`, review issue 2). Taking the answer of the read under way could give a push that landed mid-read an answer from before its change. Now the first refresh asked for during a read queues one more read, and every later one shares it. On Crewlu Cloud the extra read is the small "unchanged" answer. This amends Decision 10.
+2. **The screen shows how every read went, whoever asked for it** (`4cf9a88`, issue 1). Before the source, every iCloud push made the screen read, which moved "Synced" and cleared an earlier failure. With Decision 11, only the screen's own reads did. Now the source posts `.pilotStatusDidUpdate` once per read, with a `PilotStatusUpdate` (the outcome and when the read began), and once when sharing ends outside a read. The screen maps every outcome in one place, `show(_:)`. This replaces Decision 11's `.pilotReadingDidChange`.
+3. **The 60-second check asks at every tick** (`2f3baae`, issues 3 and 11). It moves into the source, which reads at a tick only while on Crewlu Cloud and outside the demo (the screen passes the demo in). A device that leaves Crewlu Cloud mid-session stops reading at the next tick, and one that connects starts without leaving the front. The timer itself now runs whenever the app is in front, and reads nothing off Crewlu Cloud. This amends Decisions 12 and 17: the harness now tests the gating.
+4. **A read that ends after sharing ended brings nothing back** (`cd450cf`, issues 7, 8 and 9). Forgetting the connection moves a generation on, and a Crewlu Cloud answer or failure from before then reports sharing ended. A lost key clears the reading, and the screen clears its status on "not connected". A summary for another partner of the same pilot is new even at the same `updated_at`. Adopting a key left by a reinstall sends the push token (`didConnect`), as spec §6.1 asks of connecting.
+5. **A Keychain that can't be read isn't a missing key** (`e2e8c73`, issue 14). `deviceKey()` throws `DeviceKeyUnreadable` for anything but `errSecItemNotFound`. The source reports a failed read and keeps the connection, a leftover key waits for the next refresh, and the push registration is owed.
+6. **Crewlu Cloud failures are logged** (`9ef3a75`, issue 4, spec §5.4): the call, and the network error, the HTTP status, an unknown refusal or where the answer failed to decode. Never the request.
+7. **The background refresh ends its task when iOS asks** (`2ccd1d0`, issue 5). The read can't be cancelled while others may share it, so `OneTimeCompletion` ends the task from the expiry handler or the read's end, whichever comes first.
+8. **The nickname stays when iCloud can't say who this partner is** (`47b1e11`, issue 6). An iCloud read now says whether it could look up this partner's user record. When it couldn't, the alerts are titled with the saved name and it stays saved. A later read of the same status that finds the name shows it without alerting again. This amends Decision 8.
+9. **Crewluv's `CLAUDE.md`** describes the source and its refreshes (`b63a3e1`, issue 12, spec §12).
+
+Two more commits: `bd1fb50` makes the stand-ins' partner ids `nonisolated`, since Xcode warned about a default argument naming them (the Mac harness didn't), and `dd6c2b0` adds three tests the deliberate breaks below needed. Task 16 gained step 6, which shows fix 2 on the phone.
+
+**The re-review** (the same reviewer, of `5eafc68..dd6c2b0`) found each fix sound, and nothing critical or important in the new code. Its important point was this plan: the decisions and these notes were behind the code, and Task 17 copies them into the spec. Decisions 8, 10–14 and 17 now say what the code does, and what the review changed. From its minor points, fixed after `dd6c2b0`:
+
+10. **The 60-second check runs while any screen is in front** (`f09c8f4`). iPad can show several Crewluve windows (`UIApplicationSupportsMultipleScenes` is on), and they share the source's one check, so one window leaving the front stopped it for another. Each screen now registers while it's in front.
+11. **The screen's title keeps the saved nickname while iCloud can't look the name up** (`6c31ed7`), as the alerts do.
+12. **A key the Keychain holds but can't decode counts as no key** (`9a4f000`). As "unreadable", it kept the connection and failed every read. The next save replaces it.
+13. **A push tells iOS how it went within 25 seconds** (`bb84ec7`). Since fix 1, a push that lands mid-read waits for that read and one more, and iOS allows about 30 seconds. `OneTimeCompletion` became generic to carry the fetch result.
+14. **`PilotStatusSource.swift` is back under `CLAUDE.md`'s ~300 lines** (`e46673f`): `ReadQueue`, `PilotStatusUpdate` and `RefreshOutcome`, `StatusNotifying` with the hand-off to the alerts, and the leg-change log moved to their own files, unchanged in what they do.
+15. **`CLAUDE.md`'s refreshes include pull-to-refresh and the refresh button** (`9606811`).
+
+The harness's file list gained `Utils/OneTimeCompletion.swift`, `Utils/ReadQueue.swift`, `Models/PilotStatusUpdate.swift`, `Models/PilotReading+LegChanges.swift` and `Services/StatusNotifying.swift`.
+
+**Not fixed in 4a:**
+- Issue 10 (the legs' bytes differ by source, so the first Crewlu Cloud summary could fire "Departure changed"): plan 4c, at the switch.
+- Issue 11's third point (`CloudSummaryTests` reads its fixtures through `#filePath`, so it skips on a phone): kept, since the tests run on the simulator.
+- Issue 13 (with no legs, the title shows the first name, not the nickname): older than 4a, a follow-up.
+- Issue 14's other points (`ICloudStatusFetcher` reads `UserDefaults.standard`, the cached user record name outlives `.CKAccountChanged`, and the demo leaves the timer running): small, and as before.
+- Recommendation 3 (keep the pilot's id and name in `PartnerConnection`): plan 4b, which needs them.
+- Recommendation 4 (Decision 7's reset from a push or the background refresh): the user approved it with this plan.
+- Recommendation 5 (a leftover key's `partner_view` can hold up an iCloud read for up to 20 seconds): plan 4c.
+- The re-review's point for 4b: the generation guards a read's answer and failure, but not its `sharing_ended`, nor the registrar's. In 4a only forgetting moves it on, so that's harmless. Once 4b can replace the key mid-read, a late `sharing_ended` for the old key would delete the new one, and a read a switch overtook would report sharing ended. 4b moves the generation on at every connection change, guards both, and gives an overtaken read an outcome that doesn't end sharing.
+- The re-review's note that `eventually` counts yields rather than time: it found no flake, under load either, so it stays.
+
+**Checked after the fixes:**
+- The Mac harness: 127 tests in 14 suites pass at `9606811`. The tests that hold reads or use the hand clock passed 25 to 40 runs in a row here, and the reviewer ran the whole suite 54 more times, half of them with every core busy, without a failure.
+- Deliberate breaks, one at a time, in the files the fixes touched and in the fixes themselves: 74 of 75 caught at `9606811` (69 of 70 before the second round). The miss is the lost-key branch clearing `since`, which no 4a test can see: after a lost key, the next Crewlu Cloud read is a leftover key's, which always asks for the whole summary. It matters once plan 4b connects a device directly.
+- Task 13's build of `e46673f`, the last commit that changes code (`9606811` changes only `CLAUDE.md`), and of `bb84ec7` before it: exit 0, no errors, no warnings. Built at `2ccd1d0`, it had the six warnings `bd1fb50` fixed.
+- The reviewer's third look, at `dd6c2b0..9606811`: no issues, ready to merge.
+
+**Task 15's first ⌘U didn't build.** Xcode stopped at `PartnerCloudStandIns.swift:89`, `actor RecordingNotifier: StatusNotifying`, with "'nonisolated' modifier cannot be applied to this declaration". Declared on the actor, a conformance to a `nonisolated` protocol can make Swift 6.2 infer `nonisolated` for the whole actor, and whether it does depends on the order the test files compile in. Xcode compiled them in the folder's order, with the stand-ins last. Task 13's fresh clone listed them in another order, so its builds passed. Re-running Xcode's own failing command from its build log, with its outputs sent to the scratchpad, reproduced the error, and listing the stand-ins first made it pass. `ead6bfe` declares the conformance in an extension. Then Xcode's command, and a full type-check of every test in Xcode's order, gave no errors and no warnings, and the harness still passed. A build check now also reruns Xcode's last command for the test target, in its file order.
+
+**Task 15's second ⌘U passed** (on an iOS 26.5 simulator, at `ead6bfe`): all 133 Swift Testing tests in 15 suites, with each new suite at its count in the table, and the 28 XCTest tests. `test_aKeyThatIsntText_readsNil` logged "The Keychain holds a key that isn't text", so it read the item it planted.
+
+**Task 16's look passed** on the user's test phone, which always runs Xcode builds (so iCloud's development database, with a CrewLu that's also an Xcode build): all six steps as written, including the alert in step 5 and, in step 6, the change and "Synced just now" arriving with Crewluve open and no pull.
+
+Task 15's table shows the counts after the fixes.
