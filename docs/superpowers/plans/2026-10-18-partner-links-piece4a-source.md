@@ -4698,11 +4698,11 @@ Expected: the new commit. Don't push.
 
 **Files:** none.
 
-- [ ] **Step 1: Ask how to merge**
+- [x] **Step 1: Ask how to merge**
 
 4a changes how every partner's Crewluve reads the status, but nothing a partner sees, and it calls Crewlu Cloud only once a device has joined (plan 4b). Ask the user one question: merge `feature/partner-cloud-source` into `hotfix/icloud-account-unavailable` now, so the next 1.1.x build carries it, or keep it apart until 4b and 4c. To merge without changing any file on disk while Xcode is open: `git -C ~/Dev/Crewluv fetch . feature/partner-cloud-source:hotfix/icloud-account-unavailable`, a fast-forward that works only while the release line is still `739abd3`. Then switch to it (`git -C ~/Dev/Crewluv switch hotfix/icloud-account-unavailable`: the same commit, so no files change) and delete the branch with `git -C ~/Dev/Crewluv branch -d feature/partner-cloud-source`.
 
-- [ ] **Step 2: Push only with a fresh yes**
+- [x] **Step 2: Push only with a fresh yes**
 
 Ask separately before each push: the branch Crewluve's work ends up on, in `~/Dev/Crewluv`, and `main` in `~/Dev/Crewluve Website`.
 
@@ -4761,5 +4761,7 @@ The harness's file list gained `Utils/OneTimeCompletion.swift`, `Utils/ReadQueue
 **Task 15's second ⌘U passed** (on an iOS 26.5 simulator, at `ead6bfe`): all 133 Swift Testing tests in 15 suites, with each new suite at its count in the table, and the 28 XCTest tests. `test_aKeyThatIsntText_readsNil` logged "The Keychain holds a key that isn't text", so it read the item it planted.
 
 **Task 16's look passed** on the user's test phone, which always runs Xcode builds (so iCloud's development database, with a CrewLu that's also an Xcode build): all six steps as written, including the alert in step 5 and, in step 6, the change and "Synced just now" arriving with Crewluve open and no pull.
+
+**Task 18:** the user kept `feature/partner-cloud-source` apart from the release line, which stays at `739abd3`, since 4a, 4b and 4c ship in one release (spec §11); 4b and 4c build on the branch. With the user's yes for each, the branch went to GitHub (new, tracking `origin`), and the website's `main` went out as `dffa432..0d7f1ef`.
 
 Task 15's table shows the counts after the fixes.
