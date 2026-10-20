@@ -1,6 +1,6 @@
 # Partner Links Piece 4: Crewluve on Crewlu Cloud
 
-- **Status:** design approved in brainstorming on 2026-10-18, and the user approved this spec the same day. Plan 4a is built (`docs/superpowers/plans/2026-10-18-partner-links-piece4a-source.md`); next: plan 4b.
+- **Status:** design approved in brainstorming on 2026-10-18, and the user approved this spec the same day. Plans 4a and 4b are built (`docs/superpowers/plans/2026-10-18-partner-links-piece4a-source.md`, `docs/superpowers/plans/2026-10-19-partner-links-piece4b-connecting.md`); next: plan 4c.
 - **Part of:** the partner-links design, `docs/superpowers/specs/2026-10-15-partner-links-design.md`, §5.5, §6, §7.2, §8 and §9 (piece 4).
 - **Repo:** Crewluve, `~/Dev/Crewluv`, on a new branch off its release line (§11).
 - **Contract:** `~/Dev/Duty/supabase/partner-api.md`, the partner door from piece 1 (live since 2026-10-15), including its "Pushes" section from piece 3 (live since 2026-10-18).
@@ -509,3 +509,51 @@ Decisions 8, 10–13 and 17 above say what the review changed in them. The revie
   - once a device's key can change mid-read (plan 4b), the generation moves on at every connection change and also guards `sharing_ended`, so a late one for an old key can't delete the new key;
   - a leftover key's `partner_view` ahead of an iCloud read can wait up to 20 seconds (plan 4c);
   - with no legs, the title shows the first name, not the nickname (older than piece 4; a follow-up).
+
+## 15. Decisions made while planning 4b
+
+Plan 4b (`docs/superpowers/plans/2026-10-19-partner-links-piece4b-connecting.md`) made these decisions, and its review added to some of them, as "What 4b's review added" says. They refine §7 and §14, and where they differ, these hold: a join uses a pending key until the device switches (§7.2), and the sharing-ended note goes with the next status as well as the next connection (§7.6).
+
+1. **A join uses a pending key until the device switches.** Spec §7.2 says a device without a key makes one, saved first. 4b keeps that key in a second Keychain item (`pendingKey`), so this device's key changes only when it switches. While "Switch to Sam?" waits, the current connection keeps working, and Cancel forgets only the pending key. A join that didn't finish keeps it, so the next try sends it again and gets the same device. `key_in_use` gets a pending key too: the kept one after this device's key was refused, a new one after a pending key was.
+2. **A trailing slash is tolerated** (`/join/`), though piece 1b's links have none, and the host is read in any case. Spec §7.1 says there's no trailing slash; §10.1 tests one.
+3. **A code is six ASCII letters or digits** once spaces and dashes are gone, so "É" or "!" never reaches the door. The code boxes keep letters and digits, in capitals, at most six (`PartnerLink.codeBoxes`).
+4. **A read that a connection change overtook is `superseded`** (spec §14's item for 4b). It brings nothing back and forgets nothing, iOS hears "no data", and the screen waits for the read the change asks for. In 4a, such a read reported sharing ended; the change may now be a switch. The same holds for the other calls a switch can overtake: the push registration's `sharing_ended` ends sharing only while the key it sent is still this device's, a hand-off code's is only "couldn't make one", and a Disconnect that a join overtook keeps the join's new connection.
+5. **The pilot's id and name are kept with the connection** (spec §14's item for 4b), as `partnerCloud.pilotID` and `partnerCloud.pilotName`, from each new status. The name is the nickname the pilot set for this partner, or their first name. Joining compares the ids, and the question and the messages use the name.
+6. **Three pieces moved out of the status source,** to keep it under 300 lines: `CrewluCloudDevice` (this device's key, partner id, `since` and generation, with joining and leaving), `PeriodicCheck` (the screens the 60-second check runs for) and `PartnerConnection.remember(_:)`.
+7. **"The same device" is this device's own key answering with the partner id it's connected as.** Nothing changes then but a read.
+8. **The sharing-ended note is saved** (`partnerCloud.sharingEndedWith`), so it survives a relaunch, and it goes with the next status or connection. Spec §7.6 says "until the next connection": a status also covers an iCloud share accepted from the paste box.
+9. **Forgetting a pilot also forgets when the alerts last looked** (`LastEvaluatedPilotStatusTimestamp`), with the pilot's id and name, the alerts' title name and their snapshot. It happens on a switch to another pilot, when sharing ends and on Disconnect. Otherwise the new pilot's statuses older than the last pilot's would be skipped. A switch to the same pilot keeps them all, so nothing alerts twice.
+10. **Switching from iCloud forgets the share quietly** (`CloudKitShareManager.forgetShareQuietly()`): the share's settings and the iCloud subscriptions go, without `.shareDataReset`, so the welcome screen doesn't flash. The share itself is the pilot's to end.
+11. **The nickname with no legs is fixed here,** though spec §14 left it as a follow-up: the screen names the status with no legs as it names one with legs (`SharedPilotStatus.named(_:)`).
+12. **The screen stops showing the last pilot's status** when there's no status yet, and when a read fails with nothing read. So a switch to a pilot with no status yet shows the waiting screen, not the last pilot.
+13. **The sync line's wording is `SyncLineWording`,** outside the view, so the harness tests it.
+14. **A failed Disconnect's alert is titled "Couldn't Disconnect".** The spec gives only its message. The menu's items use the `qrcode` and `xmark.circle` symbols.
+15. **`LinkRouter` takes every link:** taps, universal links, cold launches and the paste box. `OpenedLink` decides where each goes, and pasted text that's neither kind of link gets "Not an Invite Link".
+16. **The waiting screen scrolls,** so pull-to-refresh works on it (spec §7.7).
+17. **`ContentView` was split** to stay under 300 lines, into `LoadingAndErrorViews.swift` and `JoinAlerts.swift`. `PartnerStatusReceiver` was over 300 lines before piece 4, and stays so.
+18. **Left for plan 4c:** the hand-off copy, which Disconnect and sharing ended will also forget (§7.5, §7.6); the note for a second device left behind (§7.7); and the move-over's exception to iCloud's sharing-ended note (§8.4).
+
+### What 4b's review added
+
+The review read the branch twice. It reproduced its findings with probe tests in the Mac harness, and those probes became tests.
+
+- **Every call a switch can overtake is guarded** (decision 4):
+  - **A switch changes everything at once.** `switchTo` is synchronous, and `connect` does all its bookkeeping before its first wait, so no read sees half a switch and the alerts never compare the new pilot with the last one. The replaced device leaves after (`leave(_:)`).
+  - **A leftover key's answer that a switch overtook changes nothing** (§5.3): its refusal forgets no key, and its summary connects nothing. `switchTo` saves the joined key again if such a refusal forgot it in between.
+  - **An iCloud read that a switch overtook brings nothing back:** it doesn't hand the alerts the last pilot's status, and a "share gone" from it resets nothing.
+  - **Disconnect's own refusals end nothing.** While Disconnect is under way, a read's `sharing_ended` and the push registration's leave no note. A join that switched the device during Disconnect keeps its new connection.
+- **A join with this device's key that gets `key_in_use`** tries the kept pending key, then a new one, as decision 1 says.
+- **Leaving iCloud is remembered** (decision 10). `partnerCloud.leftICloud` is set when a device connects to Crewlu Cloud and on Disconnect, which also forgets any iCloud share quietly. While it's set, neither the launch nor a refresh looks for an accepted share or the device's own iCloud zone, so Disconnect and sharing ended last past a relaunch (§7.5). Accepting a share from a link clears it.
+- **A cancelled join that used this device's own key** ends sharing with the last pilot when the device was on Crewlu Cloud, since that key joining anew means its old device was gone (§7.6).
+- **The pilot followed is read before comparing** when it isn't saved yet, as on the first launch after this update.
+- **The screen keeps what's on it.** A refresh keeps the welcome screen, so its typing and paste box stay, and the waiting screen. An accepted iCloud share shows the loading screen until it's read.
+- **Smaller changes:**
+  - Disconnect shows "Disconnecting..." while it runs.
+  - The code boxes and the hand-off code grow with the text size.
+  - A pasted code reads with any space or line break inside.
+  - The device's Disconnect is `disconnect()`, apart from `leave(_:)` for a replaced device.
+- **Left for later:**
+  - plan 4c: an iCloud share link tapped while on Crewlu Cloud; a leftover key that connects keeps a recorded iCloud share, since adoption doesn't let iCloud go; and 4c's move-over must set `partnerCloud.leftICloud`, as joining does;
+  - for §10.3's checks on real phones: a switch between two pilots; a reinstall after the pilot removed the device, then a new invite; and Disconnect, then a relaunch, on a device that came from iCloud;
+  - no ••• menu on the waiting screen, so a partner waiting for the first update can't disconnect there;
+  - the sync row keeps its iCloud icon on Crewlu Cloud.
