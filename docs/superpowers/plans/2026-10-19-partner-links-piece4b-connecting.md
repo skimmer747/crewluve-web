@@ -8327,11 +8327,11 @@ Expected: the new commit. Don't push.
 
 **Files:** none.
 
-- [ ] **Step 1: Keep the branch apart**
+- [x] **Step 1: Keep the branch apart**
 
 4b shows partners the new welcome screen and the ••• menu, and its links come from CrewLu's partner screens, which wait for CrewLu 3.0.2 to be on the App Store. So `feature/partner-cloud-source` stays apart from the release line until plan 4c is built and spec §10.3's checks pass. Nothing to merge.
 
-- [ ] **Step 2: Push only with a fresh yes**
+- [x] **Step 2: Push only with a fresh yes**
 
 Ask separately before each push: `feature/partner-cloud-source` in `~/Dev/Crewluv`, and `main` in `~/Dev/Crewluve Website`.
 
@@ -8366,3 +8366,4 @@ Filled in during the build: any place the code ends up different from the printe
 - **Task 25 (2026-10-19):** the user's ⌘U at `b47e958`, on an iOS 26.5 simulator: `Test run with 240 tests in 25 suites passed` (the harness's 232 and the Keychain's 8), and the three XCTest suites' 28 tests passed.
 - **Task 26 (2026-10-19):** the user looked in a simulator and on their test phone, and it looked right. CrewLu's partner page still says "Needs Crewluve update" for the test phone's partner, as expected: that label means the partner follows through iCloud, and moving an iCloud partner without a tap is plan 4c.
 - **Task 27 (2026-10-19):** the spec's §15 records the 18 decisions as they stand, what the review added, and what's left for later, and its status line says plans 4a and 4b are built.
+- **Task 28 (2026-10-20):** the user chose to keep `feature/partner-cloud-source` apart from the release line. Another session had already pushed it, with one commit of its own on top: `69865b3`, the flag, code and greeting for Hanoi and Ho Chi Minh City (`PilotStatusView` and an XCTest). That commit changes no 4b code. Task 23 passed at `69865b3` too (0 errors, 0 warnings, all eight orders). Website `main` was pushed `0d7f1ef..d66d4aa` with the user's yes, and Pages run 39478100017 succeeded.
