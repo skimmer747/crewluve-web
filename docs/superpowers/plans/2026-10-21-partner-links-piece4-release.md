@@ -402,4 +402,4 @@ Filled in as the release goes: each task's result, and anything that differed. N
   - Done early, while the beta review (Task 4) waits. That was the user's choice: it means the listing names the data a day or two before 1.2 is live, while 1.1.6 still collects nothing.
   - Published. The preview reads "Data Linked to You: Identifiers, Usage Data", and Data Types reads "2 data types collected from this app: Device ID, Other Usage Data". Device ID shows "Used for App Functionality" and "Linked to the user's identity", and there's no "Data Used to Track You" section.
   - The Privacy Policy URL is unchanged.
-  - The new version shows in App Store Connect as "1.2.0, Prepare for Submission".
+  - The new version shows in App Store Connect as "1.2.0, Prepare for Submission". The build's own version is 1.2, but the user confirmed **1.2 (44)** is attached under Build, so the two match.
