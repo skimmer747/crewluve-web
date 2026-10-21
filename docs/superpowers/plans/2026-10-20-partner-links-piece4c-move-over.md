@@ -72,10 +72,12 @@ These refine the spec. Task 15 writes them into it.
 3. **iCloud's status shows first, then the move-over takes its turn,** within the same read.
    - A slow Crewlu Cloud never holds up iCloud's status. This fixes 4a's wait of up to 20 seconds ahead of an iCloud read (spec §14).
    - A push or a refresh that comes during the turn waits for it, as for any read.
-4. **A key with no connection saved,** which a reinstall leaves (spec §5.3):
-   - **With an iCloud share,** the move-over reads it first. A status for the pilot iCloud shows switches. One for another pilot, or none yet, gives way to the ticket.
-   - **Without one,** it connects whenever Crewlu Cloud answers for it, as in 4b.
+   - The turn belongs to its read: a switch since the read began, say by a join during the alerts' check, takes it away. A move under way also takes its turn after an iCloud read that failed, since it needs no record. (Both added by the review.)
+4. **A key with no connection saved,** which a reinstall leaves (spec §5.3), is this device's last connection, so it wins over an iCloud share the launch finds again, as in 4b. (Changed by the review: as first planned, a status for another pilot gave way to the ticket, which undid 4b's reinstall case and sent that pilot's key with another partner's ticket, against `partner-api.md`.)
+   - **With an iCloud share,** the move-over reads it first. A status switches, whichever pilot it's for. None yet gives way to the ticket, redeemed with the same key.
+   - **Without one, or once the share is gone,** it connects whenever Crewlu Cloud answers for it, as in 4b.
    - **Either way,** it switches through the same `switchConnection` as a join. That lets the iCloud share go and sets `partnerCloud.leftICloud` (spec §15's items for 4c). It replaces no device, since the key is this device's own.
+   - What the alerts kept stays only when the status is the same pilot's. Another pilot's statuses start afresh, so the switch alerts nothing.
 5. **The hand-off copy is saved at every switch:** a join, the move-over, or a key a reinstall left.
    - It's deleted when this device forgets its key (sharing ended, or Disconnect) while the copy holds that key.
    - It's also deleted when the copy's own device answers `sharing_ended`.
@@ -97,7 +99,7 @@ These refine the spec. Task 15 writes them into it.
     - So the first Crewlu Cloud status after the switch alerts nothing, though its legs' keys come in another order. That also covers 4b's join to the same pilot.
     - Bytes that don't read as legs compare as bytes, as before.
     - The schedule rule reads only its arguments, so it became a static function, and a test checks it.
-11. **Each step guards against a switch it didn't make.** A join that switches this device while the move-over waits on Crewlu Cloud wins, and the move-over stays as the join left it. A new key is never made while this device is connected.
+11. **Each step guards against a switch it didn't make.** A join that switches this device while the move-over waits on Crewlu Cloud wins, and the move-over stays as the join left it. A new key is never made while this device is connected. The review added two guards: when the share is gone, a join while another device is checked ends nothing, and a device a join switched makes no code with the copy.
 12. **Files stay under 300 lines.**
     - The source's connection changes moved to `PilotStatusSource+Connecting.swift`: connect, the switch, Disconnect, sharing ended and its note.
     - The move-over's key steps live in `MoveOver`, not the device.
@@ -178,7 +180,7 @@ Outside both repos: the Mac harness (`$HARNESS`, Task 1) and the compile-only cl
 
 ### Task 0: The branch
 
-- [ ] **Step 1: Check the working tree**
+- [x] **Step 1: Check the working tree**
 
 Run:
 
@@ -188,7 +190,7 @@ git -C ~/Dev/Crewluv status --short
 
 Expected: only `?? .claude/` and `?? .superpowers/`. If anything else shows, stop and ask the user.
 
-- [ ] **Step 2: Check the branch and its tip**
+- [x] **Step 2: Check the branch and its tip**
 
 Run:
 
@@ -206,7 +208,7 @@ Plan 4b's harness, with 4c's two new model and service files added to its list (
 
 `run.sh` copies the files that exist so far from `~/Dev/Crewluv` (or `$CREWLUV`, which must be an absolute path), takes the app's notification names out of `CrewluvApp.swift`, and links the fixtures, then runs `swift test`. It needs no Xcode project, no simulator and no network, and it builds into its own `.build` folder. Views, `AppDelegate`, `SceneDelegate`, `LinkRouter`, `BackgroundRefreshManager` and XCTest files aren't copied: they need UIKit, BackgroundTasks or SwiftUI's iOS views. If plan 4b's harness folder is still there, these two files replace its own.
 
-- [ ] **Step 1: Write the package**
+- [x] **Step 1: Write the package**
 
 File: `$HARNESS/Package.swift`
 
@@ -240,7 +242,7 @@ let package = Package(
 )
 ```
 
-- [ ] **Step 2: Write the runner**
+- [x] **Step 2: Write the runner**
 
 File: `$HARNESS/run.sh`
 
@@ -299,7 +301,7 @@ rm -f "$out"
 exit $code
 ```
 
-- [ ] **Step 3: Run today's tests**
+- [x] **Step 3: Run today's tests**
 
 Run:
 
@@ -317,7 +319,7 @@ Expected: `Test run with 232 tests in 24 suites passed`: Crewluve's Swift Testin
 
 Spec §14, left for 4c, and decision 10. iCloud's and Crewlu Cloud's statuses carry the same legs with their keys in another order, and iCloud's with fields Crewluve doesn't read. Compared as bytes, the first Crewlu Cloud status after the switch would alert "Departure changed" whenever its next departure differs. So the alerts compare legs as legs, and bytes that don't read as legs compare as bytes, as before. The schedule rule reads only its arguments, so it becomes a static function, and a test checks the switch through it. `TripLeg` becomes nonisolated, so the alerts' actor can decode it.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 File: `CrewluvTests/LegsComparisonTests.swift`
 
@@ -400,7 +402,7 @@ struct LegsComparisonTests {
 }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -410,7 +412,7 @@ Run:
 
 Expected: the build fails, with errors such as `type 'StatusChangeNotifier' has no member 'legsDiffer'`.
 
-- [ ] **Step 3: Let the alerts' actor read legs**
+- [x] **Step 3: Let the alerts' actor read legs**
 
 One replacement in `Crewluv/Models/TripLeg.swift`:
 
@@ -441,7 +443,7 @@ nonisolated struct TripLeg: Codable, Sendable, Equatable {
         case reserve, hotStandby, event  // future
 ```
 
-- [ ] **Step 4: Compare legs as legs, in a static rule**
+- [x] **Step 4: Compare legs as legs, in a static rule**
 
 5 replacements, in order, in `Crewluv/Services/StatusChangeNotifier.swift`:
 
@@ -581,7 +583,7 @@ with:
         let body: String
 ```
 
-- [ ] **Step 5: Run the tests to see them pass**
+- [x] **Step 5: Run the tests to see them pass**
 
 Run:
 
@@ -591,7 +593,7 @@ Run:
 
 Expected: `Test run with 239 tests in 25 suites passed`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Run:
 
@@ -610,7 +612,7 @@ Expected: the new commit's line. `git -C ~/Dev/Crewluv status --short` shows onl
 
 Spec §8.1 and decision 1. CrewLu writes `moveTicketByPartnerJSON` into the pilot's iCloud record: a JSON object from each moved partner's iCloud user record name to their ticket. `MoveTicket` picks this partner's. `ICloudStatusFetcher` reads it with each read, by the record name it already looks up for the pilot's name for this partner, now looked up in one place. CloudKit's part needs a real record, so only `MoveTicket` is tested here; spec §10.3's checks cover the rest.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 File: `CrewluvTests/MoveTicketTests.swift`
 
@@ -654,7 +656,7 @@ struct MoveTicketTests {
 }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -664,7 +666,7 @@ Run:
 
 Expected: the build fails: `cannot find 'MoveTicket' in scope`.
 
-- [ ] **Step 3: Pick this partner's ticket**
+- [x] **Step 3: Pick this partner's ticket**
 
 File: `Crewluv/Services/PartnerCloud/MoveTicket.swift`
 
@@ -697,7 +699,7 @@ nonisolated enum MoveTicket {
 }
 ```
 
-- [ ] **Step 4: Read it with each iCloud read**
+- [x] **Step 4: Read it with each iCloud read**
 
 3 replacements, in order, in `Crewluv/Services/ICloudStatusFetcher.swift`:
 
@@ -795,7 +797,7 @@ with:
     }
 ```
 
-- [ ] **Step 5: Run the tests to see them pass**
+- [x] **Step 5: Run the tests to see them pass**
 
 Run:
 
@@ -805,7 +807,7 @@ Run:
 
 Expected: `Test run with 244 tests in 26 suites passed`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Run:
 
@@ -823,7 +825,7 @@ Expected: the new commit's line. `git -C ~/Dev/Crewluv status --short` shows onl
 
 Spec §8.3 (P4-2) and decision 5. A third Keychain item, `handOffCopy`, holds the key of this partner's device that moved most recently, for their other devices. Unlike this device's key and the pending key, it syncs through iCloud Keychain (`kSecAttrSynchronizable`), and it's readable after the first unlock, so a push in the background can use it. Every query for it names `kSecAttrSynchronizable`, since a query without it finds only items that don't sync. `KeychainDeviceKeyStoreTests` runs only in Xcode (Task 13): the harness can't reach the iOS Keychain, so `run.sh` leaves it out.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 3 replacements, in order, in `CrewluvTests/KeychainDeviceKeyStoreTests.swift`:
 
@@ -931,7 +933,7 @@ with:
 }
 ```
 
-- [ ] **Step 2: Give the stand-in a copy**
+- [x] **Step 2: Give the stand-in a copy**
 
 2 replacements, in order, in `CrewluvTests/Helpers/PartnerCloudStandIns.swift`:
 
@@ -996,7 +998,7 @@ with:
 }
 ```
 
-- [ ] **Step 3: Keep the copy in iCloud Keychain**
+- [x] **Step 3: Keep the copy in iCloud Keychain**
 
 4 replacements, in order, in `Crewluv/Services/PartnerCloud/DeviceKeyStore.swift`:
 
@@ -1252,7 +1254,7 @@ with:
 }
 ```
 
-- [ ] **Step 4: Check it compiles**
+- [x] **Step 4: Check it compiles**
 
 Run:
 
@@ -1262,7 +1264,7 @@ Run:
 
 Expected: `Test run with 244 tests in 26 suites passed`. The Keychain tests wait for Task 13.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -1285,7 +1287,7 @@ Spec §5.3, §8.1 and decision 2: the move-over's two building blocks.
 - `partnerCloud.moveToPartnerID` marks a move under way.
 - Forgetting this device's key also deletes the hand-off copy when it holds that key (§8.3's housekeeping): sharing ended and Disconnect both forget.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 File: `CrewluvTests/MoveOverTests.swift`
 
@@ -1529,7 +1531,7 @@ with:
     @Test func test_aLeftoverKeysRefusal_thatASwitchOvertook_forgetsNothing() async {
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -1539,7 +1541,7 @@ Run:
 
 Expected: the build fails, with errors such as `cannot find type 'MoveOver' in scope`.
 
-- [ ] **Step 3: Mark a move under way**
+- [x] **Step 3: Mark a move under way**
 
 2 replacements, in order, in `Crewluv/Models/PartnerConnection.swift`:
 
@@ -1593,7 +1595,7 @@ with:
     /// The pilot of the last status seen, to tell whether a link is from another pilot (spec §7.2).
 ```
 
-- [ ] **Step 4: Forgetting deletes this device's own copy**
+- [x] **Step 4: Forgetting deletes this device's own copy**
 
 One replacement in `Crewluv/Services/PartnerCloud/CrewluCloudDevice.swift`:
 
@@ -1629,7 +1631,7 @@ with:
         partnerID = nil
 ```
 
-- [ ] **Step 5: Write the building blocks**
+- [x] **Step 5: Write the building blocks**
 
 File: `Crewluv/Services/PartnerCloud/MoveOver.swift`
 
@@ -1729,7 +1731,7 @@ final class MoveOver {
 }
 ```
 
-- [ ] **Step 6: Run the tests to see them pass**
+- [x] **Step 6: Run the tests to see them pass**
 
 Run:
 
@@ -1739,7 +1741,7 @@ Run:
 
 Expected: `Test run with 258 tests in 27 suites passed`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 Run:
 
@@ -1761,7 +1763,7 @@ Spec §8.1, §8.3 and §8.4, and decisions 2, 6, 7 and 11.
 - **Each answers what the source should do:** stay, switch, or end with or without the note for a device left behind. The source acts on it in Task 8.
 - **A join that switches this device while the move-over waits on Crewlu Cloud wins:** the move-over stays as the join left it. The door's stand-in learns to run something while a join or redeem waits, to test that.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 The door's stand-in can run something while a join or redeem waits, such as a switch.
 
@@ -2227,7 +2229,7 @@ with:
 }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -2237,7 +2239,7 @@ Run:
 
 Expected: the build fails, with errors such as `'Next' is not a member type of class 'Crewluv.MoveOver'`.
 
-- [ ] **Step 3: Write the move-over**
+- [x] **Step 3: Write the move-over**
 
 One replacement in `Crewluv/Services/PartnerCloud/MoveOver.swift`:
 
@@ -2406,7 +2408,7 @@ with:
     // MARK: - This Device's Key, Unconnected
 ```
 
-- [ ] **Step 4: Run the tests to see them pass**
+- [x] **Step 4: Run the tests to see them pass**
 
 Run:
 
@@ -2416,7 +2418,7 @@ Run:
 
 Expected: `Test run with 289 tests in 27 suites passed`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -2438,7 +2440,7 @@ Decisions 5 and 12.
 - The source's connection changes move, unchanged, to `PilotStatusSource+Connecting.swift`. The switch itself is split out as `switchConnection(to:keepingAlerts:)`, for Task 8, so the source stays under 300 lines.
 - What the extension needs from the source becomes internal.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 One replacement in `CrewluvTests/CrewluCloudDeviceTests.swift`:
 
@@ -2508,7 +2510,7 @@ with:
         let source = makeSource()
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -2518,7 +2520,7 @@ Run:
 
 Expected: the tests run, and `test_switch_makesTheKeyTheHandOffCopy_andEndsAMoveUnderWay()` and `test_connect_leavesTheKeyForThisPartnersOtherDevices()` fail.
 
-- [ ] **Step 3: A switch leaves the copy and ends a move**
+- [x] **Step 3: A switch leaves the copy and ends a move**
 
 2 replacements, in order, in `Crewluv/Services/PartnerCloud/CrewluCloudDevice.swift`:
 
@@ -2575,7 +2577,7 @@ with:
         partnerID = joined.partnerID
 ```
 
-- [ ] **Step 4: Move the connection changes to their own file**
+- [x] **Step 4: Move the connection changes to their own file**
 
 File: `Crewluv/Services/PilotStatusSource+Connecting.swift`
 
@@ -2871,7 +2873,7 @@ with:
     // MARK: - The 60-Second Check
 ```
 
-- [ ] **Step 5: Run the tests to see them pass**
+- [x] **Step 5: Run the tests to see them pass**
 
 Run:
 
@@ -2881,7 +2883,7 @@ Run:
 
 Expected: `Test run with 291 tests in 27 suites passed`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Run:
 
@@ -2904,7 +2906,7 @@ Spec §8.1, §8.2 and §8.4, and decisions 3, 4, 7 and 8.
 - **Both switches go through `switchConnection`** and keep what the alerts kept.
 - **The source names this device** in the pilot's list, for the move's redeem, as the joiner does.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 The iCloud read's stand-in can bring a ticket.
 
@@ -3291,7 +3293,7 @@ with:
     @Test func test_disconnect_leaves_thenForgetsTheKeyTheConnectionAndThePilot() async throws {
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -3301,7 +3303,7 @@ Run:
 
 Expected: the build fails, with errors such as `value of type 'PilotStatusSource' has no member 'isLeftBehind'`.
 
-- [ ] **Step 3: Save whether the note is for a device left behind**
+- [x] **Step 3: Save whether the note is for a device left behind**
 
 2 replacements, in order, in `Crewluv/Models/PartnerConnection.swift`:
 
@@ -3355,7 +3357,7 @@ with:
     /// A move under way (spec §8.1): the partner id that redeeming a ticket or a code gave this
 ```
 
-- [ ] **Step 4: A key a reinstall left goes to the move-over**
+- [x] **Step 4: A key a reinstall left goes to the move-over**
 
 One replacement in `Crewluv/Services/PartnerCloud/CrewluCloudDevice.swift`:
 
@@ -3409,7 +3411,7 @@ with:
     // MARK: - Joining
 ```
 
-- [ ] **Step 5: Note a device left behind**
+- [x] **Step 5: Note a device left behind**
 
 One replacement in `Crewluv/Services/PilotStatusSource+Connecting.swift`:
 
@@ -3448,7 +3450,7 @@ with:
         forgetPilot()
 ```
 
-- [ ] **Step 6: Give the move-over its turn**
+- [x] **Step 6: Give the move-over its turn**
 
 8 replacements, in order, in `Crewluv/Services/PilotStatusSource.swift`:
 
@@ -3765,7 +3767,7 @@ with:
     }
 ```
 
-- [ ] **Step 7: Run the tests to see them pass**
+- [x] **Step 7: Run the tests to see them pass**
 
 Run:
 
@@ -3775,7 +3777,7 @@ Run:
 
 Expected: `Test run with 301 tests in 27 suites passed`.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 Run:
 
@@ -3794,7 +3796,7 @@ Expected: the new commit's line. `git -C ~/Dev/Crewluv status --short` shows onl
 
 Spec §7.7 and decision 8. The welcome screen's note becomes a small model, `SharingEndedNote`. It says either that sharing ended or, on a device left behind, how to follow the other device. The source gives the screen whichever applies. The screen's capsule is renamed `SharingEndedCapsule`, since the model takes its old name.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 File: `CrewluvTests/SharingEndedNoteTests.swift`
 
@@ -3856,7 +3858,7 @@ with:
     @Test func test_disconnect_leaves_thenForgetsTheKeyTheConnectionAndThePilot() async throws {
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -3866,7 +3868,7 @@ Run:
 
 Expected: the build fails, with errors such as `cannot find 'SharingEndedNote' in scope`.
 
-- [ ] **Step 3: Write the note**
+- [x] **Step 3: Write the note**
 
 File: `Crewluv/Models/SharingEndedNote.swift`
 
@@ -3897,7 +3899,7 @@ nonisolated struct SharingEndedNote: Equatable, Sendable {
 }
 ```
 
-- [ ] **Step 4: The source gives the note that applies**
+- [x] **Step 4: The source gives the note that applies**
 
 One replacement in `Crewluv/Services/PilotStatusSource+Connecting.swift`:
 
@@ -3928,7 +3930,7 @@ with:
     func noteSharingEnded(leftBehind: Bool = false) {
 ```
 
-- [ ] **Step 5: The screen's model passes it on**
+- [x] **Step 5: The screen's model passes it on**
 
 One replacement in `Crewluv/Services/PartnerStatusReceiver.swift`:
 
@@ -3956,7 +3958,7 @@ with:
     // MARK: - Data Source
 ```
 
-- [ ] **Step 6: The welcome screen shows it**
+- [x] **Step 6: The welcome screen shows it**
 
 3 replacements, in order, in `Crewluv/Views/Welcome/WelcomeView.swift`:
 
@@ -4077,7 +4079,7 @@ with:
                             onPaste: { LinkRouter.paste($0) }
 ```
 
-- [ ] **Step 7: Run the tests to see them pass**
+- [x] **Step 7: Run the tests to see them pass**
 
 Run:
 
@@ -4087,7 +4089,7 @@ Run:
 
 Expected: `Test run with 304 tests in 28 suites passed`. The harness takes no views: Task 11 compiles them.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 Run:
 
@@ -4108,7 +4110,7 @@ Spec §15's item for 4c, and decision 9, which the user chose. An iCloud share l
 - `LinkRouter` asks it for a share link, tapped or pasted, and for a share iOS hands the app as metadata.
 - `AppDelegate` and `SceneDelegate` now pass that metadata to the router instead of accepting the share themselves.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 One replacement in `CrewluvTests/JoinMessageTests.swift`:
 
@@ -4187,7 +4189,7 @@ with:
     @Test func test_isConnecting_whileAJoinWaits_andAnotherJoinIsIgnored() async throws {
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -4197,7 +4199,7 @@ Run:
 
 Expected: the build fails, with errors that name `alreadyConnected` or `mayAcceptICloudShare`, such as `cannot infer contextual base in reference to member 'alreadyConnected'`.
 
-- [ ] **Step 3: Write the message**
+- [x] **Step 3: Write the message**
 
 4 replacements, in order, in `Crewluv/Models/JoinMessage.swift`:
 
@@ -4297,7 +4299,7 @@ with:
 }
 ```
 
-- [ ] **Step 4: The joiner decides**
+- [x] **Step 4: The joiner decides**
 
 One replacement in `Crewluv/Services/PartnerJoiner.swift`:
 
@@ -4332,7 +4334,7 @@ with:
     /// The partner's answer to `switchQuestion`.
 ```
 
-- [ ] **Step 5: Every share goes through the router**
+- [x] **Step 5: Every share goes through the router**
 
 2 replacements, in order, in `Crewluv/App/LinkRouter.swift`:
 
@@ -4492,7 +4494,7 @@ with:
 }
 ```
 
-- [ ] **Step 6: Run the tests to see them pass**
+- [x] **Step 6: Run the tests to see them pass**
 
 Run:
 
@@ -4502,7 +4504,7 @@ Run:
 
 Expected: `Test run with 307 tests in 28 suites passed`. The harness takes no app files: Task 11 compiles them.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 Run:
 
@@ -4518,7 +4520,7 @@ Expected: the new commit's line. `git -C ~/Dev/Crewluv status --short` shows onl
 
 A build in a separate clone of the branch, with its own build folder, so it can't disturb the user's open Xcode or touch a simulator. It compiles the app and `CrewluvTests`, including what the harness can't build: the views, the app's share wiring and the Keychain tests. Then the order check. Xcode compiles a target's files in the order its folder lists them, and a fresh clone can list them differently, so a compiler problem that depends on the order can pass here and fail in the user's Xcode. That's what broke plan 4a's first ⌘U. The check takes the test target's compile from this build's log and repeats it with the files in eight orders, both type-checked whole and as the module-making step Xcode runs on its own. Crewluve has no packages to copy.
 
-- [ ] **Step 1: Make the clone**
+- [x] **Step 1: Make the clone**
 
 Use a scratch folder outside both repos as `$BUILD`, for example `export BUILD=<your scratchpad>/partner-cloud-move-over-build`.
 
@@ -4530,7 +4532,7 @@ rm -rf "${BUILD:?set BUILD first}" && mkdir -p "$BUILD" && git clone -q --shared
 
 Expected: the branch's last commit: Task 10's `feat(crewluv): an iCloud share link on a device on Crewlu Cloud says it's already connected`, or a later fix from Task 12.
 
-- [ ] **Step 2: Build for testing**
+- [x] **Step 2: Build for testing**
 
 It takes a few minutes, so run it in the background and wait for it to finish.
 
@@ -4542,7 +4544,7 @@ cd "$BUILD/crewluv" && xcodebuild build-for-testing -project Crewluv.xcodeproj -
 
 Expected: `exit 0`, `errors: 0` and `warnings: 0`.
 
-- [ ] **Step 3: Write the order check**
+- [x] **Step 3: Write the order check**
 
 File: `$BUILD/order_check.py`
 
@@ -4643,7 +4645,7 @@ print(f"{len(files)} files, {len(orders)} orders, {failed} failed")
 sys.exit(1 if failed else 0)
 ```
 
-- [ ] **Step 4: Check the test target in every order**
+- [x] **Step 4: Check the test target in every order**
 
 It takes about five minutes, so run it in the background too.
 
@@ -4659,7 +4661,7 @@ Expected: sixteen `ok` lines, then `… files, 8 orders, 0 failed`. A `FAIL` lin
 
 **Files:** whatever the review finds.
 
-- [ ] **Step 1: Ask for a review**
+- [x] **Step 1: Ask for a review**
 
 Use superpowers:requesting-code-review with a read-only reviewer. It reads:
 - `git -C ~/Dev/Crewluv diff 69865b3..feature/partner-cloud-source`;
@@ -4670,7 +4672,7 @@ Use superpowers:requesting-code-review with a read-only reviewer. It reads:
 
 It runs no `xcodebuild` and no simulator. State facts neutrally, and don't tell it what not to flag.
 
-- [ ] **Step 2: Act on it**
+- [x] **Step 2: Act on it**
 
 For each finding, fix it test-first where the harness can test it, re-run `"$HARNESS/run.sh"`, and commit. If any Swift changed, run Task 11 again. Note each fix in this plan's Execution notes.
 
@@ -4678,7 +4680,7 @@ For each finding, fix it test-first where the harness can test it, re-run `"$HAR
 
 **Files:** none.
 
-- [ ] **Step 1: Ask the user to run the tests in Xcode**
+- [x] **Step 1: Ask the user to run the tests in Xcode**
 
 Send them these steps:
 
@@ -4700,7 +4702,7 @@ Expected: no failures, and the console's last Swift Testing line says `Test run 
 | `JoinMessageTests` | 3 (changed) |
 | `PartnerJoinerTests` | 20 (was 17) |
 
-- [ ] **Step 2: If anything fails, stop**
+- [x] **Step 2: If anything fails, stop**
 
 Ask for the test's name and its message. Fix the cause, never the test's expected value, then ask for another run.
 
@@ -4708,7 +4710,7 @@ Ask for the test's name and its message. Fix the cause, never the test's expecte
 
 **Files:** none.
 
-- [ ] **Step 1: Tell the user why, in plain words**
+- [x] **Step 1: Tell the user why, in plain words**
 
 4c's changes show only on a phone that follows a pilot. The move-over and the note for a device left behind need a pilot whose CrewLu has moved this partner, and Already Connected needs a device already on Crewlu Cloud. Seeing them takes spec §10.3's test pilot, on CrewLu's TestFlight build, and a test partner, before the release. A simulator follows no pilot, so it has nothing new to show.
 
@@ -4719,7 +4721,7 @@ Say also, as a caution: this build moves a partner for real the first time it ru
 **Files (in `~/Dev/Crewluve Website`):**
 - Modify: `docs/superpowers/specs/2026-10-18-partner-links-piece4-crewluve-design.md`, and this plan
 
-- [ ] **Step 1: Add the planning decisions to the spec**
+- [x] **Step 1: Add the planning decisions to the spec**
 
 At the end of the spec, after §15, add `## 16. Decisions made while planning 4c`, followed by this plan's "Decisions made while planning" list, copied as it stands, and any changes from the review (Task 12). Then update its status line.
 
@@ -4735,7 +4737,7 @@ with:
 Plans 4a, 4b and 4c are built (`docs/superpowers/plans/2026-10-18-partner-links-piece4a-source.md`, `docs/superpowers/plans/2026-10-19-partner-links-piece4b-connecting.md`, `docs/superpowers/plans/2026-10-20-partner-links-piece4c-move-over.md`); next: spec §10.3's checks on real phones, then the release (§11).
 ```
 
-- [ ] **Step 2: Tick this plan and commit**
+- [x] **Step 2: Tick this plan and commit**
 
 Run:
 
@@ -4762,3 +4764,21 @@ Ask separately before each push: `feature/partner-cloud-source` in `~/Dev/Crewlu
 ## Execution notes
 
 Filled in during the build: any place the code ends up different from the printed blocks, and why.
+
+- **Tasks 0–11 went as printed** on 2026-10-20: every Run step gave the printed result, the branch's tree matched the scratch clone's, and Task 11's build (0 errors, 0 warnings) and order check (16 of 16) passed at `d77861e`.
+- **Task 12, the review** (one read-only reviewer): "ready to merge with fixes": one Important finding, ten Minor, nothing Critical. It confirmed the Keychain attributes, and the contract with CrewLu's writer on `feature/partner-cloud-screens`: `moveTicketByPartnerJSON` is JSON `{participant.userIdentity.userRecordID.recordName: ticket}` with sorted keys, cleared when empty. Fixed, test-first, each as its own commit:
+  - `697d1aa` (Important): when the share was gone, a join that switched this device while the move-over checked another of this partner's devices was answered with "sharing ended" and `resetShareData()`. Now a switch since the turn began ends nothing, and a device a join switched makes no code with the copy. Three tests.
+  - `a846878` (Minor, and a regression found while checking it): a key a reinstall left switches on any status, as in 4b, and when the share is gone too, so it no longer shows "Sharing has ended" first. Another pilot's status starts the alerts afresh. Decision 4 is changed to match. The status source's `deviceLabel` moved to `PilotStatusSource+Connecting.swift`, to keep the source under 300 lines. Six tests, three of them in place of tests of the old rule.
+  - `e2a423c` (Minor): the move-over's turn belongs to its read: none after a switch since the read began, and one for a move under way after a failed iCloud read. The alerts' stand-in can hold an evaluation. Three tests.
+  - `c2b1a6a` (Minor): the move-over logs each step, naming no ticket, code or key, for spec §10.3's checks.
+- **Review points left as they are:**
+  - *Decision 7 against spec §8.3's note for a device left behind:* without a copy, a device can't tell that another of this partner's devices moved, so it says "Sharing with Alex has ended." A copy whose pilot can't be checked just then ends the same way.
+  - *A key with no status yet* is still sent with the ticket (decision 4). If another partner's device has it, Crewlu Cloud answers `key_in_use`, consuming nothing, and a new key follows.
+  - *A key a refused redeem saved* never became a device. The next read finds it gone, and the ticket gets a new key. Spec §8.1's "the same key" holds for a redeem whose answer was lost.
+  - *Follow-ups:*
+    - while another device's code can't be redeemed (`too_many_devices`, `try_later`), each iCloud read makes a new code with the copy, replacing one the partner has open (spec §8.3 notes this);
+    - the move-over's calls count against a push's 25 seconds;
+    - accepting another pilot's iCloud share during a move under way leaves `moveToPartnerID` set, so the move switches back to its pilot on that pilot's first status.
+  - The wider access the `+Connecting` file needs, the two copies of the device's model name (the source's and the joiner's), and `ICloudReading.moveTicket` being a `var` with a default.
+- **After the fixes:** the harness passed 316 tests in 28 suites. The deliberate breaks were re-checked against the reviewed code: all 77 caught: the 52 that still matched, the 20 rewritten for the reviewed code's text, and 5 new ones for its guards and rules. Task 11 passed again: at `c2b1a6a`, 0 errors, 0 warnings, and 16 of 16 in the order check. The user's ⌘U (Task 13) now expects 327 Swift Testing tests in 29 suites: the harness's 316 and the Keychain's 11.
+- **Task 13, the user's ⌘U at `c2b1a6a`:** `Test run with 327 tests in 29 suites passed`, the hand-off copy's three Keychain tests among them, and every XCTest suite passed.

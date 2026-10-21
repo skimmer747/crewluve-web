@@ -1,6 +1,6 @@
 # Partner Links Piece 4: Crewluve on Crewlu Cloud
 
-- **Status:** design approved in brainstorming on 2026-10-18, and the user approved this spec the same day. Plans 4a and 4b are built (`docs/superpowers/plans/2026-10-18-partner-links-piece4a-source.md`, `docs/superpowers/plans/2026-10-19-partner-links-piece4b-connecting.md`); next: plan 4c.
+- **Status:** design approved in brainstorming on 2026-10-18, and the user approved this spec the same day. Plans 4a, 4b and 4c are built (`docs/superpowers/plans/2026-10-18-partner-links-piece4a-source.md`, `docs/superpowers/plans/2026-10-19-partner-links-piece4b-connecting.md`, `docs/superpowers/plans/2026-10-20-partner-links-piece4c-move-over.md`); next: spec §10.3's checks on real phones, then the release (§11).
 - **Part of:** the partner-links design, `docs/superpowers/specs/2026-10-15-partner-links-design.md`, §5.5, §6, §7.2, §8 and §9 (piece 4).
 - **Repo:** Crewluve, `~/Dev/Crewluv`, on a new branch off its release line (§11).
 - **Contract:** `~/Dev/Duty/supabase/partner-api.md`, the partner door from piece 1 (live since 2026-10-15), including its "Pushes" section from piece 3 (live since 2026-10-18).
@@ -557,3 +557,70 @@ The review read the branch twice. It reproduced its findings with probe tests in
   - for §10.3's checks on real phones: a switch between two pilots; a reinstall after the pilot removed the device, then a new invite; and Disconnect, then a relaunch, on a device that came from iCloud;
   - no ••• menu on the waiting screen, so a partner waiting for the first update can't disconnect there;
   - the sync row keeps its iCloud icon on Crewlu Cloud.
+
+## 16. Decisions made while planning 4c
+
+Plan 4c (`docs/superpowers/plans/2026-10-20-partner-links-piece4c-move-over.md`) made these decisions, and its review changed or added to some of them, as each says and "What 4c's review added" lists. They refine §5.3, §7.6, §7.7 and §8, and where they differ, these hold:
+- a key a reinstall left switches on any status, whichever pilot it's for (decision 4);
+- a move under way is this device's key plus `partnerCloud.moveToPartnerID` (decision 2);
+- a device that has no hand-off copy, or whose copy can't be checked, gets "Sharing with Alex has ended." when the share ends, not §7.7's note for a device left behind (decision 7).
+
+1. **The ticket is read by this partner's iCloud user record name,** as the pilot's name for them is.
+   - `moveTicketByPartnerJSON` holds `{record name: ticket}`.
+   - An empty ticket, a field that doesn't read, or no record name means there's no ticket.
+   - A ticket is never logged.
+2. **A move under way is this device's key plus `partnerCloud.moveToPartnerID`.**
+   - The redeem uses this device's own key, saved before it's sent, not 4b's pending key: a move asks no question.
+   - The partner id marks the move, so a later read switches once Crewlu Cloud has a status, and a share that ends meanwhile ends nothing (§8.4).
+   - A move ends with the switch, or when Crewlu Cloud answers `sharing_ended` for its key.
+   - A move under way switches on its partner's first status whichever pilot iCloud showed, since its ticket came from this partner's own record.
+3. **iCloud's status shows first, then the move-over takes its turn,** within the same read.
+   - A slow Crewlu Cloud never holds up iCloud's status. This fixes 4a's wait of up to 20 seconds ahead of an iCloud read (spec §14).
+   - A push or a refresh that comes during the turn waits for it, as for any read.
+   - The turn belongs to its read: a switch since the read began, say by a join during the alerts' check, takes it away. A move under way also takes its turn after an iCloud read that failed, since it needs no record. (Both added by the review.)
+4. **A key with no connection saved,** which a reinstall leaves (spec §5.3), is this device's last connection, so it wins over an iCloud share the launch finds again, as in 4b. (Changed by the review: as first planned, a status for another pilot gave way to the ticket, which undid 4b's reinstall case and sent that pilot's key with another partner's ticket, against `partner-api.md`.)
+   - **With an iCloud share,** the move-over reads it first. A status switches, whichever pilot it's for. None yet gives way to the ticket, redeemed with the same key.
+   - **Without one, or once the share is gone,** it connects whenever Crewlu Cloud answers for it, as in 4b.
+   - **Either way,** it switches through the same `switchConnection` as a join. That lets the iCloud share go and sets `partnerCloud.leftICloud` (spec §15's items for 4c). It replaces no device, since the key is this device's own.
+   - What the alerts kept stays only when the status is the same pilot's. Another pilot's statuses start afresh, so the switch alerts nothing.
+5. **The hand-off copy is saved at every switch:** a join, the move-over, or a key a reinstall left.
+   - It's deleted when this device forgets its key (sharing ended, or Disconnect) while the copy holds that key.
+   - It's also deleted when the copy's own device answers `sharing_ended`.
+   - A copy that shows another pilot is left alone, for the device it belongs to.
+6. **Another device is followed** when the ticket was used or ran out (`sharing_ended`), when there's no ticket, and when the share ends.
+   - The copy must show the pilot this device follows (`partnerCloud.pilotID`).
+   - A ticket that can't be redeemed for any other reason (too many devices, try later, invalid, unreachable) waits for the next read.
+7. **When the share ends during a move,** the switch happens even if Crewlu Cloud can't be reached just then, and the status shows when a read brings it. Only `sharing_ended` for the move's key ends the move.
+   - **Without a move,** a copy that joins switches.
+   - **A copy of this pilot's that can't make a code or join just then** leaves the welcome screen's note for a device left behind.
+   - **Anything else** leaves today's "Sharing with Alex has ended."
+8. **The note for a device left behind** reads "To keep seeing Alex's status here, type the code from CrewLuve on your other device."
+   - It's saved (`partnerCloud.sharingEndedLeftBehind`), so it survives a relaunch, and it goes when the note does.
+   - The wording lives in `SharingEndedNote`, and the source gives the screen whichever note applies.
+9. **An iCloud share link on a device on Crewlu Cloud isn't accepted,** as the user chose while planning.
+   - The alert **Already Connected** says "You're already connected to Alex. To follow another pilot, ask them for an invite link from CrewLu." with OK, and nothing changes.
+   - Every way iOS hands the app a share goes through `LinkRouter`: a tap, a cold launch, or the paste box.
+10. **The alerts compare a status's legs as legs** (`StatusChangeNotifier.legsDiffer`).
+    - So the first Crewlu Cloud status after the switch alerts nothing, though its legs' keys come in another order. That also covers 4b's join to the same pilot.
+    - Bytes that don't read as legs compare as bytes, as before.
+    - The schedule rule reads only its arguments, so it became a static function, and a test checks it.
+11. **Each step guards against a switch it didn't make.** A join that switches this device while the move-over waits on Crewlu Cloud wins, and the move-over stays as the join left it. A new key is never made while this device is connected. The review added two guards: when the share is gone, a join while another device is checked ends nothing, and a device a join switched makes no code with the copy.
+12. **Files stay under 300 lines.**
+    - The source's connection changes moved to `PilotStatusSource+Connecting.swift`: connect, the switch, Disconnect, sharing ended and its note.
+    - The move-over's key steps live in `MoveOver`, not the device.
+    - 4b's `CrewluCloudDevice.adoptLeftoverKey()` is gone: the move-over's `readUnconnectedKey()` serves both.
+13. **A copy that shows another pilot is read with each iCloud read,** one `partner_view` each time. That happens only when one person follows two pilots on two devices under the same iCloud account, so it isn't cached.
+
+### What 4c's review added
+
+One read-only reviewer read the branch, checked the contract with CrewLu's writer of `moveTicketByPartnerJSON` on `feature/partner-cloud-screens`, and reproduced its findings with probe tests in the Mac harness. Those probes became tests.
+
+- **A join while the share ends wins** (decision 11): when the share was gone, a join that switched this device while the move-over checked another of this partner's devices was answered with "sharing ended" and `resetShareData()`. Now nothing ends, and a device a join switched makes no code with the copy, which would replace one the partner has open.
+- **A key a reinstall left is this device's last connection** (decision 4): as first planned, a status for another pilot gave way to the ticket. That undid 4b's reconnect after a reinstall, and sent that pilot's key with another partner's ticket, against `partner-api.md`. Now any status switches, also when the share is gone, and another pilot's statuses start the alerts afresh.
+- **The move-over's turn belongs to its read** (decision 3): a switch since the read began, say by a join during the alerts' check, takes the turn away. A move under way also takes its turn after an iCloud read that failed.
+- **The move-over logs each step**, naming no ticket, code or key (§9), for §10.3's checks.
+- **Left for later:**
+  - while another device's code can't be redeemed (`too_many_devices`, `try_later`), each iCloud read makes a new code with the copy, replacing one the partner has open (§8.3 notes the side effect);
+  - the move-over's calls count against a push's 25 seconds, so a slow turn can report a failed fetch to iOS;
+  - accepting another pilot's iCloud share during a move under way leaves `partnerCloud.moveToPartnerID` set, so the move switches back to its pilot on that pilot's first status;
+  - for §10.3's checks on real phones: step 5, the move-over and a second device following, with a test pilot and a test partner; and a reinstall on a phone that had joined one pilot while the iCloud account still holds another pilot's share.
