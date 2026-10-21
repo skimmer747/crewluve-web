@@ -111,7 +111,7 @@ Expected:
 
 If anything else shows, stop and ask.
 
-- [ ] **Step 2: The real partners see your current status**
+- [x] **Step 2: The real partners see your current status** (done in Task 3 Step 1, on the partner who reads the share; the other turned out to read Production, where there's no share)
 
 The user checks with their real partners, or on a real partner's phone with their OK: does Crewluve show your current status, synced recently? Then tell Claude.
 
@@ -153,7 +153,7 @@ Expected: the field is in Production. Tell Claude which way it went: it was ther
 
 **Who:** the user, with Claude.
 
-- [ ] **Step 1: Check which CrewLu is on the phone**
+- [x] **Step 1: Check which CrewLu is on the phone**
 
 On your phone, open CrewLu, then **Partner Sharing**.
 
@@ -162,7 +162,7 @@ Expected: the partner build's screen, with **Invite Another Partner**, and your 
 - If it shows that, Task 2 is done.
 - If it shows the older screen, which has no Invite Another Partner, go to Step 2.
 
-- [ ] **Step 2: If it's the older screen, run the partner build from Xcode**
+- [x] **Step 2: If it's the older screen, run the partner build from Xcode** (not needed: Step 1 found the partner build)
 
 `~/Dev/Duty` stays on CrewLu's release line, and another session may be working in it. So the partner build comes from a folder of its own:
 1. Claude asks first, since this writes into `~/Dev/Duty`'s git folder.
@@ -215,7 +215,7 @@ order by d.created_at;
 
 **Who:** the user, with Claude's checks.
 
-- [ ] **Step 1: Before the move**
+- [x] **Step 1: Before the move**
 
 1. On the partner's phone, open Crewluve. It should show your current status.
 2. On your phone, open CrewLu → **Partner Sharing** → **Refresh**. They're marked "Needs Crewluve update". Tell Claude the name CrewLu shows for them. Claude keeps it in the conversation only.
@@ -224,7 +224,7 @@ Claude runs query A, with that name.
 
 Expected: one row, with 0 devices. CrewLu's move-over made them a partner, with a ticket in the record.
 
-- [ ] **Step 2: Run Crewluve's piece 4 build onto their phone**
+- [x] **Step 2: Run Crewluve's piece 4 build onto their phone**
 
 1. Connect their phone to the Mac with a cable, and unlock it. If it asks **Trust This Computer?**, tap **Trust**.
 2. In Xcode, with `~/Dev/Crewluv/Crewluv.xcodeproj` open (branch `feature/partner-cloud-source`), set the scheme to **Crewluv** and the destination to their phone.
@@ -235,7 +235,7 @@ Expected:
 - **Then the move, with no tap:** within about a minute, the bottom row gets the •••. If it hasn't shown after a minute, pull down to refresh once.
 - **No alert fires** for the move.
 
-- [ ] **Step 3: CrewLu and Crewlu Cloud see the move**
+- [x] **Step 3: CrewLu and Crewlu Cloud see the move**
 
 On your phone: **Partner Sharing** → **Refresh** → their page. They're no longer marked "Needs Crewluve update", and **Devices** lists one iPhone.
 
@@ -247,13 +247,13 @@ Expected: one row: kind `app`, push_env `sandbox` (an Xcode build), and a push t
 
 **Who:** the user, with Claude's checks.
 
-- [ ] **Step 1: Crewluve's piece 4 build on your phone and iPad**
+- [x] **Step 1: Crewluve's piece 4 build on your phone and iPad**
 
 With Xcode's destination set to your phone, press **⌘R**. Then set it to your iPad, and press **⌘R** again.
 
 Expected: on both, Crewluve shows your own status, read from your own iCloud (Development), with no •••.
 
-- [ ] **Step 2: Your phone's Crewluve joins Test 1**
+- [x] **Step 2: Your phone's Crewluve joins Test 1**
 
 1. In CrewLu → **Partner Sharing**, tap **Invite Another Partner**, type `Test 1`, and tap **Share Invite Link**. In the share sheet, tap **Copy**.
 2. Open **Notes**, paste the link into a new note, and tap it.
@@ -263,7 +263,7 @@ Expected:
 - CrewLu lists **Test 1**, with one device;
 - §10.3 step 1: tapping an invite link connects.
 
-- [ ] **Step 3: The iPad follows by itself**
+- [x] **Step 3: The iPad follows by itself**
 
 On the iPad, pull down on Crewluve's status to refresh, every minute or so. The phone's switch left a copy of its key in your iCloud Keychain, which can take a few minutes to sync.
 
@@ -277,21 +277,21 @@ Claude runs query B for Test 1. Expected: two `app` devices, both `sandbox`.
 
 **Who:** the user.
 
-- [ ] **Step 1: Disconnect, and a relaunch stays disconnected**
+- [x] **Step 1: Disconnect, and a relaunch stays disconnected**
 
 1. On the iPad, tap **•••** → **Disconnect** → **Disconnect**.
 2. Close Crewluve (swipe its card away), and open it again.
 
 Expected: the welcome screen, with no note, both times. It doesn't go back to your own iCloud status (§15).
 
-- [ ] **Step 2: Connect with a code**
+- [x] **Step 2: Connect with a code**
 
 1. On your phone, tap **•••** → **Use on Another Device**.
 2. On the iPad, type the six characters into the code boxes.
 
 Expected: Connecting, then your status, with the •••. Close the code sheet with **Done**.
 
-- [ ] **Step 3: Connect with a QR code**
+- [x] **Step 3: Connect with a QR code**
 
 1. On the iPad, Disconnect again.
 2. On your phone, show **Use on Another Device** again. On the iPad, open the **Camera**, point it at the QR code, and tap the **crewluve.crewlu.net** banner.
@@ -304,7 +304,7 @@ On the iPad, tap the old iCloud invite link, from an earlier CrewLu invite in Me
 
 Expected: **Already Connected**, "You're already connected to [your name]. To follow another pilot, ask them for an invite link from CrewLu.", with **OK**. Nothing changes.
 
-- [ ] **Step 5: A reinstall reconnects by itself**
+- [x] **Step 5: A reinstall reconnects by itself**
 
 1. On the iPad, touch and hold Crewluve's icon → **Remove App** → **Delete App**.
 2. In Xcode, with the iPad as the destination, press **⌘R**.
@@ -318,7 +318,7 @@ Expected:
 
 **Who:** the user, with Claude's check of partner-push.
 
-- [ ] **Step 1: Send Test 1 a quick status**
+- [x] **Step 1: Send Test 1 a quick status**
 
 1. Leave Crewluve on your phone, the iPad and the moved partner's phone: swipe up to the Home Screen.
 2. In CrewLu → **Partner Sharing** → **Test 1** → **Nickname and Quick Status** → **Quick Status**, pick **Call Me**. Under **Send To**, choose Test 1 only.
@@ -327,13 +327,13 @@ Expected:
 - your phone and the iPad, Test 1's devices, get Crewluve's alert within about a minute;
 - the moved partner's phone gets no alert, and shows no quick status when opened.
 
-- [ ] **Step 2: Claude reads partner-push's logs**
+- [x] **Step 2: Claude reads partner-push's logs**
 
 Claude reads the last 15 minutes of Edge Function logs (`get_logs`, service `edge-function`).
 
 Expected: partner-push ran after the quick status, and counts two sandbox sends.
 
-- [ ] **Step 3: Clear it**
+- [x] **Step 3: Clear it**
 
 In CrewLu, clear Test 1's quick status.
 
@@ -341,13 +341,13 @@ In CrewLu, clear Test 1's quick status.
 
 **Who:** the user. The sign-in uses your own password, which you type.
 
-- [ ] **Step 1: Sign out**
+- [x] **Step 1: Sign out**
 
 In CrewLu, open the Crewlu Cloud screen, tap **Sign Out**, and confirm.
 
 Expected: Test 1's devices and the moved partner keep the last status they had, with no error and no "Sharing has ended". Their updates pause until you sign in.
 
-- [ ] **Step 2: Sign back in**
+- [x] **Step 2: Sign back in**
 
 Sign in again. Tap **Update Status Now**, then pull to refresh on the iPad.
 
@@ -357,7 +357,7 @@ Expected: the sync line says it synced just now, with your current status.
 
 **Who:** the user, with Claude's check.
 
-- [ ] **Step 1: Remove the iPad's device**
+- [x] **Step 1: Remove the iPad's device**
 
 In CrewLu → **Test 1** → **Devices**, swipe the iPad left, tap **Remove**, and confirm **Remove This Device?**.
 
@@ -365,7 +365,7 @@ Expected:
 - within a minute, or after a pull to refresh, the iPad shows the welcome screen with "Sharing with [your name] has ended.";
 - your phone keeps the status.
 
-- [ ] **Step 2: A reinstall after the removal, then a new invite**
+- [x] **Step 2: A reinstall after the removal, then a new invite**
 
 1. Delete Crewluve from the iPad, and run it again from Xcode (⌘R).
 
@@ -377,7 +377,7 @@ Expected:
 
    Expected: Connecting, then the •••. CrewLu lists two devices for Test 1.
 
-- [ ] **Step 3: New Link keeps the devices**
+- [x] **Step 3: New Link keeps the devices**
 
 1. On Test 1's page, tap **New Link**, and confirm **Make a New Link?**.
 2. On the iPad, tap the link from Step 2 again. It's now the old one.
@@ -386,7 +386,7 @@ Expected:
 - **Invite Link Not Working**, "This invite link doesn't work anymore. You're still connected to [your name]." Tap **OK**;
 - both devices keep your status.
 
-- [ ] **Step 4: Remove the person**
+- [x] **Step 4: Remove the person**
 
 In CrewLu → **Test 1** → **Remove Partner**, and confirm.
 
@@ -401,7 +401,7 @@ Claude runs query A for Test 1. Expected: no rows.
 
 **Who:** Claude for Step 1, then the user.
 
-- [ ] **Step 1: Version 1.2 (43), committed**
+- [x] **Step 1: Version 1.2 (43), committed**
 
 Claude replaces `MARKETING_VERSION = 1.1.6;` with `MARKETING_VERSION = 1.2;` and `CURRENT_PROJECT_VERSION = 42;` with `CURRENT_PROJECT_VERSION = 43;` in `~/Dev/Crewluv/Crewluv.xcodeproj/project.pbxproj`, each found exactly twice, then commits it as `chore(crewluv): 1.2 (43), for the checks on real phones`. The command is in this plan's history at commit `483c417`, Task 3 Step 1.
 
@@ -409,13 +409,13 @@ Expected:
 - `1 file changed, 4 insertions(+), 4 deletions(-)`;
 - the new commit.
 
-- [ ] **Step 2: Archive, upload, and give it to yourself**
+- [x] **Step 2: Archive, upload, and give it to yourself**
 
 1. Xcode: scheme **Crewluv**, destination **Any iOS Device (arm64)**, then **Product → Archive** → **Distribute App** → **TestFlight Internal Only** → **Distribute**.
 2. App Store Connect → **Crewluve** → **TestFlight**: wait for **Ready to Test**.
 3. Next to **Internal Testing**, click **+**, make the group **Partner Checks** with only you, and add the build to it.
 
-- [ ] **Step 3: The iPad joins a test partner on the TestFlight build**
+- [x] **Step 3: The iPad joins a test partner on the TestFlight build**
 
 1. On the iPad, install **TestFlight** from the App Store, then Crewluve 1.2 (43) in TestFlight.
 2. In CrewLu, invite `Test 3`, and tap the link on the iPad.
@@ -432,11 +432,11 @@ Then remove Test 3 in CrewLu.
 
 **Who:** the user, then Claude.
 
-- [ ] **Step 1: What stays**
+- [x] **Step 1: What stays**
 
 The moved partner stays on Crewlu Cloud, with Crewluve's piece 4 build. Any test partners left in CrewLu are removed. Your phone's and iPad's Crewluve can stay on the welcome screen, or be deleted.
 
-- [ ] **Step 2: Record and commit**
+- [x] **Step 2: Record and commit**
 
 Claude:
 1. Writes each task's result in the Execution notes, naming no one.
@@ -451,3 +451,54 @@ Filled in during the checks: each task's result, and anything that differed. Nam
 
 - **Task 0, Step 1 (2026-10-20):** both repos as expected: `feature/partner-cloud-source` clean at `c2b1a6a`, and CrewLu's partner branch at `293c07e1`.
 - **Task 1 (2026-10-20):** `moveTicketByPartnerJSON` wasn't in Production's SharedPilotStatus (52 fields). It was already in Development, so some build had saved a ticket there. Deploy Schema Changes listed only that field (bytes) and its two indexes (queryable, sortable). The user deployed them, and Production's SharedPilotStatus now has 53 fields, with the field as BYTES.
+- **The environment (2026-10-20):**
+  - Crewluve 1.1.6 from the App Store, on the user's iPad and own Apple ID, showed the welcome screen.
+  - CloudKit Console's **Act As iCloud Account**, in Production, listed only `_defaultZone` in the user's private database, so there's no `PartnerBeaconZone` there.
+  - So the pilot's Xcode CrewLu writes **Development**, and decision 2 was wrong. The plan was revised (see "Revised after Task 1").
+- **Task 2:** the phone runs CrewLu's partner build.
+- **Task 3, Step 1:**
+  - The real partner's Xcode Crewluve showed the current status.
+  - CrewLu showed "iCloud · older Crewluve, Still connected" and "moves over automatically after updating Crewluve".
+  - Crewlu Cloud had their partner, made 2026-10-18, with 0 devices and one unused `move` ticket, expiring 2027-01-16.
+- **Task 3, Steps 2–3 (22:06 EDT):** the move-over passed.
+  - Crewluve's piece 4 build ran from Xcode onto the real partner's phone. It showed the status, then the ••• with no tap.
+  - CrewLu's partner page changed from "iCloud · older Crewluve" to "iPhone · Crewluve · seen today", with Send Link Again and New Link.
+  - Query B showed one `app` device, labeled iPhone, push_env `sandbox`, with a push token. Its move ticket was marked used at the device's creation time, 02:06:00 UTC.
+  - No alert fired on the partner's phone for the move.
+- **Task 4:** the second device followed by itself.
+  - Crewluve's piece 4 build, run from Xcode on the user's phone and iPad, showed the user's own status from their private zone, with no •••.
+  - The phone's Crewluve joined **Test 1** by tapping its invite link in Notes. Query B showed iPhone, `app`, `sandbox`, with a push token, at 02:21:57 UTC (§10.3 step 1).
+  - With nothing tapped on it, the iPad got the ••• after a couple of refreshes. Query B showed iPad, `app`, `sandbox`, with a push token, at 02:24:13 UTC, about 2¼ minutes after the phone. That was the hand-off copy, through iCloud Keychain (§8.3, P4-2).
+- **Task 5, Steps 1–2:**
+  - The iPad's Disconnect showed the welcome screen with no note, and it stayed there after the app was closed and reopened (§15).
+  - The iPad then reconnected with a six-character code from the phone's Use on Another Device, and the ••• came back (§10.3 step 2, by code).
+- **Task 5, Steps 3–5:**
+  - **By QR:** after another Disconnect, the iPad's Camera scanned the phone's QR code, and its banner opened Crewluve, which connected (§10.3 step 2, by QR).
+  - **Already Connected (Step 4)** wasn't run; it waits for another session.
+  - **Reinstall:** Crewluve was deleted from the iPad and run again from Xcode. It came back on Crewlu Cloud by itself, with no note (§16 decision 4). Query B still showed exactly two devices for Test 1, the iPhone and the iPad from the QR join (02:35:05 UTC), so the reinstall reused that device. The iPad's earlier devices had gone with each Disconnect.
+- **Task 6 (2026-10-21, morning, EDT):**
+  - **Targeting:** a quick status sent to Test 1 only reached Test 1's devices. The moved real partner's phone showed nothing, though it got the same "something changed" push, as every device does, and read only its own status.
+  - **Crewlu Cloud:** partner-push ran about 10 s after each status change, each run logging "3 sent, 0 dead, 0 retried, 0 failed". It ran only for real changes: twice overnight, three times from 9:52 to 9:55, and four times from 10:03 to 10:06.
+  - **The first try:** the alert showed only when Crewluve was opened. The payload, `{"aps":{"content-available":1}}`, is a background push at priority 5, and matches Crewluve's `PushRoute`. Three status changes inside three minutes most likely went past iOS's budget for background pushes.
+  - **The retest:** after a pause of about five minutes, with the phone locked, the alert showed on the lock screen. Background App Refresh was on, Low Power Mode off and no Focus, as they had been all along, so the first try was most likely the burst.
+  - **To watch:** background pushes are best-effort in iOS. A pilot's quick changes in a row can delay a partner's alert until iOS lets the app run, or until Crewluve is opened.
+- **Task 7:**
+  - After CrewLu's Sign Out, the iPad (Test 1) and the moved real partner's phone both kept the last status, with no error and no note.
+  - After signing back in and Update Status Now, the iPad synced the current status (piece 2 §8.3 step 4).
+- **Task 8, Steps 1–2:**
+  - **Removing a device:** removing the iPad in CrewLu put it on the welcome screen with "Sharing with [the pilot] has ended.", and the phone kept the status.
+  - **Reinstall after a removal (§15):** Crewluve was deleted from the iPad and run again from Xcode. It showed the user's own status from iCloud, with no •••: the removed key had been forgotten.
+  - **A new invite:** tapping Send Link Again's link, from a synced note on the iPad, reconnected it. Query B showed Test 1's iPhone and a new iPad device (14:18:49 UTC), and the removed one was gone.
+- **Task 8, Steps 3–4:**
+  - **New Link:** after it, the old link showed "Invite Link Not Working … You're still connected to [the pilot]." on the iPad, and both devices kept the status.
+  - **Removing the person:** Remove Test 1 put the phone and the iPad on the welcome screen with "Sharing with [the pilot] has ended.". The moved real partner kept the status. Crewlu Cloud then had no Test 1, and the real partner still had their one device (§10.3 step 3; piece 2 §8.3 step 2).
+- **Task 9 (the production push):**
+  - Crewluve's version was set to 1.2 (43) in `eb5fcc2` on `feature/partner-cloud-source`, not pushed. It was archived and uploaded as TestFlight Internal Only.
+  - The user made the internal group Partner Checks, with only themselves. Its invitation landed in spam, and had to be accepted before TestFlight listed the app.
+  - The iPad installed 1.2 (43) from TestFlight, and joined **Test 3** by tapping its invite link in a synced note. Query B showed iPad, `app`, push_env **`production`**, with a push token (14:46:06 UTC), so a TestFlight build reports production, as 4a designed.
+  - With the iPad locked, a quick status for Test 3 alerted on its lock screen. partner-push logged "2 sent, 0 dead, 0 retried, 0 failed" at 14:49:23 UTC: the moved partner (sandbox) and the iPad (production).
+  - That's §10.3 step 6, a TestFlight build woken through Apple's production service, and an Xcode build through sandbox (Tasks 3–6).
+- **Task 10:**
+  - Test 3 was removed. Crewlu Cloud then held only the pilot's two real partners: the moved one, with one device, and the other, with none (they're on TestFlight Crewluve, which reads Production, where the pilot has no share).
+  - The moved partner stays on Crewlu Cloud, with Crewluve's piece 4 build.
+  - **Already Connected** wasn't run on a device; its automated tests cover it.

@@ -1,6 +1,6 @@
 # Partner Links Piece 4: Crewluve on Crewlu Cloud
 
-- **Status:** design approved in brainstorming on 2026-10-18, and the user approved this spec the same day. Plans 4a, 4b and 4c are built (`docs/superpowers/plans/2026-10-18-partner-links-piece4a-source.md`, `docs/superpowers/plans/2026-10-19-partner-links-piece4b-connecting.md`, `docs/superpowers/plans/2026-10-20-partner-links-piece4c-move-over.md`); next: spec §10.3's checks on real phones, then the release (§11).
+- **Status:** design approved in brainstorming on 2026-10-18, and the user approved this spec the same day. Plans 4a, 4b and 4c are built (`docs/superpowers/plans/2026-10-18-partner-links-piece4a-source.md`, `docs/superpowers/plans/2026-10-19-partner-links-piece4b-connecting.md`, `docs/superpowers/plans/2026-10-20-partner-links-piece4c-move-over.md`), and §10.3's checks on real phones ran on 2026-10-20 and 2026-10-21 (§17, with what's left in §17.4); next: the release (§11).
 - **Part of:** the partner-links design, `docs/superpowers/specs/2026-10-15-partner-links-design.md`, §5.5, §6, §7.2, §8 and §9 (piece 4).
 - **Repo:** Crewluve, `~/Dev/Crewluv`, on a new branch off its release line (§11).
 - **Contract:** `~/Dev/Duty/supabase/partner-api.md`, the partner door from piece 1 (live since 2026-10-15), including its "Pushes" section from piece 3 (live since 2026-10-18).
@@ -624,3 +624,56 @@ One read-only reviewer read the branch, checked the contract with CrewLu's write
   - the move-over's calls count against a push's 25 seconds, so a slow turn can report a failed fetch to iOS;
   - accepting another pilot's iCloud share during a move under way leaves `partnerCloud.moveToPartnerID` set, so the move switches back to its pilot on that pilot's first status;
   - for §10.3's checks on real phones: step 5, the move-over and a second device following, with a test pilot and a test partner; and a reinstall on a phone that had joined one pilot while the iCloud account still holds another pilot's share.
+
+## 17. The checks on real phones
+
+Run on 2026-10-20 and 2026-10-21, with `docs/superpowers/plans/2026-10-20-partner-links-piece4-real-phone-checks.md`. Its Execution notes have each step.
+
+### 17.1 The setup, as it turned out
+
+- **The pilot** was the user's own phone and account, running CrewLu's partner build (`feature/partner-cloud-screens`) from Xcode.
+- **An Xcode build writes iCloud's Development environment,** as Apple's rule says, since neither app names an environment in its entitlements.
+  - The plan first assumed Production. CloudKit Console's Act As iCloud Account found no `PartnerBeaconZone` in Production's private database.
+  - So the pilot's real share, and both of its real partners as participants, live in Development.
+  - One real partner reads through an Xcode-built Crewluve, and sees it. The other reads through a TestFlight Crewluve, which uses Production, and so has no share there.
+- **The ticket field is now in Production's schema.** `moveTicketByPartnerJSON` (Bytes), with its two indexes, was deployed on 2026-10-20: piece 2 §14.4's release step, done early.
+- **The devices:** no test Apple ID was available. The move-over ran on the real partner with the Xcode build, by the user's choice. The rest ran on the user's phone and iPad, both on the user's own Apple ID, with test partners made in CrewLu.
+
+### 17.2 What passed
+
+- **The move-over (§8.1, §10.3 step 5).** Crewluve's piece 4 build, run onto the real partner's phone from Xcode:
+  - showed iCloud's status, then moved with no tap and no alert;
+  - used its move ticket, and made one `app` device (`sandbox`);
+  - CrewLu's partner page changed from "iCloud · older Crewluve" to "iPhone · Crewluve".
+- **A second device following by itself (§8.3, P4-2).** The user's iPad followed the phone's Crewluve to the same test partner about two minutes after it joined, through the hand-off copy in iCloud Keychain.
+- **Links and codes (§10.3 steps 1–2):** an invite link tapped in Notes, a typed code, and a scanned QR code.
+- **Disconnect, then a relaunch (§15):** the device stayed on the welcome screen.
+- **Reinstalls (§15, §16 decision 4):**
+  - after a delete and a reinstall, a device came back by itself, as the same device;
+  - one the pilot had removed came back on iCloud only, and rejoined with Send Link Again's link.
+- **Removals (§10.3 step 3; piece 2 §8.3 step 2):**
+  - removing a device ended it, with the note;
+  - New Link kept the devices, and the old link said "Invite Link Not Working … You're still connected to …";
+  - removing the person ended all of their devices.
+- **A quick status reaches only the person picked (§10.3 step 4; piece 2 §8.3 step 5).**
+- **Signing out (piece 2 §8.3 step 4):** partners kept the last status, and updates came back after signing in.
+- **Pushes (§10.3 step 6):**
+  - partner-push ran only on real changes, and logged each run;
+  - a quick status woke Xcode builds through Apple's sandbox service, and a TestFlight build (1.2 (43), internal only, recorded as `production`) through its production service, with the alert on the lock screen.
+
+### 17.3 Found
+
+- **Background pushes are best-effort.** The first quick status alerted only when Crewluve was opened, after three status changes inside three minutes. The device settings were right: Background App Refresh on, no Low Power Mode, no Focus. After a five-minute pause, the alert came on the lock screen. iOS limits background pushes, so a pilot's quick changes in a row can delay a partner's alert until iOS lets the app run, or until Crewluve is opened.
+- **The release meets two iCloud environments.**
+  - The pilot's App Store CrewLu will write Production, where they have no share today.
+  - So iCloud partners who read Development, through Xcode-built Crewluve, won't be moved by the App Store CrewLu's tickets. Neither will partners who read Production with no share there.
+  - Both kinds connect with an invite link instead, which doesn't depend on iCloud's environment. The pilot's two real partners: one is already on Crewlu Cloud, and the other connects with an invite link once they have piece 4.
+
+### 17.4 Not checked on a device
+
+- **A partner moving over through Production,** with TestFlight or App Store builds on both sides. The move-over ran in Development, with Xcode builds.
+- **What needs every iCloud partner moved:** the iCloud share ending by itself (piece 2 §8.3 step 3), a share that ends during a move (§8.4), and the note for a device left behind (§7.7).
+- **What needs two pilots:** a switch between them, and a reinstall while the iCloud account holds another pilot's share.
+- **Already Connected (§16 decision 9),** and Crewluve updating before its pilot's CrewLu.
+
+Their automated tests cover each of these. A test Apple ID and a second pilot would let a later round check them on devices.
