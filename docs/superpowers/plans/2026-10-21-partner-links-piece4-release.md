@@ -173,7 +173,7 @@ Expected: "Last Updated: October 21, 2026", and "What the Crewluve App Keeps".
 
 **Who:** Claude, with a yes before each push.
 
-- [ ] **Step 1: Set build 44, and commit**
+- [x] **Step 1: Set build 44, and commit**
 
 Run:
 
@@ -191,7 +191,7 @@ Expected:
 - `1 file changed, 2 insertions(+), 2 deletions(-)`;
 - the new commit.
 
-- [ ] **Step 2: Fast-forward the release line to it**
+- [x] **Step 2: Fast-forward the release line to it**
 
 `~/Dev/Crewluv` stays on `feature/partner-cloud-source`. The release branch moves without being checked out, and only if it can fast-forward.
 
@@ -203,7 +203,7 @@ cd ~/Dev/Crewluv && git fetch . feature/partner-cloud-source:hotfix/icloud-accou
 
 Expected: the release line's tip is the build 44 commit.
 
-- [ ] **Step 3: Push both, with a yes**
+- [x] **Step 3: Push both, with a yes**
 
 Claude asks once for both branches, and with the yes runs:
 
@@ -393,3 +393,7 @@ Filled in as the release goes: each task's result, and anything that differed. N
   - The page's date and its three Crewluve sections were replaced as printed. The user read it locally, and said to commit and push it.
   - Committed `533e86f` and pushed (`be4aadf..533e86f`). GitHub Pages built it at 15:09 UTC.
   - The live page shows "Last Updated: October 21, 2026", "What the Crewluve App Keeps" and "How Long It's Kept", with no "No Third-Party Services". It was checked in the built-in browser, since scripted requests get a 403.
+- **Task 2 (2026-10-21):**
+  - Build 44 was committed as `4333994` on `feature/partner-cloud-source`.
+  - `hotfix/icloud-account-unavailable` fast-forwarded from `739abd3` to `4333994`, with no merge commit.
+  - Both branches were pushed with the user's yes: `eb5fcc2..4333994` and `739abd3..4333994`.
