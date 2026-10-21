@@ -59,7 +59,7 @@
 
 **Who:** Claude.
 
-- [ ] **Step 1: Check the three repos**
+- [x] **Step 1: Check the three repos**
 
 Run:
 
@@ -79,7 +79,7 @@ Expected:
 
 **Files:** Modify `~/Dev/CrewLu-Website/crewluve/privacy-policy.html` (the date line, and the three sections from "Crewluve App - No Personal Data Collection" to "No Third-Party Services").
 
-- [ ] **Step 1: Ask, then make the change**
+- [x] **Step 1: Ask, then make the change**
 
 Claude asks the user for a yes to write in `~/Dev/CrewLu-Website`. With it, Claude replaces the date line:
 
@@ -143,7 +143,7 @@ and replaces everything from `<h2>Crewluve App - No Personal Data Collection</h2
 
 Expected: `git -C ~/Dev/CrewLu-Website diff --stat` shows one file changed. Claude shows the user the new wording in the conversation, and changes nothing else on the page.
 
-- [ ] **Step 2: The user reads it in a browser**
+- [x] **Step 2: The user reads it in a browser**
 
 Run:
 
@@ -153,7 +153,7 @@ open ~/Dev/CrewLu-Website/crewluve/privacy-policy.html
 
 The user reads the new sections in their browser, says what to change if anything, and Claude makes those changes.
 
-- [ ] **Step 3: Commit, and push with a yes**
+- [x] **Step 3: Commit, and push with a yes**
 
 Run:
 
@@ -163,7 +163,7 @@ cd ~/Dev/CrewLu-Website && git add crewluve/privacy-policy.html && git commit -q
 
 Expected: the new commit. Then Claude asks for a yes, and with it runs `git -C ~/Dev/CrewLu-Website push origin main`. GitHub Pages publishes crewlu.net from `main`.
 
-- [ ] **Step 4: Check it's live**
+- [x] **Step 4: Check it's live**
 
 A minute or two after the push, the user opens <https://crewlu.net/crewluve/privacy-policy.html>.
 
@@ -386,3 +386,10 @@ Claude proposes a session to plan that release, in `~/Dev/Duty`'s own flow. It n
 ## Execution notes
 
 Filled in as the release goes: each task's result, and anything that differed. Names, addresses and Apple IDs stay out.
+
+- **Task 0 (2026-10-21):** as expected. `feature/partner-cloud-source` = origin = `eb5fcc2`, the release line is its ancestor, and CrewLu-Website was clean on `main`.
+- **Task 1 (2026-10-21):**
+  - The user said "start with task 1", which was their OK to write in `~/Dev/CrewLu-Website`.
+  - The page's date and its three Crewluve sections were replaced as printed. The user read it locally, and said to commit and push it.
+  - Committed `533e86f` and pushed (`be4aadf..533e86f`). GitHub Pages built it at 15:09 UTC.
+  - The live page shows "Last Updated: October 21, 2026", "What the Crewluve App Keeps" and "How Long It's Kept", with no "No Third-Party Services". It was checked in the built-in browser, since scripted requests get a 403.
