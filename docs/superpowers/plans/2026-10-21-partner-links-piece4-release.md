@@ -287,7 +287,7 @@ Expected: Crewluve's alert on their lock screen.
 
 **Who:** the user.
 
-- [ ] **Step 1: Make version 1.2**
+- [x] **Step 1: Make version 1.2**
 
 1. In App Store Connect → **Crewluve** → **Distribution**, click **+** next to **iOS App**, and type `1.2`.
 2. In **What's New in This Version**, paste:
@@ -303,7 +303,7 @@ Expected: Crewluve's alert on their lock screen.
 
 3. Under **Build**, click **+**, and choose **1.2 (44)**.
 
-- [ ] **Step 2: The App Review notes**
+- [x] **Step 2: The App Review notes**
 
 Under **App Review Information**: **Sign-in required** stays off. In **Notes**, paste:
 
@@ -313,7 +313,7 @@ Crewluve shows the status of a pilot who shares it from our CrewLu app. Connecti
 New in 1.2: Crewluve can connect through Crewlu Cloud, our server. It sends a random device key and its push token there, so the pilot's status and update alerts reach this device. Partners already following a pilot through iCloud keep working, and move to Crewlu Cloud by themselves once the pilot's CrewLu supports it.
 ```
 
-- [ ] **Step 3: Release automatically**
+- [x] **Step 3: Release automatically**
 
 Under **Version Release**, choose **Automatically release this version**.
 
@@ -398,6 +398,7 @@ Filled in as the release goes: each task's result, and anything that differed. N
   - `hotfix/icloud-account-unavailable` fast-forwarded from `739abd3` to `4333994`, with no merge commit.
   - Both branches were pushed with the user's yes: `eb5fcc2..4333994` and `739abd3..4333994`.
 - **Task 3 (2026-10-21):** the user archived 1.2 (44) and uploaded it for App Store Connect. App Store Connect finished processing it.
+- **Task 5, Steps 1–3 (2026-10-21):** done while the beta review waits: What's New, build 1.2 (44), the App Review notes and automatic release, saved as a draft. Step 5 (submit) waits for Task 4.
 - **Task 5, Step 4 (2026-10-21):**
   - Done early, while the beta review (Task 4) waits. That was the user's choice: it means the listing names the data a day or two before 1.2 is live, while 1.1.6 still collects nothing.
   - Published. The preview reads "Data Linked to You: Identifiers, Usage Data", and Data Types reads "2 data types collected from this app: Device ID, Other Usage Data". Device ID shows "Used for App Functionality" and "Linked to the user's identity", and there's no "Data Used to Track You" section.
