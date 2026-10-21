@@ -187,6 +187,30 @@ Task 1 found that the pilot's phone writes iCloud's **Development** environment,
 - **R-decision 4: the production push comes last, and is optional tonight.** Crewluve 1.2 (43) goes up as TestFlight Internal Only, and the iPad installs it to join a test partner. The TestFlight build reads Production iCloud, where the pilot has no zone. That doesn't matter on Crewlu Cloud.
 - **R-decision 5: the other real partner** reads Production through TestFlight, where no share exists, so they likely aren't getting updates now. That's separate from piece 4, and the user checks when they're back. Once piece 4 ships, they connect with an invite link, which doesn't depend on iCloud's environment.
 
+**Claude's two queries** (read-only, through the Supabase connection's `execute_sql`, with `:test_partner` filled in by Claude):
+
+Query A, the partner and how many devices they have:
+
+```sql
+select p.name, p.created_at, count(d.id) as devices
+from public.partners p
+left join public.partner_devices d on d.partner_id = p.id
+where p.name = :test_partner
+group by p.id
+order by p.created_at desc;
+```
+
+Query B, each device's kind, label, push environment, and whether it has a token:
+
+```sql
+select p.name, d.kind, d.label, d.created_at, s.push_env, (s.push_token is not null) as has_push_token
+from public.partners p
+join public.partner_devices d on d.partner_id = p.id
+left join private.partner_device_secrets s on s.device_id = d.id
+where p.name = :test_partner
+order by d.created_at;
+```
+
 ### Task 3: The real partner moves over
 
 **Who:** the user, with Claude's checks.
@@ -196,7 +220,7 @@ Task 1 found that the pilot's phone writes iCloud's **Development** environment,
 1. On the partner's phone, open Crewluve. It should show your current status.
 2. On your phone, open CrewLu → **Partner Sharing** → **Refresh**. They're marked "Needs Crewluve update". Tell Claude the name CrewLu shows for them. Claude keeps it in the conversation only.
 
-Claude runs Task 5's Step 5 query, with that name.
+Claude runs query A, with that name.
 
 Expected: one row, with 0 devices. CrewLu's move-over made them a partner, with a ticket in the record.
 
@@ -215,7 +239,7 @@ Expected:
 
 On your phone: **Partner Sharing** → **Refresh** → their page. They're no longer marked "Needs Crewluve update", and **Devices** lists one iPhone.
 
-Claude runs Task 6's Step 3 query, with their name.
+Claude runs query B, with their name.
 
 Expected: one row: kind `app`, push_env `sandbox` (an Xcode build), and a push token.
 
@@ -247,7 +271,7 @@ Expected:
 - within a few minutes, the ••• shows on the iPad, with no tap;
 - CrewLu lists two devices for **Test 1**.
 
-Claude runs Task 6's Step 3 query for Test 1. Expected: two `app` devices, both `sandbox`.
+Claude runs query B for Test 1. Expected: two `app` devices, both `sandbox`.
 
 ### Task 5: Codes, QR, Disconnect, Already Connected, a reinstall
 
@@ -371,7 +395,7 @@ Expected:
 - CrewLu no longer lists Test 1;
 - the moved partner keeps your status.
 
-Claude runs Task 5's Step 5 query for Test 1. Expected: no rows.
+Claude runs query A for Test 1. Expected: no rows.
 
 ### Task 9 (optional tonight): The production push, on a TestFlight build
 
@@ -379,7 +403,7 @@ Claude runs Task 5's Step 5 query for Test 1. Expected: no rows.
 
 - [ ] **Step 1: Version 1.2 (43), committed**
 
-Claude runs Task 3's original Step 1 command, the version bump, which is kept in this plan's history at commit `483c417`.
+Claude replaces `MARKETING_VERSION = 1.1.6;` with `MARKETING_VERSION = 1.2;` and `CURRENT_PROJECT_VERSION = 42;` with `CURRENT_PROJECT_VERSION = 43;` in `~/Dev/Crewluv/Crewluv.xcodeproj/project.pbxproj`, each found exactly twice, then commits it as `chore(crewluv): 1.2 (43), for the checks on real phones`. The command is in this plan's history at commit `483c417`, Task 3 Step 1.
 
 Expected:
 - `1 file changed, 4 insertions(+), 4 deletions(-)`;
@@ -399,7 +423,7 @@ Expected:
 
 Expected:
 - the iPad alerts;
-- Claude's Task 6 Step 3 query for Test 3 shows push_env `production`;
+- Claude's query B for Test 3 shows push_env `production`;
 - partner-push's logs count one production send.
 
 Then remove Test 3 in CrewLu.
