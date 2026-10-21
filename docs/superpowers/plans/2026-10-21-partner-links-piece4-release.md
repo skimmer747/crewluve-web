@@ -217,13 +217,13 @@ Expected: both branches updated on GitHub.
 
 **Who:** the user.
 
-- [ ] **Step 1: Archive**
+- [x] **Step 1: Archive**
 
 1. In Xcode's Crewluv window, check **Crewluv** target → **General** → **Identity**: Version **1.2**, Build **44**.
 2. Set the device at the top to **Any iOS Device (arm64)**.
 3. Choose **Product → Archive**, and wait for the Organizer to open with **Crewluve 1.2 (44)** selected.
 
-- [ ] **Step 2: Upload for App Store Connect**
+- [x] **Step 2: Upload for App Store Connect**
 
 1. Click **Distribute App**, and choose **App Store Connect**. This time, not "TestFlight Internal Only".
 2. Click **Distribute**. If it asks, keep **Automatically manage signing**.
@@ -397,3 +397,4 @@ Filled in as the release goes: each task's result, and anything that differed. N
   - Build 44 was committed as `4333994` on `feature/partner-cloud-source`.
   - `hotfix/icloud-account-unavailable` fast-forwarded from `739abd3` to `4333994`, with no merge commit.
   - Both branches were pushed with the user's yes: `eb5fcc2..4333994` and `739abd3..4333994`.
+- **Task 3 (2026-10-21):** the user archived 1.2 (44) and uploaded it for App Store Connect. App Store Connect finished processing it.
