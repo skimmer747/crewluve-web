@@ -6,7 +6,8 @@
 
 **Architecture:**
 - **The pilot is the user's phone,** signed in to their own CrewLu account, running CrewLu's partner build (`feature/partner-cloud-screens` in `~/Dev/Duty`) from Xcode.
-  - That Xcode build is what writes the Production iCloud share the user's real partners read through TestFlight Crewluve. No other device writes it.
+  - That Xcode build is what writes the Production iCloud share the user's real partners read. No other device writes it.
+  - One real partner reads it through a TestFlight Crewluve, as an external tester. Another reads it through a Crewluve run from the user's Mac.
 - **The test partner** is one test Apple ID on two spare devices on iOS 26.
   - It joins the pilot's iCloud share with an old CrewLu invite, since every iCloud invite is the same link to one public share (piece 2 spec §2.4).
   - It moves over by installing Crewluve 1.2 (43), the piece 4 build, from TestFlight. That build is internal only.
@@ -34,7 +35,9 @@
 - **This plan is public.** `skimmer747/crewluve-web` is a public repo, so neither this plan nor its notes name anyone, or hold an email address, an Apple ID or a password. That includes the test partner's name, which Claude keeps only in the conversation.
 - **The real partners stay safe.**
   - **What the partner build does to them:** CrewLu's partner build makes them Crewlu Cloud partners, each with a ticket in the iCloud record. Their Crewluve 1.1.6 ignores tickets, so they keep reading iCloud, and CrewLu shows them as "Needs Crewluve update".
-  - **The new build can't reach them.** Crewluve 1.2 is uploaded as TestFlight Internal Only, which can never go to external testers, and they're external testers.
+  - **The new build can't reach them.**
+    - Crewluve 1.2 is uploaded as TestFlight Internal Only, which can never go to external testers. The real partner on TestFlight is an external tester, and there are no internal testers but the user.
+    - The real partner whose Crewluve comes from the user's Mac gets only what's run onto their phone. So never run `feature/partner-cloud-source` from Xcode onto a real partner's phone before the release: it would move them to Crewlu Cloud for real.
   - **The checks never touch them.**
     - Every quick status here goes to a test person, never to Everyone.
     - Every removal is of a test person or a test device.
@@ -51,7 +54,8 @@
      - the note for a device left behind (§7.7).
    - With one pilot, it also can't show a switch between two pilots, or a reinstall while the iCloud account holds another pilot's share.
 2. **The pilot stays an Xcode build.**
-   - The user confirmed that their Xcode CrewLu is the only writer of the share their real partners read through TestFlight Crewluve, so it writes iCloud's Production environment.
+   - The user confirmed that their Xcode CrewLu is the only writer of the share their real partners read. One of those partners reads it through a TestFlight Crewluve, which always uses Production, so the Xcode CrewLu writes iCloud's Production environment. An Xcode CrewLu build on this phone also listed both partners in October (piece 2 spec §14.5).
+   - Task 0 confirms that the real partners see the current status before anything changes.
    - Both apps leave the environment unnamed in their entitlements, so this is what their builds do, whatever Apple's default for Xcode builds suggests.
    - So the test partner's Crewluve is a TestFlight build too, and no CrewLu TestFlight build is needed.
 3. **The ticket field is checked in Production first** (piece 2 §14.4). The pilot's partner build writes `moveTicketByPartnerJSON` into Production, and Production's schema doesn't learn new fields from saves.
@@ -106,6 +110,12 @@ Expected:
 - then CrewLu's partner branch tip, `293c07e1 Merge feature/supabase-account-backend: build 201 (3.0.2)`, or a later commit on it.
 
 If anything else shows, stop and ask.
+
+- [ ] **Step 2: The real partners see your current status**
+
+The user checks with their real partners, or on a real partner's phone with their OK: does Crewluve show your current status, synced recently? Then tell Claude.
+
+Expected: yes. The plan rests on your Xcode CrewLu writing the share they read (decision 2). If they see an old status, stop: the environment isn't what the plan expects.
 
 ### Task 1: The ticket field in iCloud's Production schema
 
@@ -204,9 +214,9 @@ If Xcode has the project open, it picks up the change by itself. Then, in Xcode,
 - [ ] **Step 3: Give it to an internal group with only you**
 
 1. In App Store Connect (<https://appstoreconnect.apple.com>), open **Apps → Crewluve → TestFlight**. The build shows **Processing** for 10–30 minutes, then **Ready to Test**.
-2. In the left column, under **Internal Testing**, open a group whose only tester is you. If none exists, click **+**, name it **Partner Checks**, and add yourself.
+2. In the left column, next to **Internal Testing**, click **+**. Name the group **Partner Checks**, and add yourself as its tester. There are no other internal testers, so it's the only one with the build.
 3. In that group's **Builds**, click **+**, and add **1.2 (43)**.
-4. Under **External Testing**, open your partners' group. Check that 1.2 (43) isn't in its builds. A TestFlight Internal Only build can't be added there, so nothing should be.
+4. Under **External Testing**, open the external group. Check that 1.2 (43) isn't among its builds. A TestFlight Internal Only build can't be added there, so it shouldn't be.
 
 Expected: 1.2 (43) is Ready to Test in your group only. Tell Claude when it is.
 
