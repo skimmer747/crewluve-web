@@ -4751,11 +4751,11 @@ Expected: the new commit. Don't push.
 
 **Files:** none.
 
-- [ ] **Step 1: Keep the branch apart**
+- [x] **Step 1: Keep the branch apart**
 
 4c moves real partners the first time it reaches them, and the tickets come from CrewLu's partner screens, which wait for CrewLu 3.0.2 to be on the App Store. So `feature/partner-cloud-source` stays apart from the release line until spec §10.3's checks pass. Nothing to merge.
 
-- [ ] **Step 2: Push only with a fresh yes**
+- [x] **Step 2: Push only with a fresh yes**
 
 Ask separately before each push: `feature/partner-cloud-source` in `~/Dev/Crewluv`, and `main` in `~/Dev/Crewluve Website`.
 
@@ -4782,3 +4782,4 @@ Filled in during the build: any place the code ends up different from the printe
   - The wider access the `+Connecting` file needs, the two copies of the device's model name (the source's and the joiner's), and `ICloudReading.moveTicket` being a `var` with a default.
 - **After the fixes:** the harness passed 316 tests in 28 suites. The deliberate breaks were re-checked against the reviewed code: all 77 caught: the 52 that still matched, the 20 rewritten for the reviewed code's text, and 5 new ones for its guards and rules. Task 11 passed again: at `c2b1a6a`, 0 errors, 0 warnings, and 16 of 16 in the order check. The user's ⌘U (Task 13) now expects 327 Swift Testing tests in 29 suites: the harness's 316 and the Keychain's 11.
 - **Task 13, the user's ⌘U at `c2b1a6a`:** `Test run with 327 tests in 29 suites passed`, the hand-off copy's three Keychain tests among them, and every XCTest suite passed.
+- **Task 16:** the branch stays apart from the release line. With the user's yes for each, `feature/partner-cloud-source` was pushed (`69865b3..c2b1a6a`) and website `main` was pushed (`d66d4aa..8badca8`).
