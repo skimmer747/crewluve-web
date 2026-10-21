@@ -317,7 +317,7 @@ New in 1.2: Crewluve can connect through Crewlu Cloud, our server. It sends a ra
 
 Under **Version Release**, choose **Automatically release this version**.
 
-- [ ] **Step 4: The privacy answers**
+- [x] **Step 4: The privacy answers**
 
 1. In the left column, under **Trust & Safety**, click **App Privacy**, then **Edit** next to **Data Types**.
 2. Choose **Yes, we collect data from this app**, and tick:
@@ -398,3 +398,8 @@ Filled in as the release goes: each task's result, and anything that differed. N
   - `hotfix/icloud-account-unavailable` fast-forwarded from `739abd3` to `4333994`, with no merge commit.
   - Both branches were pushed with the user's yes: `eb5fcc2..4333994` and `739abd3..4333994`.
 - **Task 3 (2026-10-21):** the user archived 1.2 (44) and uploaded it for App Store Connect. App Store Connect finished processing it.
+- **Task 5, Step 4 (2026-10-21):**
+  - Done early, while the beta review (Task 4) waits. That was the user's choice: it means the listing names the data a day or two before 1.2 is live, while 1.1.6 still collects nothing.
+  - Published. The preview reads "Data Linked to You: Identifiers, Usage Data", and Data Types reads "2 data types collected from this app: Device ID, Other Usage Data". Device ID shows "Used for App Functionality" and "Linked to the user's identity", and there's no "Data Used to Track You" section.
+  - The Privacy Policy URL is unchanged.
+  - The new version shows in App Store Connect as "1.2.0, Prepare for Submission".
