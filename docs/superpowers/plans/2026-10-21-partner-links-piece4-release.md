@@ -343,7 +343,7 @@ Expected: the status shows **Waiting for Review**. Apple usually reviews within 
 
 **Who:** the user, with Claude's checks.
 
-- [ ] **Step 1: Claude checks the App Store**
+- [x] **Step 1: Claude checks the App Store**
 
 Claude looks up `com.ToddAnderson.Crewluv` through Apple's public lookup.
 
@@ -414,3 +414,4 @@ Filled in as the release goes: each task's result, and anything that differed. N
   - Step 4: with their phone locked, Crewluve's alert reached the lock screen.
   - Follow-up: CrewLu gets Send Link Again for someone still on iCloud who has a Crewlu Cloud partner, on `feature/partner-cloud-screens`, before CrewLu's partner release. It doesn't hold up Crewluve 1.2.
 - **Task 5, Step 5 (2026-10-22):** the user clicked Add for Review, then Submit for Review. 1.2 shows **Waiting for Review**, and goes live automatically when approved.
+- **Task 6, Step 1 (2026-10-22):** Apple approved 1.2 the same day, and App Store Connect showed **Ready for Distribution**. Apple's public lookup at first still gave 1.1.6. A few minutes later it gave version `1.2.0`, released 21:44 UTC. That's the same "1.2.0" App Store Connect shows for build 1.2 (44).
