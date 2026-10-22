@@ -89,7 +89,7 @@ How the writes behave:
 | # | Decision |
 |---|---|
 | P2-1 | **CrewLu ships after Crewluve.** Its release follows Crewluve's piece 4, because invite links need the new Crewluve. The order is a release-day checklist item, with no feature switch. |
-| P2-2 | **Partners still on iCloud are marked.** Their row says "Connected through iCloud" with a "Needs Crewluve update" tag. Their page says they move over automatically after updating Crewluve. |
+| P2-2 | **Partners still on iCloud are marked.** Their row says "Connected through iCloud" with a "Needs Crewluve update" tag. Their page says they move over automatically after updating Crewluve. Once the move-over has made them a Crewlu Cloud partner, their page also offers their invite link, as a fallback (§15). |
 | P2-3 | **A quick status reaches only the people picked** in Send To, or everyone. The cloud summary carries per-person entries plus an everyone-status. Crewluve (piece 4) and the website (piece 5) show the partner's own entry first. This fixes §2.3. |
 | P2-4 | **New parts beside the iCloud code,** in `Duty/Utils/PartnerCloud/`. The iCloud code changes only for the tickets, the settings lookup and ending the share, so piece 6 removes it cleanly. |
 | P2-5 | **Signed in, the screen runs on Crewlu Cloud.** Not signed in, it shows a prompt, plus today's screen minus inviting while an iCloud share exists. |
@@ -225,7 +225,8 @@ Sign In opens the Crewlu Cloud screen (`CrewluCloudDetailView`).
 - **Devices.** The icon follows the kind: an iPhone for `app`, "{label}", "Crewluve · seen …"; a globe for `web`, "Website · seen …". The footer says "Swipe a device to remove it."
   - **Removing one** asks "Remove This Device?" / "{label} stops seeing your status. {name}'s other devices stay connected.", then calls `partner_remove_device`.
   - **With no devices:** "Not opened yet", with the footer "{name} connects by tapping the invite link."
-  - **Still on iCloud:** "iCloud · older Crewluve", "Still connected", with the footer "{name} moves over automatically after updating Crewluve."
+  - **Still on iCloud:** "iCloud · older Crewluve", "Still connected", with the footer "{name} moves over automatically after updating Crewluve." Once they have a Crewlu Cloud partner, the footer adds "If that doesn't happen, send the link." (§15)
+- **Send Link Again and New Link** are there for anyone with a Crewlu Cloud partner: connected, not opened yet, or still on iCloud once the move-over has made them one (`PartnerListRow.canSendLink`, §15).
 - **Send Link Again** opens the share sheet with their link (§6.4).
 - **New Link** asks "Make a New Link?" / "The current link stops working. Devices already connected stay connected." Then it calls `partner_new_link` and opens the share sheet with the new link.
 - **Nickname and Quick Status** opens `PartnerQuickStatusSheet` for this person (§6.5).
@@ -617,3 +618,19 @@ If it reached Production, this build's writes would fail until §14.4 is done. A
 
 - **A partner's second device on an older Crewluve stops getting updates when the share ends.** Step 5 needs one `app` device per person, not all of their devices. Their ticket goes once they have an `app` device, so that second device can't redeem one either: piece 4 needs another way for it to join.
 - **Stale entries in the removal list.** One whose partner went some other way than through CrewLu's store, or one for another account's partner, waits for good. It acts on nothing, since ids are never used again, but while it's there each activation reads the Crewlu Cloud list once, even with no iCloud share. Stop Sharing with Everyone on Crewlu Cloud clears the list. Two devices syncing the whole key at once can also lose an entry (R3).
+
+## 15. Decided during Crewluve 1.2's release (2026-10-22)
+
+### 15.1 The invite link for someone still on iCloud
+
+**The rule:** the partner page has Send Link Again and New Link for anyone with a Crewlu Cloud partner, still on iCloud too. `PartnerListRow.canSendLink` decides, and `PartnerListTests` covers it: still on iCloud with a Crewlu Cloud partner gets the link; still on iCloud without one doesn't; connected and not opened yet do. Their footer reads "{name} moves over automatically after updating Crewluve. If that doesn't happen, send the link." Someone still on iCloud without a Crewlu Cloud partner keeps the page as before.
+
+**Why:** 2b hid both buttons for anyone still on iCloud, since they move over by themselves. But the move-over works only if its ticket reaches their Crewluve, and sometimes it can't:
+- the ticket was refused or has expired;
+- the pilot's CrewLu, built from Xcode, writes iCloud's Development environment, while the TestFlight or App Store Crewluve reads Production.
+
+In Crewluve 1.2's release testing, the second case left a partner with no link to tap. The link had to be built by hand from Crewlu Cloud. Tapping it connected them, with their name and nickname kept. While the pilot is signed in, the move-over makes a Crewlu Cloud partner for everyone in the share it can identify, so nearly everyone still on iCloud gets the buttons.
+
+**New Link too (the user's choice):** it changes only the partner's `invite_token`. Their move ticket and the iCloud share aren't touched, so it's safe, and a link sent to the wrong person can be turned off.
+
+**Left for later:** someone still on iCloud with no Crewlu Cloud partner, such as a person iCloud can't identify (§7.6), still has no link to tap.
