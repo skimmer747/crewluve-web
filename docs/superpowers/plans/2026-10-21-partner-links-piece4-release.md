@@ -333,7 +333,7 @@ Under **Version Release**, choose **Automatically release this version**.
 
 Expected: the preview reads **Data Linked to You: Identifiers, Usage Data**. The Privacy Policy URL stays `https://crewlu.net/crewluve/privacy-policy.html`, now updated (Task 1).
 
-- [ ] **Step 5: Submit**
+- [x] **Step 5: Submit**
 
 Back on the 1.2 page, click **Add for Review**, then **Submit for Review**.
 
@@ -412,3 +412,5 @@ Filled in as the release goes: each task's result, and anything that differed. N
   - So Claude read their current invite token from `public.partners`, read-only, and built the link the way `PartnerCloudInvite.link(forToken:)` does (`https://crewluve.crewlu.net/join#t=…`). That's the same link Send Link Again shares, so they kept their name and nickname. The user sent it in Messages, and the partner tapped it there. Crewluve connected and showed the user's status. The token stays out of this plan.
   - Step 3: one row, `app`, push_env `production`, with a push token. Crewlu Cloud had 0 devices for them before.
   - Step 4: with their phone locked, Crewluve's alert reached the lock screen.
+  - Follow-up: CrewLu gets Send Link Again for someone still on iCloud who has a Crewlu Cloud partner, on `feature/partner-cloud-screens`, before CrewLu's partner release. It doesn't hold up Crewluve 1.2.
+- **Task 5, Step 5 (2026-10-22):** the user clicked Add for Review, then Submit for Review. 1.2 shows **Waiting for Review**, and goes live automatically when approved.
