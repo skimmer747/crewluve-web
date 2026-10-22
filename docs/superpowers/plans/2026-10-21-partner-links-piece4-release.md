@@ -235,7 +235,7 @@ Expected: in App Store Connect → **Crewluve** → **TestFlight**, 1.2 (44) sho
 
 **Who:** the user, with Claude's checks.
 
-- [ ] **Step 1: Give the build to the external group**
+- [x] **Step 1: Give the build to the external group**
 
 1. In App Store Connect → **Crewluve** → **TestFlight**, under **External Testing**, open the external group.
 2. Check its **Testers**. If anyone besides the TestFlight partner is in it, they get 1.2 too. That's safe:
@@ -252,7 +252,9 @@ Expected: in App Store Connect → **Crewluve** → **TestFlight**, 1.2 (44) sho
 
 Expected: the build shows **Approved** for the group, and TestFlight tells the partner it's ready.
 
-- [ ] **Step 2: The partner installs it, and taps their link**
+- [x] **Step 2: The partner installs it, and taps their link**
+
+> **As run:** CrewLu shows no Send Link Again for someone still on iCloud (step 3 below was wrong). The link was rebuilt from Crewlu Cloud instead, read-only. See the Execution notes.
 
 1. On the partner's phone, open **TestFlight**, and install or update **Crewluve 1.2 (44)**.
 2. Open Crewluve. It shows the welcome screen, since there's no iCloud share for it to read (§17.1).
@@ -261,7 +263,7 @@ Expected: the build shows **Approved** for the group, and TestFlight tells the p
 
 Expected: Crewluve shows Connecting, then your status, with the •••. In CrewLu, their entry lists one device.
 
-- [ ] **Step 3: Claude checks their device**
+- [x] **Step 3: Claude checks their device**
 
 Claude runs this read-only query through the Supabase connection, with the partner's name from CrewLu, kept in the conversation only:
 
@@ -276,7 +278,7 @@ order by d.created_at;
 
 Expected: one row, `app`, push_env `production`, with a push token.
 
-- [ ] **Step 4: An alert reaches them**
+- [x] **Step 4: An alert reaches them**
 
 1. With their phone locked, change something in your status, or give them a quick status sent to them only.
 2. Wait a few minutes. Remember that iOS holds back a burst of pushes (§17.3).
@@ -404,3 +406,9 @@ Filled in as the release goes: each task's result, and anything that differed. N
   - Published. The preview reads "Data Linked to You: Identifiers, Usage Data", and Data Types reads "2 data types collected from this app: Device ID, Other Usage Data". Device ID shows "Used for App Functionality" and "Linked to the user's identity", and there's no "Data Used to Track You" section.
   - The Privacy Policy URL is unchanged.
   - The new version shows in App Store Connect as "1.2.0, Prepare for Submission". The build's own version is 1.2, but the user confirmed **1.2 (44)** is attached under Build, so the two match.
+- **Task 4 (2026-10-22):**
+  - Apple approved the beta for the external group. The TestFlight partner updated their Crewluve over the old one to 1.2 (44) from TestFlight, without deleting it first.
+  - **Step 2 differed.** Their entry in CrewLu read "Needs Crewluve update · Connected through iCloud", and its page had no Send Link Again. That's by design: `PartnerDetailView` hides it for anyone still on iCloud ("They move over by themselves"), until they have an `app` device. They couldn't move over by ticket either, since the user's Xcode CrewLu writes iCloud Development and TestFlight's Crewluve reads Production (§17).
+  - So Claude read their current invite token from `public.partners`, read-only, and built the link the way `PartnerCloudInvite.link(forToken:)` does (`https://crewluve.crewlu.net/join#t=…`). That's the same link Send Link Again shares, so they kept their name and nickname. The user sent it in Messages, and the partner tapped it there. Crewluve connected and showed the user's status. The token stays out of this plan.
+  - Step 3: one row, `app`, push_env `production`, with a push token. Crewlu Cloud had 0 devices for them before.
+  - Step 4: with their phone locked, Crewluve's alert reached the lock screen.
