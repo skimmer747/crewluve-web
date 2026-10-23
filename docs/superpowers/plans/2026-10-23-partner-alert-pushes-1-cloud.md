@@ -116,7 +116,7 @@ In `~/Dev/Crewluve Website`: this plan, ticked as it goes, and the spec (Task 9)
 
 **Files:** none. A worktree for the new branch, beside `~/Dev/Duty` (decision 14).
 
-- [ ] **Step 1: Check the working tree**
+- [x] **Step 1: Check the working tree**
 
 Run:
 
@@ -126,7 +126,7 @@ git -C ~/Dev/Duty status --short
 
 Expected: only the Xcode scheme lines (` M Duty.xcodeproj/xcshareddata/xcschemes/Duty.xcscheme` and four `??` scheme files). If anything else shows, stop and ask the user.
 
-- [ ] **Step 2: Check the release line's tip**
+- [x] **Step 2: Check the release line's tip**
 
 Run:
 
@@ -136,7 +136,7 @@ git -C ~/Dev/Duty log --oneline -1 feature/supabase-account-backend
 
 Expected: `7b3aeb2d release: bump build to 201 (3.0.2)`. If it differs, stop and ask: this plan was checked against `7b3aeb2d`, and Task 10's merge needs the release line unmoved.
 
-- [ ] **Step 3: Make the worktree, on a new branch**
+- [x] **Step 3: Make the worktree, on a new branch**
 
 This adds a folder, `~/Dev/Duty-alert-pushes`, and the branch `feature/partner-alert-pushes`. It changes nothing in `~/Dev/Duty`: its branch, its files and Xcode stay as they are.
 
@@ -148,7 +148,7 @@ git -C ~/Dev/Duty worktree add -q -b feature/partner-alert-pushes ~/Dev/Duty-ale
 
 Expected: `7b3aeb2d release: bump build to 201 (3.0.2)`.
 
-- [ ] **Step 4: Copy the test packages and run the tests**
+- [x] **Step 4: Copy the test packages and run the tests**
 
 The packages are ignored by git, so the worktree has none. Copying `~/Dev/Duty`'s means nothing is downloaded.
 
@@ -168,7 +168,7 @@ Expected: `ℹ tests 228`, `ℹ pass 228`, `ℹ fail 0`, in about 35 seconds. Fr
 
 The cases are what both copies of the alert rules answer to (spec §9.1): partner-push's in Task 2, and Crewluve's in plan 2. Each is one change a partner sees, cut down to the fields the rules read, with the alerts Crewluve's `StatusChangeNotifier` makes of it. All 36 were checked against Crewluve's own Swift (see "How this plan was checked").
 
-- [ ] **Step 1: Write the cases' own tests**
+- [x] **Step 1: Write the cases' own tests**
 
 Add to the end of `supabase/tests/partner_status.test.js`, after a blank line:
 
@@ -202,7 +202,7 @@ describe("the alert pushes' shared cases (supabase/partner-status/alert-cases.js
 })
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -212,7 +212,7 @@ cd ~/Dev/Duty-alert-pushes/supabase/tests && node --no-maglev --test partner_sta
 
 Expected: `ℹ tests 28`, `ℹ pass 26`, `ℹ fail 2`: both new tests fail with `ENOENT`, since `alert-cases.json` isn't there yet.
 
-- [ ] **Step 3: Write the cases**
+- [x] **Step 3: Write the cases**
 
 Create `supabase/partner-status/alert-cases.json`:
 
@@ -730,7 +730,7 @@ list of required fields; every field they do set is one of the schema's.
 ## Who checks it
 ```
 
-- [ ] **Step 4: Run them to see them pass**
+- [x] **Step 4: Run them to see them pass**
 
 Run:
 
@@ -740,7 +740,7 @@ cd ~/Dev/Duty-alert-pushes/supabase/tests && node --no-maglev --test partner_sta
 
 Expected: `ℹ tests 28`, `ℹ pass 28`, `ℹ fail 0`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -757,7 +757,7 @@ Expected: the new commit, `test(partner-links): the alert pushes' shared cases, 
 
 Crewluve's alert rules, copied into partner-push as plain functions (spec §5.3). Nothing calls them yet: Task 4 does.
 
-- [ ] **Step 1: Write the rules' tests**
+- [x] **Step 1: Write the rules' tests**
 
 In `supabase/tests/partner_push.test.js`, replace:
 
@@ -903,7 +903,7 @@ describe('the alerts (alert pushes spec §5.3)', () => {
 const SUPABASE_URL = 'https://cloud.test'
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -913,7 +913,7 @@ cd ~/Dev/Duty-alert-pushes/supabase/tests && node --no-maglev --test partner_pus
 
 Expected: `ℹ tests 1`, `ℹ fail 1`: `does not provide an export named 'ALERT_KINDS'`, since the rules aren't written yet.
 
-- [ ] **Step 3: Write the rules**
+- [x] **Step 3: Write the rules**
 
 They go after `pushRequest`, before `outcome`. Each names the Swift it copies.
 
@@ -1097,7 +1097,7 @@ export function alertsFor(before: View, after: View, partner: string, beforeAt: 
 /** What Apple's answer to one push means (spec §7). */
 ```
 
-- [ ] **Step 4: Run them to see them pass**
+- [x] **Step 4: Run them to see them pass**
 
 Run:
 
@@ -1107,7 +1107,7 @@ cd ~/Dev/Duty-alert-pushes/supabase/tests && node --no-maglev --test partner_pus
 
 Expected: `ℹ tests 40`, `ℹ pass 40`, `ℹ fail 0`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -1125,7 +1125,7 @@ Expected: the new commit, `feat(partner-links): partner-push's copy of Crewluve'
 
 The script starts here, with its first change: Crewluve 1.3 can say it shows alert pushes (spec §4.1). Its undo comes in Task 5. From now on piece 3's own undo can't run on a database with this script, since it names the old `partner_set_push`, so its two setup tests get a database built up to piece 3 (decision 3).
 
-- [ ] **Step 1: Write the tests**
+- [x] **Step 1: Write the tests**
 
 The helper keeps calling with three parameters, as Crewluve 1.2 does, unless a test passes `alerts`:
 
@@ -1385,7 +1385,7 @@ with:
     )
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -1395,7 +1395,7 @@ cd ~/Dev/Duty-alert-pushes/supabase/tests && node --no-maglev --test push.test.j
 
 Expected: `ℹ tests 38`, `ℹ pass 29`, `ℹ fail 9`. In `push.test.js`, `column "push_alerts" does not exist` and `function public.partner_set_push(text, text, text, boolean) does not exist`; in `privileges.test.js` and `advisors.test.js`, the lists of functions. Piece 3's second run and undo, now on a database up to piece 3, pass.
 
-- [ ] **Step 3: Write the script, with its first change**
+- [x] **Step 3: Write the script, with its first change**
 
 Create `supabase/migrations/20261023120000_partner_links_alert_pushes.sql`:
 
@@ -1444,7 +1444,7 @@ revoke all on function public.partner_set_push(text, text, text, boolean) from p
 grant execute on function public.partner_set_push(text, text, text, boolean) to anon, authenticated;
 ```
 
-- [ ] **Step 4: Run them to see them pass**
+- [x] **Step 4: Run them to see them pass**
 
 Run:
 
@@ -1464,7 +1464,7 @@ cd ~/Dev/Duty-alert-pushes/supabase/tests && npm test
 
 Expected: `ℹ tests 238`, `ℹ pass 238`, `ℹ fail 0`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -1482,7 +1482,7 @@ Expected: the new commit, `feat(partner-links): partner_set_push takes p_alerts,
 
 The heart of the plan (spec §5.2–§5.5). Claim hands out what each partner saw and sees; partner-push sends each device its pushes; a push Apple turns away waits on the retry list for its device alone. The SQL and partner-push change together because partner-push's own tests call the real claim: between Steps 4 and 8 those tests fail, as Step 4 says, and the task ends with everything passing.
 
-- [ ] **Step 1: Write the SQL's tests**
+- [x] **Step 1: Write the SQL's tests**
 
 push_service.test.js's claim, report and check tests change to the new answers. Its setup tests are as Task 3 left them:
 
@@ -2018,7 +2018,7 @@ with:
   ]
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -2028,7 +2028,7 @@ cd ~/Dev/Duty-alert-pushes/supabase/tests && node --no-maglev --test push_servic
 
 Expected: `ℹ tests 35`, `ℹ pass 14`, `ℹ fail 21`. Claim still hands out piece 3's answer, so the new tests find no `pilots`, and the new report and `relation "private.partner_push_retries" does not exist` aren't there yet.
 
-- [ ] **Step 3: Write the SQL**
+- [x] **Step 3: Write the SQL**
 
 The rest of the script: what claim compares with, the retry list, the comparison, the partners claim hands out, claim, report, and the check.
 
@@ -2187,7 +2187,7 @@ end
 $$;
 ```
 
-- [ ] **Step 4: Run the SQL's tests to see them pass, and partner-push's to see which wait for Steps 5–7**
+- [x] **Step 4: Run the SQL's tests to see them pass, and partner-push's to see which wait for Steps 5–7**
 
 Run:
 
@@ -2205,7 +2205,7 @@ cd ~/Dev/Duty-alert-pushes/supabase/tests && node --no-maglev --test partner_pus
 
 Expected: `ℹ tests 40`, `ℹ pass 37`, `ℹ fail 3`: the three tests against the real claim. Piece 3's partner-push looks for the devices piece 3's claim handed out, which are gone (`error: 'TypeError'`), and its probe calls the old report (`report answered 404`).
 
-- [ ] **Step 5: Write partner-push's tests**
+- [x] **Step 5: Write partner-push's tests**
 
 The parts, what each device gets, the run, and the tests against the real SQL, in the order they appear in the file:
 
@@ -2873,7 +2873,7 @@ with:
   })
 ```
 
-- [ ] **Step 6: Run them to see them fail**
+- [x] **Step 6: Run them to see them fail**
 
 Run:
 
@@ -2883,7 +2883,7 @@ cd ~/Dev/Duty-alert-pushes/supabase/tests && node --no-maglev --test partner_pus
 
 Expected: `ℹ tests 1`, `ℹ fail 1`: `does not provide an export named 'ALERT_LINE'`, since partner-push's new parts aren't written yet.
 
-- [ ] **Step 7: Write partner-push's pushes and its run**
+- [x] **Step 7: Write partner-push's pushes and its run**
 
 In the order they appear in the file:
 
@@ -3221,7 +3221,7 @@ with:
       )
 ```
 
-- [ ] **Step 8: Run everything to see it pass**
+- [x] **Step 8: Run everything to see it pass**
 
 Run:
 
@@ -3231,7 +3231,7 @@ cd ~/Dev/Duty-alert-pushes/supabase/tests && npm test
 
 Expected: `ℹ tests 257`, `ℹ pass 257`, `ℹ fail 0`.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 Run:
 
@@ -3249,7 +3249,7 @@ Expected: the new commit, `feat(partner-links): alert pushes: each device gets w
 
 The undo puts back piece 1's `partner_set_push` and piece 3's claim, report and check, as they were (decision 1). The test compares their definitions and grants with a database built up to piece 3.
 
-- [ ] **Step 1: Write the tests**
+- [x] **Step 1: Write the tests**
 
 Create `supabase/tests/alert_pushes.test.js`:
 
@@ -3325,7 +3325,7 @@ describe("the alert pushes' script, run again and undone", () => {
 })
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -3335,7 +3335,7 @@ cd ~/Dev/Duty-alert-pushes/supabase/tests && node --no-maglev --test alert_pushe
 
 Expected: `ℹ tests 2`, `ℹ pass 1`, `ℹ fail 1`: `the migration has an "-- Undo" section`. The second run already fails at its first statement, as it should.
 
-- [ ] **Step 3: Write the undo**
+- [x] **Step 3: Write the undo**
 
 In the header, after the line about deploying partner-push:
 
@@ -3443,7 +3443,7 @@ with:
 --   alter table private.partner_device_secrets drop column push_alerts;
 ```
 
-- [ ] **Step 4: Run them to see them pass**
+- [x] **Step 4: Run them to see them pass**
 
 Run:
 
@@ -3453,7 +3453,7 @@ cd ~/Dev/Duty-alert-pushes/supabase/tests && node --no-maglev --test alert_pushe
 
 Expected: `ℹ tests 2`, `ℹ pass 2`, `ℹ fail 0`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -3468,7 +3468,7 @@ Expected: the new commit, `feat(partner-links): the alert pushes' script runs on
 **Files:**
 - Modify: `supabase/partner-api.md`, `supabase/tests/README.md`
 
-- [ ] **Step 1: The contract**
+- [x] **Step 1: The contract**
 
 In `supabase/partner-api.md`, replace:
 
@@ -3567,7 +3567,7 @@ with:
 **Undo the pushes first.** First the alert pushes, with the undo in the header of `migrations/20261023120000_partner_links_alert_pushes.sql`, which puts back piece 1's `partner_set_push` and piece 3's claim, report and check. Then piece 3, with the undo in the header of `migrations/20261018120000_partner_links_push.sql`, and delete `partner-push` in the dashboard. Their tables and functions in `private` stop this undo while they're there, so it changes nothing.
 ```
 
-- [ ] **Step 2: The tests' README**
+- [x] **Step 2: The tests' README**
 
 In `supabase/tests/README.md`, replace:
 
@@ -3621,7 +3621,7 @@ with:
 - **Apple, and Supabase's Deno.** Whether partner-push reaches Apple over HTTP/2 from Supabase is proven by the setup's probe. Real silent pushes to a phone were tested in piece 4, and real alert pushes are tested with Crewluve 1.3 on TestFlight.
 ```
 
-- [ ] **Step 3: Run the whole suite, and check partner-push's types**
+- [x] **Step 3: Run the whole suite, and check partner-push's types**
 
 Run:
 
@@ -3641,7 +3641,7 @@ cd ~/Dev/Duty-alert-pushes/supabase/tests && ~/Dev/"Crewluve Website"/node_modul
 
 Expected: `types ok`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 Run:
 
@@ -3655,7 +3655,7 @@ Expected: the new commit, `docs(partner-links): the partner door's Pushes sectio
 
 **Files:** whatever the review finds.
 
-- [ ] **Step 1: Run the whole suite**
+- [x] **Step 1: Run the whole suite**
 
 Run:
 
@@ -3665,11 +3665,11 @@ cd ~/Dev/Duty-alert-pushes/supabase/tests && npm test
 
 Expected: `ℹ tests 259`, `ℹ pass 259`, `ℹ fail 0`.
 
-- [ ] **Step 2: Ask for a review**
+- [x] **Step 2: Ask for a review**
 
 Use superpowers:requesting-code-review with a read-only reviewer. It reads `git -C ~/Dev/Duty-alert-pushes diff 7b3aeb2d..feature/partner-alert-pushes`, this plan and the spec (`~/Dev/Crewluve Website/docs/superpowers/specs/2026-10-23-partner-alert-pushes-design.md`), and Crewluve's rules it copies (`~/Dev/Crewluv/Crewluv/Services/StatusChangeNotifier.swift`, `Crewluv/Models/CloudSummary.swift`, `SharedPilotStatus.swift` and `TripStateResolver.swift`). It may run `npm test` in `~/Dev/Duty-alert-pushes/supabase/tests`; nothing else. It changes nothing, contacts nothing and runs no Xcode. State facts neutrally, and don't tell it what not to flag.
 
-- [ ] **Step 3: Act on it**
+- [x] **Step 3: Act on it**
 
 For each finding, fix it test-first, run `npm test` again, and commit with the exact paths. A change to the rules changes `alert-cases.json` first, and the case is checked against Crewluve's Swift again, as "How this plan was checked" says. Note each fix in this plan's Execution notes. Nothing goes onto Crewlu Cloud before this.
 
@@ -3766,6 +3766,14 @@ select status, start_time, return_message from cron.job_run_details
 ```
 
 Expected: five rows, `succeeded`, about 15 seconds apart.
+
+Then, the same way, check that every pilot's summary is one Crewluve can read (`private.push_readable`). A summary that isn't would keep that pilot's `pushed_status` empty, so every run would count as a change for their partners:
+
+```sql
+select count(*) filter (where not private.push_readable(status)) as unreadable from public.partner_status;
+```
+
+Expected: `unreadable` 0. If it isn't, stop and ask: CrewLu's encoder writes the four fields and each leg's id, type, start and end, so something else wrote that summary.
 
 - [ ] **Step 8: The security advisor**
 
@@ -3885,3 +3893,38 @@ Ask separately before each push: `feature/supabase-account-backend` (or `feature
 ## Execution notes
 
 Filled in during the build: any place the code ends up different from the printed blocks, and why, and the setup's results.
+
+- **Tasks 0–6, 2026-10-23:** applied by a script from the plan's own steps, the same steps the replay checked. Every Run step gave the printed result, test-first failures included, and the branch's committed tree is the replay's (`c8e79191`). The worktree `~/Dev/Duty-alert-pushes` is on `feature/partner-alert-pushes` at `445b521b`, six commits on `7b3aeb2d`. `~/Dev/Duty` stayed on `feature/supabase-account-backend`, with only its scheme lines changed.
+- **Task 7, step 1:** `ℹ tests 259`, `ℹ pass 259`, `ℹ fail 0`.
+- **Before Task 8, a read-only look at Crewlu Cloud (2026-10-23):** it has exactly the four functions the script replaces, under piece 1's and piece 3's signatures. None of the script's new columns, its table or its two private functions is there, and piece 3's two cron jobs are. The four functions' `pg_get_functiondef` fingerprints (MD5) equal a database built from the migrations up to piece 3, so the undo would restore exactly what's live.
+- **Task 7, step 2 (2026-10-23):** a read-only reviewer read `7b3aeb2d..445b521b`, this plan, the spec and Crewluve's rules, ran the suite and two scratch probes. It found the rules faithful to Crewluve's and the code word for word the plan's, and judged it ready with fixes: one critical finding, one important, eight minor, and a question for before plan 2 (the last bullet).
+- **Task 7, step 3: where the code now differs from the printed blocks.** Each fix was made test-first and committed with its paths, on `445b521b`, up to `963a7562`. `npm test`: 267 of 267.
+  - **`4ebf16ca` (critical):** one pilot's badly shaped summary (legs `[null]`, or `{}`) threw in the rules and ended the whole run with a 502, after the claim had already cleared every pilot. Any signed-in account could keep every pilot's pushes stopped that way. Now `readable()` checks what CloudSummary's decoding needs: the four required fields, and legs that are objects with an id, a type, a start and an end. A summary that fails it alerts nothing, as in Crewluve. Each pilot's pushes are also worked out on their own, so one that still throws loses only its alerts; its partners' 1.2 devices still get their silent pushes.
+  - **`53849dec`, `a349bd11` (important; changes decision 7 and spec §5.2):** a device counted as "joined since the last run" got no alerts for the next change, however long after joining it came. 1.3 stops making its own alerts once it's registered, so its first real alert after connecting was lost. Now claim passes the summary's `updated_at`, and only a device that joined after the change was written is left out (`joined_after`), since it read that summary on connecting. A device that joins between two writes in the same 15 seconds can get an alert for the first again.
+  - **`497836c8`:** `pushed_status` moved on to every summary. Crewluve keeps its snapshot when a summary isn't newer than it, or when it can't decode one. So a pilot's device sending an older summary late could make the next change alert twice, and a summary Crewluve can't read made the next one alert nothing. Now the claim and the check's clearing keep it through `private.push_baseline`. Its `private.push_readable` says what `readable()` says, and a test runs both over 20 shapes. The undo drops both. Two things are accepted, not fixed:
+    - **1.2's silent pushes:** a 1.2 device's `changed` is compared with the same summary. So after an older summary, a later one equal to the one kept sends 1.2 nothing. Its own alerts don't change, and it refreshes on opening.
+    - **The time the alerts use:** `before_at` stays the last run's time even when the summary compared with is older.
+  - **`1f0e68db`:** the retry list kept a bare token. A retried push could still reach a phone for up to an hour after its partner left, or after its token moved to a device of another pilot's partner, where Crewluve would write the alert from the wrong summary. Now claim hands out each device's id (`device`), every push and retry carries it, and `partner_push_retries` keeps it in `device_id`. The claim hands a retry out only while that device still holds that token. There's no foreign key: the claim deletes every row each run.
+  - **`83d6b257`:** only the claim cleared the retry list, so while partner-push kept failing before it claimed, every check called it again. Now the check drops the retries past their time first.
+  - **`34800e71`:** the undo's header and `partner-api.md` say that once 1.3 is out, an undo leaves it with no pushes: its registration passes `p_alerts`, which piece 1's `partner_set_push` doesn't take, so it answers 404. For plan 2: the registrar could register again without `p_alerts` on a 404, and keep making its own alerts.
+  - **`963a7562`:** the tests' README said 258; it says 267.
+  - **Left for later:**
+    - **(4)** a retried alert can show twice when Apple delivered it but the answer timed out. An `apns-collapse-id` per alert, kept on the retry list, would fix it.
+    - **(6)** the claim sends both views for partners with no alert device.
+    - **(10)** a 1.2 device gets no silent push when only the time changed what its rules would say.
+  - **For the user, before plan 2:** an ordinary trip's end alerts "Trip was cancelled", because CrewLu clears `currentTripId` when a trip ends. Crewluve's own Swift rules and partner-push's give the same alerts, checked in the harness with scratch cases:
+    - **No trip after it:** `trip-cancelled` and `home`.
+    - **Another trip scheduled:** also `home-later`, "Getting home later — now 5:23 AM", which is the next trip's arrival four days on.
+    - **The next trip starting:** `new-trip`, "Has a new 2-day trip".
+
+    Crewluve 1.2 does this today, often late. 1.3's alert pushes would bring it on time.
+- **Task 7, the re-check (2026-10-23):** the same reviewer read `445b521b..963a7562`, reran its probes and added three. Verdict: the setup can go ahead. Every finding is closed with tests, and nothing new is critical or important. Both of fix 5's accepted trade-offs are sound, and 4, 6 and 10 can wait:
+  - **(4):** no alert pushes go out until 1.3 registers `p_alerts`, and the fix needs partner-push alone.
+  - **(6):** one account's 25 partners at just under 1 MB each make a claim of about 46 MB. partner-push reads it in about 0.5 s of CPU and 45 MB of memory, under Supabase's limits.
+  - **(10):** CrewLu's write after a landing also changes `displayStatus`.
+
+  Four new minor findings, and what came of them (268 tests):
+  - **`1dd0c60f`:** the undo's test listed only the six older functions. It also lists `push_readable` and `push_baseline` now, and fails when the undo leaves them (checked by leaving them out).
+  - **`116b23fb`:** since `push_baseline` keeps the newer summary, one written while a pilot's phone clock ran ahead would make every later summary "not newer" until that date came. Now a summary kept that's dated more than an hour past the run's time stops counting as newer, so the next one replaces it. `push_baseline` takes the run's time. The first summary after the clock is put right still alerts nothing, since the rules' own "is it newer" check skips it, as Crewluve's does; the ones after it alert as usual. The reviewer's version, never keeping a summary dated ahead, would alert the same news on every write while the clock was wrong.
+  - **Also in `116b23fb`:** `partner-api.md` now says what's passed over more exactly (a summary missing what Crewluve needs to read it), and the claim's header is rewrapped.
+  - **Task 8 Step 7:** it now checks that every live summary passes `private.push_readable`.
