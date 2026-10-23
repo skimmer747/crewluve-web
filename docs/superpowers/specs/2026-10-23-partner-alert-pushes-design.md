@@ -1,6 +1,6 @@
 # Partner Alert Pushes: Alerts That Arrive on Time
 
-- **Status:** design approved in brainstorming on 2026-10-23, and the user approved this spec the same day. Next come its three plans (§13).
+- **Status:** design approved in brainstorming on 2026-10-23, and the user approved this spec the same day. Plan 1, Crewlu Cloud, is written and checked (`docs/superpowers/plans/2026-10-23-partner-alert-pushes-1-cloud.md`); plans 2 and 3 follow (§13).
 - **Part of:** the partner-links design, `docs/superpowers/specs/2026-10-15-partner-links-design.md` (§6.1). It follows piece 3's push service (`docs/superpowers/specs/2026-10-18-partner-links-piece3-push-design.md`) and piece 4's Crewluve (`docs/superpowers/specs/2026-10-18-partner-links-piece4-crewluve-design.md`, §6 and §17.3).
 - **Repos:** CrewLu, `~/Dev/Duty`, in `supabase/` only (plan 1), and Crewluve, `~/Dev/Crewluv` (plans 2 and 3). CrewLu's app doesn't change.
 - **Contract:** `~/Dev/Duty/supabase/partner-api.md`, whose "Pushes" section this design changes (§11).
