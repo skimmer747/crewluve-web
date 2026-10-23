@@ -349,7 +349,7 @@ Claude looks up `com.ToddAnderson.Crewluv` through Apple's public lookup.
 
 Expected: version `1.2`.
 
-- [ ] **Step 2 (optional): The moved partner to the App Store build**
+- [x] **Step 2 (optional): The moved partner to the App Store build**
 
 Their Xcode build keeps working, but it isn't updated by the App Store. To switch them:
 1. On their phone, delete Crewluve: touch and hold → **Remove App** → **Delete App**.
@@ -357,7 +357,7 @@ Their Xcode build keeps working, but it isn't updated by the App Store. To switc
 
 Expected: their status, with the •••, and no tap: the device key outlived the app (§17.2). Claude's Task 4 Step 3 query, with their name, shows push_env `production` once the new build has sent its token.
 
-- [ ] **Step 3: Watch the first day**
+- [x] **Step 3: Watch the first day**
 
 The next day, Claude reads partner-push's runs and Crewlu Cloud's device counts:
 - partner-push runs end "0 failed", and any "dead" tokens are explained;
@@ -369,7 +369,7 @@ The user also opens App Store Connect → **Crewluve** → **TestFlight** → **
 
 **Who:** Claude.
 
-- [ ] **Step 1: The spec and this plan**
+- [x] **Step 1: The spec and this plan**
 
 1. In the piece 4 spec's status line, record that Crewluve 1.2 is live, with its date.
 2. In this plan's Execution notes, record each task's result, naming no one.
@@ -415,3 +415,18 @@ Filled in as the release goes: each task's result, and anything that differed. N
   - Follow-up: CrewLu gets Send Link Again for someone still on iCloud who has a Crewlu Cloud partner, on `feature/partner-cloud-screens`, before CrewLu's partner release. It doesn't hold up Crewluve 1.2.
 - **Task 5, Step 5 (2026-10-22):** the user clicked Add for Review, then Submit for Review. 1.2 shows **Waiting for Review**, and goes live automatically when approved.
 - **Task 6, Step 1 (2026-10-22):** Apple approved 1.2 the same day, and App Store Connect showed **Ready for Distribution**. Apple's public lookup at first still gave 1.1.6. A few minutes later it gave version `1.2.0`, released 21:44 UTC. That's the same "1.2.0" App Store Connect shows for build 1.2 (44).
+- **Task 6, Step 2 (2026-10-23):** the moved partner deleted their Xcode build and installed 1.2 from the App Store. Crewlu Cloud kept their one `app` device from 2026-10-21. Its push_env turned `production`, with a fresh token, and no link was needed.
+- **Task 6, Step 3 (2026-10-23):**
+  - As expected:
+    - partner-push's runs since the launch ended "0 failed", with no dead tokens;
+    - Crewlu Cloud had only the two expected `app` devices;
+    - the user found no crash reports in TestFlight or in Xcode's Organizer.
+  - **Found: the TestFlight partner's alerts came late, or only when they opened Crewluve.** Their device's last-seen time hadn't moved since Task 4, though every push was sent. Ruled out on the way:
+    - the push format;
+    - the device key's Keychain access (`AfterFirstUnlock`);
+    - a stale push token (the app sends its token at every launch);
+    - the app not knowing it's on Crewlu Cloud at a fresh start.
+  - With the user's OK, a 5-minute copy of that phone's log was read for Crewluve's push and background lines only, then deleted. It showed iOS's own rules holding the app back: it had been swiped away, its Background App Refresh switch was off, and then its energy budget was zero. Spec §17.3 has the details.
+  - With the switch on and the phone charging, the alerts reached the lock screen.
+  - A design of alert pushes that iOS shows by itself was proposed as its own session. It doesn't change this release.
+- **Task 7, Step 1 (2026-10-23):** the spec's status line records the release, and §17.3 records the late alerts.

@@ -1,6 +1,6 @@
 # Partner Links Piece 4: Crewluve on Crewlu Cloud
 
-- **Status:** design approved in brainstorming on 2026-10-18, and the user approved this spec the same day. Plans 4a, 4b and 4c are built (`docs/superpowers/plans/2026-10-18-partner-links-piece4a-source.md`, `docs/superpowers/plans/2026-10-19-partner-links-piece4b-connecting.md`, `docs/superpowers/plans/2026-10-20-partner-links-piece4c-move-over.md`), and §10.3's checks on real phones ran on 2026-10-20 and 2026-10-21 (§17, with what's left in §17.4); next: the release (§11).
+- **Status:** design approved in brainstorming on 2026-10-18, and the user approved this spec the same day. Plans 4a, 4b and 4c are built (`docs/superpowers/plans/2026-10-18-partner-links-piece4a-source.md`, `docs/superpowers/plans/2026-10-19-partner-links-piece4b-connecting.md`, `docs/superpowers/plans/2026-10-20-partner-links-piece4c-move-over.md`), and §10.3's checks on real phones ran on 2026-10-20 and 2026-10-21 (§17, with what's left in §17.4). Crewluve 1.2, with all of piece 4, went live on the App Store on 2026-10-22 (§11; the release plan is `docs/superpowers/plans/2026-10-21-partner-links-piece4-release.md`). The first day's check found late alerts on a partner's phone where Crewluve is rarely used (§17.3).
 - **Part of:** the partner-links design, `docs/superpowers/specs/2026-10-15-partner-links-design.md`, §5.5, §6, §7.2, §8 and §9 (piece 4).
 - **Repo:** Crewluve, `~/Dev/Crewluv`, on a new branch off its release line (§11).
 - **Contract:** `~/Dev/Duty/supabase/partner-api.md`, the partner door from piece 1 (live since 2026-10-15), including its "Pushes" section from piece 3 (live since 2026-10-18).
@@ -664,6 +664,15 @@ Run on 2026-10-20 and 2026-10-21, with `docs/superpowers/plans/2026-10-20-partne
 ### 17.3 Found
 
 - **Background pushes are best-effort.** The first quick status alerted only when Crewluve was opened, after three status changes inside three minutes. The device settings were right: Background App Refresh on, no Low Power Mode, no Focus. After a five-minute pause, the alert came on the lock screen. iOS limits background pushes, so a pilot's quick changes in a row can delay a partner's alert until iOS lets the app run, or until Crewluve is opened.
+- **A partner who rarely opens Crewluve gets alerts late, or only when they open it** (2026-10-23, the release's first-day check).
+  - It showed up on the TestFlight partner's phone (iOS 26.6). Every push was sent, but their Crewluve read nothing for a day. Their alerts came only when the app was opened.
+  - The moved partner's phone, where Crewluve is used a lot, woke within about a second of each push.
+  - That phone's own log (`dasd`) showed three iOS rules holding Crewluve back, one after another:
+    1. the app had been swiped away, which blocks all background launches until it's opened;
+    2. Crewluve's own Background App Refresh switch was off;
+    3. with that switched on, the push launch still waited 13 minutes, first on `Energy Budget Policy` (`energyBudget Required 1.00, Observed 0.00`), the same verdict other apps' background jobs got, then on `Activity Group Policy` (no free `defaultNetwork` slots). It ran once the phone was plugged in.
+  - So alerts that depend on silent pushes (§6) reach a partner only when iOS spends battery on Crewluve. That's not new: iCloud's pushes were silent too. Alert pushes that iOS shows by itself would remove the dependence. That's a design of its own, not piece 4's.
+  - Also seen: one quick status in CrewLu reached Crewlu Cloud as two or three writes within about 30 seconds, and each one pushed every device.
 - **The release meets two iCloud environments.**
   - The pilot's App Store CrewLu will write Production, where they have no share today.
   - So iCloud partners who read Development, through Xcode-built Crewluve, won't be moved by the App Store CrewLu's tickets. Neither will partners who read Production with no share there.
