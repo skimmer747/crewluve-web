@@ -50,7 +50,7 @@ These refine the spec. Task 9 writes them into it, with plan 2b's.
 ## How this plan was checked
 
 - **The helper's files** type-check as an app extension with the app's Swift flags: the 15 app files and `NotificationService.swift`, with no errors and no warnings.
-- **Built test-first in a scratch clone** of plan 2b's end, with the harness: 353 tests in 32 suites.
+- **Built test-first in a scratch clone** of plan 2b's end, with the harness: 355 tests in 32 suites.
 - **Deliberate breaks:** 14 one-line breaks of the writer and the delivery, each caught by a test.
 - **The target:** a scratch script added it to a copy of the project file the way Task 3 should leave it.
   - **The compile-only build** passed with no errors and no warnings.
@@ -96,7 +96,7 @@ Run:
 export HARNESS=<your harness folder> && "$HARNESS/run.sh"
 ```
 
-Expected: `Test run with 339 tests in 31 suites passed`.
+Expected: `Test run with 341 tests in 31 suites passed`.
 
 ### Task 2: The writer
 
@@ -417,7 +417,7 @@ Run:
 export HARNESS=<your harness folder> && "$HARNESS/run.sh"
 ```
 
-Expected: `Test run with 353 tests in 32 suites passed`.
+Expected: `Test run with 355 tests in 32 suites passed`.
 
 - [ ] **Step 5: Commit**
 
@@ -968,7 +968,7 @@ Send them these steps:
 2. Press **⌘U** (Product → Test) and wait for it to finish. The build now includes the helper, CrewluveAlerts.
 3. Press **⌘6** to open the Test navigator. Red marks show failures.
 
-Expected: no failures. The console's last Swift Testing line says `Test run with 365 tests in 33 suites passed`: the harness's 353, and the 12 `KeychainDeviceKeyStoreTests`, counted before Task 7's fixes. The new suite is `AlertPushWriterTests`, with 14 tests.
+Expected: no failures. The console's last Swift Testing line says `Test run with 367 tests in 33 suites passed`: the harness's 355, and the 12 `KeychainDeviceKeyStoreTests`, counted before Task 7's fixes. The new suite is `AlertPushWriterTests`, with 14 tests.
 
 - [ ] **Step 2: If anything fails, stop**
 
