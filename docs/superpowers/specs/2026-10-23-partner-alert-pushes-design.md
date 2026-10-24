@@ -1,6 +1,6 @@
 # Partner Alert Pushes: Alerts That Arrive on Time
 
-- **Status:** design approved in brainstorming on 2026-10-23, and the user approved this spec the same day. Plan 1, Crewlu Cloud, is written and checked (`docs/superpowers/plans/2026-10-23-partner-alert-pushes-1-cloud.md`); plans 2 and 3 follow (§13).
+- **Status:** design approved in brainstorming on 2026-10-23, and the user approved this spec the same day. Plan 1, Crewlu Cloud, is built and set up (`docs/superpowers/plans/2026-10-23-partner-alert-pushes-1-cloud.md`, §14). Next: plan 2, Crewluve 1.3.
 - **Part of:** the partner-links design, `docs/superpowers/specs/2026-10-15-partner-links-design.md` (§6.1). It follows piece 3's push service (`docs/superpowers/specs/2026-10-18-partner-links-piece3-push-design.md`) and piece 4's Crewluve (`docs/superpowers/specs/2026-10-18-partner-links-piece4-crewluve-design.md`, §6 and §17.3).
 - **Repos:** CrewLu, `~/Dev/Duty`, in `supabase/` only (plan 1), and Crewluve, `~/Dev/Crewluv` (plans 2 and 3). CrewLu's app doesn't change.
 - **Contract:** `~/Dev/Duty/supabase/partner-api.md`, whose "Pushes" section this design changes (§11).
@@ -77,14 +77,14 @@ Approved mockups (widgets in this brainstorm): `partner_alerts_today_vs_alert_pu
 
 | Part | Change |
 |---|---|
-| `public.partner_status` | A new `pushed_status jsonb`: the summary at the last claim, null until the first. `last_push_at` already says when. |
+| `public.partner_status` | A new `pushed_status jsonb`: the summary the next change is compared with (§5.1), null until the first claim. `last_push_at` already says when it was handled. |
 | `private.partner_device_secrets` | A new `push_alerts boolean not null default false`: the device can show alert pushes. |
 | `public.partner_set_push` | A new optional `p_alerts boolean default false`, saved as `push_alerts` with the token. A call without it, as 1.2 makes, saves false. |
-| `public.partner_push_claim` | Also hands out each partner's view before and after (§5.2), and each device's partner, `push_alerts` and join time. It sets `pushed_status`. |
+| `public.partner_push_claim` | Also hands out each partner's view before and after (§5.2), and each device's id, `push_alerts`, and whether it joined after the change was written. It sets `pushed_status`. |
 | The retry list | Pushes to try again, one per device (§5.5). |
-| `private.partner_push_tick()` | Also calls partner-push while a retry is waiting. |
+| `private.partner_push_tick()` | Also calls partner-push while a retry is waiting, once it has dropped those past their time. |
 | partner-push | The rules (§5.3), the choice for each device (§5.2), the alert push (§5.4) and the retries (§5.5). |
-| `supabase/partner-status/alert-cases/` | The shared test cases (§9.1). |
+| `supabase/partner-status/alert-cases.json` | The shared test cases (§9.1). |
 | `supabase/partner-api.md` | "Pushes" and `partner_set_push` (§11). |
 
 ### 4.2 Crewluve 1.3 (plan 2)
@@ -108,7 +108,7 @@ No change.
 
 ### 5.1 What it keeps
 
-- **For each pilot:** `pushed_status`, the summary at the last claim, and `last_push_at`.
+- **For each pilot:** `pushed_status`, the summary the next change is compared with, and `last_push_at`, when the last change was handled. A summary Crewluve wouldn't take as news doesn't replace `pushed_status`: one that isn't newer, or that's missing what Crewluve needs to read it (§14.2).
 - **For each device:** `push_alerts`.
 
 ### 5.2 Each run
@@ -117,9 +117,9 @@ No change.
    - **before:** `private.trim_status_for(pushed_status, partner)`, or null when there's no `pushed_status` yet;
    - **after:** `private.trim_status_for(status, partner)`;
    - **when:** the previous `last_push_at` for before, and now for after;
-   - **each device:** its token, its environment, `push_alerts`, and whether it joined (`partner_devices.created_at`) after the previous `last_push_at`.
+   - **each device:** its id, its token, its environment, `push_alerts`, and whether it joined (`partner_devices.created_at`) after the summary was written (`partner_status.updated_at`), so it read this summary on connecting.
 
-   It then sets `pushed_status` to the summary, `last_push_at` to now, and `push_due` to false.
+   It then sets `pushed_status` to the summary, unless Crewluve wouldn't take it as news (§5.1), `last_push_at` to now, and `push_due` to false.
 2. **partner-push, for each partner,** works out:
    - **changed:** before and after differ as JSON values, whatever their key order, once `lastUpdated` and `localTimeAtPilot` are left out of both. A null before counts as changed;
    - **alerts:** §5.3's rules from before to after. There are none when before is null.
@@ -127,8 +127,8 @@ No change.
 
    | Device | Gets |
    |---|---|
-   | `push_alerts`, joined before the previous run | one alert push per alert (§5.4), and nothing when there's none |
-   | `push_alerts`, joined since | nothing this run, as Crewluve alerts nothing on its first reading today |
+   | `push_alerts`, joined before the change was written | one alert push per alert (§5.4), and nothing when there's none |
+   | `push_alerts`, joined after it | nothing this run: it read this summary on connecting, and Crewluve alerts nothing on its first reading today |
    | not `push_alerts` (Crewluve 1.2) | one hidden push, as today, when changed, and nothing otherwise |
 
 4. **Report,** as today, plus the retry list's changes (§5.5).
@@ -175,7 +175,7 @@ One change can make several alerts, as today: a delay and a departure change, sa
 | 400 `BadDeviceToken`, or 410 | Dead: the token is dropped, as today. Crewluve sends a fresh one, with `p_alerts`, at its next launch |
 | 403 `ExpiredProviderToken` | One renewal and one more try, as today |
 | A setup error | Logged, not retried, as today |
-| 429, 500, 503, a timeout or a network error | That push, to that device, goes on the retry list. Each run sends what's on the list until Apple takes it, or an hour has passed since the change. The pilot isn't marked due again, so no other device gets the push twice |
+| 429, 500, 503, a timeout or a network error | That push, to that device, goes on the retry list. Each run sends what's on the list until Apple takes it, an hour has passed since the change, or the device has left or no longer holds that token. The pilot isn't marked due again, so no other device gets the push twice |
 
 - **The retry list replaces today's retry of a whole pilot,** for hidden pushes too. With the comparison in place, a re-claimed pilot would compare the summary with itself and send nothing.
 - **partner-push stopping after a claim:** that run's pushes are lost, as today (piece 3 spec §7). The partner sees the status when they open Crewluve.
@@ -269,8 +269,8 @@ So a phone that updated overnight but wasn't opened loses nothing. It's still re
 
 ### 9.1 The shared cases
 
-- **Where:** `~/Dev/Duty/supabase/partner-status/alert-cases/`, beside the summary examples.
-- **What a case is:** a JSON file with two summaries, the two moments, a partner id, and the alerts expected: their kinds, plus the words at a fixed time zone.
+- **Where:** `~/Dev/Duty/supabase/partner-status/alert-cases.json`, beside the summary examples.
+- **What a case is:** an entry in that file, with two summaries as fields over a shared base, the two moments, a partner id, and the alerts expected: their kinds, plus the words at a fixed time zone.
 - **What they cover:** every row of §5.3, and:
   - a quick status that expires between the two moments;
   - a quick status for another partner, which alerts nothing;
@@ -359,3 +359,71 @@ These run with TestFlight 1.3, once plan 1 is live, on the two real partners' ph
 1. **Plan 1, Crewlu Cloud** (CrewLu repo, `supabase/` only): the shared cases, `pushed_status` and `push_alerts`, claim's before and after, the rules, the alert push, the retry list, `partner_set_push`'s `p_alerts`, and `partner-api.md`. It ends with the user's setup and a live check.
 2. **Plan 2, Crewluve 1.3** (Crewluv repo): the helper target, its Keychain group, `AlertWording`, the saved name, the registrar's `p_alerts`, §6.3's rule, the tests and the shared cases. It ends with the user's ⌘U.
 3. **Plan 3, the release:** 1.3 through TestFlight, §9.4's checks, then the App Store.
+
+## 14. Decisions made while planning and building plan 1
+
+### 14.1 While planning
+
+Plan 1's list, as it stands there. The review changed 7, 8 and 11 (§14.2).
+
+1. **One script, run once after piece 3's,** `20261023120000_partner_links_alert_pushes.sql`. A second run fails at its first statement and changes nothing. Its undo, in its header, makes piece 1's `partner_set_push` and piece 3's claim, report and check again from their own text, and a test checks their definitions and grants against a database built up to piece 3.
+2. **`partner_set_push` is dropped and made again with `p_alerts boolean default false`.** Crewluve 1.2's three-parameter call still works, since PostgREST fills in the default, and there are never two to choose between. The flag goes with the token: wherever a token is cleared, because it moved to a newer device or Apple called it dead, its flag is too.
+3. **Piece 3's second-run and undo tests run on a database built up to piece 3** (`partnerDbUpTo`), since its undo names the `partner_set_push` and report this script replaces.
+4. **Claim reads each row's previous values through a join to itself,** in the one statement that clears the mark and moves `pushed_status` and `last_push_at` on. CrewLu Cloud runs Postgres 17, which has no `OLD` in `RETURNING`.
+5. **Claim trims both views with the door's own `private.trim_status_for`,** so partner-push never sees another partner's entries. It works out `changed` in SQL (`private.push_compared`): the views without `lastUpdated` and `localTimeAtPilot`, with an empty map of per-partner entries read as none. The door trims a partner's map from null to `{}` when someone else gets an entry, so without that, a quick status for one partner would wake the others' Crewluve 1.2.
+6. **The check's clearing counts a change as handled.** When a due pilot has nobody to wake, the check moves `pushed_status` and `last_push_at` on too, so a Crewluve that registers later is compared with the latest change, not one from days before. This refines spec §5.1, where only claim moves them.
+7. **A device joined since the last run** when it was made after the previous `last_push_at`, or when there's none.
+8. **The retry list is `private.partner_push_retries`:** a token, an environment, a message and an until.
+   - Claim takes the whole list in the same call, and hands out what's still in time.
+   - Report puts a push back that failed again, with its own until.
+   - The check calls partner-push while anything waits.
+   - The until is the push's own expiry, an hour after it was first sent, and a retried push keeps it as its `apns-expiration`.
+9. **Report's `p_retry_pilots` becomes `p_retries jsonb`.** A re-claimed pilot would now be compared with itself and get nothing, so whole pilots can't be retried any more.
+10. **The rules are plain functions in partner-push** (`alertsFor` and its helpers), each named after the Swift it copies.
+    - They read the summary's fields as they are, as Crewluve's translation passes them through (piece 4 spec §5.4).
+    - They copy each detail the shared cases showed matters: a summary that isn't newer alerts nothing, a missing `displayStatus` reads as Home, a quick status ends at its expiry, and the home arrival comes from trip blocks.
+    - Crewluve's trimming of layovers isn't copied, since it can't change either answer: `homeArrival`'s comment says why.
+11. **One push per alert, in StatusChangeNotifier's order.** A device that joined since the last run gets none.
+12. **The answer's counts gain `alerts`.** The log line becomes "N sent (N as alerts), …", and a run that finds nothing new for anyone logs "nothing new to send", so Task 8 can see that CrewLu's extra writes push nobody.
+13. **The shared cases are one file,** `supabase/partner-status/alert-cases.json`: a base summary, 36 cases as fields over it, and each case's alerts, with their words for `America/New_York`. They're cut down to the fields the rules read, so they don't follow the schema's list of required fields; a test checks that every field they set is one of the schema's.
+14. **Built in a worktree, `~/Dev/Duty-alert-pushes`,** on the new branch `feature/partner-alert-pushes` from the release line's tip `7b3aeb2d`, as piece 3 was. The worktree's tests use a copy of `~/Dev/Duty`'s test packages, so nothing is downloaded.
+15. **The setup pastes the script, then partner-push, back to back** (Task 8). In between, piece 3's partner-push can't read the new claim, so a change made then isn't pushed. Nobody changes their status in CrewLu meanwhile.
+
+### 14.2 From the review
+
+The review found one critical issue, one important and eight minor; its re-check found four more minor. What changed:
+
+1. **One pilot's summary can't stop every pilot's pushes.** Badly shaped legs made the rules throw, which ended the whole run after the claim had taken everyone. Now a summary missing what Crewluve needs to read it alerts nothing, as in Crewluve. That's its four required fields, and legs that are objects with an id, a type, a start and an end. Each pilot's pushes are also worked out on their own.
+2. **Decision 7 (and 11), changed:** a device misses a change's alerts only when it joined after that change was written (`partner_status.updated_at`), since it read that summary on connecting. "Since the last run" lost 1.3's first alert after connecting, and 1.3 stops making its own alerts once registered (§6.3). A device that joins between two writes before a run can get an alert for the first one again.
+3. **`pushed_status` keeps the summary Crewluve would keep** (`private.push_baseline`, with `private.push_readable`). A summary that isn't newer, or that's missing what Crewluve needs to read it, doesn't replace it.
+   - **A phone's clock running ahead:** a kept summary dated more than an hour ahead of Crewlu Cloud's clock stops counting as newer, so it can't hold back the ones after it. The first summary after the clock is put right alerts nothing, as in Crewluve.
+   - **Accepted:** a 1.2 device's `changed` is compared with the same summary, and "before" is still worked out at the last run's time.
+4. **Decision 8, changed:** the retry list keeps each push's device (`device_id`). Claim hands a retry out only while that device still holds that token, so a retried push can't reach a phone after its partner left or its token moved.
+5. **The check drops the retries past their time** before it decides whether to call partner-push.
+6. **The undo, once 1.3 is out, leaves 1.3 with no pushes:** 1.3 registers with `p_alerts`, which piece 1's `partner_set_push` doesn't take. The script's header and `partner-api.md` say so.
+7. **Left for later:**
+   - **A retried alert can show twice** when Apple delivered it but its answer timed out. An `apns-collapse-id` per alert would fix that, in partner-push alone.
+   - **Claim hands out both views** for partners with no alert device.
+   - **A 1.2 device gets no hidden push** when only the time changed what its rules would say.
+
+### 14.3 The setup (2026-10-24)
+
+- **Live:** the script, partner-push version 8, the probe, the contract's checks, the 15-second check and the advisor, as the plan's Task 8 lists them.
+- **Supabase's API sessions refuse an UPDATE or a DELETE without a WHERE clause** (safeupdate), even inside a function, and the tests' PGlite doesn't.
+  - **What happened:** the claim deleted the retry list with no WHERE clause, so for three and a half minutes every run with a pilot due failed and rolled back.
+  - **The fix:** the fixed claim (`where true`) went in on its own, the waiting change went out at the next run, and nothing was lost.
+  - **Since then:** a test checks every function for such a statement.
+- **The bursts:**
+  - **On the ground:** a write that changes nothing a partner sees pushes nobody.
+  - **In flight, by CrewLu's schedule:** its summary carries the plane's position along the route, worked out from the clock on every write, so each write wakes 1.2 phones. Crewluve doesn't show that position.
+  - **The user's call: leave it.** A pilot in the air has no connection, so it only happens when the schedule says "in flight" and the phone is online.
+- **Still to check:** a quick status to one partner pushes only that partner's phone. It waits until CrewLu no longer shows a flight under way.
+
+### 14.4 For plan 2
+
+- **An ordinary trip's end alerts "Trip was cancelled",** since CrewLu clears `currentTripId` when a trip ends.
+  - **Another trip scheduled:** it also alerts "Getting home later — now 5:23 AM". That's the next trip's arrival, a time with no date.
+  - **"Has a new trip"** comes when a trip starts, not when it's added.
+  - **Who does this:** Crewluve's rules and partner-push's both do, and so does Crewluve 1.2 today.
+  - **To decide before 1.3:** whether to change these rules, on both sides and in the shared cases.
+- **The registrar** could register again without `p_alerts` when Crewlu Cloud answers 404, as it would after an undo, and keep making its own alerts.

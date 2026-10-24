@@ -671,7 +671,7 @@ Run on 2026-10-20 and 2026-10-21, with `docs/superpowers/plans/2026-10-20-partne
     1. the app had been swiped away, which blocks all background launches until it's opened;
     2. Crewluve's own Background App Refresh switch was off;
     3. with that switched on, the push launch still waited 13 minutes, first on `Energy Budget Policy` (`energyBudget Required 1.00, Observed 0.00`), the same verdict other apps' background jobs got, then on `Activity Group Policy` (no free `defaultNetwork` slots). It ran once the phone was plugged in.
-  - So alerts that depend on silent pushes (§6) reach a partner only when iOS spends battery on Crewluve. That's not new: iCloud's pushes were silent too. Alert pushes that iOS shows by itself would remove the dependence. That's a design of its own, not piece 4's.
+  - So alerts that depend on silent pushes (§6) reach a partner only when iOS spends battery on Crewluve. That's not new: iCloud's pushes were silent too. Alert pushes that iOS shows by itself would remove the dependence. That's a design of its own, not piece 4's: the alert pushes, `docs/superpowers/specs/2026-10-23-partner-alert-pushes-design.md`.
   - Also seen: one quick status in CrewLu reached Crewlu Cloud as two or three writes within about 30 seconds, and each one pushed every device.
 - **The release meets two iCloud environments.**
   - The pilot's App Store CrewLu will write Production, where they have no share today.

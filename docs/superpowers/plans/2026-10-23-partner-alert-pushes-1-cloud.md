@@ -3677,11 +3677,11 @@ For each finding, fix it test-first, run `npm test` again, and commit with the e
 
 **Files:** none. Crewlu Cloud changes here, by the user's hands. Claude's Supabase connection is read-only, so it can only read what the setup made, and only with the user's yes.
 
-- [ ] **Step 1: Ask before going live**
+- [x] **Step 1: Ask before going live**
 
 Ask the user one question: set it up now? It's the spec's decision A5 (Crewlu Cloud first), but it changes Crewlu Cloud, so it gets its own yes. Between Steps 2 and 3, a change isn't pushed (decision 15), so nobody changes their status in CrewLu until Step 3 is done. If not now, stop here: Tasks 9 and 10 wait too.
 
-- [ ] **Step 2: The SQL script**
+- [x] **Step 2: The SQL script**
 
 Claude puts the script on the clipboard. Run it with the sandbox off, since from inside it `pbcopy` doesn't reach the user's clipboard, and with `LANG` set, so its `§` signs arrive as they are:
 
@@ -3701,7 +3701,7 @@ Then send the user these steps:
 
 Go straight on to Step 3.
 
-- [ ] **Step 3: partner-push's new file**
+- [x] **Step 3: partner-push's new file**
 
 Claude puts the file on the clipboard, again with the sandbox off:
 
@@ -3718,7 +3718,7 @@ Then send the user these steps:
 3. Click **Deploy** (it may say **Deploy updates**), and wait for the success message.
 4. On its **Details** tab, check that JWT verification is still off. The check sends no sign-in: the password guards partner-push.
 
-- [ ] **Step 4: The probe**
+- [x] **Step 4: The probe**
 
 As in piece 3's setup. Send the user these steps:
 
@@ -3751,11 +3751,11 @@ Expected: two rows, `production`, `has_token` true and `push_alerts` false.
 
 The Execution notes record the results, with no names, labels or tokens.
 
-- [ ] **Step 6: Crewluve 1.2's call still reaches partner_set_push**
+- [x] **Step 6: Crewluve 1.2's call still reaches partner_set_push**
 
 With the user's yes, Claude runs the contract's checks after applying (`supabase/partner-api.md`, "Checks after applying to CrewLu Cloud"), with the publishable key. Each sends a made-up key, so nothing changes. Expected: checks 1 to 7 as the contract lists them, and 8 and 9 `{"error": "sharing_ended"}`: the call Crewluve 1.2 makes, without `p_alerts`, and 1.3's, with it, both reach `partner_set_push`. Check 7 records one wrong code, as it always has.
 
-- [ ] **Step 7: The check is running**
+- [x] **Step 7: The check is running**
 
 A minute after the script, the user runs, or Claude with a yes:
 
@@ -3775,7 +3775,7 @@ select count(*) filter (where not private.push_readable(status)) as unreadable f
 
 Expected: `unreadable` 0. If it isn't, stop and ask: CrewLu's encoder writes the four fields and each leg's id, type, start and end, so something else wrote that summary.
 
-- [ ] **Step 8: The security advisor**
+- [x] **Step 8: The security advisor**
 
 In the dashboard, open **Advisors** → **Security Advisor** and refresh it, or Claude reads it with a yes. Expected: one new INFO finding, `rls_enabled_no_policy` on `private.partner_push_retries`, like piece 3's `partner_push_state`; lints 0028 and 0029 unchanged in number, with `partner_set_push(text, text, text, boolean)` in place of the three-parameter one; nothing else about this script's functions.
 
@@ -3784,7 +3784,7 @@ In the dashboard, open **Advisors** → **Security Advisor** and refresh it, or 
 **Files (in `~/Dev/Crewluve Website`):**
 - Modify: `docs/superpowers/specs/2026-10-23-partner-alert-pushes-design.md`, and this plan
 
-- [ ] **Step 1: Add the planning decisions to the spec**
+- [x] **Step 1: Add the planning decisions to the spec**
 
 At the end of the spec, after §13, add `## 14. Decisions made while planning plan 1`, followed by this plan's "Decisions made while planning" list, copied as it stands, then any changes from the review (Task 7) and the setup's results (Task 8). Then update its status line.
 
@@ -3800,7 +3800,7 @@ with:
 - **Status:** design approved in brainstorming on 2026-10-23, and the user approved this spec the same day. Plan 1, Crewlu Cloud, is built and set up (`docs/superpowers/plans/2026-10-23-partner-alert-pushes-1-cloud.md`, §14). Next: plan 2, Crewluve 1.3.
 ```
 
-- [ ] **Step 2: Point the older specs to this one**
+- [x] **Step 2: Point the older specs to this one**
 
 These are spec §11's changes to other docs. In `~/Dev/Crewluve Website/docs/superpowers/specs/2026-10-15-partner-links-design.md`, replace:
 
@@ -3862,7 +3862,7 @@ with:
 Alert pushes that iOS shows by itself would remove the dependence. That's a design of its own, not piece 4's: the alert pushes, `docs/superpowers/specs/2026-10-23-partner-alert-pushes-design.md`.
 ```
 
-- [ ] **Step 3: Tick this plan and commit**
+- [x] **Step 3: Tick this plan and commit**
 
 Run:
 
@@ -3944,3 +3944,11 @@ Filled in during the build: any place the code ends up different from the printe
   - **Why:** CrewLu fills in the position only while its schedule has a flight under way: the plane's spot along the route, worked out from the clock on every write. Crewluve doesn't show it; its map works the spot out itself.
   - **The user's call: leave it.** A pilot in the air has no connection, so this happens only while the schedule says "in flight" and the phone is online (a delay at the gate, Wi-Fi on board, or a flight on the schedule the pilot isn't on). On the ground the comparison works as designed.
   - **Left to do:** the quick-status check (1 sent, to the one partner) waits until CrewLu no longer shows a flight under way.
+
+- **Task 9 (2026-10-24):** spec §14 holds this plan's planning decisions as they stand, then what the review and the setup changed, and what plan 2 needs to decide. The status line is as printed. Where the review changed what the spec says, it's corrected in place, as §14.2 records:
+  - §4.1: the claim's and the check's rows, `pushed_status`, and `alert-cases.json`;
+  - §5.1 and §5.2: `pushed_status`, and the join rule and its table;
+  - §5.5: retries for a device that left;
+  - §9.1: the cases' file.
+
+  The older specs point to this one, as printed. Task 8 Step 5 stays open for its quick-status check.

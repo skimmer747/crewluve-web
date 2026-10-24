@@ -69,7 +69,7 @@
 | D5 | **Everything is based on the proven app.**<br>• CrewLu's partner summary is the single data source.<br>• Crewluve's logic is the reference, and the website follows it.<br>• Shared golden test cases keep them identical.<br>• Wherever they disagree, the app wins. |
 | D6 | **Partner Sharing requires CrewLu Cloud from this version on.**<br>• Existing iCloud shares keep working, with a "Sign in to keep sharing" prompt.<br>• The following release removes iCloud sharing. |
 | D7 | **Existing partners move over automatically.** Nobody gets disconnected. |
-| D8 | **Alerts:** a cloud push service sends the same kind of silent wake-up iCloud sends today. Crewluve's alert logic is unchanged. |
+| D8 | **Alerts:** a cloud push service sends the same kind of silent wake-up iCloud sends today. Crewluve's alert logic is unchanged. *Changed by the alert pushes* (`docs/superpowers/specs/2026-10-23-partner-alert-pushes-design.md`): Crewlu Cloud picks the alerts with Crewluve's rules and sends alert pushes, whose words Crewluve 1.3 writes. |
 | D9 | **Screens:**<br>• CrewLu's partner list shows device counts.<br>• A partner's page shows their devices, Send Link Again, New Link, Nickname and Quick Status, and Remove.<br>• The welcome screen offers an instruction, Paste Invite Link, the 6-character code, and Try Demo. |
 | D10 | Bugs the website found in the app get **fixed in the app**, as separate items: sun times off by up to 2 h, and the callsign split for 5X, B6 and F9. |
 | D11 | *(technical)* **Each device makes and holds its own random key.** Partners are not Supabase users, so the 19 owner policies don't change, and a device whose answer was lost retries with the same key. |
@@ -231,7 +231,7 @@ Copy follows the existing Partner Sharing screen (`PartnerSharingView.swift`).
   3. run `StatusChangeNotifier`.
 
   Alerts scheduled ahead of time ("lands in 30 minutes") are unchanged.
-- **The honest limit is the same as today:** iOS decides when to deliver background wake-ups and may hold some back.
+- **The honest limit is the same as today:** iOS decides when to deliver background wake-ups and may hold some back. The alert pushes (`docs/superpowers/specs/2026-10-23-partner-alert-pushes-design.md`) take alerts out of that limit.
 
 ### 6.2 While a screen is open
 

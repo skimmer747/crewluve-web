@@ -12,7 +12,7 @@
 When a pilot's status changes, wake their partners' Crewluve so it can read the new status and alert, as iCloud's pushes do today. Partners who move to Crewlu Cloud (piece 4) otherwise lose background alerts, so this piece must be live before piece 4 ships.
 
 - **At most one push per pilot every 15 seconds,** and the last change in a burst always gets one.
-- **Silent pushes only.** Crewluve decides what to show, as it does today.
+- **Silent pushes only.** Crewluve decides what to show, as it does today. Since the alert pushes (`docs/superpowers/specs/2026-10-23-partner-alert-pushes-design.md`), a Crewluve that shows them gets alert pushes instead.
 - **Nothing visible changes** in CrewLu or Crewluve with this piece alone.
 
 ## 2. What's there now (checked 2026-10-18)
@@ -185,7 +185,7 @@ The plan gives each step click by click.
 ## 13. Not in piece 3
 
 - Crewluve registering its token and handling the push (piece 4).
-- Pushes with visible alerts, Live Activities or time-sensitive notifications.
+- Pushes with visible alerts, Live Activities or time-sensitive notifications. Visible alerts came later, with the alert pushes (`docs/superpowers/specs/2026-10-23-partner-alert-pushes-design.md`).
 - The website, which polls (umbrella §6.2).
 - Per-partner push settings.
 - Realtime pings for open screens (umbrella §11).
