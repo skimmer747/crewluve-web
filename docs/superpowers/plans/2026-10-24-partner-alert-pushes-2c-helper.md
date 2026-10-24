@@ -996,11 +996,16 @@ Plans 2b and 2c made these. Plan 2a's are in §15.3.
 5. **§15's rules mirror partner-push's, edges included:** spans that only touch don't overlap, a leg of no trip matches none, and a trip whose span has ended by the moment is neither added nor removed.
 6. **§6.3 is decided when a new status goes to the alerts.** On Crewlu Cloud, the app posts when a hidden push asked for a read since the last new status, or until `AlertPushes` says the alert pushes are accepted.
 7. **Acceptance is remembered as the key's SHA-256,** never the key, under `partnerCloud.alertPushesAccepted`.
-8. **The door always sends `p_alerts: true`,** with no fallback on a 404 from an undone Crewlu Cloud (§14.4). The registration isn't accepted then, so the app keeps making its own alerts.
+8. **The door always sends `p_alerts: true`,** with no fallback on a 404 from an undone Crewlu Cloud (§14.4). A registration that fails isn't accepted, so the app makes its own alerts; item 11 says what an undo leaves a phone accepted before it.
 9. **The name item holds the alerts' title name:** the name the pilot set for this partner, else the pilot's first name.
    - **Saved** whenever the app remembers a reading and the Keychain's differs, so a phone updated from 1.2 saves it at its first new status.
    - **Deleted** when the pilot is forgotten, and on iCloud's reset.
 10. **The branch** is `feature/alert-pushes` in Crewluv, from `4333994`: 1.2 (44), the tip of both release branches (§10).
+11. **From plan 2b's review:**
+    - **The alerts' times follow the phone's time zone** as it changes (`.autoupdatingCurrent`), not the one at launch.
+    - **An answer for a key the device has since replaced** records no acceptance.
+    - **Two narrow windows can alert twice** at the switch to alert pushes. One is a change the app alerted just before its registration was accepted, which Crewlu Cloud's next run pushes too. The other is a registration whose answer was lost after Crewlu Cloud saved it: the app alerts beside the alert pushes until a later registration gets through.
+    - **After an undo of Crewlu Cloud's script** (§14.2.6, which says 1.3 gets no pushes), a phone accepted before it keeps its acceptance and its token. Piece 3's hidden pushes still come, and the reads they start post, while the 60-second check and the background refresh stay silent. A phone that registers after the undo isn't accepted, so it makes its own alerts.
 
 ### 16.2 The helper (plan 2c)
 
@@ -1039,6 +1044,7 @@ The branch stays as it is: plan 3, the release, takes it to TestFlight, through 
 ## For plan 3
 
 - **Versions:** the bump to 1.3 (45) changes both targets, Crewluv and CrewluveAlerts.
+- **No build without the helper:** plan 2b's registration switches a phone to alert pushes at its first launch, so a TestFlight build must hold plan 2c's helper too, or every alert reads "New update".
 - **Signing:** the first archive's automatic signing makes the helper's App ID, `com.ToddAnderson.Crewluv.CrewluveAlerts`, and its profile.
 - **§9.4's first check** proves the Keychain group: the helper reads the key that 1.2 saved, on a phone that updated from the App Store.
 
