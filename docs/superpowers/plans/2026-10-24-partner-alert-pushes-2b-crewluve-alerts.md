@@ -18,7 +18,7 @@
 ## Before you start
 
 - **The spec:** `~/Dev/Crewluve Website/docs/superpowers/specs/2026-10-23-partner-alert-pushes-design.md`. Read §5.3 (the rules), §6.2 (the key and the name), §6.3 (when the app makes its own alerts), §6.4 (the plain lines), §9.3 (Crewluve's tests) and §15 (the trip alerts), with plan 2a's decisions.
-- **Plan 2a first:** Task 3 copies its shared cases, `~/Dev/Duty/supabase/partner-status/alert-cases.json`, which must hold 49 cases.
+- **Plan 2a first:** it's built and live since 2026-10-24. Task 3 copies its shared cases, `~/Dev/Duty/supabase/partner-status/alert-cases.json`, which must hold 57 cases.
 - **Crewluve's rule,** as in piece 4:
   - never run `xcodebuild test`, never boot a simulator, and never build in `~/Dev/Crewluv`, the copy the user has open in Xcode;
   - the test-first steps use the Mac harness (Task 1), and Task 7 compiles everything in a separate clone;
@@ -40,11 +40,13 @@ These refine the spec. Plan 2c's last task writes them into it, with 2c's own.
 2. **An alert carries its kind:** `NotificationSpec` is `{kind, title, body, playsSound}`, and a notification's id starts with the kind's name.
 3. **The shared cases run through the real code.** The notifier takes its defaults, time zone and poster, and the effective delay can be worked out at a given moment (`effectiveFlightDelayMinutes(at:)`). Plan 1's harness had patched both.
 4. **The snapshot keeps the trips its home arrival belonged to** (`homeArrivalTrips`). One that 1.2 saved has none, so its home arrival isn't compared, once.
-5. **§15's rules mirror partner-push's (plan 2a):**
+5. **§15's rules mirror partner-push's (plan 2a, as its review left them):**
    - a trip is its legs, by `tripId`, matched by overlapping spans: spans that only touch don't overlap, and a leg of no trip matches none;
    - added and removed are judged at the new status's `lastUpdated`;
-   - a summary with no legs adds and removes nothing;
-   - a departure belongs to the trip whose span holds it.
+   - a status with no trip legs adds and removes nothing;
+   - a departure belongs to every trip whose span holds it, and two departures are compared when they share one;
+   - a trip's length is compared only while the same trip is under way;
+   - missing trips are counted with one binary search each, as partner-push counts them.
 6. **§6.3 is decided when a new status goes to the alerts.**
    - **On iCloud:** the app always posts.
    - **On Crewlu Cloud:** it posts when a hidden push has asked for a read since the last new status, or until `AlertPushes` says the alert pushes are accepted.
@@ -61,9 +63,10 @@ These refine the spec. Plan 2c's last task writes them into it, with 2c's own.
 ## How this plan was checked
 
 - **Built test-first in a scratch clone** with the Mac harness: 339 tests in 31 suites.
-- **The shared cases:** all 49 pass through Crewluve's real notifier, with the same kinds, sounds and words as partner-push.
+- **The shared cases:** all 57 pass through Crewluve's real notifier, with the same kinds, sounds and words as partner-push.
+- **Plan 2a's review** changed the trip rules after this plan was first written. The Swift here has the same changes, with partner-push's new tests.
 - **The compile-only build** of the app and its tests: no errors and no warnings. The order check passed: the test target's 37 files in eight orders, each type-checked and built as a module.
-- **Deliberate breaks:** 32 one-line breaks of the new Swift, each caught by a test. The first run missed five, all at the edges of the trip spans, so `StatusChangeNotifierTests` gained partner-push's own tests of those edges.
+- **Deliberate breaks:** 39 one-line breaks of the new Swift, each caught by a test. The first run, before plan 2a's review, missed five, all at the edges of the trip spans, so `StatusChangeNotifierTests` gained partner-push's own tests of those edges.
 - **A replay:** Tasks 1–6, applied from this plan's own text to a fresh clone with the harness, gave every Run's printed result, and the files equal the scratch build's.
 
 ## Files
@@ -88,7 +91,7 @@ Run:
 git -C ~/Dev/Crewluv status --short && git -C ~/Dev/Crewluv rev-parse --short HEAD && python3 -c "import json; print(len(json.load(open('$HOME/Dev/Duty/supabase/partner-status/alert-cases.json'))['cases']), 'cases')"
 ```
 
-Expected: `4333994`, then `49 cases`. The status lists nothing but the untracked `.claude/` and `.superpowers/`, if they're there. If the head moved on, or plan 2a isn't done, stop and ask.
+Expected: `4333994`, then `57 cases`. The status lists nothing but the untracked `.claude/` and `.superpowers/`, if they're there. If the head moved on, or plan 2a isn't done, stop and ask.
 
 - [ ] **Step 2: Make the branch**
 
@@ -491,7 +494,7 @@ cd ~/Dev/Crewluv && git add CrewluvTests/AlertWordingTests.swift Crewluv/Models/
 - **§15's trip rules:** a trip added or taken off, by its legs, and the way home or the departure moving only within a trip.
 - **The snapshot** keeps the trips its home arrival belonged to.
 - **Posting:** the notifier posts only when told to.
-- **The shared cases:** all 49 run through it, kind for kind and word for word.
+- **The shared cases:** all 57 run through it, kind for kind and word for word.
 
 - [ ] **Step 1: Copy plan 2a's shared cases**
 
@@ -501,7 +504,7 @@ Run:
 cp ~/Dev/Duty/supabase/partner-status/alert-cases.json ~/Dev/Crewluv/CrewluvTests/Fixtures/PartnerSummary/ && python3 -c "import json; print(len(json.load(open('$HOME/Dev/Crewluv/CrewluvTests/Fixtures/PartnerSummary/alert-cases.json'))['cases']), 'cases')"
 ```
 
-Expected: `49 cases`.
+Expected: `57 cases`.
 
 - [ ] **Step 2: Write the failing tests**
 
@@ -572,7 +575,7 @@ struct AlertCasesTests {
         let zone = try #require(file["timeZone"] as? String)
         let timeZone = try #require(TimeZone(identifier: zone))
         let cases = try #require(file["cases"] as? [[String: Any]])
-        #expect(cases.count == 49)
+        #expect(cases.count == 57)
 
         for item in cases {
             let name = try #require(item["name"] as? String)
@@ -695,29 +698,40 @@ final class StatusChangeNotifierTests {
 
     private static let t1 = [leg("T1", 100, 200), leg("T1", 300, 400)]
 
-    @Test func test_tripsAddedOrTakenOff_matchBySpan_onlyThoseNotOver_andNeverFromNoLegs() {
+    @Test func test_tripsAddedOrTakenOff_matchBySpan_onlyThoseNotOver_andNeverAgainstAStatusWithNoTrips() {
         let backwards = [Self.leg("T1", 300, 400), Self.leg("T1", 100, 200)]
+        let elsewhere = Self.leg("T2", 500, 600)
 
-        #expect(Self.missing(Self.t1, [Self.leg("T2", 500, 600)]) == 1, "T1 has no part in the other")
+        #expect(Self.missing(Self.t1, [elsewhere]) == 1, "T1 has no part in the other")
         #expect(Self.missing(Self.t1, [Self.leg("T9", 150, 160)]) == 0, "a leg of any trip in its span keeps it")
         #expect(Self.missing(Self.t1, [Self.leg("T9", 400, 500)]) == 1, "spans that only touch do not overlap")
-        #expect(Self.missing(Self.t1, [Self.leg(nil, 150, 160)]) == 1, "a leg of no trip keeps nothing")
-        #expect(Self.missing(Self.t1, [Self.leg("T2", 500, 600)], at: 400) == 0, "a trip over by then is not missing")
-        #expect(Self.missing(Self.t1 + [Self.leg("T3", 700, 800)], [Self.leg("T2", 500, 600)]) == 2)
+        #expect(Self.missing(Self.t1, [Self.leg("T9", 50, 100)]) == 1, "at either end")
+        #expect(Self.missing(Self.t1, [Self.leg("T9", 0, 1000), Self.leg("T8", 50, 60)]) == 0,
+                "a long leg that starts first keeps it")
+        #expect(Self.missing(Self.t1, [Self.leg("T9", 500, 600), Self.leg("T8", 50, 60)]) == 1,
+                "the other's legs in any order")
+        #expect(Self.missing(Self.t1, [Self.leg(nil, 150, 160), elsewhere]) == 1, "a leg of no trip keeps nothing")
+        #expect(Self.missing(Self.t1, [elsewhere], at: 400) == 0, "a trip over by then is not missing")
+        #expect(Self.missing(Self.t1 + [Self.leg("T3", 700, 800)], [elsewhere]) == 2)
         #expect(Self.missing(backwards, [Self.leg("T9", 150, 160)]) == 0, "legs in any order")
         #expect(Self.missing(backwards, [Self.leg("T9", 350, 360)]) == 0)
-        #expect(Self.missing(Self.t1, []) == 0, "no legs after: nothing is taken off")
-        #expect(Self.missing([], Self.t1) == 0, "no legs before: nothing is added")
+        // A status with no trips, so no trip legs, has none to miss and is missing none.
+        #expect(Self.missing(Self.t1, []) == 0, "against no legs: nothing is taken off, or added")
+        #expect(Self.missing(Self.t1, [Self.leg(nil, 500, 600)]) == 0, "against legs of no trip: nothing is taken off, or added")
+        #expect(Self.missing([], Self.t1) == 0, "no trips of its own: none missing")
     }
 
-    @Test func test_aDeparturesTrip_isTheOneWhoseSpanHoldsIt() {
-        let at = { (time: TimeInterval) in StatusChangeNotifier.trip(at: Date(timeIntervalSince1970: time), in: Self.t1) }
+    @Test func test_aDeparturesTrips_areThoseWhoseSpansHoldIt() {
+        let at = { (time: TimeInterval) in StatusChangeNotifier.trips(at: Date(timeIntervalSince1970: time), in: Self.t1) }
+        let touching = [Self.leg("T2", 100, 200), Self.leg("T1", 200, 300)]
 
-        #expect(at(100) == "T1")
-        #expect(at(250) == "T1", "between its legs, within its span")
-        #expect(at(400) == "T1")
-        #expect(at(401) == nil)
-        #expect(StatusChangeNotifier.trip(at: Date(timeIntervalSince1970: 150), in: [Self.leg(nil, 100, 200)]) == nil)
+        #expect(at(100) == ["T1"])
+        #expect(at(250) == ["T1"], "between its legs, within its span")
+        #expect(at(400) == ["T1"])
+        #expect(at(401).isEmpty)
+        #expect(StatusChangeNotifier.trips(at: Date(timeIntervalSince1970: 150), in: [Self.leg(nil, 100, 200)]).isEmpty)
+        #expect(StatusChangeNotifier.trips(at: Date(timeIntervalSince1970: 200), in: touching) == ["T1", "T2"],
+                "where two spans touch, both")
     }
 }
 ```
@@ -1007,17 +1021,15 @@ actor StatusChangeNotifier {
         // the previous one becomes past-tense on each 5-min republish.
         if legsChanged,
            let oldDep = old.nextDepartureTime, let newDep = new.nextDepartureTime,
-           let oldTrip = trip(at: oldDep, in: oldLegs), oldTrip == trip(at: newDep, in: newLegs) {
+           !trips(at: oldDep, in: oldLegs).isDisjoint(with: trips(at: newDep, in: newLegs)) {
             if abs(newDep.timeIntervalSince(oldDep)) > 15 * 60 {
                 specs.append(alert(.departure))
             }
         }
 
-        // Trip extended/shortened
-        let hadTrip = old.currentTripId != nil
-        let hasTrip = new.currentTripId != nil
-        if let oldDays = old.tripTotalDays, let newDays = new.tripTotalDays,
-           oldDays != newDays, hadTrip, hasTrip {
+        // Trip extended/shortened, while the same trip is under way (alert pushes spec §15.3).
+        if let oldDays = old.tripTotalDays, let newDays = new.tripTotalDays, oldDays != newDays,
+           let trip = old.currentTripId, trip == new.currentTripId {
             specs.append(alert(newDays > oldDays ? .tripExtended : .tripShortened))
         }
 
@@ -1026,15 +1038,10 @@ actor StatusChangeNotifier {
 
     // MARK: - Trips
 
-    /// A stretch of time, as a trip's or a leg's.
+    /// A stretch of time, as a trip's.
     nonisolated struct Span: Equatable, Sendable {
         let start: Date
         let end: Date
-
-        /// Whether the two overlap: each starts before the other ends.
-        func overlaps(_ other: Span) -> Bool {
-            start < other.end && other.start < end
-        }
     }
 
     /// The legs' trips, by id, each with its span: from its first leg's start to its last leg's end. Legs with no trip
@@ -1051,18 +1058,41 @@ actor StatusChangeNotifier {
     }
 
     /// How many of `from`'s trips `to` has no part of (alert pushes spec §15.3): trips that haven't ended at `moment`,
-    /// where no leg of a trip in `to` overlaps their span. Matching by span, a trip merged on import, imported again,
-    /// or with its flights moved is still there. When `to` has no legs, none: a missing list never reads as every
-    /// trip gone.
+    /// where no leg of a trip in `to` overlaps their span, each starting before the other ends. Matching by span, a
+    /// trip merged on import, imported again, or with its flights moved is still there. When `to` has no trip legs,
+    /// none: a status written without its trips, as during a reset of CrewLu's data, never reads as every trip gone,
+    /// nor the next as every trip new.
+    ///
+    /// `to`'s trip legs are sorted by start once, so each trip takes one binary search, as in Crewlu Cloud's
+    /// partner-push. Of the legs that start before a trip ends, one overlaps it when the latest of their ends is after
+    /// its start.
     nonisolated static func tripsMissing(from: [TripLeg], to: [TripLeg], at moment: Date) -> Int {
-        guard !to.isEmpty else { return 0 }
-        let legs = to.filter { $0.tripId != nil }.map { Span(start: $0.startTime, end: $0.endTime) }
-        return trips(in: from).values.filter { trip in trip.end > moment && !legs.contains { trip.overlaps($0) } }.count
+        let legs = to.filter { $0.tripId != nil }.sorted { $0.startTime < $1.startTime }
+        guard !legs.isEmpty else { return 0 }
+        var latestEnd: [Date] = []
+        for leg in legs {
+            latestEnd.append(max(latestEnd.last ?? leg.endTime, leg.endTime))
+        }
+        return trips(in: from).values.filter { trip in
+            guard trip.end > moment else { return false }
+            var starting = 0
+            var high = legs.count
+            while starting < high {
+                let middle = (starting + high) / 2
+                if legs[middle].startTime < trip.end {
+                    starting = middle + 1
+                } else {
+                    high = middle
+                }
+            }
+            return starting == 0 || !(latestEnd[starting - 1] > trip.start)
+        }.count
     }
 
-    /// The trip a departure belongs to (alert pushes spec §15.3): the one whose span holds it, or none.
-    nonisolated static func trip(at time: Date, in legs: [TripLeg]) -> String? {
-        trips(in: legs).sorted { $0.key < $1.key }.first { $0.value.start <= time && time <= $0.value.end }?.key
+    /// The trips a departure belongs to (alert pushes spec §15.3): those whose spans hold it. Where one trip ends as
+    /// the next begins, both, so the answer never rests on the order of the legs.
+    nonisolated static func trips(at time: Date, in legs: [TripLeg]) -> Set<String> {
+        Set(trips(in: legs).filter { $0.value.start <= time && time <= $0.value.end }.keys)
     }
 
     // MARK: - Legs
