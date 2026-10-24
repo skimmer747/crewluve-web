@@ -1321,15 +1321,15 @@ Expected: the new commit. Don't push.
 
 **Files:** none.
 
-- [ ] **Step 1: Ask how to merge**
+- [x] **Step 1: Ask how to merge**
 
 Ask the user one question: merge `feature/trip-alerts` into `feature/supabase-account-backend` now? It changes only `supabase/`. If yes, and `~/Dev/Duty` is still on `feature/supabase-account-backend` with only the scheme files changed, run `git -C ~/Dev/Duty merge --ff-only feature/trip-alerts`. Then `cd ~/Dev/Duty/supabase/tests && npm test` should give Task 4's count. If the release line moved on, ask before making a merge commit instead.
 
-- [ ] **Step 2: Remove the worktree**
+- [x] **Step 2: Remove the worktree**
 
 Only once the branch is merged: `rm -rf ~/Dev/Duty-trip-alerts/supabase/tests/node_modules && git -C ~/Dev/Duty worktree remove ~/Dev/Duty-trip-alerts && git -C ~/Dev/Duty branch -d feature/trip-alerts`. If it's kept apart, keep the worktree.
 
-- [ ] **Step 3: Push only with a fresh yes**
+- [x] **Step 3: Push only with a fresh yes**
 
 Ask separately before each push: `feature/supabase-account-backend` in `~/Dev/Duty`, and `main` in `~/Dev/Crewluve Website`.
 
@@ -1359,3 +1359,4 @@ Built on 2026-10-24 in `~/Dev/Duty-trip-alerts`, on `feature/trip-alerts`, inlin
   - **Both sides:** plan 2b's Swift, in its scratch build, took the same changes, and all 57 cases give the same alerts there (339 harness tests). Plan 2b's text is updated to match.
 - **Task 6:** partner-push version 9, ACTIVE, `verify_jwt` false, deployed on 2026-10-24 at 18:03 UTC, with the branch's file. The probe (request 66): 200, with `BadDeviceToken` from both of Apple's services. **Still to check:** the first real run, at CrewLu's next write, should answer 200 with `alerts` 0.
 - **Task 7:** §15.3 takes decisions 1 and 2 and the user's two calls after the review, and §15.5 lists the review's limits.
+- **Task 8 (2026-10-24):** with the user's yes, `~/Dev/Duty`'s `feature/supabase-account-backend` fast-forwarded to `afcd2549` (`supabase/` only; its scheme files untouched), and `npm test` there gave 275 of 275. The worktree and `feature/trip-alerts` are removed. With its own yes, the release line was pushed: `94253777..afcd2549`.
