@@ -3876,11 +3876,11 @@ Expected: the new commit. Don't push.
 
 **Files:** none.
 
-- [ ] **Step 1: Ask how to merge**
+- [x] **Step 1: Ask how to merge**
 
 Ask the user one question: merge `feature/partner-alert-pushes` into `feature/supabase-account-backend` now? It changes only `supabase/`, so no CrewLu build changes. If yes, and `~/Dev/Duty` is still on `feature/supabase-account-backend` with only the scheme lines changed, run `git -C ~/Dev/Duty merge --ff-only feature/partner-alert-pushes`, which works while the release line is still `7b3aeb2d`. Then `cd ~/Dev/Duty/supabase/tests && npm test` should give Task 7's count. If the release line moved on, ask before making a merge commit instead. `feature/partner-cloud-screens` gets this the next time it takes in the release line.
 
-- [ ] **Step 2: Remove the worktree**
+- [x] **Step 2: Remove the worktree**
 
 Only once the branch is merged: `rm -rf ~/Dev/Duty-alert-pushes/supabase/tests/node_modules && git -C ~/Dev/Duty worktree remove ~/Dev/Duty-alert-pushes && git -C ~/Dev/Duty branch -d feature/partner-alert-pushes`. If it's kept apart, keep the worktree.
 
@@ -3952,3 +3952,4 @@ Filled in during the build: any place the code ends up different from the printe
   - §9.1: the cases' file.
 
   The older specs point to this one, as printed. Task 8 Step 5 stays open for its quick-status check.
+- **Task 10 (2026-10-24):** with the user's yes, `~/Dev/Duty`'s `feature/supabase-account-backend` fast-forwarded `7b3aeb2d..94253777` (17 commits, `supabase/` only; its scheme files untouched), and `npm test` there gave 272 of 272. The worktree and `feature/partner-alert-pushes` are removed. Pushes wait for their own yes.
