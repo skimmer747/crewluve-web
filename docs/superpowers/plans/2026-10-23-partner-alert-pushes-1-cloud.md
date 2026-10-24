@@ -3928,3 +3928,19 @@ Filled in during the build: any place the code ends up different from the printe
   - **`116b23fb`:** since `push_baseline` keeps the newer summary, one written while a pilot's phone clock ran ahead would make every later summary "not newer" until that date came. Now a summary kept that's dated more than an hour past the run's time stops counting as newer, so the next one replaces it. `push_baseline` takes the run's time. The first summary after the clock is put right still alerts nothing, since the rules' own "is it newer" check skips it, as Crewluve's does; the ones after it alert as usual. The reviewer's version, never keeping a summary dated ahead, would alert the same news on every write while the clock was wrong.
   - **Also in `116b23fb`:** `partner-api.md` now says what's passed over more exactly (a summary missing what Crewluve needs to read it), and the claim's header is rewrapped.
   - **Task 8 Step 7:** it now checks that every live summary passes `private.push_readable`.
+- **Task 8, the setup (2026-10-24, from 02:14 UTC):**
+  - **The script and partner-push:** the script ran (`116b23fb`, success), and then partner-push's new file went in as version 8: ACTIVE, `verify_jwt` false.
+  - **The clipboard:** the first `pbcopy` left nothing on the clipboard. Every later copy was read back with `pbpaste` and compared with the file first.
+  - **Step 4, the probe:** 200, and `BadDeviceToken` from both of Apple's services.
+  - **Step 6, the contract:** all 9 checks as listed.
+  - **Step 7, the check:** it runs every 15 seconds, `succeeded`. `unreadable` 0 of 1 summary, run as the same test written out inline: the read-only connection may not call `private.push_readable`.
+  - **Step 8, the advisor:** the one new finding is the INFO `rls_enabled_no_policy` on `private.partner_push_retries`. 0028 is at 6 and 0029 at 15, with the four-parameter `partner_set_push`.
+  - **Step 5, part 3:** two `production` devices, each with a token, `push_alerts` false.
+- **Incident during Step 5 (02:22:57 to 02:26:28 UTC):** every run with a pilot due answered `claim answered 400`. Postgres logged `DELETE requires a WHERE clause`: Supabase's API sessions load safeupdate, which refuses an UPDATE or a DELETE without one, even inside a function, and PGlite doesn't. The claim's `delete from private.partner_push_retries returning …` had none.
+  - **The fix:** the user ran the claim's fixed definition (`where true`) on its own, and the next run sent the waiting change (`2 sent`). Nothing was lost: the claim's transaction rolled back each time, so the pilot stayed due.
+  - **In the repo:** `94253777`, with `safeupdate.test.js`, which checks every function in a build of every migration and fails on the claim as it was. 272 tests.
+  - **Crewlu Cloud matches the repo:** afterwards, all eight of the script's functions have the same `pg_get_functiondef` fingerprints (MD5) on Crewlu Cloud as in a build at `94253777`.
+- **Step 5, parts 1 and 2 (the bursts): not as the plan expected, for a reason outside this plan.** Each CrewLu write pushed both phones (`2 sent`). A read-only watch of two writes 13 seconds apart, from the same CrewLu (build 199), found only `currentLatitude`, `currentLongitude` and `lastUpdated` differing, and all 59 legs the same.
+  - **Why:** CrewLu fills in the position only while its schedule has a flight under way: the plane's spot along the route, worked out from the clock on every write. Crewluve doesn't show it; its map works the spot out itself.
+  - **The user's call: leave it.** A pilot in the air has no connection, so this happens only while the schedule says "in flight" and the phone is online (a delay at the gate, Wi-Fi on board, or a flight on the schedule the pilot isn't on). On the ground the comparison works as designed.
+  - **Left to do:** the quick-status check (1 sent, to the one partner) waits until CrewLu no longer shows a flight under way.
