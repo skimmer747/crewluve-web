@@ -1,6 +1,6 @@
 # Partner Alert Pushes: Alerts That Arrive on Time
 
-- **Status:** design approved in brainstorming on 2026-10-23, and the user approved this spec the same day. Plan 1, Crewlu Cloud, is built and set up (`docs/superpowers/plans/2026-10-23-partner-alert-pushes-1-cloud.md`, §14). Next: plan 2, Crewluve 1.3.
+- **Status:** design approved in brainstorming on 2026-10-23, and the user approved this spec the same day. Plan 1, Crewlu Cloud, is built and set up (`docs/superpowers/plans/2026-10-23-partner-alert-pushes-1-cloud.md`, §14). On 2026-10-24 the user changed the trip alerts (§15), which plan 2 builds on both sides. Next: plan 2, Crewluve 1.3.
 - **Part of:** the partner-links design, `docs/superpowers/specs/2026-10-15-partner-links-design.md` (§6.1). It follows piece 3's push service (`docs/superpowers/specs/2026-10-18-partner-links-piece3-push-design.md`) and piece 4's Crewluve (`docs/superpowers/specs/2026-10-18-partner-links-piece4-crewluve-design.md`, §6 and §17.3).
 - **Repos:** CrewLu, `~/Dev/Duty`, in `supabase/` only (plan 1), and Crewluve, `~/Dev/Crewluv` (plans 2 and 3). CrewLu's app doesn't change.
 - **Contract:** `~/Dev/Duty/supabase/partner-api.md`, whose "Pushes" section this design changes (§11).
@@ -137,7 +137,7 @@ A quick status sent to one partner changes only that partner's view, so only the
 
 ### 5.3 The rules
 
-These are today's `StatusChangeNotifier` rules, applied to one partner's view. Where they read a value Crewluve works out at a given moment, Crewlu Cloud works it out the same way: before at the previous `last_push_at`, after at now.
+These are today's `StatusChangeNotifier` rules, applied to one partner's view. Where they read a value Crewluve works out at a given moment, Crewlu Cloud works it out the same way: before at the previous `last_push_at`, after at now. §15 (2026-10-24) changed the trip rows below: plan 1's partner-push has them as first written, and plan 2 brings both sides to §15.
 
 - **The quick status shown at a moment** (piece 4 spec §5.4): this partner's entry in `quickStatusByPartner` while it hasn't expired, then the top-level one while it hasn't expired, then none.
 - **The effective delay at a moment:** `flightDelayMinutes` when it isn't 0; else the `delayMinutes` of the first flight leg, in the summary's order, whose delay isn't 0 and whose end plus that delay is still ahead; else 0.
@@ -151,10 +151,10 @@ These are today's `StatusChangeNotifier` rules, applied to one partner's view. W
 | `took-off` | `displayStatus` changed to `In Flight` | "just took off" | yes |
 | `delayed`, `early` | the effective delay changed, to above 0 or below 0 | "Delayed 45 minutes", "Departing 10 minutes early" | yes |
 | `delay-cleared`, `early-cleared` | the effective delay changed to 0, from above 0 or below 0 | "Delay cleared", "Early departure cleared" | yes |
-| `new-trip` | `currentTripId` appeared | "Has a new 4-day trip", or "Has a new trip" without `tripTotalDays` | yes |
-| `trip-cancelled` | `currentTripId` went away | "Trip was cancelled" | yes |
-| `home-later`, `home-earlier` | both home arrivals are known, and it moved more than 15 minutes later or earlier | "Getting home later — now 5:45 PM", "Getting home earlier — now 4:10 PM" | yes |
-| `departure` | the legs changed, both `nextDepartureTime`s are known, and it moved more than 15 minutes | "Departure changed — now 6:10 AM" | yes |
+| `new-trip`, `new-trips` | a trip was added to the schedule, or several were (§15.3) | "Has a new trip", "Has new trips" | yes |
+| `trip-cancelled`, `trips-cancelled` | a trip that wasn't over was removed from the schedule, or several were (§15.3) | "Trip was cancelled", "Trips were cancelled" | yes |
+| `home-later`, `home-earlier` | both home arrivals are known and belong to the same trip (§15.3), and it moved more than 15 minutes later or earlier | "Getting home later — now 5:45 PM", "Getting home earlier — now 4:10 PM" | yes |
+| `departure` | the legs changed, both `nextDepartureTime`s are known and belong to the same trip (§15.3), and it moved more than 15 minutes | "Departure changed — now 6:10 AM" | yes |
 | `trip-extended`, `trip-shortened` | both `tripTotalDays` are known and differ, with a trip before and after | "Trip extended to 5 days", "Trip shortened to 3 days" | yes |
 
 One change can make several alerts, as today: a delay and a departure change, say.
@@ -232,6 +232,7 @@ So a phone that updated overnight but wasn't opened loses nothing. It's still re
 | `delayed`, `early` | "Flight delayed", "Departing early" |
 | `delay-cleared`, `early-cleared` | "Delay cleared", "Early departure cleared" |
 | `new-trip`, `trip-cancelled` | "Has a new trip", "Trip was cancelled" |
+| `new-trips`, `trips-cancelled` | "Has new trips", "Trips were cancelled" |
 | `home-later`, `home-earlier` | "Getting home later", "Getting home earlier" |
 | `departure` | "Departure changed" |
 | `trip-extended`, `trip-shortened` | "Trip extended", "Trip shortened" |
@@ -357,7 +358,11 @@ These run with TestFlight 1.3, once plan 1 is live, on the two real partners' ph
 ## 13. The plans
 
 1. **Plan 1, Crewlu Cloud** (CrewLu repo, `supabase/` only): the shared cases, `pushed_status` and `push_alerts`, claim's before and after, the rules, the alert push, the retry list, `partner_set_push`'s `p_alerts`, and `partner-api.md`. It ends with the user's setup and a live check.
-2. **Plan 2, Crewluve 1.3** (Crewluv repo): the helper target, its Keychain group, `AlertWording`, the saved name, the registrar's `p_alerts`, §6.3's rule, the tests and the shared cases. It ends with the user's ⌘U.
+2. **Plan 2, Crewluve 1.3, with §15's trip rules:**
+   - **first, in the CrewLu repo's `supabase/`:** §15's shared cases and partner-push's rules, deployed again;
+   - **then in the Crewluv repo:** the helper target, its Keychain group, `AlertWording`, the saved name, the registrar's `p_alerts`, §6.3's rule, §15's rules, the tests and the shared cases.
+
+   It ends with the user's ⌘U.
 3. **Plan 3, the release:** 1.3 through TestFlight, §9.4's checks, then the App Store.
 
 ## 14. Decisions made while planning and building plan 1
@@ -425,5 +430,65 @@ The review found one critical issue, one important and eight minor; its re-check
   - **Another trip scheduled:** it also alerts "Getting home later — now 5:23 AM". That's the next trip's arrival, a time with no date.
   - **"Has a new trip"** comes when a trip starts, not when it's added.
   - **Who does this:** Crewluve's rules and partner-push's both do, and so does Crewluve 1.2 today.
-  - **To decide before 1.3:** whether to change these rules, on both sides and in the shared cases.
+  - **Decided on 2026-10-24:** §15.
 - **The registrar** could register again without `p_alerts` when Crewlu Cloud answers 404, as it would after an undo, and keep making its own alerts.
+
+## 15. Trip alerts that say what happened (2026-10-24)
+
+After plan 1 went live, the user decided that partners must never be told a trip was cancelled when it wasn't.
+
+### 15.1 Why the first rules misfire
+
+- **`currentTripId` names the trip under way.** CrewLu sets it only between a trip's start and its end (`PartnerStatusGenerator.findCurrentTrip`).
+- **`StatusChangeNotifier` reads its comings and goings as schedule changes.** It going away says "Trip was cancelled", and it appearing says "Has a new trip". So an ordinary trip end says cancelled, and a scheduled trip's start says new.
+- **The home arrival and the next departure move on to the next trip** when one ends. So a trip's end, with another scheduled, also says "Getting home later" with the next trip's arrival, a time with no date.
+- **Checked** with scratch cases on Crewluve's own Swift and on partner-push's copy, which agree. Crewluve 1.2 keeps these rules until each partner updates.
+
+### 15.2 Decisions (the user, 2026-10-24)
+
+| # | Decision |
+|---|---|
+| T1 | "Trip was cancelled" only when a trip that wasn't over is removed from the schedule, whether it's under way or still to come. A trip ending normally says nothing; "is home!" still comes when the status turns Home. |
+| T2 | "Has a new trip" when a trip is added to the schedule, not when it starts. |
+| T3 | "Getting home later/earlier" and "Departure changed" only within the same trip. |
+| T4 | Several trips added, or removed, in one change make one alert, in the plural. |
+| T5 | The trip alerts' words have no numbers. The push carries only its kind, as A1 decided, and the helper can't tell from the summary after a change which trip is new. |
+
+### 15.3 The rules
+
+Both sides apply these to one partner's view. The earlier summary's moment is its own `lastUpdated`, and the later one's moment is its own too, so every Crewluve and Crewlu Cloud reach the same answer.
+
+- **A trip:** the legs with the same `tripId`. Its span runs from its first leg's `startTime` to its last leg's `endTime`. Legs with no `tripId` belong to no trip: jumpseats, events and commutes.
+- **Removed:** a trip in the earlier summary whose span hadn't ended at the earlier moment, where no trip leg in the later summary overlaps its span. Two spans overlap when each starts before the other ends.
+- **Added:** a trip in the later summary whose span hasn't ended at the later moment, where no trip leg in the earlier summary overlaps its span.
+- **Its alerts:** one removed trip gives `trip-cancelled`, and more give `trips-cancelled`. One added trip gives `new-trip`, and more give `new-trips`. They keep today's places in the order, with the new trip before the cancelled one.
+- **The safety net:** when either summary has no legs, nothing is added or removed. So a missing list never reads as everything cancelled. The price: a pilot with no trips in the last 60 days who adds one gets no alert for it.
+- **Matching by span:** a split trip merged on import, a re-import, or retimed flights is neither added nor removed. Nor is a trip traded for another on the same days.
+- **The same trip, for a home arrival:**
+  - an arrival from a trip block (§5.3) belongs to the trip ids among that block's legs;
+  - one from the summary's `homeArrivalTime`, with no block, belongs to `currentTripId`'s trip;
+  - two arrivals are compared only when they share a trip id.
+- **The same trip, for a departure:** a departure belongs to the `tripId` of the leg that starts at `nextDepartureTime`. Two departures are compared only when both are found and share it.
+- **Unchanged:** `trip-extended` and `trip-shortened` (only while the same trip is current), and every other rule.
+
+### 15.4 Words
+
+| Kind | Words, and the plain line (§6.4) |
+|---|---|
+| `new-trip` | "Has a new trip" |
+| `new-trips` | "Has new trips" |
+| `trip-cancelled` | "Trip was cancelled" |
+| `trips-cancelled` | "Trips were cancelled" |
+
+Each plays a sound. A Crewluve that makes its own alerts (§6.3) uses the same words.
+
+### 15.5 What this changes
+
+- **Crewlu Cloud, first in plan 2:**
+  - partner-push's rules and `ALERT_KINDS`;
+  - the shared cases: the cases of §15.1's trips change, and new ones cover every line of §15.3 (added, removed, several, merged, retimed, traded, the safety net, and a home arrival and a departure across trips);
+  - each case is checked against partner-push, and against Crewluve's Swift once plan 2 has changed it;
+  - partner-push is deployed again, with no SQL.
+- **Crewluve 1.3, in plan 2:** `StatusChangeNotifier`'s schedule rules, the home arrival's trip (`TripStateResolver`), the words (`AlertWording`), and the helper's plain lines.
+- **A limit:** a trip the pilot hides from partners leaves their summary as a removed trip does, so it says "Trip was cancelled". Telling the two apart would reveal the hidden trip.
+- **Crewluve 1.2** keeps the first rules until each partner updates.
