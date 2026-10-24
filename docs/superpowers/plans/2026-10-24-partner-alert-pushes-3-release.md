@@ -82,7 +82,7 @@
 
 **Who:** Claude.
 
-- [ ] **Step 1: Check the repos**
+- [x] **Step 1: Check the repos**
 
 Run:
 
@@ -99,7 +99,7 @@ Expected:
 - `0`, since `feature/alert-pushes` isn't on GitHub yet;
 - nothing for CrewLu-Website, then `main`.
 
-- [ ] **Step 2: Plan 2a's first real run**
+- [x] **Step 2: Plan 2a's first real run**
 
 With the user's yes, Claude reads Crewlu Cloud. First partner-push's lines since version 9 went live, through `query_logs`, with the window starting at `2026-10-24T18:03:00Z`:
 
@@ -127,7 +127,7 @@ If there's no line since 18:03 UTC, the user opens CrewLu, which writes on comin
 
 **Files:** Modify `~/Dev/CrewLu-Website/crewluve/privacy-policy.html` (the date line, and the "Apple Push Notification service" item).
 
-- [ ] **Step 1: Ask, then make the change**
+- [x] **Step 1: Ask, then make the change**
 
 Claude asks the user for a yes to write in `~/Dev/CrewLu-Website`. With it, Claude runs:
 
@@ -158,7 +158,7 @@ git diff --stat
 
 Expected: `1 file changed, 6 insertions(+), 4 deletions(-)`. Claude shows the user the new item in the conversation, and changes nothing else on the page.
 
-- [ ] **Step 2: The user reads it in a browser**
+- [x] **Step 2: The user reads it in a browser**
 
 Run:
 
@@ -168,7 +168,7 @@ open ~/Dev/CrewLu-Website/crewluve/privacy-policy.html
 
 The user reads "Where the Pilot's Status Comes From" in their browser, and says what to change, if anything. Claude makes those changes.
 
-- [ ] **Step 3: Commit, and push with a yes**
+- [x] **Step 3: Commit, and push with a yes**
 
 Run:
 
@@ -178,7 +178,7 @@ cd ~/Dev/CrewLu-Website && git add crewluve/privacy-policy.html && git commit -q
 
 Expected: the new commit. Then Claude asks for a yes, and with it runs `git -C ~/Dev/CrewLu-Website push origin main`. GitHub Pages publishes crewlu.net from `main`.
 
-- [ ] **Step 4: Check it's live**
+- [x] **Step 4: Check it's live**
 
 A minute or two after the push, Claude opens <https://crewlu.net/crewluve/privacy-policy.html> in the built-in browser, since scripted requests get a 403.
 
@@ -190,7 +190,7 @@ Expected: the new "Last Updated" date, and "From version 1.3, a notification say
 
 **Files:** Modify `~/Dev/Crewluv/Crewluv.xcodeproj/project.pbxproj`. Outside the repos: `$BUILD/check_nse.py`.
 
-- [ ] **Step 1: Set 1.3 (45) for both targets**
+- [x] **Step 1: Set 1.3 (45) for both targets**
 
 Xcode has the project open, and reloads the project file when it changes on disk. If Xcode asks whether to keep its version or revert, the user chooses **Revert**, which takes the file on disk.
 
@@ -209,7 +209,7 @@ p.write_text(s)
 
 Expected: `1 file changed, 8 insertions(+), 8 deletions(-)`. The test targets' `1.0` and `1` stay as they are.
 
-- [ ] **Step 2: Check the helper again**
+- [x] **Step 2: Check the helper again**
 
 This writes `$BUILD/check_nse.py` from plan 2c's text (its Task 4 Step 1), then runs it.
 
@@ -234,7 +234,7 @@ Expected:
 
 A FIX line says what differs and where: stop, and ask.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 Run:
 
@@ -244,7 +244,7 @@ cd ~/Dev/Crewluv && git add Crewluv.xcodeproj/project.pbxproj && git commit -q -
 
 Expected: the new commit, then only `?? .claude/` and `?? .superpowers/`.
 
-- [ ] **Step 4: Fast-forward the release line to it**
+- [x] **Step 4: Fast-forward the release line to it**
 
 `~/Dev/Crewluv` stays on `feature/alert-pushes`. The release branch moves without being checked out, and only if it can fast-forward.
 
@@ -256,7 +256,7 @@ cd ~/Dev/Crewluv && git fetch . feature/alert-pushes:hotfix/icloud-account-unava
 
 Expected: `4333994..` and the new commit, `feature/alert-pushes -> hotfix/icloud-account-unavailable`. The release line's tip is the 1.3 (45) commit.
 
-- [ ] **Step 5: Scan, then push both with a yes**
+- [x] **Step 5: Scan, then push both with a yes**
 
 Run:
 
@@ -659,3 +659,7 @@ CrewLu's own partner release is held for 3.0.2, and doesn't depend on this one. 
 ## Execution notes
 
 Filled in as the release goes: each task's result, and anything that differed. Names, addresses, Apple IDs and team ids stay out.
+
+- **Task 0 (2026-10-24):** the repos were as Step 1 expects. Step 2's first read found only the probe since version 9 went live, so CrewLu came to the front, and the second read had the first real run: at 22:50:37 UTC, `partner-push: 2 sent (0 as alerts), 0 dead, 0 retried, 0 failed`, with no `claim answered` line, and request 67 answered 200 with `{"sent":2,"alerts":0,"dead":0,"retried":0,"failed":0}`. This closes plan 2a's Task 6 Step 4, ticked in Task 9.
+- **Task 1 (2026-10-24):** with the user's yes, the change went in as printed (`1 file changed, 6 insertions(+), 4 deletions(-)`), and the user read it in their browser and kept it. With its own yes, `f7fd093` was pushed (`533e86f..f7fd093`), and GitHub Pages built it at 22:54:57 UTC. The first look still had the old page, from the cache in front of the site; a reload had "Last Updated: October 24, 2026" and the new item, and the old one was gone.
+- **Task 2 (2026-10-24):** each step gave its expected result. The bump: `8 insertions(+), 8 deletions(-)`. `check_nse.py` (132 lines, from plan 2c's text): `all checks ok`, with 1.3 and 45 under Debug and Release. The commit is `941e927`, and the release line fast-forwarded `4333994..941e927`. The scan: `11 commits`, nothing found. The scan doesn't look for the team id, and the project file already had it on GitHub 8 times; the new target's 2 are the same value. With the user's yes, both branches were pushed: `feature/alert-pushes` new on GitHub, and `hotfix/icloud-account-unavailable` `4333994..941e927`.
