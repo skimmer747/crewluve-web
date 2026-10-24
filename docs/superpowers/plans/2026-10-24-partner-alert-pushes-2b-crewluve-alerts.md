@@ -83,7 +83,7 @@ These refine the spec. Plan 2c's last task writes them into it, with 2c's own.
 
 **Files:** none.
 
-- [ ] **Step 1: Check the checkout and plan 2a's cases**
+- [x] **Step 1: Check the checkout and plan 2a's cases**
 
 Run:
 
@@ -93,7 +93,7 @@ git -C ~/Dev/Crewluv status --short && git -C ~/Dev/Crewluv rev-parse --short HE
 
 Expected: `4333994`, then `57 cases`. The status lists nothing but the untracked `.claude/` and `.superpowers/`, if they're there. If the head moved on, or plan 2a isn't done, stop and ask.
 
-- [ ] **Step 2: Make the branch**
+- [x] **Step 2: Make the branch**
 
 Run:
 
@@ -109,7 +109,7 @@ Expected: `Switched to a new branch 'feature/alert-pushes'`.
 
 Plan 4c's harness, with `Models/AlertWording.swift` added to its list. It's a Swift package that compiles Crewluve's model and service files and their tests unchanged, on the Mac, and runs the Swift Testing tests. If plan 4c's harness folder is still there, these two files replace its own.
 
-- [ ] **Step 1: Write the package**
+- [x] **Step 1: Write the package**
 
 Create `$HARNESS/Package.swift`:
 
@@ -143,7 +143,7 @@ let package = Package(
 )
 ```
 
-- [ ] **Step 2: Write the runner**
+- [x] **Step 2: Write the runner**
 
 Create `$HARNESS/run.sh`:
 
@@ -202,7 +202,7 @@ rm -f "$out"
 exit $code
 ```
 
-- [ ] **Step 3: Run today's tests**
+- [x] **Step 3: Run today's tests**
 
 Run:
 
@@ -218,7 +218,7 @@ Expected: `Test run with 316 tests in 28 suites passed`. The first build takes a
 
 Spec §5.3, §6.4 and §15.4: each kind's words, with the numbers and times from the status. The words are `nil` when the status no longer fits the kind. Each kind has a plain line, and a Sleeping quick status plays no sound.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `CrewluvTests/AlertWordingTests.swift`:
 
@@ -325,7 +325,7 @@ struct AlertWordingTests {
 }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -335,7 +335,7 @@ export HARNESS=<your harness folder> && "$HARNESS/run.sh"
 
 Expected: the build fails with `cannot find type 'AlertKind' in scope`.
 
-- [ ] **Step 3: Write the words**
+- [x] **Step 3: Write the words**
 
 Create `Crewluv/Models/AlertWording.swift`:
 
@@ -470,7 +470,7 @@ nonisolated enum AlertWording {
 }
 ```
 
-- [ ] **Step 4: Run them to see them pass**
+- [x] **Step 4: Run them to see them pass**
 
 Run:
 
@@ -480,7 +480,7 @@ export HARNESS=<your harness folder> && "$HARNESS/run.sh"
 
 Expected: `Test run with 324 tests in 29 suites passed`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/Dev/Crewluv && git add CrewluvTests/AlertWordingTests.swift Crewluv/Models/AlertWording.swift && git commit -q -m "feat(crewluv): the alerts' kinds and words, for the app and the alert pushes' helper (alert pushes spec §5.3, §6.4, §15.4)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1
@@ -496,7 +496,7 @@ cd ~/Dev/Crewluv && git add CrewluvTests/AlertWordingTests.swift Crewluv/Models/
 - **Posting:** the notifier posts only when told to.
 - **The shared cases:** all 57 run through it, kind for kind and word for word.
 
-- [ ] **Step 1: Copy plan 2a's shared cases**
+- [x] **Step 1: Copy plan 2a's shared cases**
 
 Run:
 
@@ -506,7 +506,7 @@ cp ~/Dev/Duty/supabase/partner-status/alert-cases.json ~/Dev/Crewluv/CrewluvTest
 
 Expected: `57 cases`.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Add to the end of `CrewluvTests/Fixtures/PartnerSummary/README.md`, after a blank line:
 
@@ -797,7 +797,7 @@ with:
         evaluations.append((new, pilotName, posting))
 ```
 
-- [ ] **Step 3: Run them to see them fail**
+- [x] **Step 3: Run them to see them fail**
 
 Run:
 
@@ -807,7 +807,7 @@ export HARNESS=<your harness folder> && "$HARNESS/run.sh"
 
 Expected: the build fails with `type 'RecordingNotifier' does not conform to protocol 'StatusNotifying'`.
 
-- [ ] **Step 4: The notifier, the trips its home arrival belongs to, and the delay at a moment**
+- [x] **Step 4: The notifier, the trips its home arrival belongs to, and the delay at a moment**
 
 Replace the whole of `Crewluv/Services/StatusChangeNotifier.swift` with:
 
@@ -1435,7 +1435,7 @@ with:
     }
 ```
 
-- [ ] **Step 5: Run them to see them pass**
+- [x] **Step 5: Run them to see them pass**
 
 Run:
 
@@ -1445,7 +1445,7 @@ export HARNESS=<your harness folder> && "$HARNESS/run.sh"
 
 Expected: `Test run with 330 tests in 31 suites passed`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd ~/Dev/Crewluv && git add CrewluvTests/Fixtures/PartnerSummary/README.md CrewluvTests/AlertCasesTests.swift CrewluvTests/StatusChangeNotifierTests.swift CrewluvTests/LegsComparisonTests.swift CrewluvTests/Helpers/PartnerCloudStandIns.swift Crewluv/Services/StatusChangeNotifier.swift Crewluv/Services/StatusNotifying.swift Crewluv/Models/TripStateResolver.swift Crewluv/Models/SharedPilotStatus.swift CrewluvTests/Fixtures/PartnerSummary/alert-cases.json && git commit -q -m "feat(crewluv): the alerts by kind, as Crewlu Cloud makes them: the trip rules of alert pushes spec §15, and the shared cases" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1
@@ -1457,7 +1457,7 @@ cd ~/Dev/Crewluv && git add CrewluvTests/Fixtures/PartnerSummary/README.md Crewl
 
 Spec §6.3: on iCloud the app always posts. On Crewlu Cloud it posts for a read a hidden push asked for, and until Crewlu Cloud has accepted this device's alert pushes for the key it holds now.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `CrewluvTests/PilotStatusSourceTests.swift`, replace:
 
@@ -1520,7 +1520,7 @@ with:
     // MARK: - iCloud
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -1530,7 +1530,7 @@ export HARNESS=<your harness folder> && "$HARNESS/run.sh"
 
 Expected: the build fails with `cannot find 'AlertPushes' in scope`.
 
-- [ ] **Step 3: AlertPushes, and the source's rule**
+- [x] **Step 3: AlertPushes, and the source's rule**
 
 Create `Crewluv/Services/PartnerCloud/AlertPushes.swift`:
 
@@ -1671,7 +1671,7 @@ with:
             let outcome = await source.refresh(startedByPush: true).backgroundFetchOutcome
 ```
 
-- [ ] **Step 4: Run them to see them pass**
+- [x] **Step 4: Run them to see them pass**
 
 Run:
 
@@ -1681,7 +1681,7 @@ export HARNESS=<your harness folder> && "$HARNESS/run.sh"
 
 Expected: `Test run with 334 tests in 31 suites passed`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/Dev/Crewluv && git add CrewluvTests/PilotStatusSourceTests.swift Crewluv/Services/PartnerCloud/AlertPushes.swift Crewluv/Services/PilotStatusSource.swift Crewluv/App/AppDelegate.swift && git commit -q -m "feat(crewluv): the app posts its own alerts on iCloud, for a hidden push's read, and until Crewlu Cloud accepts its alert pushes (alert pushes spec §6.3)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1
@@ -1693,7 +1693,7 @@ cd ~/Dev/Crewluv && git add CrewluvTests/PilotStatusSourceTests.swift Crewluv/Se
 
 Spec §6.3: every registration sends `p_alerts: true`. A registration that gets through is remembered for this device's key, as a fingerprint, never the key itself.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `CrewluvTests/LivePartnerDoorTests.swift`, replace:
 
@@ -1797,7 +1797,7 @@ with:
     }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -1807,7 +1807,7 @@ export HARNESS=<your harness folder> && "$HARNESS/run.sh"
 
 Expected: the build fails with `extra argument 'defaults' in call`.
 
-- [ ] **Step 3: The door says p_alerts, and the registrar remembers an accepted one**
+- [x] **Step 3: The door says p_alerts, and the registrar remembers an accepted one**
 
 In `Crewluv/Services/PushRegistrar.swift`, replace:
 
@@ -1938,7 +1938,7 @@ with:
     /// belongs to, saying this Crewluve shows alert pushes.
 ```
 
-- [ ] **Step 4: Run them to see them pass**
+- [x] **Step 4: Run them to see them pass**
 
 Run:
 
@@ -1948,7 +1948,7 @@ export HARNESS=<your harness folder> && "$HARNESS/run.sh"
 
 Expected: `Test run with 338 tests in 31 suites passed`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/Dev/Crewluv && git add CrewluvTests/LivePartnerDoorTests.swift CrewluvTests/PushRegistrarTests.swift Crewluv/Services/PushRegistrar.swift Crewluv/Services/PartnerCloud/LivePartnerDoor.swift Crewluv/Services/PartnerCloud/PartnerDoor.swift && git commit -q -m "feat(crewluv): every push registration says Crewluve shows alert pushes, and an accepted one is remembered for its key (alert pushes spec §6.3)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1
@@ -1962,7 +1962,7 @@ cd ~/Dev/Crewluv && git add CrewluvTests/LivePartnerDoorTests.swift CrewluvTests
 
 Spec §6.2: the helper titles its plain lines with the name the alerts use. The app keeps it in a Keychain item next to the key, this device only, after the first unlock, never synced, and deletes it when it forgets the pilot.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `CrewluvTests/PilotStatusSourceTests.swift`, replace:
 
@@ -2109,7 +2109,7 @@ with:
 }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -2119,7 +2119,7 @@ export HARNESS=<your harness folder> && "$HARNESS/run.sh"
 
 Expected: `Test run with 339 tests in 31 suites failed`, with 2 issues in the name test: `keys.name == "Dad"` and `keys.name == "Alex"`.
 
-- [ ] **Step 3: The name's slot, saved and forgotten with the pilot**
+- [x] **Step 3: The name's slot, saved and forgotten with the pilot**
 
 In `Crewluv/Services/PartnerCloud/DeviceKeyStore.swift`, replace:
 
@@ -2302,7 +2302,7 @@ with:
         UserDefaults.standard.removeObject(forKey: "LastSeenPilotSnapshot")
 ```
 
-- [ ] **Step 4: Run them to see them pass**
+- [x] **Step 4: Run them to see them pass**
 
 Run:
 
@@ -2312,7 +2312,7 @@ export HARNESS=<your harness folder> && "$HARNESS/run.sh"
 
 Expected: `Test run with 339 tests in 31 suites passed`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/Dev/Crewluv && git add CrewluvTests/PilotStatusSourceTests.swift CrewluvTests/KeychainDeviceKeyStoreTests.swift CrewluvTests/Helpers/PartnerCloudStandIns.swift Crewluv/Services/PartnerCloud/DeviceKeyStore.swift Crewluv/Models/PartnerConnection.swift Crewluv/Services/PilotStatusSource.swift Crewluv/Services/CloudKitShareManager.swift && git commit -q -m "feat(crewluv): the alerts' title name kept beside the key, for the alert pushes' helper (alert pushes spec §6.2)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1
@@ -2324,7 +2324,7 @@ cd ~/Dev/Crewluv && git add CrewluvTests/PilotStatusSourceTests.swift CrewluvTes
 
 This is piece 4b's Task 23, unchanged. The build runs in a separate clone of the branch, with its own build folder, so it can't disturb the user's open Xcode or touch a simulator. It compiles the app and `CrewluvTests`, including the views, `AppDelegate` and the Keychain tests the harness can't build. Then the order check repeats the test target's compile with its files in eight orders.
 
-- [ ] **Step 1: Make the clone**
+- [x] **Step 1: Make the clone**
 
 Run:
 
@@ -2334,7 +2334,7 @@ export BUILD=<your build folder> && rm -rf "${{BUILD:?set BUILD first}}" && mkdi
 
 Expected: the branch's last commit: Task 6's, or a later fix from Task 8.
 
-- [ ] **Step 2: Build for testing**
+- [x] **Step 2: Build for testing**
 
 It takes a few minutes, so run it in the background and wait for it to finish.
 
@@ -2346,11 +2346,11 @@ export BUILD=<your build folder> && cd "$BUILD/crewluv" && xcodebuild build-for-
 
 Expected: `exit 0`, `errors: 0` and `warnings: 0`.
 
-- [ ] **Step 3: Write the order check**
+- [x] **Step 3: Write the order check**
 
 Copy `order_check.py` from piece 4b's plan, Task 23 Step 3 (`docs/superpowers/plans/2026-10-19-partner-links-piece4b-connecting.md`), unchanged, to `$BUILD/order_check.py`.
 
-- [ ] **Step 4: Check the test target in every order**
+- [x] **Step 4: Check the test target in every order**
 
 It takes about five minutes, so run it in the background too.
 
@@ -2366,7 +2366,7 @@ Expected: `8 orders, 0 failed`, after sixteen `ok` lines. A `FAIL` line names th
 
 **Files:** whatever the review finds.
 
-- [ ] **Step 1: Ask for a review**
+- [x] **Step 1: Ask for a review**
 
 Use superpowers:requesting-code-review with a read-only reviewer. It reads:
 - `git -C ~/Dev/Crewluv diff 4333994..feature/alert-pushes`;
@@ -2375,7 +2375,7 @@ Use superpowers:requesting-code-review with a read-only reviewer. It reads:
 
 It may run `"$HARNESS/run.sh"`; no `xcodebuild` and no simulator. State facts neutrally, and don't tell it what not to flag.
 
-- [ ] **Step 2: Act on it**
+- [x] **Step 2: Act on it**
 
 For each finding, fix it test-first where the harness can test it, re-run `"$HARNESS/run.sh"`, and commit. A change to the rules changes the shared cases in CrewLu first (plan 2a's file), then their copy here. If any Swift changed, run Task 7 again. Note each fix in this plan's Execution notes.
 
@@ -2383,7 +2383,7 @@ For each finding, fix it test-first where the harness can test it, re-run `"$HAR
 
 **Files:** none.
 
-- [ ] **Step 1: Ask the user to run the tests in Xcode**
+- [x] **Step 1: Ask the user to run the tests in Xcode**
 
 Send them these steps:
 
@@ -2404,7 +2404,7 @@ Expected: no failures. The console's last Swift Testing line says `Test run with
 | `LivePartnerDoorTests` | `setPush`'s, changed |
 | `LegsComparisonTests` | the departure's, changed |
 
-- [ ] **Step 2: If anything fails, stop**
+- [x] **Step 2: If anything fails, stop**
 
 Ask for the test's name and its message. Fix the cause, never the test's expected value, then ask for another run.
 
@@ -2412,11 +2412,11 @@ Ask for the test's name and its message. Fix the cause, never the test's expecte
 
 **Files:** this plan.
 
-- [ ] **Step 1: Tick this plan, and note what changed from it**
+- [x] **Step 1: Tick this plan, and note what changed from it**
 
 In `~/Dev/Crewluve Website`, tick the steps done and fill in the Execution notes. Commit only this plan's file. Don't push.
 
-- [ ] **Step 2: Plan 2c**
+- [x] **Step 2: Plan 2c**
 
 The branch stays as it is: plan 2c adds the helper on it. Nothing is merged or pushed until plan 3, the release.
 
@@ -2425,3 +2425,23 @@ The branch stays as it is: plan 2c adds the helper on it. Nothing is merged or p
 ## Execution notes
 
 Filled in during the build: any place the code ends up different from the printed blocks, and why.
+
+Built on 2026-10-24 in `~/Dev/Crewluv`, on `feature/alert-pushes` from `4333994`, inline, with the harness in a scratch folder and a read-only reviewer for Task 8.
+
+- **Tasks 0–6** went in as printed (`42a0366`, `0dcec60`, `8fb5ad8`, `7fefcb2`, `9915f7a`). Each Run gave its expected result, from 316 tests in 28 suites to 339 in 31, and the checkout equalled the scratch build.
+- **Task 7:** the compile-only build had no errors and no warnings, and the order check passed: 37 files in eight orders.
+- **Task 8, the review:** nothing critical, two important findings and ten minor.
+  1. **The alerts' time zone was fixed at launch** (`.current`), so a phone that travelled kept writing the old zone's times. Now `.autoupdatingCurrent`. It has no test, which would mean changing the process's time zone while the tests run in parallel.
+  2. **No TestFlight build from this branch without plan 2c's helper:** its registration switches a phone to alert pushes at the first launch, and without the helper every alert reads "New update". Plan 2c's "For plan 3" says so.
+  3. **The switch test's legs had no trip,** so under §15 it passed whatever `legsDiffer` said. Its legs now have one, and breaking `legsDiffer` once showed it fails.
+  4. **A snapshot Crewluve 1.2 saved** now has a test.
+  5. **Left for later:** a hidden push's flag can be used up by a read already under way. That matters only while the phone counts as accepted and Crewlu Cloud still sends it hidden pushes, which is rare.
+  6. **An answer for a key the device had since replaced overwrote the new key's acceptance.** Fixed test-first.
+  7. **For the spec:** two narrow windows that can alert twice at the switch, and what an undo of Crewlu Cloud's script leaves a phone accepted before it. Both are in plan 2c's §16 text, which its Task 9 writes into the spec.
+  8. **The rest:**
+     - kept the iCloud reset's own Keychain delete: redundant on its only path today, and a guard if another path is added;
+     - left for later: the tests' times assume an English locale;
+     - the home arrival's first condition filters nothing, so its comment now says so, and the code is unchanged to stay as partner-push is;
+     - `DeviceKeyStore`'s doc names the name, and `evaluateChanges`' doc no longer says the pushes "have already alerted".
+  - **Fixes:** `373f6c2`, with harness 341 tests in 31 suites. Task 7 again: no errors or warnings, and the order check passed (37 files in eight orders).
+- **Task 9, the user's ⌘U:** `Test run with 353 tests in 32 suites passed`. That's the 351 this plan expected plus the review's two tests, and the XCTest suites passed too.
