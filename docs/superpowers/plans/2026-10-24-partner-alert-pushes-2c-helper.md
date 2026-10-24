@@ -72,7 +72,7 @@ These refine the spec. Task 9 writes them into it, with plan 2b's.
 
 **Files:** none.
 
-- [ ] **Step 1: Check the checkout**
+- [x] **Step 1: Check the checkout**
 
 Run:
 
@@ -88,7 +88,7 @@ Expected: `feature/alert-pushes`, then plan 2b's last commit: Task 6's, or a lat
 
 Plan 2b's harness, unchanged. Its `run.sh` copies every file in `Services/PartnerCloud/`, so the writer joins it by itself. If `$HARNESS` is gone, make it again from plan 2b's Task 1.
 
-- [ ] **Step 1: Run today's tests**
+- [x] **Step 1: Run today's tests**
 
 Run:
 
@@ -109,7 +109,7 @@ Spec §6.1's steps, apart from iOS:
 - **The plain line:** titled with the name the app saved beside the key, or with no title.
 - **Delivery:** once, with the words, or the plain line when iOS's time runs out.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `CrewluvTests/AlertPushWriterTests.swift`:
 
@@ -291,7 +291,7 @@ struct AlertPushWriterTests {
 }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -301,7 +301,7 @@ export HARNESS=<your harness folder> && "$HARNESS/run.sh"
 
 Expected: the build fails, with errors such as `cannot find 'AlertPushWords' in scope` and `cannot find 'PendingAlertPush' in scope`.
 
-- [ ] **Step 3: Write the writer**
+- [x] **Step 3: Write the writer**
 
 Create `Crewluv/Services/PartnerCloud/AlertPushWriter.swift`:
 
@@ -409,7 +409,7 @@ nonisolated final class PendingAlertPush: @unchecked Sendable {
 }
 ```
 
-- [ ] **Step 4: Run them to see them pass**
+- [x] **Step 4: Run them to see them pass**
 
 Run:
 
@@ -419,7 +419,7 @@ export HARNESS=<your harness folder> && "$HARNESS/run.sh"
 
 Expected: `Test run with 355 tests in 32 suites passed`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/Dev/Crewluv && git add Crewluv/Services/PartnerCloud/AlertPushWriter.swift CrewluvTests/AlertPushWriterTests.swift && git commit -q -m "feat(crewluv): the alert pushes' helper's steps: the kind's words from the status read now, or the plain line, delivered once (alert pushes spec §6.1)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1
@@ -429,7 +429,7 @@ cd ~/Dev/Crewluv && git add Crewluv/Services/PartnerCloud/AlertPushWriter.swift 
 
 **Files:** Xcode makes them.
 
-- [ ] **Step 1: Ask the user to make the target**
+- [x] **Step 1: Ask the user to make the target**
 
 Send them these steps, as written:
 
@@ -466,13 +466,13 @@ Send them these steps, as written:
    Open the File inspector (**View → Inspectors → File**, or ⌥⌘1). Under **Target Membership**, add **CrewluveAlerts**, by ticking it or with **+**, and keep **Crewluv**. If Xcode won't take them all at once, do a few at a time.
 6. **Tell Claude "done".** No need to build: Claude checks the target next, and Crewluve's tests come at the end.
 
-- [ ] **Step 2: Wait for "done"**
+- [x] **Step 2: Wait for "done"**
 
 ### Task 4: Check the target, and write the helper
 
 **Files:** Replace `CrewluveAlerts/NotificationService.swift`. Outside the repos: `$BUILD/check_nse.py`.
 
-- [ ] **Step 1: Write the check**
+- [x] **Step 1: Write the check**
 
 It reads the project file, the helper's Info.plist and entitlements, and the settings xcodebuild works out for a copy of the project file, so nothing is built and the user's open project isn't touched.
 
@@ -613,7 +613,7 @@ if __name__ == '__main__':
     main()
 ```
 
-- [ ] **Step 2: Run it**
+- [x] **Step 2: Run it**
 
 Run:
 
@@ -623,7 +623,7 @@ export BUILD=<your build folder> && mkdir -p "$BUILD" && python3 "$BUILD/check_n
 
 Expected: an `ok` line for each check, ending `all checks ok`. Each line starting FIX says what to change and where in Xcode: send those to the user, wait for "done", and run it again.
 
-- [ ] **Step 3: Write the helper**
+- [x] **Step 3: Write the helper**
 
 Xcode's template made this file, with code of its own.
 
@@ -678,7 +678,7 @@ nonisolated final class NotificationService: UNNotificationServiceExtension {
 }
 ```
 
-- [ ] **Step 4: See what changed**
+- [x] **Step 4: See what changed**
 
 Run:
 
@@ -688,7 +688,7 @@ git -C ~/Dev/Crewluv status --short
 
 Expected: ` M Crewluv.xcodeproj/project.pbxproj` and `?? CrewluveAlerts/`. Xcode may also have changed its list of the user's schemes, xcschememanagement.plist, which the repo tracks. Anything else: stop and ask.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/Dev/Crewluv && git add -u Crewluv.xcodeproj && git add CrewluveAlerts && git commit -q -m "feat(crewluv): the alert pushes' helper, CrewluveAlerts: a notification service extension that reads the key from Crewluve's own Keychain group (alert pushes spec §6.1, §6.2)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1
@@ -700,7 +700,7 @@ cd ~/Dev/Crewluv && git add -u Crewluv.xcodeproj && git add CrewluveAlerts && gi
 
 As plan 2b's Task 7: a separate clone of the branch, with its own build folder, so nothing touches the user's open Xcode or a simulator. Building the app builds the helper too, since the app embeds it.
 
-- [ ] **Step 1: Make the clone**
+- [x] **Step 1: Make the clone**
 
 Run:
 
@@ -710,7 +710,7 @@ export BUILD=<your build folder> && rm -rf "${BUILD:?set BUILD first}/crewluv" "
 
 Expected: Task 4's commit, or a later fix from Task 7.
 
-- [ ] **Step 2: Build for testing**
+- [x] **Step 2: Build for testing**
 
 It takes a few minutes, so run it in the background and wait for it to finish.
 
@@ -722,7 +722,7 @@ export BUILD=<your build folder> && cd "$BUILD/crewluv" && xcodebuild build-for-
 
 Expected: `exit 0`, `errors: 0` and `warnings: 0`.
 
-- [ ] **Step 3: Look at the helper in the app**
+- [x] **Step 3: Look at the helper in the app**
 
 Run:
 
@@ -745,7 +745,7 @@ EOF
 
 Expected: `helper com.ToddAnderson.Crewluv.CrewluveAlerts 1.2 (44) iOS 26.0`, `extension com.apple.usernotifications.service CrewluveAlerts.NotificationService` and `keychain groups: com.ToddAnderson.Crewluv`.
 
-- [ ] **Step 4: Write the order check**
+- [x] **Step 4: Write the order check**
 
 Piece 4b's `order_check.py` (its plan's Task 23 Step 3), which plan 2b ran unchanged, with the module to check as an optional second argument.
 
@@ -850,7 +850,7 @@ print(f"{len(files)} files, {len(orders)} orders, {failed} failed")
 sys.exit(1 if failed else 0)
 ```
 
-- [ ] **Step 5: Check the tests' files in every order**
+- [x] **Step 5: Check the tests' files in every order**
 
 It takes about five minutes, so run it in the background too.
 
@@ -862,7 +862,7 @@ export BUILD=<your build folder> && python3 "$BUILD/order_check.py" "$BUILD"
 
 Expected: `38 files, 8 orders, 0 failed`, after sixteen `ok` lines. A line starting FAIL names the file and the error: fix it, then build again.
 
-- [ ] **Step 6: Check the helper's files in every order**
+- [x] **Step 6: Check the helper's files in every order**
 
 Run:
 
@@ -878,7 +878,7 @@ Expected: `16 files, 8 orders, 0 failed`, after sixteen `ok` lines. Nothing to c
 
 Spec §11: the helper target, and that on Crewlu Cloud the alerts come from pushes.
 
-- [ ] **Step 1: The alerts, the helper's folder, and its tests**
+- [x] **Step 1: The alerts, the helper's folder, and its tests**
 
 In `CLAUDE.md`, replace:
 
@@ -933,7 +933,7 @@ with:
 - UI tests in `CrewluvUITests/`
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 cd ~/Dev/Crewluv && git add CLAUDE.md && git commit -q -m "docs(crewluv): the alerts, and the alert pushes' helper target (alert pushes spec §11)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1
@@ -943,7 +943,7 @@ cd ~/Dev/Crewluv && git add CLAUDE.md && git commit -q -m "docs(crewluv): the al
 
 **Files:** whatever the review finds.
 
-- [ ] **Step 1: Ask for a review**
+- [x] **Step 1: Ask for a review**
 
 Use superpowers:requesting-code-review with a read-only reviewer. It reads:
 - `git -C ~/Dev/Crewluv diff <plan 2b's last commit, from Task 0>..feature/alert-pushes`;
@@ -952,7 +952,7 @@ Use superpowers:requesting-code-review with a read-only reviewer. It reads:
 
 It may run `"$HARNESS/run.sh"` and `"$BUILD/check_nse.py"`; no other `xcodebuild` and no simulator. State facts neutrally, and don't tell it what not to flag.
 
-- [ ] **Step 2: Act on it**
+- [x] **Step 2: Act on it**
 
 For each finding, fix it test-first where the harness can test it, re-run `"$HARNESS/run.sh"`, and commit. If any Swift or the project changed, run Task 5 again. Note each fix in this plan's Execution notes.
 
@@ -960,7 +960,7 @@ For each finding, fix it test-first where the harness can test it, re-run `"$HAR
 
 **Files:** none.
 
-- [ ] **Step 1: Ask the user to run the tests in Xcode**
+- [x] **Step 1: Ask the user to run the tests in Xcode**
 
 Send them these steps:
 
@@ -970,7 +970,7 @@ Send them these steps:
 
 Expected: no failures. The console's last Swift Testing line says `Test run with 367 tests in 33 suites passed`: the harness's 355, and the 12 `KeychainDeviceKeyStoreTests`, counted before Task 7's fixes. The new suite is `AlertPushWriterTests`, with 14 tests.
 
-- [ ] **Step 2: If anything fails, stop**
+- [x] **Step 2: If anything fails, stop**
 
 Ask for the test's name and its message. Fix the cause, never the test's expected value, then ask for another run.
 
@@ -978,7 +978,7 @@ Ask for the test's name and its message. Fix the cause, never the test's expecte
 
 **Files:** Modify `~/Dev/Crewluve Website/docs/superpowers/specs/2026-10-23-partner-alert-pushes-design.md`.
 
-- [ ] **Step 1: Record plan 2's decisions**
+- [x] **Step 1: Record plan 2's decisions**
 
 Add to the end of `docs/superpowers/specs/2026-10-23-partner-alert-pushes-design.md`, after a blank line:
 
@@ -1021,7 +1021,7 @@ Plans 2b and 2c made these. Plan 2a's are in §15.3.
 
 If Task 7, plan 2b's review or either user's run changed a decision, change its line here to match, and say so in the Execution notes.
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 cd ~/Dev/Crewluve\ Website && git add docs/superpowers/specs/2026-10-23-partner-alert-pushes-design.md && git commit -q -m "Spec: the decisions made while planning Crewluve 1.3 (plans 2b and 2c), as §16" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1
@@ -1031,11 +1031,11 @@ cd ~/Dev/Crewluve\ Website && git add docs/superpowers/specs/2026-10-23-partner-
 
 **Files:** this plan.
 
-- [ ] **Step 1: Tick this plan, and note what changed from it**
+- [x] **Step 1: Tick this plan, and note what changed from it**
 
 In `~/Dev/Crewluve Website`, tick the steps done and fill in the Execution notes. Commit only this plan's file. Don't push.
 
-- [ ] **Step 2: Plan 3**
+- [x] **Step 2: Plan 3**
 
 The branch stays as it is: plan 3, the release, takes it to TestFlight, through §9.4's checks on real phones, and to the App Store. Nothing is merged or pushed until then.
 
@@ -1051,3 +1051,30 @@ The branch stays as it is: plan 3, the release, takes it to TestFlight, through 
 ## Execution notes
 
 Filled in during the build: any place the code ends up different from the printed blocks, and why.
+
+Built on 2026-10-24 in `~/Dev/Crewluv`, on `feature/alert-pushes` after plan 2b's `373f6c2`, inline. The user made the target (Task 3), and a read-only reviewer did Task 7.
+
+- **Tasks 0–2** went as printed: the harness at 341 tests, then 355, with `f66467f`.
+- **Task 3:** the check's first run asked for two fixes, which the user made in Xcode. After them, all checks were ok.
+  - **Target Membership:** 11 of the 15 shared files hadn't taken the helper. Only `PartnerDoor.swift` and the three `Utils` files had.
+  - **Minimum Deployments:** it was 26.6, Xcode 27.1's own choice, and needed to be 26.0.
+- **Task 4:** Xcode's `Info.plist` and entitlements were byte for byte the ones planned. `git status` showed the new files already staged (`A`), since Xcode had added them, and `xcschememanagement.plist` changed, as the plan allows. Commit `bc443d5`. The project file's diff is the target, plus Xcode's `LastSwiftUpdateCheck` moving from 2630 to 2710.
+- **Task 5:** no errors and no warnings. The helper's facts were as expected, and the order check passed for 38 and 16 files, eight orders each.
+- **Task 6:** `20d7fb7`.
+- **Task 7, the review:** nothing critical or important. **Fixed** in `1d9511b`, test-first where a test could show it, with the harness at 359:
+  - the helper's time zone is `.autoupdatingCurrent`;
+  - the content step moved into `AlertPushWriter` (`content(of:with:)`), and tests check it keeps the push's sound, or silence, and its data;
+  - all 57 shared cases run through the helper's path too, in `AlertCasesTests`;
+  - a `PendingAlertPush` started again drops the last push's plain line (removing that line once made its test fail);
+  - `CLAUDE.md` gained two rules: the helper's files stay extension-safe, and the app's Keychain group stays the helper's.
+  - **Fixed at Task 9:** spec §4.2's bundle id, and §7's offline row. Apple keeps one push per app, the newest, for a phone that's offline, as its documentation says.
+  - **Left for plan 3:**
+    - the helper links CloudKit and SwiftUI through `SharedPilotStatus`, so its memory needs measuring once on a phone;
+    - the version and build are set in four places, so `check_nse.py` runs again after the bump.
+  - **Left as they are:**
+    - the network call isn't cancelled at the expiry, which is harmless;
+    - the timeout test's name;
+    - Xcode's scheme list keeps an entry of its own.
+  - **Task 5 again:** no errors and no warnings, the facts as before, and the order check passed for 38 and 16 files.
+- **Task 8, the user's ⌘U:** `Test run with 371 tests in 33 suites passed`. That's the 367 this plan expected plus the review's four tests, and the XCTest suites passed too.
+- **Task 9:** §16 from this plan's block, with plan 2c's review as §16.2's item 9. Also §4.2's bundle id, §7's offline row and the status line, in `d5ca4ef`.
