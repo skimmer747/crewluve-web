@@ -1,6 +1,6 @@
 # Partner Alert Pushes: Alerts That Arrive on Time
 
-- **Status:** design approved in brainstorming on 2026-10-23, and the user approved this spec the same day. Plan 1, Crewlu Cloud, is built and set up (`docs/superpowers/plans/2026-10-23-partner-alert-pushes-1-cloud.md`, §14). On 2026-10-24 the user changed the trip alerts (§15). Plan 2a, Crewlu Cloud's part, is built and set up (`docs/superpowers/plans/2026-10-24-partner-alert-pushes-2a-cloud-trips.md`). Next: plan 2b, Crewluve 1.3.
+- **Status:** design approved in brainstorming on 2026-10-23, and the user approved this spec the same day. Plan 1, Crewlu Cloud, is built and set up (`docs/superpowers/plans/2026-10-23-partner-alert-pushes-1-cloud.md`, §14). On 2026-10-24 the user changed the trip alerts (§15). Plan 2a, Crewlu Cloud's part, is built and set up (`docs/superpowers/plans/2026-10-24-partner-alert-pushes-2a-cloud-trips.md`). Plans 2b and 2c, Crewluve 1.3's own alerts and its helper, are built on Crewluv's `feature/alert-pushes` (§16). Next: plan 3, the release.
 - **Part of:** the partner-links design, `docs/superpowers/specs/2026-10-15-partner-links-design.md` (§6.1). It follows piece 3's push service (`docs/superpowers/specs/2026-10-18-partner-links-piece3-push-design.md`) and piece 4's Crewluve (`docs/superpowers/specs/2026-10-18-partner-links-piece4-crewluve-design.md`, §6 and §17.3).
 - **Repos:** CrewLu, `~/Dev/Duty`, in `supabase/` only (plan 1), and Crewluve, `~/Dev/Crewluv` (plans 2 and 3). CrewLu's app doesn't change.
 - **Contract:** `~/Dev/Duty/supabase/partner-api.md`, whose "Pushes" section this design changes (§11).
@@ -91,7 +91,7 @@ Approved mockups (widgets in this brainstorm): `partner_alerts_today_vs_alert_pu
 
 | Part | Change |
 |---|---|
-| A new target, the helper | A Notification Service Extension, bundle id `com.ToddAnderson.Crewluv.NotificationService`. It reads the status and writes the alert (§6.1). |
+| A new target, the helper | A Notification Service Extension, `CrewluveAlerts`, bundle id `com.ToddAnderson.Crewluv.CrewluveAlerts` (§16.2). It reads the status and writes the alert (§6.1). |
 | Shared code | The helper compiles the app's own files for the door (`PartnerDoor`, `LivePartnerDoor`), the key (`DeviceKeyStore`), the translation (`CloudSummary`, `SharedPilotStatus`, `TripLeg`) and the legs (`TripStateResolver`). |
 | `AlertWording` (new) | The words for each kind, and the plain lines (§6.4). `StatusChangeNotifier` and the helper both use it, so the words can't drift apart. |
 | The helper's entitlements | Crewluve's own Keychain group (§6.2). |
@@ -248,7 +248,7 @@ So a phone that updated overnight but wasn't opened loses nothing. It's still re
 
 | Case | What happens |
 |---|---|
-| The phone is off or offline | Apple keeps the alert for up to its hour. After that it's dropped, and the status shows when Crewluve opens. Today a late alert can pop up hours later |
+| The phone is off or offline | Apple keeps one push per app for a phone that's offline, the newest, for up to its hour, so alerts sent meanwhile arrive as one. After that it's dropped, and the status shows when Crewluve opens. Today a late alert can pop up hours later |
 | Changes in a row | At most one run per pilot every 15 seconds, each alerting what changed since the last. The helper writes what's current, or the plain line when the change was undone |
 | Notifications off, a Focus, a Scheduled Summary | iOS's settings apply, as for any app |
 | The helper can't read the key or the status | The plain line (§6.4) |
@@ -499,3 +499,42 @@ Each plays a sound. A Crewluve that makes its own alerts (§6.3) uses the same w
   - **A trip picked up within 24 hours of the current one's end** shares its block, so the way home can move to the new trip's end, "Getting home later — now 3:15 PM" with no date, beside "Has a new trip". Crewluve's "Back Home In" card shows the same time.
   - **Two of the pilot's devices** both write the summary, so one that hasn't synced the latest schedule could make cancelled and new alerts alternate. A CrewLu guard, writing only after its schedule sync, would close it.
 - **Crewluve 1.2** keeps the first rules until each partner updates.
+
+## 16. Decisions made while planning Crewluve 1.3 (2026-10-24)
+
+Plans 2b and 2c made these. Plan 2a's are in §15.3.
+
+### 16.1 Crewluve's own alerts (plan 2b)
+
+1. **`AlertWording` is the one place for the alerts' words:** the kinds, the words and the plain lines, for the app and the helper. `AlertKind`'s raw values are partner-push's `ALERT_KINDS`.
+2. **An alert carries its kind,** and a notification's id starts with the kind's name.
+3. **The shared cases run through the real notifier,** given its defaults, time zone and poster, with the effective delay worked out at each case's moment.
+4. **The snapshot keeps the trips its home arrival belonged to.** One that 1.2 saved has none, so its home arrival isn't compared, once.
+5. **§15's rules mirror partner-push's, edges included:** spans that only touch don't overlap, a leg of no trip matches none, and a trip whose span has ended by the moment is neither added nor removed.
+6. **§6.3 is decided when a new status goes to the alerts.** On Crewlu Cloud, the app posts when a hidden push asked for a read since the last new status, or until `AlertPushes` says the alert pushes are accepted.
+7. **Acceptance is remembered as the key's SHA-256,** never the key, under `partnerCloud.alertPushesAccepted`.
+8. **The door always sends `p_alerts: true`,** with no fallback on a 404 from an undone Crewlu Cloud (§14.4). A registration that fails isn't accepted, so the app makes its own alerts; item 11 says what an undo leaves a phone accepted before it.
+9. **The name item holds the alerts' title name:** the name the pilot set for this partner, else the pilot's first name.
+   - **Saved** whenever the app remembers a reading and the Keychain's differs, so a phone updated from 1.2 saves it at its first new status.
+   - **Deleted** when the pilot is forgotten, and on iCloud's reset.
+10. **The branch** is `feature/alert-pushes` in Crewluv, from `4333994`: 1.2 (44), the tip of both release branches (§10).
+11. **From plan 2b's review:**
+    - **The alerts' times follow the phone's time zone** as it changes (`.autoupdatingCurrent`), not the one at launch.
+    - **An answer for a key the device has since replaced** records no acceptance.
+    - **Two narrow windows can alert twice** at the switch to alert pushes. One is a change the app alerted just before its registration was accepted, which Crewlu Cloud's next run pushes too. The other is a registration whose answer was lost after Crewlu Cloud saved it: the app alerts beside the alert pushes until a later registration gets through.
+    - **After an undo of Crewlu Cloud's script** (§14.2.6, which says 1.3 gets no pushes), a phone accepted before it keeps its acceptance and its token. Piece 3's hidden pushes still come, and the reads they start post, while the 60-second check and the background refresh stay silent. A phone that registers after the undo isn't accepted, so it makes its own alerts.
+
+### 16.2 The helper (plan 2c)
+
+1. **`CrewluveAlerts`** is a notification service extension embedded in Crewluve, with the bundle id `com.ToddAnderson.Crewluv.CrewluveAlerts`. It has the app's version and build, iOS 26.0, iPhone and iPad, and the app's Swift settings.
+2. **It builds 15 of the app's files** through Target Membership, the fewest that compile. `AlertPushWriter` lives in the app's folder, so the app's tests test it.
+3. **Its one Keychain group is Crewluve's own** (§6.2), so the key store reads the app's items unchanged.
+4. **`NotificationService` is nonisolated,** since iOS calls it on a thread of its own choosing. The writer runs on the main actor.
+5. **The alert is delivered once:** with its words; or, when iOS's time runs out first, with the plain line, or as the push came if even that isn't ready.
+6. **The words are worked out as the app's own alerts' are,** at the moment the helper reads. The plain line's title is the saved name, or none.
+7. **The Xcode steps are the user's,** checked by a script that reads the project file and xcodebuild's settings.
+8. **A version bump changes both targets,** from 1.3 on.
+9. **From plan 2c's review:**
+   - **The helper's times follow the phone's time zone,** as the app's alerts' do.
+   - **The shared cases run through the helper's path too,** so its words can't drift from the app's.
+   - **The alert shown keeps the push's sound,** or its silence, and everything else the push carries, which a test checks.
