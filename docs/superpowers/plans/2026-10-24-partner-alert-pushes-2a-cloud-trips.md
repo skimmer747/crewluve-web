@@ -54,7 +54,7 @@ These refine spec §15. Task 7 writes them into it.
 
 **Files:** none.
 
-- [ ] **Step 1: Check the release line**
+- [x] **Step 1: Check the release line**
 
 Run:
 
@@ -64,7 +64,7 @@ git -C ~/Dev/Duty status --short && git -C ~/Dev/Duty branch --show-current && g
 
 Expected: `feature/supabase-account-backend`, then `94253777` twice. The status lists only the scheme files, `Duty.xcodeproj/xcshareddata/xcschemes/`. If the tip moved on, stop and ask.
 
-- [ ] **Step 2: Make the worktree, on a new branch**
+- [x] **Step 2: Make the worktree, on a new branch**
 
 Run:
 
@@ -74,7 +74,7 @@ git -C ~/Dev/Duty worktree add -b feature/trip-alerts ~/Dev/Duty-trip-alerts 942
 
 Expected: `Preparing worktree (new branch 'feature/trip-alerts')`.
 
-- [ ] **Step 3: Copy the test packages and run the tests**
+- [x] **Step 3: Copy the test packages and run the tests**
 
 Run:
 
@@ -90,7 +90,7 @@ Expected: `ℹ tests 272`, `ℹ pass 272`, `ℹ fail 0`.
 - Modify: `supabase/functions/partner-push/index.ts` (`homeArrival`, and `alertsFor`'s home arrival rule)
 - Test: `supabase/tests/partner_push.test.js`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `homeArrival`'s tests read its time now, and a new test says which trips each arrival belongs to.
 
@@ -161,7 +161,7 @@ with:
   })
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -171,7 +171,7 @@ cd ~/Dev/Duty-trip-alerts/supabase/tests && node --no-maglev --test partner_push
 
 Expected: `ℹ tests 84`, `ℹ pass 82`, `ℹ fail 2`: the home arrival's test, and the new one.
 
-- [ ] **Step 3: Return the trips with the time, and compare arrivals within a trip**
+- [x] **Step 3: Return the trips with the time, and compare arrivals within a trip**
 
 In `supabase/functions/partner-push/index.ts`, replace:
 
@@ -253,7 +253,7 @@ with:
   }
 ```
 
-- [ ] **Step 4: Run them to see them pass**
+- [x] **Step 4: Run them to see them pass**
 
 Run:
 
@@ -263,7 +263,7 @@ cd ~/Dev/Duty-trip-alerts/supabase/tests && node --no-maglev --test partner_push
 
 Expected: `ℹ tests 84`, `ℹ pass 84`, `ℹ fail 0`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/Dev/Duty-trip-alerts && git add supabase/functions/partner-push/index.ts supabase/tests/partner_push.test.js && git commit -q -m "feat(partner-links): a home arrival says which trip it belongs to, and arrivals are compared within a trip (alert pushes spec §15)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1
@@ -275,7 +275,7 @@ cd ~/Dev/Duty-trip-alerts && git add supabase/functions/partner-push/index.ts su
 - Modify: `supabase/functions/partner-push/index.ts` (the trip helpers)
 - Test: `supabase/tests/partner_push.test.js`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 In `supabase/tests/partner_push.test.js`, replace:
 
@@ -329,7 +329,7 @@ with:
   })
 ```
 
-- [ ] **Step 2: Run it to see it fail**
+- [x] **Step 2: Run it to see it fail**
 
 Run:
 
@@ -339,7 +339,7 @@ cd ~/Dev/Duty-trip-alerts/supabase/tests && node --no-maglev --test partner_push
 
 Expected: `does not provide an export named 'tripAt'`, and `ℹ fail 1`, since the rules' test file can't load.
 
-- [ ] **Step 3: Read the trips from the legs**
+- [x] **Step 3: Read the trips from the legs**
 
 In `supabase/functions/partner-push/index.ts`, replace:
 
@@ -394,7 +394,7 @@ export function tripAt(view: View, time: number): string | null {
 }
 ```
 
-- [ ] **Step 4: Run it to see it pass**
+- [x] **Step 4: Run it to see it pass**
 
 Run:
 
@@ -404,7 +404,7 @@ cd ~/Dev/Duty-trip-alerts/supabase/tests && node --no-maglev --test partner_push
 
 Expected: `ℹ tests 85`, `ℹ pass 85`, `ℹ fail 0`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/Dev/Duty-trip-alerts && git add supabase/functions/partner-push/index.ts supabase/tests/partner_push.test.js && git commit -q -m "feat(partner-links): the trips one summary has that another has no part of, matched by span, and the trip a departure belongs to (alert pushes spec §15)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1
@@ -416,7 +416,7 @@ cd ~/Dev/Duty-trip-alerts && git add supabase/functions/partner-push/index.ts su
 - Modify: `supabase/partner-status/alert-cases.json` (five cases out, 18 in)
 - Modify: `supabase/functions/partner-push/index.ts` (`ALERT_KINDS`, and `alertsFor`'s schedule rules)
 
-- [ ] **Step 1: Change the cases**
+- [x] **Step 1: Change the cases**
 
 The five cases that read `currentTripId` as a new or cancelled trip go. In their place come the cases of §15.3:
 - trips added and taken off, one or several;
@@ -1010,7 +1010,7 @@ with:
     },
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run:
 
@@ -1020,7 +1020,7 @@ cd ~/Dev/Duty-trip-alerts/supabase/tests && node --no-maglev --test partner_push
 
 Expected: `ℹ pass 82`, `ℹ fail 3`: every shared case's alerts, every kind having a case, and every case as the pushes it sends.
 
-- [ ] **Step 3: The kinds, and the rules**
+- [x] **Step 3: The kinds, and the rules**
 
 In `supabase/functions/partner-push/index.ts`, replace:
 
@@ -1081,7 +1081,7 @@ with:
     Math.abs(departureAfter - departureBefore) > 15 * 60
 ```
 
-- [ ] **Step 4: Run them to see them pass**
+- [x] **Step 4: Run them to see them pass**
 
 Run:
 
@@ -1091,7 +1091,7 @@ cd ~/Dev/Duty-trip-alerts/supabase/tests && node --no-maglev --test partner_push
 
 Expected: `ℹ pass 85`, `ℹ fail 0`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/Dev/Duty-trip-alerts && git add supabase/partner-status/alert-cases.json supabase/functions/partner-push/index.ts && git commit -q -m "feat(partner-links): trip alerts that say what happened: cancelled only when a trip is taken off, new when one is added, and departures within a trip (alert pushes spec §15)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1
@@ -1101,7 +1101,7 @@ cd ~/Dev/Duty-trip-alerts && git add supabase/partner-status/alert-cases.json su
 
 **Files:** Modify `supabase/functions/partner-push/index.ts` (the rules' comment), `supabase/partner-api.md`, `supabase/partner-status/README.md` and `supabase/tests/README.md`.
 
-- [ ] **Step 1: partner-push's rules say whose they are**
+- [x] **Step 1: partner-push's rules say whose they are**
 
 In `supabase/functions/partner-push/index.ts`, replace:
 
@@ -1121,7 +1121,7 @@ with:
 // since 1970, as the summary writes them. Both copies are checked against supabase/partner-status/alert-cases.json.
 ```
 
-- [ ] **Step 2: The partner door names the trip rules and the two new kinds**
+- [x] **Step 2: The partner door names the trip rules and the two new kinds**
 
 In `supabase/partner-api.md`, replace:
 
@@ -1135,7 +1135,7 @@ with:
 - **A Crewluve that registered `p_alerts`** gets one alert push per alert. CrewLu Cloud works out the alerts with Crewluve's own rules, with the alert pushes spec's §15 for trips, from what that partner saw at the last change and sees now; `partner-status/alert-cases.json` holds the cases both sides are checked with. `new-trips` and `trips-cancelled` are the kinds for several trips at once. Like Crewluve, it passes over a summary that isn't newer than the last one, or that's missing what Crewluve needs to read it: the change after it is compared with the one before. A summary dated more than an hour ahead of CrewLu Cloud's clock stops counting as newer, so a phone whose clock ran ahead can't hold back the ones after it.
 ```
 
-- [ ] **Step 3: The cases' README says which rules they hold**
+- [x] **Step 3: The cases' README says which rules they hold**
 
 In `supabase/partner-status/README.md`, replace:
 
@@ -1153,7 +1153,7 @@ it plays a sound, and its words, with times in the file's `timeZone`. The summar
 alerts read, so they don't follow the schema's list of required fields; every field they do set is one of the schema's.
 ```
 
-- [ ] **Step 4: The tests' count**
+- [x] **Step 4: The tests' count**
 
 In `supabase/tests/README.md`, replace:
 
@@ -1167,7 +1167,7 @@ with:
 274 tests run in about 40 seconds, each test file in its own process. `npm test` runs `node --no-maglev --test`. Without `--no-maglev`, Node 23.11 sometimes deadlocks under the test runner:
 ```
 
-- [ ] **Step 5: Run every test, and check the types**
+- [x] **Step 5: Run every test, and check the types**
 
 Run:
 
@@ -1177,7 +1177,7 @@ cd ~/Dev/Duty-trip-alerts/supabase/tests && npm test && ~/Dev/"Crewluve Website"
 
 Expected: `ℹ tests 274`, `ℹ pass 274`, `ℹ fail 0`, then `types ok`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd ~/Dev/Duty-trip-alerts && git add supabase/functions/partner-push/index.ts supabase/partner-api.md supabase/partner-status/README.md supabase/tests/README.md && git commit -q -m "docs(partner-links): partner-push's trip rules, the two plural kinds, and the tests' count (alert pushes spec §15)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1
@@ -1187,7 +1187,7 @@ cd ~/Dev/Duty-trip-alerts && git add supabase/functions/partner-push/index.ts su
 
 **Files:** whatever the review finds.
 
-- [ ] **Step 1: Ask for a review**
+- [x] **Step 1: Ask for a review**
 
 Use superpowers:requesting-code-review with a read-only reviewer. It reads:
 - `git -C ~/Dev/Duty-trip-alerts diff 94253777..feature/trip-alerts`;
@@ -1197,7 +1197,7 @@ Use superpowers:requesting-code-review with a read-only reviewer. It reads:
 
 It may run `npm test` in `~/Dev/Duty-trip-alerts/supabase/tests`; nothing else. It changes nothing and contacts nothing. State facts neutrally, and don't tell it what not to flag.
 
-- [ ] **Step 2: Act on it**
+- [x] **Step 2: Act on it**
 
 For each finding, fix it test-first, run `npm test` again, and commit with the exact paths. A change to the rules changes `alert-cases.json` first. Note each fix in this plan's Execution notes.
 
@@ -1205,11 +1205,11 @@ For each finding, fix it test-first, run `npm test` again, and commit with the e
 
 **Files:** none. Crewlu Cloud changes here, by the user's hands, and only partner-push: there's no SQL.
 
-- [ ] **Step 1: Ask before going live**
+- [x] **Step 1: Ask before going live**
 
 Ask the user one question: deploy partner-push's new file now? It changes nothing anyone sees until Crewluve 1.3. If not now, stop: Tasks 7 and 8 wait too.
 
-- [ ] **Step 2: partner-push's new file on the clipboard**
+- [x] **Step 2: partner-push's new file on the clipboard**
 
 Run it with the sandbox off, since from inside it `pbcopy` doesn't reach the user's clipboard. Plan 1 found that one copy can come up empty, so read it back:
 
@@ -1228,7 +1228,7 @@ Then send the user these steps:
 3. Click **Deploy updates**, and wait for the success message.
 4. On its **Settings** tab, check that **Verify JWT with legacy secret** is still off.
 
-- [ ] **Step 3: Check what's deployed**
+- [x] **Step 3: Check what's deployed**
 
 With the user's yes, Claude reads it through its read-only connection:
 - `list_edge_functions` shows partner-push ACTIVE, one version on from before, with `verify_jwt` false;
@@ -1245,7 +1245,7 @@ The Execution notes record the results, with no names, labels or tokens.
 
 **Files (in `~/Dev/Crewluve Website`):** modify `docs/superpowers/specs/2026-10-23-partner-alert-pushes-design.md`, and this plan.
 
-- [ ] **Step 1: The spec's §15.3 takes this plan's decisions 1 and 2**
+- [x] **Step 1: The spec's §15.3 takes this plan's decisions 1 and 2**
 
 In `docs/superpowers/specs/2026-10-23-partner-alert-pushes-design.md`, replace:
 
@@ -1295,7 +1295,7 @@ with:
 - **The same trip, for a departure:** a departure belongs to the trip whose span holds `nextDepartureTime`. Two departures are compared only when both are found and share it.
 ```
 
-- [ ] **Step 2: The spec's status line**
+- [x] **Step 2: The spec's status line**
 
 In `docs/superpowers/specs/2026-10-23-partner-alert-pushes-design.md`, replace:
 
@@ -1309,7 +1309,7 @@ with:
 On 2026-10-24 the user changed the trip alerts (§15). Plan 2a, Crewlu Cloud's part, is built and set up (`docs/superpowers/plans/2026-10-24-partner-alert-pushes-2a-cloud-trips.md`). Next: plan 2b, Crewluve 1.3.
 ```
 
-- [ ] **Step 3: Tick this plan and commit**
+- [x] **Step 3: Tick this plan and commit**
 
 ```bash
 cd ~/"Dev/Crewluve Website" && git add docs/superpowers/specs/2026-10-23-partner-alert-pushes-design.md docs/superpowers/plans/2026-10-24-partner-alert-pushes-2a-cloud-trips.md && git commit -q -m "Plan 2a of the alert pushes built: the trip alerts on Crewlu Cloud; spec §15 takes its decisions" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1
@@ -1338,3 +1338,24 @@ Ask separately before each push: `feature/supabase-account-backend` in `~/Dev/Du
 ## Execution notes
 
 Filled in during the build: any place the code ends up different from the printed blocks, and why, and the setup's results.
+
+Built on 2026-10-24 in `~/Dev/Duty-trip-alerts`, on `feature/trip-alerts`, inline, with a read-only reviewer for Task 5.
+
+- **Task 0 Step 1:** `git rev-parse --short` refuses two names at once, so `HEAD` and `origin/feature/supabase-account-backend` were read one at a time: both `94253777`.
+- **Tasks 1–4** went in as printed (`99249db8`, `c1faf6d2`, `e22a6a4e`, `dbd71d2b`), and each Run gave its expected result: 274 of 274, types clean, and cases equal to the copy plans 2b and 2c were checked with.
+- **Task 2:** one assertion beyond the printed test pinned which trip `tripAt` picks where two spans touch. The review's second fix replaced it.
+- **Task 5, the review:** nothing critical, four important findings and five minor.
+  1. **The safety net looked only for a summary with no legs at all.** CrewLu can write one with commutes or events but no trips: when a trip fetch fails, when trips have no duty periods yet, or after a reset of its data, before the trips download again. Every trip would read as cancelled, then as new. **The user chose:** a summary with no trip legs adds and removes nothing.
+  2. **The departure's trip rested on the order of the legs.** The TypeScript took the first trip in the legs, and plan 2b's Swift the smallest id. Now a departure belongs to every trip whose span holds it, and two departures are compared when they share one. A new case: one trip ending as the next begins.
+  3. **The trip check compared every trip with every leg.** At the 1 MB cap that's about half a second a call, twice per partner device, against a run's two seconds of CPU for everyone's pushes. Now each trip takes one binary search, with the same answers (checked against the old definition on 20,000 random pairs): 15 ms for 40,000 legs, and a test holds it under a second.
+  4. **"Trip extended" or "shortened" fired across two different trips,** as in Crewluve 1.2. **The user chose:** only while the same trip is under way, as §15.3 said.
+  5. **The minor ones:**
+     - clearer test labels;
+     - three more cases: the safety net's other direction, the moment being the summary's own time, and the summary's home arrival across a trip change;
+     - the cases' `about` and a test title name Crewluve 1.3;
+     - tidy-ups;
+     - **left for later:** `readable()` doesn't check `tripId`'s and `currentTripId`'s types. That would mean changing `private.push_readable` too, and this plan has no SQL.
+  - **Fixes:** `61739550` (the binary search, with its speed test) and `afcd2549` (the rules, eight cases in, 57 in all, and the tests). 275 of 275 tests, types clean, and 15 of 15 new deliberate breaks caught.
+  - **Both sides:** plan 2b's Swift, in its scratch build, took the same changes, and all 57 cases give the same alerts there (339 harness tests). Plan 2b's text is updated to match.
+- **Task 6:** partner-push version 9, ACTIVE, `verify_jwt` false, deployed on 2026-10-24 at 18:03 UTC, with the branch's file. The probe (request 66): 200, with `BadDeviceToken` from both of Apple's services. **Still to check:** the first real run, at CrewLu's next write, should answer 200 with `alerts` 0.
+- **Task 7:** §15.3 takes decisions 1 and 2 and the user's two calls after the review, and §15.5 lists the review's limits.
