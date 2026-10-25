@@ -365,13 +365,13 @@ The iPad's Crewluve can stay on the welcome screen, or be deleted.
 
 **Who:** the user, with Claude's check between the archive and the upload.
 
-- [ ] **Step 1: Archive**
+- [x] **Step 1: Archive**
 
 1. In Xcode, check the **Crewluv** target → **General** → **Identity**: Version **1.3**, Build **45**. Then the **CrewluveAlerts** target: the same.
 2. Set the scheme at the top to **Crewluv**, and the destination to **Any iOS Device (arm64)**.
 3. Choose **Product → Archive**, and wait for the Organizer to open with **Crewluve 1.3 (45)** selected.
 
-- [ ] **Step 2: Claude checks the archive**
+- [x] **Step 2: Claude checks the archive**
 
 Create `$BUILD/check_archive.py`:
 
@@ -464,7 +464,7 @@ all checks ok
 
 Any FIX: don't upload. Stop, and ask.
 
-- [ ] **Step 3: Upload for App Store Connect**
+- [x] **Step 3: Upload for App Store Connect**
 
 1. In the Organizer, click **Distribute App**, and choose **App Store Connect**.
 2. Click **Distribute**. If it asks, keep **Automatically manage signing**. It makes the helper's App Store profile.
@@ -563,7 +563,7 @@ Expected: one banner, "went out for dinner", shown once, and `partner-push: 1 se
 
 **Who:** the user. Steps 1 to 4 can be done while Task 5's beta review waits. Step 5 waits for Task 6.
 
-- [ ] **Step 1: Make version 1.3**
+- [x] **Step 1: Make version 1.3**
 
 1. In App Store Connect → **Crewluve** → **Distribution**, click **+** next to **iOS App**, and type `1.3`.
 2. In **What's New in This Version**, paste:
@@ -577,7 +577,7 @@ Expected: one banner, "went out for dinner", shown once, and `partner-push: 1 se
 
 3. Under **Build**, click **+**, and choose **1.3 (45)**.
 
-- [ ] **Step 2: The App Review notes**
+- [x] **Step 2: The App Review notes**
 
 Under **App Review Information**, **Sign-in required** stays off. In **Notes**, paste:
 
@@ -587,11 +587,11 @@ Crewluve shows the status of a pilot who shares it from our CrewLu app. Connecti
 New in 1.3: update alerts reach the device as notifications from Crewlu Cloud, our server, so they arrive on time even when Crewluve isn't running. Each notification says only what kind of update it is. Crewluve's notification service extension then reads the pilot's status from Crewlu Cloud with the device's key, as the app does, and writes the alert's words on the device. No new data is collected.
 ```
 
-- [ ] **Step 3: Release automatically**
+- [x] **Step 3: Release automatically**
 
 Under **Version Release**, choose **Automatically release this version**.
 
-- [ ] **Step 4: The privacy answers stay**
+- [x] **Step 4: The privacy answers stay**
 
 1. In the left column, under **Trust & Safety**, click **App Privacy**.
 2. Change nothing.
@@ -671,3 +671,6 @@ Filled in as the release goes: each task's result, and anything that differed. N
   - **Step 3 again:** "went out for dinner". partner-push sent `1 sent (1 as alerts)` at 23:48:16.883 UTC, and the helper's `partner_view` followed at 23:48:16.927: 200, `CrewluveAlerts/45`. Two more pushes were read the same way, at 23:52:03 and 23:55:33 UTC. The last showed its title and "is asking you to call".
   - **Step 4:** the running helper, attached right after it handled a push, used 3.5 MB, with a high of 3.6 MB: under the 12 MB bar. The reading while stopped at the breakpoint couldn't be taken. Xcode's gauge showed Zero KB for a process paused before its first sample, and an lldb expression asking the kernel for its figures didn't finish. The summary it read is 29,974 bytes.
   - **Step 5:** Test 1 is removed, and Crewlu Cloud lists only the two real partners' devices.
+- **Task 4 (2026-10-24):** the archive, from `11e4714` with nothing else changed, passed all 8 of `check_archive.py`'s checks: both bundles 1.3 (45) for iOS 26.0, the helper a notification service, signed with its own App ID on the app's team, its one Keychain group Crewluve's own, the app with no group of its own, and the signatures verifying. The upload through **Distribute App → App Store Connect** worked.
+- **Task 5 Step 1 (2026-10-24):** 1.3 (45) went to the external group with the What to Test text, and was submitted for Apple's beta review.
+- **Task 7 Steps 1 to 4 (2026-10-24), done while the beta review waits:** version 1.3 has the What's New text and build 1.3 (45), the review notes, and automatic release, and the privacy answers are unchanged. All saved; Step 5, the submission, waits for Task 6.
