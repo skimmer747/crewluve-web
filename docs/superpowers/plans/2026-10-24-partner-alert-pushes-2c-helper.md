@@ -33,7 +33,7 @@ These refine the spec. Task 9 writes them into it, with plan 2b's.
 
 1. **The helper is `CrewluveAlerts`,** embedded in Crewluve, with the bundle id `com.ToddAnderson.Crewluv.CrewluveAlerts`. It has the app's version and build, iOS 26.0, iPhone and iPad, and the app's Swift settings: Swift 5, the main actor by default, Approachable Concurrency and Member Import Visibility. This Mac's Xcode is 27.1, which may start a new target at iOS 27.1, so Task 3 sets 26.0.
 2. **It builds 15 of the app's files** through Target Membership: the words and the writer, the door, the key store, the summary and its translation, the trip resolver, and what those need. Planning type-checked them as an app extension, the fewest that compile. The writer lives in the app's folder, so `CrewluvTests` tests it, and the helper has no tests of its own.
-3. **Its one Keychain group is Crewluve's own,** `$(AppIdentifierPrefix)com.ToddAnderson.Crewluv` (spec §6.2). As its first group, it's also where a query that names no group looks, so `KeychainDeviceKeyStore` reads the app's items unchanged. The app's entitlements don't change.
+3. **Its one Keychain group is Crewluve's own,** `$(AppIdentifierPrefix)com.ToddAnderson.Crewluv` (spec §6.2), which plan 3 changed to `$(TeamIdentifierPrefix)com.ToddAnderson.Crewluv` (see the Execution notes). As its first group, it's also where a query that names no group looks, so `KeychainDeviceKeyStore` reads the app's items unchanged. The app's entitlements don't change.
 4. **`NotificationService` is nonisolated.** iOS calls it on a thread of its own choosing. With the app's settings, Xcode would make the class main-actor, which holds only on the main thread. The writer runs on the main actor, as the door and the key store do.
 5. **The alert is delivered once** (`PendingAlertPush`): with its words; or, when iOS's time runs out first, with the plain line, or as the push came if even that isn't ready. Words that come later are dropped.
 6. **The words are worked out as the app's own alerts' are:**
@@ -586,12 +586,12 @@ def main():
                    f'{configuration} entitlements file {HELPER}/{HELPER}.entitlements',
                    f'it is {mine.get("CODE_SIGN_ENTITLEMENTS")!r}; add Keychain Sharing in Signing & Capabilities')
 
-    # The Keychain group: Crewluve's own, on the helper only.
+    # The Keychain group: Crewluve's own, by the team id, its App ID prefix, on the helper only (plan 3).
     entitlements = ROOT / HELPER / f'{HELPER}.entitlements'
     groups = plist(entitlements).get('keychain-access-groups') if entitlements.exists() else None
-    report(groups == ['$(AppIdentifierPrefix)com.ToddAnderson.Crewluv'],
+    report(groups == ['$(TeamIdentifierPrefix)com.ToddAnderson.Crewluv'],
            "the helper's one Keychain group is Crewluve's own",
-           f'it has {groups!r}; in Signing & Capabilities → Keychain Sharing, make the one group com.ToddAnderson.Crewluv')
+           f'it has {groups!r}; in the entitlements file, make the one group $(TeamIdentifierPrefix)com.ToddAnderson.Crewluv')
     app_entitlements = plist(ROOT / 'Crewluv' / 'Crewluv.entitlements')
     report('keychain-access-groups' not in app_entitlements, "the app's entitlements have no Keychain group",
            "remove Keychain Sharing from the Crewluv target's Signing & Capabilities")
@@ -1078,3 +1078,4 @@ Built on 2026-10-24 in `~/Dev/Crewluv`, on `feature/alert-pushes` after plan 2b'
   - **Task 5 again:** no errors and no warnings, the facts as before, and the order check passed for 38 and 16 files.
 - **Task 8, the user's ⌘U:** `Test run with 371 tests in 33 suites passed`. That's the 367 this plan expected plus the review's four tests, and the XCTest suites passed too.
 - **Task 9:** §16 from this plan's block, with plan 2c's review as §16.2's item 9. Also §4.2's bundle id, §7's offline row and the status line, in `d5ca4ef`.
+- **Plan 3 (2026-10-24):** on the iPad, the helper found no key: Xcode had signed it with the team's old wildcard App ID, whose prefix isn't the team id, so `$(AppIdentifierPrefix)` named the wrong group. `11e4714` names the group `$(TeamIdentifierPrefix)com.ToddAnderson.Crewluv`, and this plan's `check_nse.py` expects that now, at the same 132 lines. Plan 3's Execution notes have the details.

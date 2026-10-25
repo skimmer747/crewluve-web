@@ -278,18 +278,18 @@ Expected: `feature/alert-pushes` new on GitHub, and `hotfix/icloud-account-unava
 
 **Who:** the user, with Claude's checks. Do this when CrewLu shows no flight under way (decision 6). Claude asks once, at the start, for a yes that covers this task's reads of Crewlu Cloud. Each quick status has to differ from the one that partner sees now, or nothing changes for them.
 
-- [ ] **Step 1: Make Test 1, and run 1.3 on the iPad**
+- [x] **Step 1: Make Test 1, and run 1.3 on the iPad**
 
 1. On your phone, in **CrewLu → Partner Sharing**, tap **Invite Another Partner**, type `Test 1`, and tap **Share Invite Link**. In the share sheet, tap **Copy**, and paste the link into a note in Notes, which syncs to the iPad.
 2. Connect the iPad to the Mac. In Xcode, set the scheme at the top to **Crewluv**, not CrewluveAlerts, and the destination to the iPad.
-3. Press **⌘R**, and wait for Crewluve to open on the iPad. On the helper's first build for a device, Xcode's automatic signing registers its App ID, `com.ToddAnderson.Crewluv.CrewluveAlerts`. If Xcode shows a signing error for CrewluveAlerts instead, open that target's **Signing & Capabilities** and click **Try Again**.
+3. Press **⌘R**, and wait for Crewluve to open on the iPad. Xcode signs the helper with its own App ID, `com.ToddAnderson.Crewluv.CrewluveAlerts`, which has the team id's prefix: this task registered it (see the Execution notes). If Xcode shows a signing error for CrewluveAlerts, open that target's **Signing & Capabilities** and click **Try Again**.
 4. On the iPad, open the note, and tap the link.
 
 Expected: Crewluve shows Connecting, then your status, with the •••. CrewLu lists one device for Test 1.
 
 If your phone has Crewluve too, it may follow the iPad by itself, through piece 4's hand-off copy in your iCloud Keychain, and show as Test 1's second device. That's fine: Step 5 removes both.
 
-- [ ] **Step 2: Claude checks the iPad's device**
+- [x] **Step 2: Claude checks the iPad's device**
 
 Claude runs, read-only:
 
@@ -305,7 +305,7 @@ Expected:
 
 A second new `sandbox` row is your phone's own Crewluve following the iPad's.
 
-- [ ] **Step 3: An alert from the helper**
+- [x] **Step 3: An alert from the helper**
 
 1. On the iPad, swipe up to the Home Screen, and lock it.
 2. On your phone, in **CrewLu → Partner Sharing → Test 1 → Nickname and Quick Status → Quick Status**, pick **Call Me**. Under **Send To**, choose Test 1 only.
@@ -331,7 +331,7 @@ Expected:
 - `partner-push: 1 sent (1 as alerts), 0 dead, 0 retried, 0 failed`: one alert push, to the iPad, and nothing to the real partners;
 - a `partner_view` a second or two later, status 200, with an agent starting `CrewluveAlerts/45`: the helper's own read, under its own name.
 
-- [ ] **Step 4: Measure the helper's memory**
+- [x] **Step 4: Measure the helper's memory**
 
 1. In Xcode, open `Crewluv/Services/PartnerCloud/AlertPushWriter.swift`. Near the end of `words(for:at:)`, click the line number of `return AlertPushWords(title: words.title, body: words.body)` to set a breakpoint. The status the helper read is still held there, so that's about when it uses the most memory.
 2. Choose **Debug → Attach to Process by PID or Name…**, type `CrewluveAlerts`, and click **Attach**. Xcode shows it's waiting for CrewluveAlerts on the iPad.
@@ -351,7 +351,7 @@ select length(status::text) as summary_bytes from public.partner_status;
 
 Expected: one row, the size of your summary.
 
-- [ ] **Step 5: Remove Test 1**
+- [x] **Step 5: Remove Test 1**
 
 In **CrewLu → Partner Sharing → Test 1**, tap **Remove Partner**, and confirm.
 
@@ -663,3 +663,11 @@ Filled in as the release goes: each task's result, and anything that differed. N
 - **Task 0 (2026-10-24):** the repos were as Step 1 expects. Step 2's first read found only the probe since version 9 went live, so CrewLu came to the front, and the second read had the first real run: at 22:50:37 UTC, `partner-push: 2 sent (0 as alerts), 0 dead, 0 retried, 0 failed`, with no `claim answered` line, and request 67 answered 200 with `{"sent":2,"alerts":0,"dead":0,"retried":0,"failed":0}`. This closes plan 2a's Task 6 Step 4, ticked in Task 9.
 - **Task 1 (2026-10-24):** with the user's yes, the change went in as printed (`1 file changed, 6 insertions(+), 4 deletions(-)`), and the user read it in their browser and kept it. With its own yes, `f7fd093` was pushed (`533e86f..f7fd093`), and GitHub Pages built it at 22:54:57 UTC. The first look still had the old page, from the cache in front of the site; a reload had "Last Updated: October 24, 2026" and the new item, and the old one was gone.
 - **Task 2 (2026-10-24):** each step gave its expected result. The bump: `8 insertions(+), 8 deletions(-)`. `check_nse.py` (132 lines, from plan 2c's text): `all checks ok`, with 1.3 and 45 under Debug and Release. The commit is `941e927`, and the release line fast-forwarded `4333994..941e927`. The scan: `11 commits`, nothing found. The scan doesn't look for the team id, and the project file already had it on GitHub 8 times; the new target's 2 are the same value. With the user's yes, both branches were pushed: `feature/alert-pushes` new on GitHub, and `hotfix/icloud-account-unavailable` `4333994..941e927`.
+- **Task 3 (2026-10-24):** it waited for a flight under way to end (decision 6).
+  - **Steps 1 and 2** went as expected. The iPad's device joined as `sandbox`, with a token and `push_alerts` true.
+  - **Step 3 failed the first time:** the alert read only the plain line, "sent a quick status", with no title. partner-push sent it as an alert (`1 sent (1 as alerts)`, 23:19:41 UTC), but no `partner_view` came from `CrewluveAlerts/45`, so the helper had found no key.
+  - **The cause:** Xcode signed the helper with the team's wildcard App ID, an old one whose prefix isn't the team id, since nothing in the helper needs an App ID of its own. So `$(AppIdentifierPrefix)com.ToddAnderson.Crewluv` named a group under that prefix, not Crewluve's, whose App ID prefix is the team id. The built app's and helper's signatures and profiles showed it. Registering the helper's own App ID, `com.ToddAnderson.Crewluv.CrewluveAlerts` with the team id's prefix, wasn't enough on its own: Xcode keeps the wildcard while its profile can sign the helper's entitlements.
+  - **The fix,** the user's choice, is `11e4714`: the helper names the group `$(TeamIdentifierPrefix)com.ToddAnderson.Crewluv`. The wildcard's profile can't grant that, so Xcode signs the helper with its own App ID. `check_nse.py` in plan 2c's text expects the new group: it failed on the old file and passed on the new one. Crewluve's CLAUDE.md says why. The rebuilt helper was signed with its own team profile, on the team id's prefix, and its one group equals the app's App ID.
+  - **Step 3 again:** "went out for dinner". partner-push sent `1 sent (1 as alerts)` at 23:48:16.883 UTC, and the helper's `partner_view` followed at 23:48:16.927: 200, `CrewluveAlerts/45`. Two more pushes were read the same way, at 23:52:03 and 23:55:33 UTC. The last showed its title and "is asking you to call".
+  - **Step 4:** the running helper, attached right after it handled a push, used 3.5 MB, with a high of 3.6 MB: under the 12 MB bar. The reading while stopped at the breakpoint couldn't be taken. Xcode's gauge showed Zero KB for a process paused before its first sample, and an lldb expression asking the kernel for its figures didn't finish. The summary it read is 29,974 bytes.
+  - **Step 5:** Test 1 is removed, and Crewlu Cloud lists only the two real partners' devices.

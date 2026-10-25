@@ -207,7 +207,7 @@ The 15-second check, the signing token, the probe, dropping dead tokens, and the
 
 ### 6.2 The key and the name
 
-- **The helper reads the key where it already is.** Its entitlements list Crewluve's own Keychain group, `$(AppIdentifierPrefix)com.ToddAnderson.Crewluv`, which holds the app's items today (§2.2). So it reads the key 1.2 saved, and nothing moves. The app's entitlements and Keychain code stay as they are.
+- **The helper reads the key where it already is.** Its entitlements list Crewluve's own Keychain group, `$(TeamIdentifierPrefix)com.ToddAnderson.Crewluv`, which holds the app's items today (§2.2): Crewluve's App ID prefix is the team id. The helper has its own App ID, `com.ToddAnderson.Crewluv.CrewluveAlerts`, with the same prefix. (Plan 3 found that `$(AppIdentifierPrefix)` takes the prefix of the App ID Xcode signs the helper with, and Xcode chose the team's old wildcard App ID, whose prefix isn't the team id: the helper found no key.) So it reads the key 1.2 saved, and nothing moves. The app's entitlements and Keychain code stay as they are.
 - **A real phone proves it first** (§9.4 step 1). If iOS refuses, the fallback: the app and the helper share a new Keychain group, and the app copies the key into it at launch. Until the app has run once, that phone gets plain lines.
 - **The name:** whenever the app saves `ResolvedPilotDisplayName`, it also saves the name in a Keychain item next to the key (`pilotName`: this device only, after the first unlock, not synced). It deletes that item when it forgets the pilot.
 
