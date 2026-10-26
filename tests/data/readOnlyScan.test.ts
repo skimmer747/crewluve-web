@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { fromCallers, importersOf, staticClosure, touchesClient, violations } from '../fixtures/sourceScan'
 
-// These are the ways a code review got past the first read-only guard. Each must now be flagged by the source rules,
-// and the ones that go through the client are also refused at the network (tests/data/readOnlyClient.test.ts).
+// The ways around a network guard that a code review found. Each must be flagged by the source rules; the partner door
+// guard refuses anything else at the network (tests/partner/doorGuard.test.ts).
 const BYPASSES: Array<[string, string, string, RegExp]> = [
   ['updateUser rewrites the pilot account', 'src/ui/Rename.ts', `export const rename = (c: any) => c.auth.updateUser({ data: { first_name: 'X' } })`, /\.updateUser/],
   ['functions.invoke calls an edge function', 'src/ui/Poke.ts', `export const poke = (c: any) => c.functions.invoke('anything')`, /\.functions/],
@@ -63,23 +63,21 @@ describe('the source rules leave ordinary code alone', () => {
     ['the airport list fetch', 'src/data/Airports.ts', `export const load = (url: string) => fetch(url)`],
     ['a fetch with options that only read', 'src/data/Airports.ts', `export const load = (url: string, signal: AbortSignal) => fetch(url, { signal, cache: 'force-cache', method: 'GET' })`],
     ['mentions in comments and strings', 'src/data/Notes.ts', `// never call .update( or .insert( or client.from('trips').delete()\nexport const note = "fetch(url, { method: 'PATCH' }) is not allowed"`],
-    ['type-only imports of the client module', 'src/ui/Types.ts', `import type { supabase } from '../supabase'\nexport type Client = typeof supabase`],
-    ['the sign-in calls the site makes', 'src/auth/Calls.ts', `import { supabase } from '../supabase'\nexport const go = () => supabase.auth.signInWithPassword({ email: 'a', password: 'b' })\nexport const out = () => supabase.auth.signOut({ scope: 'local' })`],
     ['the partner door module, which sends its POSTs through the door guard', 'src/partner/door.ts', `export const go = (url: string, init: RequestInit) => fetch(url, init)`],
   ])('%s', (_name, path, code) => {
     expect(violations(path, code)).toEqual([])
   })
 
-  it('treats a Set.delete in a file that imports the client as a write, so keep them apart', () => {
-    const code = `import { supabase } from '../supabase'\nexport const f = (s: Set<number>) => { s.delete(1); return supabase }`
+  it('treats a Set.delete in a file that queries a table as a write, so keep them apart', () => {
+    const code = `export const f = (c: any, s: Set<number>) => { s.delete(1); return c.from('trips') }`
     expect(violations('src/ui/Mixed.ts', code).join('\n')).toMatch(/\.delete/)
   })
 })
 
 describe('touchesClient', () => {
-  it('is true for a file that imports src/supabase.ts or queries with .from(', () => {
-    expect(touchesClient('src/auth/x.ts', `import { supabase } from '../supabase'`)).toBe(true)
-    expect(touchesClient('src/auth/x.ts', `export const f = () => import('../supabase')`)).toBe(true)
+  it('is true for a file that imports a Supabase package or queries with .from(', () => {
+    expect(touchesClient('src/data/x.ts', `import { createClient } from '@supabase/supabase-js'`)).toBe(true)
+    expect(touchesClient('src/data/x.ts', `export const f = () => import('@supabase/supabase-js')`)).toBe(true)
     expect(touchesClient('src/data/x.ts', `export const q = (c: any) => c.from('trips')`)).toBe(true)
     expect(touchesClient('src/data/x.ts', `export const q = (c: any) => c['from']('trips')`)).toBe(true)
   })

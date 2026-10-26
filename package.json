@@ -16,7 +16,6 @@
     "icons": "npm install --no-save @phosphor-icons/core@2.1.1 && node scripts/build-icons.mjs"
   },
   "dependencies": {
-    "@supabase/supabase-js": "2.117.3",
     "preact": "10.29.8"
   },
   "devDependencies": {

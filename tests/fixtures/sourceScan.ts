@@ -1,7 +1,8 @@
-// Static checks over src/ for the read-only guarantee (spec §9).
+// Static checks over src/ for the partner door guarantee (piece 5a §9): the site reaches Crewlu Cloud only through the
+// four partner RPCs.
 //
-// The guarantee itself is src/data/readOnlyFetch.ts: every request the CrewLu Cloud client sends passes through it.
-// These checks keep that wrapper from being bypassed (a second client, a raw fetch) and catch a write call before it
+// The guarantee itself is src/partner/doorGuard.ts: every request src/partner/door.ts sends passes through it. These
+// checks keep it from being bypassed (a Supabase client, a raw POST from another file) and catch a write call before it
 // ships. They parse with the TypeScript compiler instead of matching text, so comments, strings, line breaks, bracket
 // access (`client['from']`) and spacing (`client.from (`) can neither hide a call nor fake one.
 import { existsSync, readdirSync, statSync } from 'node:fs'
@@ -11,8 +12,6 @@ import ts from 'typescript'
 
 export const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 export const SRC = join(ROOT, 'src')
-/** The one module that creates the CrewLu Cloud client, with the read-only fetch. */
-export const SUPABASE_MODULE = 'src/supabase.ts'
 /** The one module that sends the partner door's POSTs, each through the door guard (piece 5a §9). */
 export const DOOR_MODULE = 'src/partner/door.ts'
 
@@ -174,7 +173,7 @@ interface Facts {
   sf: ts.SourceFile
   imports: ImportRef[]
   refs: MemberRef[]
-  /** The file imports src/supabase.ts or calls `.from(`: it works with the CrewLu Cloud client. */
+  /** The file imports a Supabase package or calls `.from(`: it would work with a Crewlu Cloud client. */
   touchesClient: boolean
 }
 
@@ -182,7 +181,7 @@ function factsOf(path: string, code: string): Facts {
   const sf = parse(code, path)
   const imports = importsOf(sf)
   const refs = memberRefs(sf)
-  const importsClient = imports.some((i) => i.specifier !== null && resolveImport(path, i.specifier) === SUPABASE_MODULE)
+  const importsClient = imports.some((i) => i.specifier?.startsWith('@supabase/') === true)
   return { sf, imports, refs, touchesClient: importsClient || refs.some(isClientFrom) }
 }
 
@@ -203,6 +202,24 @@ const NETWORK_GLOBALS = new Set(['XMLHttpRequest', 'WebSocket', 'EventSource', '
 
 const isFetchCallee = (e: ts.Expression) => (ts.isIdentifier(e) && e.text === 'fetch') || (ts.isPropertyAccessExpression(e) && e.name.text === 'fetch') ||
   (ts.isElementAccessExpression(e) && literal(e.argumentExpression) === 'fetch')
+
+/** Every call to fetch in a file: `fetch(…)`, or `.fetch(…)` on anything, as the rules judge them. */
+export function fetchCalls(sf: ts.SourceFile): ts.CallExpression[] {
+  const calls: ts.CallExpression[] = []
+  walk(sf, (n) => {
+    if (ts.isCallExpression(n) && isFetchCallee(n.expression)) calls.push(n)
+  })
+  return calls
+}
+
+/** The source text of every call to the plain function `name`, such as `doorFetch(send)`. */
+export function callsTo(sf: ts.SourceFile, name: string): string[] {
+  const calls: string[] = []
+  walk(sf, (n) => {
+    if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === name) calls.push(n.getText(sf))
+  })
+  return calls
+}
 
 /** What makes a fetch() call more than a plain GET; null when it is one. */
 function fetchProblem(call: ts.CallExpression): string | null {
@@ -232,12 +249,11 @@ function networkProblems(path: string, { sf, refs }: Facts): string[] {
   walk(sf, (n) => {
     if (ts.isIdentifier(n) && NETWORK_GLOBALS.has(n.text)) found.push(`${path}:${lineOf(sf, n)} uses ${n.text}`)
     else if (ts.isNewExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'Request') {
-      found.push(`${path}:${lineOf(sf, n)} constructs a Request; the site makes plain GET fetches only`)
-    } else if (ts.isCallExpression(n) && isFetchCallee(n.expression) && path !== SUPABASE_MODULE && path !== DOOR_MODULE) {
+      found.push(`${path}:${lineOf(sf, n)} constructs a Request; the site's fetches are plain calls it can check`)
+    } else if (ts.isCallExpression(n) && isFetchCallee(n.expression) && path !== DOOR_MODULE) {
       const problem = fetchProblem(n)
-      // src/supabase.ts passes the page's fetch to the client, which wraps it in readOnlyFetch; src/partner/door.ts
-      // passes it to the door guard.
-      if (problem) found.push(`${path}:${lineOf(sf, n)} calls fetch ${problem}; the site makes plain GET fetches only`)
+      // src/partner/door.ts passes the page's fetch to the door guard, which lets only the four partner RPCs through.
+      if (problem) found.push(`${path}:${lineOf(sf, n)} calls fetch ${problem}; only ${DOOR_MODULE} may send more than a plain GET`)
     }
   })
   return found
@@ -257,16 +273,16 @@ export function violations(path: string, code: string): string[] {
       found.push(`${path} imports a module by a computed name; use a string literal so the import graph can be checked`)
     } else if (/^[a-z][a-z0-9+.-]*:/i.test(ref.specifier)) {
       found.push(`${path} imports ${ref.specifier}; imports from URLs and schemes (https:, data:, node:) are not allowed`)
-    } else if (ref.specifier.startsWith('@supabase/') && path !== SUPABASE_MODULE) {
-      found.push(`${path} imports ${ref.specifier}; only ${SUPABASE_MODULE} may, so every client is built with the read-only fetch`)
+    } else if (ref.specifier.startsWith('@supabase/')) {
+      found.push(`${path} imports ${ref.specifier}; the site has no Supabase client: it reaches Crewlu Cloud only through ${DOOR_MODULE}`)
     }
   }
 
   for (const r of facts.refs) {
     if (CLIENT_ONLY.has(r.name)) {
-      found.push(`${path}:${r.line} uses .${r.name}, which only a Supabase client has; this site reads with select queries only`)
+      found.push(`${path}:${r.line} uses .${r.name}, which only a Supabase client has; the site reaches Crewlu Cloud only through the partner door`)
     } else if (facts.touchesClient && r.isCall && GENERIC_WRITES.has(r.name)) {
-      found.push(`${path}:${r.line} calls .${r.name} in a file that works with the CrewLu Cloud client; this site never writes`)
+      found.push(`${path}:${r.line} calls .${r.name} in a file that queries tables; the site never writes`)
     }
   }
 

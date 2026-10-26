@@ -1,42 +1,39 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { fromCallers, importersOf, importsOf, parse, rel, SUPABASE_MODULE, sourceFiles, staticClosure, violations } from '../fixtures/sourceScan'
+import { DOOR_MODULE, callsTo, fetchCalls, fromCallers, importersOf, importsOf, parse, rel, sourceFiles, violations } from '../fixtures/sourceScan'
 
-// The guarantee itself is src/data/readOnlyFetch.ts: the CrewLu Cloud client sends every request through it, and
-// tests/data/readOnlyClient.test.ts shows a real client being refused every write. The rules below stop code from
-// going around that wrapper (a second client, a raw fetch) or calling writes in the first place. They scan src/ from
+// The guarantee itself is src/partner/doorGuard.ts: src/partner/door.ts sends every Crewlu Cloud request through it, and
+// tests/partner/doorGuard.test.ts shows it refusing everything but the four partner RPCs. The rules below stop code
+// from going around the door (a Supabase client, a raw POST) or calling writes in the first place. They scan src/ from
 // this file's location, so they work whatever directory the tests run from.
 const sources: Record<string, string> = Object.fromEntries(sourceFiles().map((file) => [rel(file), readFileSync(file, 'utf8')]))
 
-/** The only files that may import src/supabase.ts. Root.tsx arrives in a later batch. */
-const MAY_IMPORT_THE_CLIENT = ['src/auth/session.ts', 'src/ui/Root.tsx']
-
-describe('read-only guarantee (spec §9)', () => {
-  it.each(Object.keys(sources))('%s never writes to CrewLu Cloud, goes around the read-only fetch, or injects HTML', (path) => {
+describe('the partner door is the only way to Crewlu Cloud (piece 5a §9)', () => {
+  it.each(Object.keys(sources))('%s has no client, no raw POST and no injected HTML', (path) => {
     expect(violations(path, sources[path])).toEqual([])
   })
 
-  it('keeps all database access in fetchSchedule.ts', () => {
-    expect(fromCallers(sources)).toEqual(['src/data/fetchSchedule.ts'])
+  it('queries no table', () => {
+    expect(fromCallers(sources)).toEqual([])
   })
 
-  it('lets only src/supabase.ts import a Supabase package, so every client is built with the read-only fetch', () => {
+  it('imports no Supabase package', () => {
     const importers = Object.keys(sources).filter((path) => importsOf(parse(sources[path], path)).some((i) => i.specifier?.startsWith('@supabase/')))
-    expect(importers).toEqual([SUPABASE_MODULE])
+    expect(importers).toEqual([])
   })
 
-  it('lets only session.ts and Root.tsx import src/supabase.ts, statically or dynamically', () => {
-    const importers = [...new Set(importersOf(SUPABASE_MODULE, sources).map((i) => i.path))]
-    expect(MAY_IMPORT_THE_CLIENT).toEqual(expect.arrayContaining(importers))
+  it("sends the door module's calls through the door guard", () => {
+    const sf = parse(sources[DOOR_MODULE], DOOR_MODULE)
+    expect(importsOf(sf).map((i) => i.specifier)).toContain('./doorGuard')
+    // The door module may send what other files can't, so pin its calls: its one fetch is the page's own, handed to
+    // makeDoor, and makeDoor sends everything through the guard.
+    const calls = fetchCalls(sf)
+    expect(calls).toHaveLength(1)
+    expect(calls[0].parent.parent.getText(sf)).toBe('makeDoor((input, init) => fetch(input, init))')
+    expect(callsTo(sf, 'doorFetch')).toEqual(['doorFetch(send)'])
   })
 
-  it('has session.ts load the client on demand: demo mode makes no network calls (spec §4.7)', () => {
-    const fromSession = importersOf(SUPABASE_MODULE, sources).filter((i) => i.path === 'src/auth/session.ts')
-    expect(fromSession).toEqual([{ path: 'src/auth/session.ts', kind: 'dynamic', typeOnly: false }])
-  })
-
-  it('never reaches src/supabase.ts from the app entry without a dynamic import', () => {
-    // Creating the client restores a stored session and refreshes its token, which is a network call.
-    expect([...staticClosure('src/main.tsx', sources)]).not.toContain(SUPABASE_MODULE)
+  it('lets only the door module use the door guard', () => {
+    expect(importersOf('src/partner/doorGuard.ts', sources).map((i) => i.path)).toEqual([DOOR_MODULE])
   })
 })
