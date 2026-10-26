@@ -61,6 +61,25 @@ describe('readSummary', () => {
     const odd = [{ ...legs[0], startTime: 1e300 }, { ...legs[1], endTime: 0 }, legs[2]]
     expect(readSummary({ ...status, tripLegs: odd }, PARTNER_A)?.legs).toHaveLength(1)
   })
+
+  it("ignores a delay beyond a day either way, and days or a delay that aren't whole numbers", () => {
+    const status = example('layover')
+    const legs = status.tripLegs as Array<Record<string, unknown>>
+    const read = (fields: Record<string, unknown>) => readSummary({ ...status, tripLegs: [{ ...legs[0], ...fields }] }, PARTNER_A)!.legs[0]
+    expect(read({ delayMinutes: 1440 }).delayMinutes).toBe(1440)
+    expect(read({ delayMinutes: -1441 }).delayMinutes).toBeNull()
+    expect(read({ delayMinutes: 1.5e11 }).delayMinutes).toBeNull()
+    expect(read({ delayMinutes: 12.5 }).delayMinutes).toBeNull()
+    expect(read({ tripTotalDays: 2.5 }).tripTotalDays).toBeNull()
+  })
+
+  it('keeps times up to the year 9999 and no further', () => {
+    const status = example('home')
+    const legs = status.tripLegs as Array<Record<string, unknown>>
+    const lastSecond = Date.UTC(9999, 11, 31) / 1000
+    const read = readSummary({ ...status, tripLegs: [{ ...legs[0], endTime: lastSecond }, { ...legs[1], endTime: lastSecond + 1 }] }, PARTNER_A)!
+    expect(read.legs.map((l) => l.id)).toEqual([legs[0].id])
+  })
 })
 
 describe('quick status (piece 5a §7)', () => {

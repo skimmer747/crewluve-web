@@ -36,9 +36,11 @@ describe('localPartnerStore (piece 5a §4.2)', () => {
     expect([store.device(), store.summary()]).toEqual([null, null])
     // A join whose answer was lost tries again with the same key, so the same device answers (spec §4.3).
     expect(store.pendingKey()).toBe(key(2))
+    store.saveDevice({ key: key(1), partnerId: PARTNER_A })
     store.forgetPendingKey()
     expect(store.pendingKey()).toBeNull()
-    expect(storage.data.size).toBe(0)
+    expect(store.device()).toEqual({ key: key(1), partnerId: PARTNER_A })
+    expect(storage.data.size).toBe(1)
   })
 
   it('ignores what does not look right', () => {
