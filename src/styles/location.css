@@ -40,9 +40,10 @@
 }
 
 /* The pilot's quick status (piece 5a §7), where Crewluve's QuickStatusIndicatorView sits, between the weather and the
-   time: a 20 px blue icon, and the words at 16 px medium in the primary color, which stays readable on the glass. */
+   time: a 20 px blue icon, and the words at 16 px medium in the primary color, which stays readable on the glass. The
+   app pads it 4 points on top (.padding(.top, 4)): 16 below the weather credit, the card's 12 px gap and these 4 px. */
 .quick-status {
-  margin: 0;
+  margin: 4px 0 0;
   display: flex;
   align-items: center;
   gap: 8px;

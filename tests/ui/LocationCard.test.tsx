@@ -204,6 +204,17 @@ describe('LocationCard: the quick status (piece 5a §7)', () => {
     expect(row.nextElementSibling).toBe(container.querySelector('.location-time'))
   })
 
+  it('comes after the weather credit when there is weather, and before the time', () => {
+    const { container } = render(
+      <LocationCard airport="ANC" facts={locationFacts('ANC', NOW, testAirports, cloudy)} now={NOW} homeTz={NY} h24={false} weather={cloudy}
+        quickStatus={{ text: 'Call Me', icon: 'phone.fill', expiresAt: null }} />,
+    )
+    const row = container.querySelector('.quick-status')!
+    expect(container.querySelector('.weather-credit')).not.toBeNull()
+    expect(row.previousElementSibling).toBe(container.querySelector('.weather-credit'))
+    expect(row.nextElementSibling).toBe(container.querySelector('.location-time'))
+  })
+
   it('shows the quick status where the place is unknown too', () => {
     const { container } = render(
       <LocationCard airport={null} facts={locationFacts(null, NOW, testAirports, null)} now={NOW} homeTz={NY} h24={false} weather={null}
