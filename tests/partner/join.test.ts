@@ -230,6 +230,27 @@ describe('joining, in a browser that follows a pilot', () => {
     expect(await joinWithLink(INVITE_SAM, options)).toEqual({ kind: 'cancelled' })
     expect(store.device()).toEqual({ key: key(1), partnerId: PARTNER_A })
   })
+
+  it("replaces the device another tab saved while the question was open, so that one isn't left behind", async () => {
+    const { f, store, options, confirmSwitch } = await connectedToA()
+    confirmSwitch.mockImplementation(() => {
+      store.saveDevice({ key: key(9), partnerId: PARTNER_B }) // another tab connects this browser while the question is open
+      f.devices.set(key(9), PARTNER_B)
+      return true
+    })
+    expect(await joinWithLink(INVITE_SAM, options)).toEqual({ kind: 'connected', newDevice: true })
+    expect(store.device()).toEqual({ key: key(2), partnerId: SAM })
+    expect(last(f.calls)).toBe(`leave ${key(9)}`)
+  })
+
+  it('counts a question that fails to ask as a No', async () => {
+    const { store, options, confirmSwitch } = await connectedToA()
+    confirmSwitch.mockImplementation(() => {
+      throw new Error('The dialog was blocked')
+    })
+    expect(await joinWithLink(INVITE_SAM, options)).toEqual({ kind: 'cancelled' })
+    expect(store.device()).toEqual({ key: key(1), partnerId: PARTNER_A })
+  })
 })
 
 describe('what a partner is told (piece 5a §4.4)', () => {

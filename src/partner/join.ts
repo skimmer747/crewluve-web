@@ -43,8 +43,8 @@ interface Attempt {
 /**
  * Joins with an invite link or a hand-off code (piece 5a §4.3), as Crewluve does (PartnerJoiner.swift and
  * CrewluCloudDevice.swift): with this browser's key, else the pending key, saved before it's sent, so trying again
- * after a lost answer gets the same device. The connected key changes only when the browser switches to the new device.
- * It never rejects: every failure is an outcome.
+ * after a lost answer gets the same device. The connected key is let go only when the browser switches, or when a join
+ * shows its device is already gone. It never rejects: every failure is an outcome.
  */
 export async function joinWithLink(link: PartnerLink, options: JoinOptions): Promise<JoinOutcome> {
   const { door, store, now = Date.now } = options
@@ -86,7 +86,13 @@ export async function joinWithLink(link: PartnerLink, options: JoinOptions): Pro
   // A summary this site can't read: Crewluve can't connect then either, since it can't tell whose status it is.
   if (status != null && !newSummary) return { kind: 'failed', message: COULDNT_CONNECT }
   if (newSummary && followedSummary && newSummary.pilotId.toLowerCase() !== followedSummary.pilotId.toLowerCase()) {
-    if (!(await options.confirmSwitch(newSummary.name ?? 'your pilot', followedSummary.name ?? 'your pilot'))) {
+    let switching = false
+    try {
+      switching = await options.confirmSwitch(newSummary.name ?? 'your pilot', followedSummary.name ?? 'your pilot')
+    } catch {
+      // A question that fails to ask, such as a dialog the browser blocks, counts as a No.
+    }
+    if (!switching) {
       // The device the join made leaves, tried once, without waiting on it.
       void door.leave(attempt.key).catch(() => {})
       store.forgetPendingKey()
