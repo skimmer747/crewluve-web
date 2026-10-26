@@ -196,6 +196,17 @@
   color: var(--text-2);
 }
 
+/* A line above the cards (piece 5a §4.3), on the glass like the demo banner. */
+.notice {
+  margin: 0;
+  padding: 10px 16px;
+  border-radius: 16px;
+  font-size: 15px;
+  line-height: 20px;
+  text-align: center;
+  color: var(--text-2);
+}
+
 .empty {
   padding: 20px;
   text-align: center;

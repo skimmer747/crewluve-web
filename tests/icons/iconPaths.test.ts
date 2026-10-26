@@ -42,4 +42,8 @@ describe('ICON_PATHS', () => {
   it('has the schedule list’s jumpseat seat and turn clock', () => {
     for (const name of ['Seat', 'ClockCounterClockwise']) expect(ICON_PATHS).toHaveProperty(name)
   })
+
+  it('has the quick status icons (partner links piece 5a §7)', () => {
+    for (const name of ['Phone', 'ChatCircle', 'ForkKnife', 'Moon']) expect(ICON_PATHS).toHaveProperty(name)
+  })
 })

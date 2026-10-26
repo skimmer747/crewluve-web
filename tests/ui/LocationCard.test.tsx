@@ -6,7 +6,7 @@ import { demoRaw } from '../../src/data/demo'
 import type { Weather } from '../../src/data/weather'
 import { makeSnapshot } from '../../src/engine/snapshot'
 import type { StatusKind } from '../../src/engine/status'
-import { LocationCard, showsLocationCard } from '../../src/ui/LocationCard'
+import { LocationCard, quickStatusIcon, showsLocationCard } from '../../src/ui/LocationCard'
 import { locationFacts } from '../../src/ui/locationFacts'
 import { testAirports } from '../fixtures/airports'
 import { A, at, engineFor } from '../fixtures/engine'
@@ -186,5 +186,34 @@ describe('showsLocationCard', () => {
 
   it.each(Object.entries(SHOWN))('%s: %s', (kind, shown) => {
     expect(showsLocationCard({ ...snap, status: { ...snap.status, kind: kind as StatusKind } })).toBe(shown)
+  })
+})
+
+describe('LocationCard: the quick status (piece 5a §7)', () => {
+  it("shows the pilot's quick status under the city, with its icon", () => {
+    const { container } = render(
+      <LocationCard airport="ANC" facts={locationFacts('ANC', NOW, testAirports, null)} now={NOW} homeTz={NY} h24={false} weather={null}
+        quickStatus={{ text: 'Call Me', icon: 'phone.fill', expiresAt: null }} />,
+    )
+    expect(container.querySelector('.quick-status')?.textContent).toBe('Call Me')
+    expect(iconNameOf(container.querySelector('.quick-status svg'))).toBe('Phone')
+    expect(container.querySelector('.location-head')!.compareDocumentPosition(container.querySelector('.quick-status')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it.each<[string | null, string]>([
+    ['phone.fill', 'Phone'],
+    ['bubble.left.fill', 'ChatCircle'],
+    ['fork.knife', 'ForkKnife'],
+    ['moon.zzz.fill', 'Moon'],
+    ['sparkles', 'ChatCircle'],
+    ['constructor', 'ChatCircle'],
+    [null, 'ChatCircle'],
+  ])("draws CrewLu's %s as %s", (symbol, icon) => {
+    expect(quickStatusIcon(symbol)).toBe(icon)
+  })
+
+  it('has no quick status row without one', () => {
+    const { container } = render(card('ANC'))
+    expect(container.querySelector('.quick-status')).toBeNull()
   })
 })

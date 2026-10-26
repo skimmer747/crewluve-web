@@ -6,6 +6,7 @@ import type { Weather } from '../../src/data/weather'
 import { buildLegs, type Leg, type MoveLeg } from '../../src/engine/legs'
 import { buildSchedule } from '../../src/engine/normalize'
 import { makeSnapshot, safeSnapshot, type Snapshot } from '../../src/engine/snapshot'
+import type { QuickStatus } from '../../src/partner/summary'
 import { EmptyState } from '../../src/ui/EmptyState'
 import type { FooterProps } from '../../src/ui/Footer'
 import type { ScheduleLinkName } from '../../src/ui/ScheduleLink'
@@ -147,10 +148,37 @@ describe('StatusScreen celebration', () => {
 })
 
 describe('EmptyState', () => {
-  it('explains how to get data into CrewLu Cloud', () => {
+  it("waits for the pilot's first update (piece 5a §5)", () => {
     render(<EmptyState />)
-    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('No schedule in CrewLu Cloud yet')
-    expect(screen.getByText('Ask your pilot to turn on CrewLu Cloud in the Crewlu app and sync once, then refresh this page.')).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe("Waiting for your pilot's first update…")
+    expect(screen.getByText('It shows here as soon as CrewLu sends it.')).toBeTruthy()
+  })
+})
+
+describe('StatusScreen: the notice and the quick status (piece 5a)', () => {
+  const withExtras = (minutes: number, extras: { notice?: string | null; quickStatus?: QuickStatus | null }) => {
+    const now = at(minutes)
+    return (
+      <StatusScreen snap={makeSnapshot(e.schedule, e.legs, now, NY)} now={now} viewerTz={NY} homeTz={NY} h24={false} airports={testAirports}
+        weather={null} demo={false} celebrateKey={0} footer={footer(now)} {...extras} />
+    )
+  }
+
+  it('shows the notice above the sentence', () => {
+    const { container } = render(withExtras(-1440, { notice: 'Connected on this browser. Add it to your Home Screen to keep it handy.' }))
+    const notice = screen.getByRole('status')
+    expect(notice.textContent).toBe('Connected on this browser. Add it to your Home Screen to keep it handy.')
+    expect(notice.compareDocumentPosition(container.querySelector('.narrative')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('has no notice without one', () => {
+    render(withExtras(-1440, {}))
+    expect(screen.queryByRole('status')).toBeNull()
+  })
+
+  it('puts the quick status on the location card', () => {
+    const { container } = render(withExtras(-1440, { quickStatus: { text: 'Out for Dinner', icon: 'fork.knife', expiresAt: null } }))
+    expect(container.querySelector('.location .quick-status')?.textContent).toBe('Out for Dinner')
   })
 })
 

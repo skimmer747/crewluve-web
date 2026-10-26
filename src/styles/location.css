@@ -39,6 +39,17 @@
   line-height: 34px;
 }
 
+/* The pilot's quick status (piece 5a §7): its icon in blue, and its words at 15 px semibold, under the city. */
+.quick-status {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
 /* Weather: the icon, the temperature (20 px bold) and the words (15 px, secondary); the credit 11 px like the app's. */
 .weather-row {
   margin: 0;

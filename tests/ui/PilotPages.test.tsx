@@ -44,13 +44,13 @@ describe('PilotPages', () => {
   it('shows the empty state for an account with nothing in CrewLu Cloud', () => {
     render(<PilotPages schedule={handle(new RawBuilder(NOW).build())} airports={testAirports} demo={false} onSignOut={() => {}} />)
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('CrewLuve')
-    expect(screen.getByText('No schedule in CrewLu Cloud yet')).toBeTruthy()
+    expect(screen.getByText("Waiting for your pilot's first update…")).toBeTruthy()
   })
 
   it('shows just the title and footer before the first schedule arrives', () => {
     render(<PilotPages schedule={handle(null)} airports={testAirports} demo={false} onSignOut={() => {}} />)
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('CrewLuve')
-    expect(screen.queryByText('No schedule in CrewLu Cloud yet')).toBeNull()
+    expect(screen.queryByText("Waiting for your pilot's first update…")).toBeNull()
   })
 })
 
@@ -198,7 +198,7 @@ describe('PilotPages: the status page and the Schedule page (slice 3A §3.3)', (
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('CrewLuve')
     cleanup()
     render(<PilotPages schedule={handle(new RawBuilder(NOW).build())} airports={testAirports} demo={false} onSignOut={() => {}} />)
-    expect(screen.getByText('No schedule in CrewLu Cloud yet')).toBeTruthy()
+    expect(screen.getByText("Waiting for your pilot's first update…")).toBeTruthy()
   })
 })
 
@@ -315,7 +315,7 @@ describe('PilotPages side by side (slice 3C)', () => {
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('CrewLuve')
     cleanup()
     const { container } = render(<PilotPages schedule={handle(new RawBuilder(NOW).build())} airports={testAirports} demo={false} onSignOut={() => {}} />)
-    expect(screen.getByText('No schedule in CrewLu Cloud yet')).toBeTruthy()
+    expect(screen.getByText("Waiting for your pilot's first update…")).toBeTruthy()
     expect(layout(container)).toBe('screen')
   })
 })

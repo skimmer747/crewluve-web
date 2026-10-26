@@ -205,7 +205,7 @@ describe('Root: an all-empty answer from CrewLu Cloud', () => {
   it('shows the empty state for a signed-in account with nothing in CrewLu Cloud', async () => {
     vi.mocked(fetchSchedule).mockImplementation(async () => nothing())
     render(<Root />)
-    expect(await screen.findByText('No schedule in CrewLu Cloud yet')).toBeTruthy()
+    expect(await screen.findByText("Waiting for your pilot's first update…")).toBeTruthy()
     expect(session.signOut).not.toHaveBeenCalled()
   })
 })

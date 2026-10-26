@@ -3,6 +3,8 @@ import { shortTimeText } from '../copy/format'
 import { timeDifference } from '../copy/location'
 import { temperatureText } from '../copy/weather'
 import type { Weather } from '../data/weather'
+import type { IconName } from '../icons/iconPaths'
+import type { QuickStatus } from '../partner/summary'
 import type { Snapshot } from '../engine/snapshot'
 import { cssColor } from './colors'
 import { Icon } from './Icon'
@@ -14,6 +16,18 @@ import { WeatherCredit } from './WeatherCredit'
 /** The app shows the location card in every status but flying, where the in-flight card takes its place (slice 2B1 §3, 2C §3). */
 export function showsLocationCard(snap: Snapshot): boolean {
   return snap.status.kind !== 'inFlight'
+}
+
+/** CrewLu's quick status symbols (PartnerQuickStatusSheet.swift) as the site's icons; any other is a speech bubble. */
+const QUICK_STATUS_ICONS: ReadonlyMap<string, IconName> = new Map<string, IconName>([
+  ['phone.fill', 'Phone'],
+  ['bubble.left.fill', 'ChatCircle'],
+  ['fork.knife', 'ForkKnife'],
+  ['moon.zzz.fill', 'Moon'],
+])
+
+export function quickStatusIcon(symbol: string | null): IconName {
+  return (symbol && QUICK_STATUS_ICONS.get(symbol)) || 'ChatCircle'
 }
 
 export interface LocationCardProps {
@@ -30,13 +44,15 @@ export interface LocationCardProps {
   onOpenSun?: (dial: HTMLElement) => void
   /** The city's heading, which takes focus from code when a popup closes by itself (popup follow-ups §4.2). */
   headingRef?: Ref<HTMLHeadingElement>
+  /** The pilot's quick status, under the city (piece 5a §7), or null. */
+  quickStatus?: QuickStatus | null
 }
 
 /**
  * LocationCardView's standard view (slice 2B1 §4): the city and flag, the weather, the local time and how far it is
  * from home's, with the sun dial in the upper right. With no airport it's just "Unknown Location", as in the app.
  */
-export function LocationCard({ airport, facts, now, homeTz, h24, weather, onOpenSun, headingRef }: LocationCardProps) {
+export function LocationCard({ airport, facts, now, homeTz, h24, weather, onOpenSun, headingRef, quickStatus = null }: LocationCardProps) {
   const { city, flag, tz, visual } = facts
   return (
     <section class="card glass location">
@@ -46,6 +62,12 @@ export function LocationCard({ airport, facts, now, homeTz, h24, weather, onOpen
           <h2 ref={headingRef} class="location-city" tabIndex={-1}>{city}</h2>
           {flag && <span class="location-flag">{flag}</span>}
         </div>
+        {quickStatus && (
+          <p class="quick-status">
+            <Icon name={quickStatusIcon(quickStatus.icon)} size={17} color="var(--blue)" />
+            <span>{quickStatus.text}</span>
+          </p>
+        )}
         {airport &&
           (weather && visual ? (
             <>

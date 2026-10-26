@@ -6,6 +6,7 @@ import { arrivalCard, leaveCard, statusVisual } from '../copy/visuals'
 import type { AirportIndex } from '../data/airports'
 import type { Weather } from '../data/weather'
 import type { Snapshot } from '../engine/snapshot'
+import type { QuickStatus } from '../partner/summary'
 import { CountdownCard } from './CountdownCard'
 import { DaysHomePill } from './DaysHomePill'
 import { DemoBanner } from './DemoBanner'
@@ -17,6 +18,7 @@ import { inFlightFacts } from './inFlightFacts'
 import { LocationCard, showsLocationCard } from './LocationCard'
 import { locationFacts, showsDial } from './locationFacts'
 import { NarrativeCard } from './NarrativeCard'
+import { Notice } from './Notice'
 import { ViewScheduleLink, type ScheduleLinkName, type ScheduleLinkProps } from './ScheduleLink'
 import { SunPopup } from './SunPopup'
 import { Title, titleFor } from './Title'
@@ -47,6 +49,10 @@ export interface StatusScreenProps {
    * both, and the cards in a column of their own.
    */
   beside?: ComponentChildren
+  /** One line above the cards: that this browser just connected, or why a link didn't (piece 5a §4.3). */
+  notice?: string | null
+  /** The pilot's quick status now, for the location card (piece 5a §7). */
+  quickStatus?: QuickStatus | null
 }
 
 /** The link into the schedule named `name`, or none when the page has no way into it. */
@@ -91,6 +97,7 @@ export function StatusScreen(p: StatusScreenProps) {
   const cards = (
     <>
       {p.demo && <DemoBanner />}
+      {p.notice && <Notice text={p.notice} />}
       <NarrativeCard spans={spans} visual={statusVisual(snap)} ring={snap.ring} />
       {home ? <HomeCards {...p} /> : <AwayCard {...p} />}
       {p.onOpenSchedule && !cardLeadsThere && <ViewScheduleLink onOpen={p.onOpenSchedule} />}
@@ -104,6 +111,7 @@ export function StatusScreen(p: StatusScreenProps) {
           weather={p.weather}
           headingRef={locationHeading}
           onOpenSun={sun.show}
+          quickStatus={p.quickStatus ?? null}
         />
       )}
       {flying && (
