@@ -465,7 +465,8 @@ describe('Root: Disconnect', () => {
   it('keeps a device that another tab connected while the leave was out', async () => {
     const { f, store } = connectedAsB()
     addSam(f)
-    vi.stubGlobal('confirm', vi.fn(() => true))
+    const confirm = vi.fn(() => true)
+    vi.stubGlobal('confirm', confirm)
     render(<Root door={f.door} store={store} />)
     await pollAnswered()
     let finishLeave!: () => void
@@ -484,6 +485,31 @@ describe('Root: Disconnect', () => {
     // This page stays, and its next poll follows the device the other tab connected.
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
     expect(await screen.findByText("Where's Sam?")).toBeTruthy()
+    // And its Disconnect works again: it asks, here to be told no.
+    confirm.mockReturnValueOnce(false)
+    fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }))
+    expect(confirm).toHaveBeenCalledTimes(2)
+  })
+
+  it("keeps a device another tab connected with this browser's own key, which the leave had freed", async () => {
+    const { f, store } = connectedAsB()
+    addSam(f)
+    vi.stubGlobal('confirm', vi.fn(() => true))
+    render(<Root door={f.door} store={store} />)
+    await pollAnswered()
+    let finishLeave!: () => void
+    f.door.leave = async (k) => {
+      f.devices.delete(k) // the leave lands at once,
+      await new Promise<void>((resolve) => (finishLeave = resolve)) // but its answer is slow
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }))
+    // Another tab's join sent key(1), which the leave had just freed, with Sam's link, and saved it for Sam's partner.
+    f.devices.set(key(1), SAM)
+    store.saveDevice({ key: key(1), partnerId: SAM })
+    store.saveSummary({ partnerId: SAM, updatedAt: 's1', status: samStatus(), checkedAt: Date.now() })
+    await act(async () => finishLeave())
+    await settle()
+    expect(store.device()).toEqual({ key: key(1), partnerId: SAM })
   })
 })
 
