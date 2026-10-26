@@ -164,4 +164,20 @@ describe('refreshSummary (piece 5a §5)', () => {
     }
     expect(await refreshSummary(f.door, store, () => 5)).toEqual({ ...newer, checkedAt: 5 })
   })
+
+  it('follows the door at most once per poll, so a store that keeps nothing cannot make one poll call the door for ever', async () => {
+    const { f, store } = connected()
+    f.devices.set(key(1), PARTNER_B) // the door gave this key to partner B...
+    f.summaries.set(PARTNER_B, { updatedAt: 'a1', status: example('home', 'B') }) // ...whose summary is unchanged since the a1 sent
+    const forgetful = { ...store, saveDevice: () => true } // answers yes, keeps nothing
+    const view = f.door.view
+    f.door.view = async (k, since) => {
+      // A poll that never stops fails here, with a message, instead of hanging the run.
+      if (f.calls.length >= 5) throw new Error('the poll keeps calling the door')
+      return view(k, since)
+    }
+    await expect(refreshSummary(f.door, forgetful, () => 5)).rejects.toThrow('partner_view named another partner again')
+    expect(f.calls).toEqual([`view ${key(1)} a1`, `view ${key(1)} a1`])
+    expect(store.device()).toEqual({ key: key(1), partnerId: PARTNER_A }) // and the next poll starts from the same place
+  })
 })

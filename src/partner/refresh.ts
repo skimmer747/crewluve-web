@@ -23,8 +23,14 @@ export class NotConnected extends Error {
  * One poll (piece 5a §5): partner_view with the stored summary's updated_at, so an unchanged summary comes back as
  * just that. A new summary is stored, and "Checked" moves either way. On sharing_ended the key and the summary are
  * forgotten (the only answer that forgets them), then SharingEnded is thrown. Any other failure changes nothing.
+ * If the door has moved this browser's key to another partner, the poll follows it, once at most.
  */
-export async function refreshSummary(door: PartnerDoor, store: PartnerStore, now: () => number = Date.now): Promise<StoredSummary> {
+export function refreshSummary(door: PartnerDoor, store: PartnerStore, now: () => number = Date.now): Promise<StoredSummary> {
+  return poll(door, store, now, false)
+}
+
+/** One poll of refreshSummary. `followed` is whether this refresh has already followed the door to another partner. */
+async function poll(door: PartnerDoor, store: PartnerStore, now: () => number, followed: boolean): Promise<StoredSummary> {
   const device = store.device()
   if (!device) throw new NotConnected()
   const stored = store.summary()
@@ -47,11 +53,14 @@ export async function refreshSummary(door: PartnerDoor, store: PartnerStore, now
     throw new SharingEnded(kept ? nameIn(kept.status, kept.partnerId) : null)
   }
   if (answer.partnerId !== device.partnerId) {
-    // The door gave this key to another partner: this browser's join sent it with that partner's link after its old
-    // device was removed, and the page closed before the join could save it. Follow the door. The since sent was the
-    // old partner's, so an unchanged answer says nothing: ask again for everything.
+    // The door gave this key to another partner, through a join of this browser's with that partner's link, after its
+    // old device was removed: the join's answer never came back (the likelier case), or its page closed before it could
+    // save the device. Follow the door. The since sent was the old partner's, so an unchanged answer says nothing: ask
+    // again for everything. That is done once. A second answer naming another partner means the store keeps nothing
+    // it's given, and a poll that went on would call the door for ever; the next poll tries again.
+    if (followed) throw new Error('partner_view named another partner again')
     if (!store.saveDevice({ key: device.key, partnerId: answer.partnerId })) throw new Error('The device could not be saved')
-    if (answer.unchanged) return refreshSummary(door, store, now)
+    if (answer.unchanged) return poll(door, store, now, true)
   }
   if (answer.unchanged) {
     // Another tab may have stored this partner's summary meanwhile: "Checked" moves on whatever is stored now.
