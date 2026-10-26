@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { buildLegs } from '../../src/engine/legs'
+import { buildLegs, departureOf } from '../../src/engine/legs'
 import { makeSnapshot } from '../../src/engine/snapshot'
 import type { StatusKind } from '../../src/engine/status'
+import { tripDays } from '../../src/engine/trips'
 import { scheduleFromStored, toSchedule, waitingSchedule } from '../../src/partner/convert'
 import { readSummary, type PartnerSummary, type SummaryLeg } from '../../src/partner/summary'
 import { example, EXAMPLES, PARTNER_A, PARTNER_B } from '../fixtures/partner'
@@ -42,12 +43,17 @@ describe('toSchedule: the examples through the website engine (piece 5a §11)', 
     }
   })
 
-  it("makes CrewLu's own legs again: the same kinds at the same times", () => {
-    const { summary, legs } = engineAt('layover')
+  it.each([...EXAMPLES])("makes CrewLu's own legs again for %s: the same kinds, times and airports", (name) => {
+    const { summary, legs } = engineAt(name)
     const crewlu = summary.legs
-      .map((l) => ({ kind: l.tripId ? l.type : 'jumpseat', start: l.start, end: l.end }))
+      .map((l) => ({
+        kind: l.type === 'flight' && !l.tripId ? 'jumpseat' : l.type,
+        start: l.start,
+        end: l.end,
+        airport: l.type === 'flight' ? l.departureAirport : l.airportCode,
+      }))
       .sort((a, b) => a.start - b.start)
-    expect(legs.map((l) => ({ kind: l.kind, start: l.start, end: l.end }))).toEqual(crewlu)
+    expect(legs.map((l) => ({ kind: l.kind, start: l.start, end: l.end, airport: departureOf(l) }))).toEqual(crewlu)
   })
 
   it('splits the trip into duty periods at the layover, and takes its length from CrewLu', () => {
@@ -102,11 +108,13 @@ describe('toSchedule: one leg at a time (piece 5a §6)', () => {
     ['UPSCML', null, { airline: null, number: null, deadhead: true }],
     ['GND', null, { airline: null, number: null, ground: true }],
     ['UPSXXXX', null, { airline: null, number: null, deadhead: false }],
+    ['UPSGND', null, { airline: null, number: null, ground: true }],
+    ['UPS 2961', null, { airline: '5X', number: '2961' }],
   ])('reads the trip flight %s, airline code %s', (flightNumber, airlineCode, expected) => {
     expect(tripFlight({ flightNumber, airlineCode })).toMatchObject(expected)
   })
 
-  it('reads a jumpseat with no airline code as a company flight, as the rows did', () => {
+  it("reads a jumpseat with no airline code as a company flight: the summary can't say it was a ticket", () => {
     expect(scheduleOf(leg({ departureAirport: 'ATL', arrivalAirport: 'SDF', flightNumber: '1180' })).jumpseats[0]).toMatchObject({ airline: '5X', number: '1180', deadhead: true })
   })
 
@@ -154,7 +162,66 @@ describe('toSchedule: one leg at a time (piece 5a §6)', () => {
   })
 
   it('leaves a trip under a day at 0 days, which tripDays counts from the dates', () => {
-    expect(scheduleOf(leg({ tripId: 'T1', departureAirport: 'SDF', arrivalAirport: 'RFD', tripTotalDays: 0 })).trips[0].days).toBe(0)
+    const trip = scheduleOf(leg({ tripId: 'T1', departureAirport: 'SDF', arrivalAirport: 'RFD', tripTotalDays: 0 })).trips[0]
+    expect(trip.days).toBe(0)
+    expect(tripDays(trip, BASE_TZ)).toBe(1)
+  })
+})
+
+describe('toSchedule: through the engine (piece 5a §6)', () => {
+  const T0 = Date.UTC(2026, 9, 21, 12)
+  const H = 3_600_000
+  const flight = (id: string, dep: string, arr: string, from: number, to: number, fields: Partial<SummaryLeg> = {}) =>
+    leg({ id, tripId: 'T1', departureAirport: dep, arrivalAirport: arr, flightNumber: 'UPS2961', start: T0 + from * H, end: T0 + to * H, ...fields })
+  const night = (id: string, type: SummaryLeg['type'], airport: string, from: number, to: number) =>
+    leg({ id, tripId: 'T1', type, airportCode: airport, start: T0 + from * H, end: T0 + to * H })
+
+  it('keeps a turn going until a late flight leaves, and says how late', () => {
+    const s = scheduleOf(
+      flight('f1', 'SDF', 'RFD', 0, 1),
+      night('t1', 'turn', 'RFD', 1, 2),
+      flight('f2', 'RFD', 'ONT', 2, 6, { delayMinutes: 45 }),
+    )
+    const legs = buildLegs(s)
+    const at = (hours: number) => makeSnapshot(s, legs, T0 + hours * H, BASE_TZ)
+    expect(at(2.5).status.kind).toBe('turn')
+    expect(at(2.5).delay?.minutes).toBe(45)
+    expect(at(2.8).status.kind).toBe('inFlight')
+  })
+
+  it('makes the nights at home and at base again, with the kinds CrewLu gave them', () => {
+    const s = scheduleOf(
+      flight('f1', 'SDF', 'ATL', 0, 1),
+      night('n1', 'home', 'ATL', 1, 20),
+      flight('f2', 'ATL', 'SDF', 20, 21),
+      night('n2', 'base', 'SDF', 21, 40),
+      flight('f3', 'SDF', 'RFD', 40, 41),
+    )
+    expect(buildLegs(s).map((l) => l.kind)).toEqual(['flight', 'home', 'flight', 'base', 'flight'])
+  })
+
+  it('merges two duty periods when CrewLu wrote no night between them, as spec §6 notes', () => {
+    const s = scheduleOf(flight('f1', 'SDF', 'RFD', 0, 1), flight('f2', 'RFD', 'ONT', 30, 34))
+    expect(buildLegs(s).map((l) => l.kind)).toEqual(['flight', 'turn', 'flight'])
+  })
+
+  it('drops a night with no flight after it, as spec §6 notes', () => {
+    const s = scheduleOf(flight('f1', 'SDF', 'ONT', 0, 4), night('n1', 'layover', 'ONT', 4, 20))
+    expect(buildLegs(s).map((l) => l.kind)).toEqual(['flight'])
+  })
+
+  it('reads odd summaries without throwing anywhere in the engine', () => {
+    const odd: SummaryLeg[][] = [
+      [],
+      [flight('f1', 'SDF', 'RFD', 0, 1)],
+      [night('n1', 'layover', 'ONT', 0, 10)],
+      [flight('b', 'RFD', 'ONT', 0.5, 3), flight('a', 'SDF', 'RFD', 0, 1)],
+    ]
+    for (const legs of odd) {
+      const s = scheduleOf(...legs)
+      const built = buildLegs(s)
+      for (let hours = -24; hours <= 24; hours++) expect(() => makeSnapshot(s, built, T0 + hours * H, BASE_TZ)).not.toThrow()
+    }
   })
 })
 

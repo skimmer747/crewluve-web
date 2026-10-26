@@ -1,13 +1,13 @@
 import { enteredAirline, normalizeFlightNumber, toIata } from '../engine/normalize'
 import type { Commute, DutyEvent, DutyEventKind, DutyPeriod, Move, Schedule, Trip } from '../engine/types'
+import { MINUTE } from '../time/zoned'
 import type { StoredSummary } from './store'
-import { readSummary, type PartnerSummary, type SummaryLeg } from './summary'
+import { readSummary, type PartnerSummary, type SummaryLeg, type SummaryLegType } from './summary'
 
-const MINUTE = 60_000
 /** "UPS2961", "DL1180", "5X2961" or "2961": an airline's code, if any, then the number. */
 const FLIGHT_NUMBER = /^([A-Z]{3}|[A-Z][A-Z0-9]|[0-9][A-Z])?(\d+)$/
 /** Where CrewLu puts the time between two of a trip's duty periods; a turn is the time inside one. */
-const BETWEEN_DUTY_PERIODS: ReadonlySet<string> = new Set(['layover', 'home', 'base'])
+const BETWEEN_DUTY_PERIODS: ReadonlySet<SummaryLegType> = new Set<SummaryLegType>(['layover', 'home', 'base'])
 const EVENT_TITLES: Record<DutyEventKind, string> = { reserve: 'Reserve', hotStandby: 'Hot Standby', training: 'Training', event: 'Manual Event' }
 
 /**
@@ -26,7 +26,9 @@ export function toSchedule(summary: PartnerSummary, fetchedAt: number): Schedule
   for (const leg of summary.legs) {
     if (leg.end <= leg.start) continue
     if (leg.tripId && (leg.type === 'flight' || leg.type === 'turn' || BETWEEN_DUTY_PERIODS.has(leg.type))) {
-      byTrip.set(leg.tripId, [...(byTrip.get(leg.tripId) ?? []), leg])
+      const tripLegs = byTrip.get(leg.tripId)
+      if (tripLegs) tripLegs.push(leg)
+      else byTrip.set(leg.tripId, [leg])
     } else if (leg.type === 'flight') {
       const move = toMove(leg, null)
       if (move) jumpseats.push(move)
@@ -74,8 +76,9 @@ export function scheduleFromStored(stored: StoredSummary): { schedule: Schedule;
 
 /**
  * A trip's flights, in duty periods split wherever CrewLu put a layover, home or base between two of them. Each duty
- * period starts with its first flight, so no report leg is made (as in Crewluve). The trip runs from its first leg's
- * start to its last leg's end; its length is CrewLu's, and tripDays counts one under a day (0) from the dates.
+ * period starts with its first flight, so no report leg is made (as in Crewluve). The trip runs from its earliest start
+ * to its latest end, its flights' delays counted; its length is CrewLu's, and tripDays counts one under a day (0) from
+ * the dates.
  */
 function toTrip(id: string, legs: SummaryLeg[]): Trip | null {
   const flights = legs.filter((l) => l.type === 'flight').sort((a, b) => a.start - b.start)
@@ -114,7 +117,7 @@ function toMove(leg: SummaryLeg, tripId: string | null): Move | null {
   const arr = toIata(leg.arrivalAirport)
   if (!dep || !arr) return null
   const shift = (leg.delayMinutes ?? 0) * MINUTE
-  const raw = (leg.flightNumber ?? '').toUpperCase()
+  const raw = (leg.flightNumber ?? '').replace(/\s+/g, '').toUpperCase()
   const entered = enteredAirline(leg.airlineCode)
   const match = FLIGHT_NUMBER.exec(entered && raw.startsWith(entered) ? raw.slice(entered.length) : raw)
   const prefix = match?.[1] ?? null
@@ -133,7 +136,8 @@ function toMove(leg: SummaryLeg, tripId: string | null): Move | null {
     number: match ? normalizeFlightNumber(match[2]) : null,
     // A jumpseat always rides; in a trip, a commercial deadhead has an airline code, and a company one may say CML.
     deadhead: tripId == null || entered != null || raw.endsWith('CML'),
-    ground: raw === 'GND',
+    // GND, or UPSGND: CrewLu writes "UPS" before a company flight's GND placeholder when its ground flag isn't set.
+    ground: raw === 'GND' || raw === 'UPSGND',
   }
 }
 
