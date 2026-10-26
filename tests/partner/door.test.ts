@@ -119,6 +119,46 @@ describe('the partner door (piece 5a §9)', () => {
     for (const [, init] of send.mock.calls) expect(init?.signal).toBeInstanceOf(AbortSignal)
   })
 
+  it('gives each call its own 20-second limit, made when the call is', async () => {
+    const timeout = vi.spyOn(AbortSignal, 'timeout')
+    try {
+      const { door } = doorAnswering(EVERY_CALL_READS)
+      await callEach(door)
+      expect(timeout).toHaveBeenCalledTimes(4)
+      expect(timeout).toHaveBeenCalledWith(20_000)
+    } finally {
+      timeout.mockRestore()
+    }
+  })
+
+  it('keeps a 20-second limit where the browser has no AbortSignal.timeout', async () => {
+    const own = Object.getOwnPropertyDescriptor(AbortSignal, 'timeout')!
+    Object.defineProperty(AbortSignal, 'timeout', { ...own, value: undefined })
+    vi.useFakeTimers({ toFake: ['setTimeout'] })
+    try {
+      const { send, door } = doorAnswering({ ok: true })
+      await door.leave(key(1))
+      const signal = send.mock.calls[0][1]?.signal
+      expect(signal?.aborted).toBe(false)
+      vi.advanceTimersByTime(20_000)
+      expect(signal?.aborted).toBe(true)
+    } finally {
+      vi.useRealTimers()
+      Object.defineProperty(AbortSignal, 'timeout', own)
+    }
+  })
+
+  it('refuses redirects, so a key is never sent on to another address', async () => {
+    const { send, door } = doorAnswering({ ok: true })
+    await door.leave(key(1))
+    expect(send.mock.calls[0][1]?.redirect).toBe('error')
+  })
+
+  it('counts an updated_at that is not text, or an answer that is an array, as no answer', async () => {
+    await expect(doorAnswering({ partner_id: PARTNER_A, updated_at: 1, status: null }).door.view(key(1), null)).rejects.toThrow(DoorUnavailable)
+    await expect(doorAnswering([]).door.leave(key(1))).rejects.toThrow(DoorUnavailable)
+  })
+
   it('sends every call through the door guard', async () => {
     const { send, door } = doorAnswering(EVERY_CALL_READS)
     await callEach(door)

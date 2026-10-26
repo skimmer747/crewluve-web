@@ -25,7 +25,10 @@ export interface PartnerDoor {
   leave(key: string): Promise<void>
 }
 
-/** An answer that never came, or that this site can't read. */
+/**
+ * An answer this site can't use: an HTTP error, or a body that isn't an object. No answer at all rejects with fetch's
+ * own error instead: a TypeError when offline, a TimeoutError past the time limit.
+ */
 export class DoorUnavailable extends Error {
   constructor(message: string) {
     super(message)
@@ -37,6 +40,14 @@ export const isRefused = (answer: object): answer is Refused => typeof (answer a
 
 /** How long a call may take before it counts as no answer, so "Connecting…" never waits for good. */
 const TIMEOUT_MS = 20_000
+
+/** A signal that aborts after `ms`: AbortSignal.timeout where the browser has it, else a timer (Safari before 16). */
+function timeLimit(ms: number): AbortSignal {
+  if (typeof AbortSignal.timeout === 'function') return AbortSignal.timeout(ms)
+  const controller = new AbortController()
+  setTimeout(() => controller.abort(), ms)
+  return controller.signal
+}
 
 /**
  * The partner door over `send` (~/Dev/Duty/supabase/partner-api.md, "Partner RPCs"), with the publishable key alone.
@@ -50,8 +61,9 @@ export function makeDoor(send: typeof fetch): PartnerDoor {
       method: 'POST',
       headers: { apikey: SUPABASE_PUBLISHABLE_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-      // Safari before 16 has no AbortSignal.timeout: those calls just wait as long as the browser lets them.
-      signal: AbortSignal.timeout?.(TIMEOUT_MS),
+      signal: timeLimit(TIMEOUT_MS),
+      // The four RPCs never redirect; refusing one keeps a key from being sent on to another address.
+      redirect: 'error',
     })
     if (!response.ok) throw new DoorUnavailable(`${name} answered HTTP ${response.status}`)
     const answer: unknown = await response.json().catch(() => null)

@@ -9,7 +9,9 @@ import { SUPABASE_URL } from '../cloud'
  */
 const ORIGIN = new URL(SUPABASE_URL).origin
 const RPC_PATH = '/rest/v1/rpc/'
-export const DOOR_RPCS: ReadonlySet<string> = new Set(['partner_join', 'partner_handoff_redeem', 'partner_view', 'partner_leave'])
+/** The four partner RPCs, the only calls the guard lets through. Frozen, so no code can add one. */
+export const DOOR_RPCS: readonly string[] = Object.freeze(['partner_join', 'partner_handoff_redeem', 'partner_view', 'partner_leave'])
+const ALLOWED: ReadonlySet<string> = new Set(DOOR_RPCS)
 
 export class DoorGuardError extends Error {
   constructor(message: string) {
@@ -41,7 +43,7 @@ function requested(input: RequestInfo | URL, init: RequestInit | undefined): Req
 
 function allowed(method: string, url: URL): boolean {
   if (url.origin !== ORIGIN || method !== 'POST' || url.search !== '') return false
-  return url.pathname.startsWith(RPC_PATH) && DOOR_RPCS.has(url.pathname.slice(RPC_PATH.length))
+  return url.pathname.startsWith(RPC_PATH) && ALLOWED.has(url.pathname.slice(RPC_PATH.length))
 }
 
 /** The reason, without the query string: keys don't belong in a log. */
@@ -56,6 +58,7 @@ export function doorFetch(base: typeof fetch): typeof fetch {
   return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const { method, url } = requested(input, init)
     if (!url || !allowed(method, url)) throw new DoorGuardError(refusal(method, url))
-    return base(input, init)
+    // Fetch gets the method the guard judged, read once, so an init can't answer one method here and another there.
+    return base(input, { ...init, method })
   }
 }

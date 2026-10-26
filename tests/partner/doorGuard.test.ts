@@ -41,6 +41,7 @@ const BLOCKED: Array<[string, string]> = [
 describe('doorFetch (piece 5a §9)', () => {
   it('has exactly the four partner RPCs', () => {
     expect([...DOOR_RPCS].sort()).toEqual(['partner_handoff_redeem', 'partner_join', 'partner_leave', 'partner_view'])
+    expect(Object.isFrozen(DOOR_RPCS)).toBe(true)
   })
 
   it.each([...DOOR_RPCS])('lets a POST to %s through, untouched', async (name) => {
@@ -108,5 +109,19 @@ describe('doorFetch (piece 5a §9)', () => {
       throw down
     }) as unknown as typeof fetch)
     await expect(guarded(`${HOST}/rest/v1/rpc/partner_view`, { method: 'POST' })).rejects.toBe(down)
+  })
+
+  it('sends the method it judged, read once', async () => {
+    const { base, guarded } = guard()
+    let reads = 0
+    const init = {
+      body: '{}',
+      get method() {
+        reads += 1
+        return reads === 1 ? 'POST' : 'DELETE'
+      },
+    } as RequestInit
+    await guarded(`${HOST}/rest/v1/rpc/partner_view`, init)
+    expect(base.mock.calls[0][1]?.method).toBe('POST')
   })
 })
