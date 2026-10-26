@@ -598,7 +598,7 @@ Under **Version Release**, choose **Automatically release this version**.
 
 Expected: the preview reads **Data Linked to You: Identifiers, Usage Data**, as for 1.2, and the Privacy Policy URL is still `https://crewlu.net/crewluve/privacy-policy.html`, updated in Task 1.
 
-- [ ] **Step 5: Submit**
+- [x] **Step 5: Submit**
 
 Back on the 1.3 page, click **Add for Review**, then **Submit for Review**.
 
@@ -684,3 +684,4 @@ Filled in as the release goes: each task's result, and anything that differed. N
   - **Step 5:** CrewLu, brought to the front again, wrote at 14:09:24.544 UTC, and partner-push answered `partner-push: nothing new to send` at 14:09:32.898, with no `sent` line. This closes plan 1's Task 8 Step 5, part 1. The writes before Steps 3 and 4 gave the same.
   - **Step 7:** nothing to put back, as Background App Refresh was already off. Clearing the quick statuses sent is left to the user.
 - **Task 7 Steps 1 to 4 (2026-10-24), done while the beta review waits:** version 1.3 has the What's New text and build 1.3 (45), the review notes, and automatic release, and the privacy answers are unchanged. All saved; Step 5, the submission, waits for Task 6.
+- **Task 7 Step 5 (2026-10-26):** after Task 6, version 1.3 went **Add for Review**, then **Submit for Review**, and showed **Waiting for Review** at about 14:12 UTC.
