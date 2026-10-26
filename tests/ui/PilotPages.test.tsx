@@ -328,10 +328,10 @@ describe('PilotPages: the notice and the quick status (piece 5a)', () => {
   it('shows the notice with the status, and before the first update', () => {
     const { unmount } = render(<PilotPages schedule={handle(demoRawForScene('home', NOW))} airports={testAirports} demo={false} onSignOut={() => {}}
       notice="Connected on this browser. Add it to your Home Screen to keep it handy." />)
-    expect(screen.getByRole('status').textContent).toBe('Connected on this browser. Add it to your Home Screen to keep it handy.')
+    expect(screen.getByText('Connected on this browser. Add it to your Home Screen to keep it handy.')).toBeTruthy()
     unmount()
     render(<PilotPages schedule={handle(new RawBuilder(NOW).build())} airports={testAirports} demo={false} onSignOut={() => {}} notice="Couldn't connect. Check your connection and try again." />)
-    expect(screen.getByRole('status').textContent).toBe("Couldn't connect. Check your connection and try again.")
+    expect(screen.getByText("Couldn't connect. Check your connection and try again.")).toBeTruthy()
     expect(screen.getByText("Waiting for your pilot's first update…")).toBeTruthy()
   })
 

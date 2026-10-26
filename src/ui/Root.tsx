@@ -6,7 +6,7 @@ import { liveDoor, type PartnerDoor } from '../partner/door'
 import { joinWithLink, type JoinOutcome } from '../partner/join'
 import { browserLabel } from '../partner/label'
 import { linkFromHash, type PartnerLink } from '../partner/link'
-import { CONNECTED_NOTE, type JoinMessage } from '../partner/messages'
+import { CONNECTED_NOTE, COULDNT_CONNECT, type JoinMessage } from '../partner/messages'
 import { NotConnected, refreshSummary, SharingEnded } from '../partner/refresh'
 import { clearOldSignIn, localPartnerStore, newKey, type PartnerStore, type StoredSummary } from '../partner/store'
 import { currentQuickStatus, nameIn, type PartnerSummary } from '../partner/summary'
@@ -23,6 +23,8 @@ export interface RootProps {
 
 /** ?demo=1 shows the sample pilot with no network calls; otherwise this browser's own connection to its pilot. */
 export function Root({ door = liveDoor, store }: RootProps) {
+  // The password sign-in's leftovers go when a page loads, the demo's too (piece 5a §4.2): Root mounts once a load.
+  useEffect(() => clearOldSignIn(), [])
   const params = new URLSearchParams(window.location.search)
   if (params.get('demo') === '1') {
     const scene = params.get('scene')
@@ -81,13 +83,24 @@ function after(outcome: JoinOutcome, store: PartnerStore, followedName: string |
   }
 }
 
+/** What the live region says in each phase: the words that change, as they change. */
+function spokenIn(phase: Phase): string {
+  switch (phase.kind) {
+    case 'joining':
+      return 'Connecting…'
+    case 'welcome':
+      return phase.ended ? `Sharing with ${phase.ended} has ended.` : ''
+    case 'connected':
+      return phase.notice ?? ''
+  }
+}
+
 /** A browser's own connection: the welcome screen, joining, or its pilot's status (piece 5a §4, §5). */
 function PartnerRoot({ door, given }: { door: PartnerDoor; given?: PartnerStore }) {
   const [store] = useState(() => given ?? localPartnerStore())
   // The link the address carries at load, read once.
   const [first] = useState(() => takeLinkFromAddress())
   const [phase, setPhase] = useState<Phase>(() => {
-    clearOldSignIn()
     if (first) return { kind: 'joining' }
     return store.device() ? { kind: 'connected', notice: null } : welcome()
   })
@@ -101,15 +114,22 @@ function PartnerRoot({ door, given }: { door: PartnerDoor; given?: PartnerStore 
     const wasConnected = store.device() != null
     const stored = store.summary()
     const followedName = wasConnected ? ((stored && nameIn(stored.status, stored.partnerId)) ?? 'your pilot') : null
-    const outcome = await joinWithLink(link, {
-      door,
-      store,
-      label: browserLabel(navigator.userAgent, navigator.maxTouchPoints),
-      confirmSwitch: askSwitch,
-      makeKey: newKey,
-    })
-    joining.current = false
-    setPhase(after(outcome, store, followedName))
+    try {
+      const outcome = await joinWithLink(link, {
+        door,
+        store,
+        label: browserLabel(navigator.userAgent, navigator.maxTouchPoints),
+        confirmSwitch: askSwitch,
+        makeKey: newKey,
+      })
+      setPhase(after(outcome, store, followedName))
+    } catch {
+      // joinWithLink promises never to reject. Were it, or browserLabel, ever to throw, the page mustn't sit on
+      // "Connecting…" until a reload.
+      setPhase(after({ kind: 'failed', message: COULDNT_CONNECT }, store, followedName))
+    } finally {
+      joining.current = false
+    }
   }
 
   useEffect(() => {
@@ -123,16 +143,27 @@ function PartnerRoot({ door, given }: { door: PartnerDoor; given?: PartnerStore 
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
 
-  if (phase.kind === 'joining') return <Connecting />
-  if (phase.kind === 'welcome') return <Welcome message={phase.message} ended={phase.ended} onJoin={(link) => void join(link)} />
+  const screen =
+    phase.kind === 'joining' ? <Connecting />
+      : phase.kind === 'welcome' ? <Welcome message={phase.message} ended={phase.ended} onJoin={(link) => void join(link)} />
+        : (
+          <PartnerLive
+            door={door}
+            store={store}
+            notice={phase.notice}
+            onEnded={(name) => setPhase(welcome(null, name))}
+            onFollowed={() => setPhase({ kind: 'connected', notice: null })}
+            onDisconnected={() => setPhase(welcome())}
+          />
+        )
+  // One live region, here because this outlives every screen. Words a new screen arrives with are often skipped by
+  // screen readers; a change to a region already on the page is read. So the screens' own lines aren't live regions,
+  // and nothing is read twice. The welcome screen's alert stays its own, since an alert is read as it appears.
   return (
-    <PartnerLive
-      door={door}
-      store={store}
-      notice={phase.notice}
-      onEnded={(name) => setPhase(welcome(null, name))}
-      onDisconnected={() => setPhase(welcome())}
-    />
+    <>
+      <p class="sr-only" role="status">{spokenIn(phase)}</p>
+      {screen}
+    </>
   )
 }
 
@@ -140,13 +171,19 @@ interface PartnerLiveProps {
   door: PartnerDoor
   store: PartnerStore
   notice: string | null
-  /** Sharing ended (with the pilot's name as this partner saw them), or, with null, another tab disconnected. */
+  /**
+   * Sharing ended, with the pilot's name as this partner saw them. Or, with null, this browser follows no one by the
+   * time this tab looks: another tab disconnected, or another tab's poll found sharing ended. The name went with the
+   * summary then, so this tab shows a plain welcome screen.
+   */
   onEnded: (pilotName: string | null) => void
+  /** A poll followed the door to another partner (refresh.ts), so the line about the last join no longer applies. */
+  onFollowed: () => void
   onDisconnected: () => void
 }
 
 /** The pilot's status: the kept summary at once, then the door's, every 30 s while the page shows (piece 5a §5). */
-function PartnerLive({ door, store, notice, onEnded, onDisconnected }: PartnerLiveProps) {
+function PartnerLive({ door, store, notice, onEnded, onFollowed, onDisconnected }: PartnerLiveProps) {
   const airports = useAirports()
   // The summary on screen, beside the schedule made from it: the quick status comes from it (piece 5a §7).
   const shown = useRef<PartnerSummary | null>(null)
@@ -165,11 +202,27 @@ function PartnerLive({ door, store, notice, onEnded, onDisconnected }: PartnerLi
       return null
     }
   }, [])
+  // The partner whose summary this page shows. Keyed on the partner, not the pilot: the door can move this browser to
+  // another partner of the same pilot.
+  const partner = useRef(store.device()?.partnerId ?? null)
+  // False once this page is gone, after a Disconnect or for a join: a poll that answers later changes no phase.
+  const mounted = useRef(true)
+  useEffect(() => () => {
+    mounted.current = false
+  }, [])
   // While Disconnect's leave is out, a poll may find the device gone first: that's this Disconnect, not sharing ending.
   const leaving = useRef(false)
   const schedule = useSchedule({
     initial,
-    load: async () => show(await refreshSummary(door, store)),
+    load: async () => {
+      const stored = await refreshSummary(door, store)
+      const fresh = show(stored)
+      if (stored.partnerId !== partner.current) {
+        partner.current = stored.partnerId
+        if (mounted.current) onFollowed()
+      }
+      return fresh
+    },
     onError: (err) => {
       if (leaving.current) return
       if (err instanceof SharingEnded) onEnded(err.pilotName ?? 'your pilot')
@@ -178,6 +231,8 @@ function PartnerLive({ door, store, notice, onEnded, onDisconnected }: PartnerLi
   })
 
   const disconnect = async () => {
+    // One Disconnect at a time: a second click while the leave is out asks nothing and sends nothing.
+    if (leaving.current) return
     const name = shown.current?.name ?? 'your pilot'
     const asked = `Disconnect from ${name}?\n\nYou'll stop seeing ${name}'s status in this browser. To connect again, open the invite link ${name} sent you.`
     if (!window.confirm(asked)) return
@@ -190,6 +245,12 @@ function PartnerLive({ door, store, notice, onEnded, onDisconnected }: PartnerLi
         leaving.current = false
         // As in Crewluve: a device that couldn't leave would stay in the pilot's list with no key left to remove it.
         window.alert("Couldn't disconnect. Check your connection and try again.")
+        return
+      }
+      // A join, in this tab or another, may have connected a device while the leave was out: it stays, as in Crewluve.
+      const current = store.device()
+      if (current && (current.key !== device.key || current.partnerId !== device.partnerId)) {
+        leaving.current = false
         return
       }
     }

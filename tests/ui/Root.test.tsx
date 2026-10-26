@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/preact'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { joinWithLink } from '../../src/partner/join'
 import { localPartnerStore } from '../../src/partner/store'
 import { Root } from '../../src/ui/Root'
 import { example, fakeDoor, key, memoryStorage, PARTNER_A, PARTNER_B } from '../fixtures/partner'
@@ -11,8 +12,18 @@ vi.mock('../../src/ui/hooks/useAirports', async () => {
   return { useAirports: () => testAirports }
 })
 
+// joinWithLink as it is, which one test makes throw: it promises never to, and Root has a net in case it ever does.
+vi.mock('../../src/partner/join', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/partner/join')>()
+  return { ...actual, joinWithLink: vi.fn(actual.joinWithLink) }
+})
+
 const CONNECTED_NOTE = 'Connected on this browser. Add it to your Home Screen to keep it handy.'
+const COULDNT_CONNECT = "Couldn't connect. Check your connection and try again."
 const SAM = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
+
+/** Another pilot's summary, as partner SAM gets it: the pilot is Sam. */
+const samStatus = () => ({ ...example('home'), pilotId: 'SAM-PILOT', pilotFirstName: 'Sam' })
 
 /** Crewlu Cloud with Alex's two partners, A (who calls Alex "Dad") and B, and this browser's own storage. */
 function setUp() {
@@ -33,6 +44,22 @@ function connectedAsB() {
   s.store.saveSummary({ partnerId: PARTNER_B, updatedAt: 'b1', status: example('home', 'B'), checkedAt: Date.now() })
   return s
 }
+
+/** Sam's invite link, for partner SAM, and Sam's summary. */
+function addSam(f: ReturnType<typeof fakeDoor>) {
+  f.invites.set('invite-sam', SAM)
+  f.summaries.set(SAM, { updatedAt: 's1', status: samStatus() })
+}
+
+/** The page's own words, in its <main>: Root's live region, outside it, says some of them again for screen readers. */
+const page = () => within(screen.getByRole('main'))
+/** Root's live region: what a screen reader hears as the page changes. */
+const region = () => screen.getByRole('status')
+/** Waits for the poll that's out to answer: the Refresh button is off while one is. */
+const pollAnswered = () =>
+  waitFor(() => expect((screen.getByRole('button', { name: 'Refresh' }) as HTMLButtonElement).disabled).toBe(false))
+/** Lets everything under way finish: the fake door answers at once, so one turn of the event loop is enough. */
+const settle = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)))
 
 beforeEach(() => {
   window.history.replaceState(null, '', '/')
@@ -64,12 +91,22 @@ describe('Root: a browser that follows no one', () => {
     const { f, store } = setUp()
     window.history.replaceState(null, '', '/join#t=invite-a')
     render(<Root door={f.door} store={store} />)
-    expect(screen.getByText('Connecting…')).toBeTruthy()
+    expect(page().getByText('Connecting…')).toBeTruthy()
     expect(`${window.location.pathname}${window.location.hash}`).toBe('/')
     expect(await screen.findByText("Where's Dad?")).toBeTruthy()
-    expect(screen.getByText(CONNECTED_NOTE)).toBeTruthy()
+    expect(page().getByText(CONNECTED_NOTE)).toBeTruthy()
     expect(store.device()?.partnerId).toBe(PARTNER_A)
     expect(f.calls[0]).toMatch(/^join invite-a [0-9a-f]{64} /)
+  })
+
+  it("keeps a join's connected note after the first poll, which answers for the same partner", async () => {
+    const { f, store } = setUp()
+    window.history.replaceState(null, '', '/join#t=invite-a')
+    render(<Root door={f.door} store={store} />)
+    expect(await screen.findByText("Where's Dad?")).toBeTruthy()
+    await pollAnswered()
+    expect(f.calls.filter((call) => call.startsWith('view'))).toHaveLength(2) // the join's read, then the first poll
+    expect(page().getByText(CONNECTED_NOTE)).toBeTruthy()
   })
 
   it('redeems the code typed into the boxes', async () => {
@@ -102,13 +139,54 @@ describe('Root: a browser that follows no one', () => {
     expect(store.device()).toBeNull()
   })
 
-  it('joins with a link that arrives in the address while the page is open', async () => {
+  it('joins with a link that arrives in the address while the page is open, and takes the link out of the address', async () => {
     const { f, store } = setUp()
     render(<Root door={f.door} store={store} />)
     await act(async () => {
       window.history.replaceState(null, '', '/#t=invite-a')
       window.dispatchEvent(new Event('hashchange'))
     })
+    expect(await screen.findByText("Where's Dad?")).toBeTruthy()
+    expect(`${window.location.pathname}${window.location.hash}`).toBe('/')
+  })
+
+  it('sends a bare /join to /, and leaves any other fragment, such as #schedule, alone', () => {
+    const { f, store } = setUp()
+    window.history.replaceState(null, '', '/join')
+    const { unmount } = render(<Root door={f.door} store={store} />)
+    expect(`${window.location.pathname}${window.location.hash}`).toBe('/')
+    unmount()
+    window.history.replaceState(null, '', '/#schedule')
+    render(<Root door={f.door} store={store} />)
+    expect(`${window.location.pathname}${window.location.hash}`).toBe('/#schedule')
+  })
+
+  it("doesn't start a second join while one is out", async () => {
+    const { f, store } = setUp()
+    const join = f.door.join
+    const held: Array<() => void> = []
+    f.door.join = async (invite, k, label) => {
+      await new Promise<void>((resolve) => held.push(resolve)) // every join's answer is held
+      return join(invite, k, label)
+    }
+    window.history.replaceState(null, '', '/join#t=invite-a')
+    render(<Root door={f.door} store={store} />)
+    await act(async () => {
+      window.history.replaceState(null, '', '/#t=invite-b')
+      window.dispatchEvent(new Event('hashchange'))
+    })
+    expect(held).toHaveLength(1)
+    await act(async () => held[0]())
+    expect(await screen.findByText("Where's Dad?")).toBeTruthy()
+  })
+
+  it('leaves Connecting… even if the join throws, which it promises never to, and can join again', async () => {
+    const { f, store } = setUp()
+    vi.mocked(joinWithLink).mockRejectedValueOnce(new Error('A join that broke its promise'))
+    window.history.replaceState(null, '', '/join#t=invite-a')
+    render(<Root door={f.door} store={store} />)
+    expect((await screen.findByRole('alert')).textContent).toBe(`Couldn't Connect ${COULDNT_CONNECT}`)
+    fireEvent.input(screen.getByLabelText('Code'), { target: { value: 'ab2c3d' } })
     expect(await screen.findByText("Where's Dad?")).toBeTruthy()
   })
 })
@@ -124,7 +202,7 @@ describe('Root: a connected browser', () => {
   it("doesn't show a kept summary that's another partner's, only the poll's answer", async () => {
     const { f, store } = connectedAsB()
     // The summary kept here is another partner's, of a pilot called Sam, though the device is still B's.
-    store.saveSummary({ partnerId: SAM, updatedAt: 's1', status: { ...example('home'), pilotId: 'SAM-PILOT', pilotFirstName: 'Sam' }, checkedAt: Date.now() })
+    store.saveSummary({ partnerId: SAM, updatedAt: 's1', status: samStatus(), checkedAt: Date.now() })
     const view = f.door.view
     let answer!: () => void
     f.door.view = async (k, since) => {
@@ -133,6 +211,21 @@ describe('Root: a connected browser', () => {
     }
     render(<Root door={f.door} store={store} />)
     expect(screen.queryAllByText(/\bSam\b/)).toEqual([])
+    await act(async () => answer())
+    expect(await screen.findByText("Where's Alex?")).toBeTruthy()
+  })
+
+  it("waits for the poll when the kept summary can't be read", async () => {
+    const { f, store } = connectedAsB()
+    store.saveSummary({ partnerId: PARTNER_B, updatedAt: 'b0', status: { schemaVersion: 99 }, checkedAt: Date.now() })
+    const view = f.door.view
+    let answer!: () => void
+    f.door.view = async (k, since) => {
+      await new Promise<void>((resolve) => (answer = resolve)) // the first poll's answer is held
+      return view(k, since)
+    }
+    render(<Root door={f.door} store={store} />)
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('CrewLuve')
     await act(async () => answer())
     expect(await screen.findByText("Where's Alex?")).toBeTruthy()
   })
@@ -149,22 +242,40 @@ describe('Root: a connected browser', () => {
     const { f, store } = connectedAsB()
     f.devices.clear() // the pilot removed this browser in CrewLu
     render(<Root door={f.door} store={store} />)
-    expect(await screen.findByText('Sharing with Alex has ended.')).toBeTruthy()
+    expect(await waitFor(() => page().getByText('Sharing with Alex has ended.'))).toBeTruthy()
     expect(store.device()).toBeNull()
+  })
+
+  it('goes back to a plain welcome screen when another tab disconnected', async () => {
+    const { f, store } = connectedAsB()
+    render(<Root door={f.door} store={store} />)
+    await pollAnswered()
+    store.forget() // another tab's Disconnect
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Welcome to CrewLuve' })).toBeTruthy()
+    expect(screen.queryAllByText(/has ended/)).toEqual([])
   })
 
   it("keeps the status, and says why, when a link doesn't connect", async () => {
     const { f, store } = connectedAsB()
     window.history.replaceState(null, '', '/join#t=gone')
     render(<Root door={f.door} store={store} />)
-    expect(await screen.findByText("This invite link doesn't work anymore. You're still connected to Alex.")).toBeTruthy()
+    expect(await waitFor(() => page().getByText("This invite link doesn't work anymore. You're still connected to Alex."))).toBeTruthy()
     expect(screen.getByText("Where's Alex?")).toBeTruthy()
+  })
+
+  it("shows no connected note for this browser's own link again", async () => {
+    const { f, store } = connectedAsB()
+    window.history.replaceState(null, '', '/join#t=invite-b')
+    render(<Root door={f.door} store={store} />)
+    expect(await screen.findByText("Where's Alex?")).toBeTruthy()
+    expect(f.calls[0]).toMatch(new RegExp(`^join invite-b ${key(1)} `))
+    expect(screen.queryAllByText(CONNECTED_NOTE)).toEqual([])
   })
 
   it("asks before following another pilot's link, and stays on a no", async () => {
     const { f, store } = connectedAsB()
-    f.invites.set('invite-sam', SAM)
-    f.summaries.set(SAM, { updatedAt: 's1', status: { ...example('home'), pilotId: 'SAM-PILOT', pilotFirstName: 'Sam' } })
+    addSam(f)
     const confirm = vi.fn(() => false)
     vi.stubGlobal('confirm', confirm)
     window.history.replaceState(null, '', '/join#t=invite-sam')
@@ -177,13 +288,63 @@ describe('Root: a connected browser', () => {
   it('says sharing has ended when a link shows the pilot had removed this browser, and the partner stays put', async () => {
     const { f, store } = connectedAsB()
     f.devices.clear() // the pilot removed this browser in CrewLu
-    f.invites.set('invite-sam', SAM)
-    f.summaries.set(SAM, { updatedAt: 's1', status: { ...example('home'), pilotId: 'SAM-PILOT', pilotFirstName: 'Sam' } })
+    addSam(f)
     vi.stubGlobal('confirm', vi.fn(() => false))
     window.history.replaceState(null, '', '/join#t=invite-sam')
     render(<Root door={f.door} store={store} />)
-    expect(await screen.findByText('Sharing with Alex has ended.')).toBeTruthy()
+    expect(await waitFor(() => page().getByText('Sharing with Alex has ended.'))).toBeTruthy()
     expect(store.device()).toBeNull()
+  })
+
+  it("drops the join's line once a poll follows the door to another pilot", async () => {
+    const { f, store } = connectedAsB()
+    f.devices.clear() // the pilot removed this browser in CrewLu
+    addSam(f)
+    vi.stubGlobal('confirm', vi.fn(() => true))
+    f.network.loseNext = true // the join's answer is lost, after the door has given this browser's key to Sam's partner
+    const view = f.door.view
+    let asked = false
+    let answer!: () => void
+    f.door.view = async (k, since) => {
+      asked = true
+      await new Promise<void>((resolve) => (answer = resolve)) // the first poll's answer is held
+      return view(k, since)
+    }
+    window.history.replaceState(null, '', '/join#t=invite-sam')
+    render(<Root door={f.door} store={store} />)
+    expect(await screen.findByText("Where's Alex?")).toBeTruthy()
+    expect(page().getByText(COULDNT_CONNECT)).toBeTruthy()
+    await waitFor(() => expect(asked).toBe(true)) // the first poll is out: this page's effects run a frame after it shows
+    await act(async () => answer())
+    expect(await screen.findByText("Where's Sam?")).toBeTruthy()
+    expect(screen.queryAllByText(COULDNT_CONNECT)).toEqual([])
+  })
+
+  it('lets a poll that answers after a join replaced the page change nothing there', async () => {
+    const { f, store } = connectedAsB()
+    addSam(f)
+    vi.stubGlobal('confirm', vi.fn(() => true))
+    const view = f.door.view
+    let held = false
+    let answer!: () => void
+    f.door.view = async (k, since) => {
+      if (!held) {
+        held = true
+        await new Promise<void>((resolve) => (answer = resolve)) // the first poll's answer is held
+      }
+      return view(k, since)
+    }
+    render(<Root door={f.door} store={store} />)
+    await act(async () => {
+      window.history.replaceState(null, '', '/#t=invite-sam')
+      window.dispatchEvent(new Event('hashchange'))
+    })
+    expect(await screen.findByText("Where's Sam?")).toBeTruthy()
+    await pollAnswered() // the new page's own first poll
+    await act(async () => answer()) // the old page's poll answers now, with the summary the join stored
+    await settle()
+    expect(page().getByText(CONNECTED_NOTE)).toBeTruthy()
+    expect(store.device()?.partnerId).toBe(SAM)
   })
 })
 
@@ -223,6 +384,11 @@ describe('Root: Disconnect', () => {
     await waitFor(() => expect(alert).toHaveBeenCalledWith("Couldn't disconnect. Check your connection and try again."))
     expect(store.device()).toEqual({ key: key(1), partnerId: PARTNER_B })
     expect(screen.getByText("Where's Alex?")).toBeTruthy()
+    // That Disconnect is over, so when the pilot then removes this browser, the page says sharing has ended.
+    f.network.down = false
+    f.devices.clear()
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    expect(await waitFor(() => page().getByText('Sharing with Alex has ended.'))).toBeTruthy()
   })
 
   it("doesn't call it sharing ended when a poll finds the device gone while Disconnect's leave is out", async () => {
@@ -238,11 +404,106 @@ describe('Root: Disconnect', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }))
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
     await waitFor(() => expect(f.calls).toEqual([`view ${key(1)} b1`, `view ${key(1)} b1`]))
-    await act(() => new Promise<void>((resolve) => setTimeout(resolve, 0))) // the refresh has finished
-    expect(screen.queryByText(/has ended/)).toBeNull()
+    await settle() // the refresh has finished
+    expect(screen.queryAllByText(/has ended/)).toEqual([])
     await act(async () => finishLeave())
     expect(await screen.findByText('Welcome to CrewLuve')).toBeTruthy()
-    expect(screen.queryByText(/has ended/)).toBeNull()
+    expect(screen.queryAllByText(/has ended/)).toEqual([])
+  })
+
+  it('asks nothing and sends nothing for a second click while the leave is out', async () => {
+    const { f, store } = connectedAsB()
+    const confirm = vi.fn(() => true)
+    vi.stubGlobal('confirm', confirm)
+    render(<Root door={f.door} store={store} />)
+    await pollAnswered()
+    const leaves: string[] = []
+    let finishLeave!: () => void
+    f.door.leave = async (k) => {
+      leaves.push(k)
+      await new Promise<void>((resolve) => (finishLeave = resolve))
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }))
+    expect(confirm).toHaveBeenCalledTimes(1)
+    expect(leaves).toEqual([key(1)])
+    await act(async () => finishLeave())
+    expect(await screen.findByText('Welcome to CrewLuve')).toBeTruthy()
+  })
+
+  it('keeps a device that a link in the address connected while the leave was out', async () => {
+    const { f, store } = connectedAsB()
+    addSam(f)
+    vi.stubGlobal('confirm', vi.fn(() => true))
+    render(<Root door={f.door} store={store} />)
+    await pollAnswered()
+    const leave = f.door.leave
+    let held = false
+    let finishLeave!: () => void
+    f.door.leave = async (k) => {
+      if (!held) {
+        held = true
+        await new Promise<void>((resolve) => (finishLeave = resolve)) // Disconnect's leave is held
+      }
+      return leave(k)
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }))
+    await act(async () => {
+      window.history.replaceState(null, '', '/#t=invite-sam')
+      window.dispatchEvent(new Event('hashchange'))
+    })
+    expect(await screen.findByText("Where's Sam?")).toBeTruthy()
+    const joined = store.device()
+    expect(joined?.partnerId).toBe(SAM)
+    await act(async () => finishLeave())
+    await settle()
+    expect(store.device()).toEqual(joined)
+    expect(f.devices.get(joined!.key)).toBe(SAM)
+    expect(screen.getByText("Where's Sam?")).toBeTruthy()
+  })
+
+  it('keeps a device that another tab connected while the leave was out', async () => {
+    const { f, store } = connectedAsB()
+    addSam(f)
+    vi.stubGlobal('confirm', vi.fn(() => true))
+    render(<Root door={f.door} store={store} />)
+    await pollAnswered()
+    let finishLeave!: () => void
+    f.door.leave = async (k) => {
+      await new Promise<void>((resolve) => (finishLeave = resolve)) // Disconnect's leave is held
+      f.devices.delete(k)
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }))
+    // Another tab's join, as joinWithLink ends one: a new device, and its summary.
+    f.devices.set(key(2), SAM)
+    store.saveDevice({ key: key(2), partnerId: SAM })
+    store.saveSummary({ partnerId: SAM, updatedAt: 's1', status: samStatus(), checkedAt: Date.now() })
+    await act(async () => finishLeave())
+    await settle()
+    expect(store.device()).toEqual({ key: key(2), partnerId: SAM })
+    // This page stays, and its next poll follows the device the other tab connected.
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    expect(await screen.findByText("Where's Sam?")).toBeTruthy()
+  })
+})
+
+describe('Root: what a screen reader hears', () => {
+  it('reads each change from one live region: Connecting…, the connected note, then that sharing has ended', async () => {
+    const { f, store } = setUp()
+    window.history.replaceState(null, '', '/join#t=invite-a')
+    render(<Root door={f.door} store={store} />)
+    const live = region()
+    expect(live.textContent).toBe('Connecting…')
+    expect(await screen.findByText("Where's Dad?")).toBeTruthy()
+    expect(live.textContent).toBe(CONNECTED_NOTE)
+    await pollAnswered()
+    f.devices.clear() // the pilot removed this browser in CrewLu
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Welcome to CrewLuve' })).toBeTruthy()
+    expect(live.textContent).toBe('Sharing with Dad has ended.')
+    // The same region all along, on the page before its words changed: one that arrives holding its words is often
+    // skipped.
+    expect(region()).toBe(live)
   })
 })
 
@@ -255,6 +516,14 @@ describe('Root: the demo', () => {
     expect(await screen.findByText("Where's Alex?")).toBeTruthy()
     expect(f.calls).toEqual([])
     expect(storage.data.size).toBe(0)
+  })
+
+  it("deletes the password sign-in's leftovers too", () => {
+    localStorage.setItem('crewluve-auth', '{"access_token":"old"}')
+    localStorage.setItem('crewluve.schedule.v1', '{}')
+    const { f, store } = setUp()
+    render(<Root door={f.door} store={store} />)
+    expect([localStorage.getItem('crewluve-auth'), localStorage.getItem('crewluve.schedule.v1')]).toEqual([null, null])
   })
 
   it('leaves the demo for the plain address', async () => {

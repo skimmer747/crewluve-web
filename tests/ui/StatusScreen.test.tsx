@@ -166,14 +166,16 @@ describe('StatusScreen: the notice and the quick status (piece 5a)', () => {
 
   it('shows the notice above the sentence', () => {
     const { container } = render(withExtras(-1440, { notice: 'Connected on this browser. Add it to your Home Screen to keep it handy.' }))
-    const notice = screen.getByRole('status')
+    const notice = container.querySelector('.notice')!
     expect(notice.textContent).toBe('Connected on this browser. Add it to your Home Screen to keep it handy.')
     expect(notice.compareDocumentPosition(container.querySelector('.narrative')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    // Not a live region itself: Root's, which outlives every screen, reads it (Root.test.tsx).
+    expect(notice.getAttribute('role')).toBeNull()
   })
 
   it('has no notice without one', () => {
-    render(withExtras(-1440, {}))
-    expect(screen.queryByRole('status')).toBeNull()
+    const { container } = render(withExtras(-1440, {}))
+    expect(container.querySelector('.notice')).toBeNull()
   })
 
   it('puts the quick status on the location card', () => {

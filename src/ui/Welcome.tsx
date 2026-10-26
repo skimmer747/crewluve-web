@@ -155,12 +155,15 @@ export function Welcome({ message, ended, onJoin }: WelcomeProps) {
   )
 }
 
-/** While a link or a code connects (piece 5a §4.3, step 1). */
+/**
+ * While a link or a code connects (piece 5a §4.3, step 1). Its line isn't a live region: Root's, which is on the page
+ * before this screen, reads "Connecting…", so it isn't read twice.
+ */
 export function Connecting() {
   return (
     <main class="screen signin">
       <Heading title="CrewLuve" />
-      <p class="signin-sub" role="status">Connecting…</p>
+      <p class="signin-sub">Connecting…</p>
     </main>
   )
 }

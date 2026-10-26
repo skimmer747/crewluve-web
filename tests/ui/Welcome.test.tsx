@@ -233,7 +233,8 @@ describe('Welcome (piece 5a §8)', () => {
 describe('Connecting', () => {
   it('says it is connecting', () => {
     render(<Connecting />)
-    expect(screen.getByRole('status').textContent).toBe('Connecting…')
+    // Not a live region itself: Root's, on the page before this screen, reads it (Root.test.tsx).
+    expect(screen.getByText('Connecting…').getAttribute('role')).toBeNull()
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('CrewLuve')
   })
 
