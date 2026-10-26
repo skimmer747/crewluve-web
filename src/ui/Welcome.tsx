@@ -2,6 +2,9 @@ import { useState } from 'preact/hooks'
 import { CODE_LENGTH, codeFrom, linkFromText, type PartnerLink } from '../partner/link'
 import { NOT_AN_INVITE_LINK, type JoinMessage } from '../partner/messages'
 
+/**
+ * Root shows `Connecting` between attempts. That remounts this screen, which is what empties the boxes after a failure.
+ */
 export interface WelcomeProps {
   /** Why the last link or code didn't connect, when that's what brought this screen back. */
   message: JoinMessage | null
@@ -23,30 +26,69 @@ function Heading({ title }: { title: string }) {
 }
 
 /**
+ * Keeps the caret at the end of the code. The boxes show the code from its start, so typing always goes on the end; a
+ * caret left anywhere else, by a tap or an arrow key, would put the next letter in the middle. It waits a frame, for
+ * the browser to place the caret first, and leaves a caret already at the end alone, so a keyboard that is mid-word
+ * (on Android) gets no selection change it didn't need.
+ */
+function caretToEnd(e: { currentTarget: HTMLInputElement }) {
+  const input = e.currentTarget // taken now: it's null once the event has finished
+  requestAnimationFrame(() => {
+    const end = input.value.length
+    if (input.selectionStart !== end || input.selectionEnd !== end) input.setSelectionRange(end, end)
+  })
+}
+
+/**
  * The screen of a browser that follows no one (piece 5a §8). The invite link, opened on this device, connects by
  * itself; here the partner can paste it instead, or type the code Crewluve's Use on Another Device shows.
  */
 export function Welcome({ message, ended, onJoin }: WelcomeProps) {
   const [pasted, setPasted] = useState('')
   const [problem, setProblem] = useState<JoinMessage | null>(message)
+  // How many problems this screen has shown. It keys the alert, so every problem is a new alert, which a screen reader
+  // announces even when it is the same as the last one.
+  const [shown, setShown] = useState(0)
   const [code, setCode] = useState('')
+
+  /** Every problem goes through here. Typing hides it again with setProblem(null), so a stale reason doesn't linger. */
+  const showProblem = (next: JoinMessage) => {
+    setProblem(next)
+    setShown((count) => count + 1)
+  }
 
   const connect = (event: Event) => {
     event.preventDefault()
     const link = linkFromText(pasted)
     if (link) onJoin(link)
-    else setProblem(NOT_AN_INVITE_LINK)
+    else showProblem(NOT_AN_INVITE_LINK)
   }
-  const typeCode = (typed: string) => {
-    // A whole code link pasted into the boxes connects as the link would, not as its first six letters.
+  const typeCode = (input: HTMLInputElement) => {
+    setProblem(null)
+    const typed = input.value
+    // Any link that can be read, an invite link or a code link, connects as the link would, not as its first six
+    // letters.
     const link = linkFromText(typed)
     if (link) {
       setCode('')
+      input.value = ''
       onJoin(link)
+      return
+    }
+    // No link, yet a "/", a "#" or an "=": the debris of one, which is never part of a code. Its letters aren't taken
+    // for a code's. The boxes and the field are emptied, and nothing joins.
+    if (/[/#=]/.test(typed)) {
+      setCode('')
+      input.value = ''
+      showProblem(NOT_AN_INVITE_LINK)
       return
     }
     const next = codeFrom(typed)
     setCode(next)
+    // The field holds what the boxes show, so a Backspace takes away a letter the boxes show: a space, a dash or a
+    // dropped letter is written back out. It's compared in upper case, so lower-case typing isn't rewritten mid-word
+    // (Gboard can double letters when a field is rewritten under it).
+    if (input.value.toUpperCase() !== next) input.value = next
     if (next.length === CODE_LENGTH) onJoin({ kind: 'code', code: next })
   }
 
@@ -57,7 +99,7 @@ export function Welcome({ message, ended, onJoin }: WelcomeProps) {
       {ended && <p class="signin-note">Sharing with {ended} has ended.</p>}
       <p class="welcome-step">Open the invite link your pilot sent you, on this device.</p>
       {problem && (
-        <p class="signin-error" role="alert">
+        <p key={shown} class="signin-error" role="alert">
           <strong>{problem.title}</strong> {problem.text}
         </p>
       )}
@@ -70,30 +112,42 @@ export function Welcome({ message, ended, onJoin }: WelcomeProps) {
           inputMode="url"
           autocomplete="off"
           autocapitalize="off"
+          autocorrect="off"
           spellcheck={false}
           placeholder="Paste the invite link your pilot sent you."
           value={pasted}
-          onInput={(e) => setPasted(e.currentTarget.value)}
+          onInput={(e) => {
+            setProblem(null)
+            setPasted(e.currentTarget.value)
+          }}
         />
         <button class="primary" type="submit" disabled={pasted.trim() === ''}>Connect</button>
       </form>
-      <p class="welcome-label">or type the code from CrewLuve on another device</p>
-      {/* One field drawn as six boxes, so typing, pasting and the keyboard's suggestions all work. */}
-      <div class="code">
-        <input
-          class="code-input"
-          type="text"
-          aria-label="Code"
-          autocomplete="one-time-code"
-          autocapitalize="characters"
-          spellcheck={false}
-          value={code}
-          onInput={(e) => typeCode(e.currentTarget.value)}
-        />
-        <div class="code-boxes" aria-hidden="true">
-          {Array.from({ length: CODE_LENGTH }, (_, i) => (
-            <span key={i} class="field code-box">{code[i] ?? ''}</span>
-          ))}
+      <div class="welcome-code">
+        <p id="code-hint" class="welcome-label">or type the code from CrewLuve on another device</p>
+        {/* One field drawn as six boxes, so typing, pasting and the keyboard's suggestions all work. */}
+        <div class="code">
+          {/* The field is uncontrolled, with no value prop, on purpose: typeCode rewrites it only when a character is
+              dropped, never for case. A field rewritten mid-word makes Android keyboards double letters. */}
+          <input
+            class="code-input"
+            type="text"
+            aria-label="Code"
+            aria-describedby="code-hint"
+            autocomplete="one-time-code"
+            autocapitalize="characters"
+            autocorrect="off"
+            spellcheck={false}
+            onInput={(e) => typeCode(e.currentTarget)}
+            onFocus={caretToEnd}
+            onClick={caretToEnd}
+            onKeyUp={caretToEnd}
+          />
+          <div class="code-boxes" aria-hidden="true">
+            {Array.from({ length: CODE_LENGTH }, (_, i) => (
+              <span key={i} class={i === code.length ? 'field code-box next' : 'field code-box'}>{code[i] ?? ''}</span>
+            ))}
+          </div>
         </div>
       </div>
       <a class="signin-demo" href="?demo=1">Try Demo</a>
@@ -104,7 +158,7 @@ export function Welcome({ message, ended, onJoin }: WelcomeProps) {
 /** While a link or a code connects (piece 5a §4.3, step 1). */
 export function Connecting() {
   return (
-    <main class="screen signin" aria-busy="true">
+    <main class="screen signin">
       <Heading title="CrewLuve" />
       <p class="signin-sub" role="status">Connecting…</p>
     </main>

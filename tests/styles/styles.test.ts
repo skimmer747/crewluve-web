@@ -318,6 +318,14 @@ describe('cards.css', () => {
       expect.arrayContaining([['flex', '1'], ['font-size', '20px'], ['font-weight', '600']]),
     )
   })
+
+  it('hides the code input with transparent parts, not with opacity, so iOS keeps its Paste menu (piece 5a §8)', () => {
+    // iOS hides the caret, the selection handles and the Paste menu on an editable field it judges invisible by its
+    // opacity (WebKit bug 195894). Paste is how a partner gets a code out of a message and into the boxes.
+    const input = declarations(find(top, '.code-input')!.body)
+    expect(input.map(([prop]) => prop)).not.toContain('opacity')
+    expect(input).toEqual(expect.arrayContaining([['color', 'transparent'], ['caret-color', 'transparent']]))
+  })
 })
 
 describe('trips.css', () => {

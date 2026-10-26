@@ -2,10 +2,24 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Connecting, Welcome } from '../../src/ui/Welcome'
+import { stubAnimationFrames } from '../fixtures/ui'
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.unstubAllGlobals()
+})
 
-const submit = () => fireEvent.submit(screen.getByRole('button', { name: 'Connect' }).closest('form')!)
+const NOT_AN_INVITE_LINK = "Not an Invite Link That doesn't look like an invite link."
+
+/** Presses Connect. It has to be on by then: a button that never turned on would pass a test that only submits the form. */
+const connect = () => {
+  const button = screen.getByRole('button', { name: 'Connect' }) as HTMLButtonElement
+  expect(button.disabled).toBe(false)
+  fireEvent.click(button)
+}
+
+/** What the six boxes show. */
+const boxes = (container: Element) => [...container.querySelectorAll('.code-box')].map((box) => box.textContent)
 
 describe('Welcome (piece 5a §8)', () => {
   it('greets like the app and says how to connect', () => {
@@ -24,7 +38,7 @@ describe('Welcome (piece 5a §8)', () => {
     fireEvent.input(screen.getByLabelText('Paste Invite Link'), {
       target: { value: 'Tap this link to see my status in Crewluve. https://crewluve.crewlu.net/join#t=abc123' },
     })
-    submit()
+    connect()
     expect(onJoin).toHaveBeenCalledWith({ kind: 'invite', invite: 'abc123' })
   })
 
@@ -32,14 +46,76 @@ describe('Welcome (piece 5a §8)', () => {
     const onJoin = vi.fn()
     render(<Welcome message={null} ended={null} onJoin={onJoin} />)
     fireEvent.input(screen.getByLabelText('Paste Invite Link'), { target: { value: 'hello' } })
-    submit()
+    connect()
     expect(onJoin).not.toHaveBeenCalled()
-    expect(screen.getByRole('alert').textContent).toBe("Not an Invite Link That doesn't look like an invite link.")
+    expect(screen.getByRole('alert').textContent).toBe(NOT_AN_INVITE_LINK)
+  })
+
+  it('shows the alert again on a second bad paste, so a screen reader announces it again', () => {
+    render(<Welcome message={null} ended={null} onJoin={() => {}} />)
+    const paste = screen.getByLabelText('Paste Invite Link')
+    fireEvent.input(paste, { target: { value: 'hello' } })
+    connect()
+    const first = screen.getByRole('alert')
+    fireEvent.input(paste, { target: { value: 'hello again' } })
+    expect(screen.queryByRole('alert')).toBeNull() // typing takes the old one away...
+    connect()
+    const second = screen.getByRole('alert') // ...so the next is a new one, which is announced
+    expect(second).not.toBe(first)
+    expect(second.textContent).toBe(NOT_AN_INVITE_LINK)
+  })
+
+  it('shows the same problem as a new alert when Connect is pressed again on the same paste, so it is announced again', () => {
+    render(<Welcome message={null} ended={null} onJoin={() => {}} />)
+    fireEvent.input(screen.getByLabelText('Paste Invite Link'), { target: { value: 'hello' } })
+    connect()
+    const first = screen.getByRole('alert')
+    connect()
+    const second = screen.getByRole('alert')
+    expect(second).not.toBe(first)
+    expect(second.textContent).toBe(NOT_AN_INVITE_LINK)
+    expect(screen.getAllByRole('alert')).toHaveLength(1) // the old one is gone, not left beside it
+  })
+
+  it('shows the same debris pasted into the boxes twice in a row as a new alert the second time, so it is announced again', () => {
+    render(<Welcome message={null} ended={null} onJoin={() => {}} />)
+    const field = screen.getByLabelText('Code') as HTMLInputElement
+    fireEvent.input(field, { target: { value: 'https://crewluve.crewlu.net/join' } })
+    const first = screen.getByRole('alert')
+    fireEvent.input(field, { target: { value: 'https://crewluve.crewlu.net/join' } })
+    const second = screen.getByRole('alert')
+    expect(second).not.toBe(first)
+    expect(second.textContent).toBe(NOT_AN_INVITE_LINK)
+    expect(screen.getAllByRole('alert')).toHaveLength(1)
+  })
+
+  it.each(['Paste Invite Link', 'Code'])('takes the reason Root gave away when typing starts in %s', (label) => {
+    render(<Welcome message={{ title: 'Too Many Tries', text: 'Too many tries. Wait a minute, then try again.' }} ended={null} onJoin={() => {}} />)
+    expect(screen.getByRole('alert')).toBeTruthy()
+    fireEvent.input(screen.getByLabelText(label), { target: { value: 'x' } })
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 
   it('keeps Connect off until something is pasted', () => {
     render(<Welcome message={null} ended={null} onJoin={() => {}} />)
     expect((screen.getByRole('button', { name: 'Connect' }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('keeps Connect off for a paste of only spaces', () => {
+    render(<Welcome message={null} ended={null} onJoin={() => {}} />)
+    fireEvent.input(screen.getByLabelText('Paste Invite Link'), { target: { value: '   ' } })
+    expect((screen.getByRole('button', { name: 'Connect' }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('gives the phone what it needs to fill, capitalize and read the code', () => {
+    const { container } = render(<Welcome message={null} ended={null} onJoin={() => {}} />)
+    const field = screen.getByLabelText('Code')
+    expect(field.getAttribute('autocomplete')).toBe('one-time-code')
+    expect(field.getAttribute('autocapitalize')).toBe('characters')
+    expect(field.getAttribute('autocorrect')).toBe('off')
+    // A screen reader reads the instruction above it after "Code"; the six boxes are only a drawing of what it holds.
+    expect(document.getElementById(field.getAttribute('aria-describedby') ?? '')?.textContent).toBe('or type the code from CrewLuve on another device')
+    expect(container.querySelector('.code-boxes')?.getAttribute('aria-hidden')).toBe('true')
   })
 
   it("redeems a code on its sixth letter, keeping only the code's letters, in upper case", () => {
@@ -48,17 +124,99 @@ describe('Welcome (piece 5a §8)', () => {
     const code = screen.getByLabelText('Code')
     fireEvent.input(code, { target: { value: 'ab-2c3' } })
     expect(onJoin).not.toHaveBeenCalled()
-    expect([...container.querySelectorAll('.code-box')].map((box) => box.textContent)).toEqual(['A', 'B', '2', 'C', '3', ''])
+    expect(boxes(container)).toEqual(['A', 'B', '2', 'C', '3', ''])
     fireEvent.input(code, { target: { value: 'ab-2c3d' } })
     expect(onJoin).toHaveBeenCalledWith({ kind: 'code', code: 'AB2C3D' })
   })
 
   it('connects with a whole code link pasted into the code boxes, not with its first six letters', () => {
     const onJoin = vi.fn()
-    render(<Welcome message={null} ended={null} onJoin={onJoin} />)
-    fireEvent.input(screen.getByLabelText('Code'), { target: { value: 'https://crewluve.crewlu.net/join#c=ab2c3d' } })
+    const { container } = render(<Welcome message={null} ended={null} onJoin={onJoin} />)
+    const field = screen.getByLabelText('Code') as HTMLInputElement
+    fireEvent.input(field, { target: { value: 'https://crewluve.crewlu.net/join#c=ab2c3d' } })
     expect(onJoin).toHaveBeenCalledTimes(1)
     expect(onJoin).toHaveBeenCalledWith({ kind: 'code', code: 'AB2C3D' })
+    expect(field.value).toBe('') // the link isn't left in the field, which holds what the boxes show
+    expect(boxes(container)).toEqual(['', '', '', '', '', ''])
+  })
+
+  it('connects with a whole invite link pasted into the code boxes too', () => {
+    const onJoin = vi.fn()
+    const { container } = render(<Welcome message={null} ended={null} onJoin={onJoin} />)
+    const field = screen.getByLabelText('Code') as HTMLInputElement
+    fireEvent.input(field, { target: { value: 'https://crewluve.crewlu.net/join#t=abc123' } })
+    expect(onJoin).toHaveBeenCalledTimes(1)
+    expect(onJoin).toHaveBeenCalledWith({ kind: 'invite', invite: 'abc123' })
+    expect(field.value).toBe('')
+    expect(boxes(container)).toEqual(['', '', '', '', '', ''])
+  })
+
+  it.each(['https://crewluve.crewlu.net/join', '#c=K7M'])(
+    "doesn't take %s typed into the boxes for a code: nothing joins, it says so, and the boxes and the field are empty",
+    (debris) => {
+      const onJoin = vi.fn()
+      const { container } = render(<Welcome message={null} ended={null} onJoin={onJoin} />)
+      const field = screen.getByLabelText('Code') as HTMLInputElement
+      fireEvent.input(field, { target: { value: 'k7' } })
+      // Twice: the second time the alert is already up and there is nothing new to draw, so the field is emptied by hand.
+      for (let paste = 0; paste < 2; paste++) {
+        fireEvent.input(field, { target: { value: debris } })
+        expect(onJoin).not.toHaveBeenCalled()
+        expect(screen.getByRole('alert').textContent).toBe(NOT_AN_INVITE_LINK)
+        expect(boxes(container)).toEqual(['', '', '', '', '', ''])
+        expect(field.value).toBe('')
+      }
+    },
+  )
+
+  it.each(['k7m ', 'k7m-', 'k7mo'])('writes the code back into the field when %j adds nothing to it, so the field holds what the boxes show', (typed) => {
+    const { container } = render(<Welcome message={null} ended={null} onJoin={() => {}} />)
+    const field = screen.getByLabelText('Code') as HTMLInputElement
+    fireEvent.input(field, { target: { value: 'k7m' } })
+    fireEvent.input(field, { target: { value: typed } }) // a space, a dash or a look-alike letter: the boxes don't change
+    expect(boxes(container)).toEqual(['K', '7', 'M', '', '', ''])
+    expect(field.value).toBe('K7M')
+  })
+
+  it("leaves lower-case typing as it was typed, so a keyboard that is mid-word isn't rewritten", () => {
+    const { container } = render(<Welcome message={null} ended={null} onJoin={() => {}} />)
+    const field = screen.getByLabelText('Code') as HTMLInputElement
+    fireEvent.input(field, { target: { value: 'k7' } })
+    expect(field.value).toBe('k7')
+    expect(boxes(container)).toEqual(['K', '7', '', '', '', ''])
+  })
+
+  it('marks the box that typing goes in next, and no other', () => {
+    const { container } = render(<Welcome message={null} ended={null} onJoin={() => {}} />)
+    fireEvent.input(screen.getByLabelText('Code'), { target: { value: 'k7' } })
+    expect([...container.querySelectorAll('.code-box')].map((box) => box.classList.contains('next'))).toEqual([false, false, true, false, false, false])
+  })
+
+  it.each([
+    ['focus', fireEvent.focus],
+    ['click', fireEvent.click],
+    ['keyUp', fireEvent.keyUp],
+  ])('puts the caret back at the end of the code on the next frame after a %s', async (_event, fire) => {
+    const frames = stubAnimationFrames()
+    render(<Welcome message={null} ended={null} onJoin={() => {}} />)
+    const field = screen.getByLabelText('Code') as HTMLInputElement
+    fireEvent.input(field, { target: { value: 'k7m' } })
+    field.setSelectionRange(1, 1) // a tap landed between two letters
+    fire(field)
+    expect(field.selectionStart).toBe(1) // not before the frame
+    await frames.frame(0)
+    expect([field.selectionStart, field.selectionEnd]).toEqual([3, 3])
+  })
+
+  it("doesn't touch a caret that is already at the end, so a keyboard that is mid-word gets no selection change", async () => {
+    const frames = stubAnimationFrames()
+    render(<Welcome message={null} ended={null} onJoin={() => {}} />)
+    const field = screen.getByLabelText('Code') as HTMLInputElement
+    fireEvent.input(field, { target: { value: 'k7m' } })
+    const setSelectionRange = vi.spyOn(field, 'setSelectionRange')
+    fireEvent.click(field)
+    await frames.frame(0)
+    expect(setSelectionRange).not.toHaveBeenCalled()
   })
 
   it("shows why the last link or code didn't connect", () => {
@@ -77,5 +235,10 @@ describe('Connecting', () => {
     render(<Connecting />)
     expect(screen.getByRole('status').textContent).toBe('Connecting…')
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('CrewLuve')
+  })
+
+  it('is not marked busy, which would hold its announcement back for good', () => {
+    const { container } = render(<Connecting />)
+    expect(container.querySelector('[aria-busy]')).toBeNull()
   })
 })

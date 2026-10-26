@@ -294,16 +294,22 @@
   opacity: 0.6;
 }
 
+/* The error and the note carry instructions, so they take the primary color: at 13-15 px on white, --red and --text-2
+   are under 4.5:1. The error reads like the app's alert, its bold title on its own line and its text under it. */
 .signin-error {
   margin: 0;
   font-size: 15px;
-  color: var(--red);
+  color: var(--text);
+}
+
+.signin-error strong {
+  display: block;
 }
 
 .signin-note {
   margin: 0;
   font-size: 13px;
-  color: var(--text-2);
+  color: var(--text);
 }
 
 .signin-demo {
@@ -322,7 +328,14 @@
   margin: 0;
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-2);
+  color: var(--text);
+}
+
+/* The code's instruction and its boxes, spaced as the paste field's label and field are (.signin-form). */
+.welcome-code {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 /* The code: one field over six boxes. It takes the typing, the pasting and the keyboard's suggestions, unseen; the
@@ -331,14 +344,46 @@
   position: relative;
 }
 
+/* Unseen, but not by opacity: iOS hides the caret, the selection handles and the Paste menu on an editable field it
+   judges invisible by its opacity (WebKit bug 195894). So the field stays opaque, and its parts are transparent: the
+   text and the caret, the background and the border, the outline and the selection. In Windows' high-contrast mode,
+   forced-color-adjust keeps the browser from painting the hidden text over the boxes. */
 .code-input {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  opacity: 0;
   font-size: 16px;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  caret-color: transparent;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  forced-color-adjust: none;
+}
+
+.code-input::selection {
+  background: transparent;
+}
+
+/* The browser's autofill tint, which opacity used to hide. Two rules, not one list: a selector a browser doesn't know
+   voids the whole list it's in. */
+.code-input:-webkit-autofill {
+  background: transparent !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.code-input:autofill {
+  background: transparent !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  box-shadow: none !important;
 }
 
 .code-boxes {
@@ -360,6 +405,12 @@
 
 .code-input:focus + .code-boxes .code-box {
   border-color: var(--blue);
+}
+
+/* The box typing goes in next shows where it is, as the field's own outline (off, above) no longer can. An outline, not
+   a box-shadow, so high-contrast mode keeps it. */
+.code-input:focus + .code-boxes .code-box.next {
+  outline: 2px solid var(--blue);
 }
 
 /* A card that opens the schedule (slice 3A §3.1). A tap anywhere on it opens the schedule, and it presses in as the
