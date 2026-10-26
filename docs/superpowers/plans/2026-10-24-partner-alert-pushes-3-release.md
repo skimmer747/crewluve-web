@@ -512,14 +512,14 @@ Expected: two rows.
 - Claude asks once, at the start, for a yes that covers this task's reads of Crewlu Cloud. After each step, it reads partner-push's lines with Task 3 Step 3's first query.
 - Each quick status has to differ from the one that partner sees now, or nothing changes for them. If they already have the one named, pick another, and expect its words.
 
-- [ ] **Step 1: Get the rarely used phone ready**
+- [x] **Step 1: Get the rarely used phone ready**
 
 On the TestFlight partner's phone:
 1. In **Settings → General → Background App Refresh**, note whether **Crewluve** is on, and turn it off.
 2. Open the App Switcher, and swipe Crewluve up off the screen.
 3. Unplug the phone, lock it, and leave it for a minute or two.
 
-- [ ] **Step 2: A quick status to that partner only (§9.4 check 1)**
+- [x] **Step 2: A quick status to that partner only (§9.4 check 1)**
 
 On your phone, in **CrewLu → Partner Sharing**, open the TestFlight partner's entry → **Nickname and Quick Status** → **Quick Status**, and pick **Call Me**. Under **Send To**, choose them only.
 
@@ -528,33 +528,33 @@ Expected:
 - `partner-push: 1 sent (1 as alerts), 0 dead, 0 retried, 0 failed`: one push, so the moved partner's phone got nothing;
 - with Task 3 Step 3's second query, a `partner_view` seconds later, status 200, with an agent starting `CrewluveAlerts/45`. The helper read the key that 1.2 saved, through Crewluve's own Keychain group (§6.2).
 
-- [ ] **Step 3: Sleeping, to the same partner (§9.4 check 2)**
+- [x] **Step 3: Sleeping, to the same partner (§9.4 check 2)**
 
 The same way, send them **Sleeping**, to them only.
 
 Expected: one alert, "is sleeping", with no sound, and `partner-push: 1 sent (1 as alerts), 0 dead, 0 retried, 0 failed`.
 
-- [ ] **Step 4: A quick status to the moved partner only (plan 1's open check)**
+- [x] **Step 4: A quick status to the moved partner only (plan 1's open check)**
 
 The same way, send the moved partner a quick status you're happy for them to see, such as **Free to Talk**, to them only.
 
 Expected: `partner-push: 1 sent (0 as alerts), 0 dead, 0 retried, 0 failed`: one hidden push, to the moved partner's 1.2, as before. The TestFlight partner's phone shows nothing. This closes plan 1's Task 8 Step 5, part 2.
 
-- [ ] **Step 5: CrewLu coming to the front (§9.4 check 3)**
+- [x] **Step 5: CrewLu coming to the front (§9.4 check 3)**
 
 1. On your phone, go to the Home Screen, then open CrewLu again.
 2. Wait half a minute, then open **Partner Sharing**, and change nothing.
 
 Expected: partner-push's lines for these writes read `partner-push: nothing new to send`, with no `sent` line. Nobody is pushed. This closes plan 1's Task 8 Step 5, part 1.
 
-- [ ] **Step 6: With Crewluve open (§9.4 check 4)**
+- [x] **Step 6: With Crewluve open (§9.4 check 4)**
 
 1. On the TestFlight partner's phone, open Crewluve, and keep it in front.
 2. On your phone, send them **Out for Dinner**, to them only.
 
 Expected: one banner, "went out for dinner", shown once, and `partner-push: 1 sent (1 as alerts), 0 dead, 0 retried, 0 failed`.
 
-- [ ] **Step 7: Put things back**
+- [x] **Step 7: Put things back**
 
 1. On the TestFlight partner's phone, set **Background App Refresh** for Crewluve as it was at Step 1.
 2. In CrewLu, clear the quick statuses you sent, if you like. Clearing one alerts nothing, since the rule needs a new status that isn't empty (spec §5.3).
@@ -674,4 +674,13 @@ Filled in as the release goes: each task's result, and anything that differed. N
 - **Task 4 (2026-10-24):** the archive, from `11e4714` with nothing else changed, passed all 8 of `check_archive.py`'s checks: both bundles 1.3 (45) for iOS 26.0, the helper a notification service, signed with its own App ID on the app's team, its one Keychain group Crewluve's own, the app with no group of its own, and the signatures verifying. The upload through **Distribute App → App Store Connect** worked.
 - **Task 5 Step 1 (2026-10-24):** 1.3 (45) went to the external group with the What to Test text, and was submitted for Apple's beta review. It showed **In Review** the next evening, and was approved by 2026-10-26.
 - **Task 5 Steps 2 and 3 (2026-10-26):** the TestFlight partner updated to 1.3 (45) over 1.2, without deleting Crewluve, and opened it once. With the user's yes, the device read gave the two rows expected: the moved partner's, joined 2026-10-21, `production`, a token, `push_alerts` false; and the TestFlight partner's, joined 2026-10-22, `production`, a token, and now `push_alerts` true.
+- **Task 6 (2026-10-26):** no flight was under way, and the user's yes covered the task's log reads.
+  - **Step 1:** Background App Refresh for Crewluve was already off on the TestFlight partner's phone, so Step 7 leaves it off.
+  - **Step 2:** the alert said "is asking you to call", and the phone vibrated: an alert with no sound doesn't. `partner-push: 1 sent (1 as alerts), 0 dead, 0 retried, 0 failed` at 13:39:12.404 UTC, and the helper's `partner_view` followed at 13:39:12.635: 200, `CrewluveAlerts/45`. So on a phone that updated from 1.2, the helper read the key 1.2 saved.
+  - **The push before it:** half a minute earlier, CrewLu, opened for the step, wrote the status (13:38:39 UTC), and `partner-push: 1 sent (0 as alerts)` gave the moved partner's 1.2 its silent push, which its `partner_view` followed. Something partners see had changed since CrewLu last wrote. The TestFlight partner's 1.3 got nothing, as partner-push sends a 1.3 only alerts, and the change had none.
+  - **Step 3:** one alert, "is sleeping", titled with the name, with no sound and no vibration. `partner-push: 1 sent (1 as alerts), 0 dead, 0 retried, 0 failed` at 13:45:28.442 UTC, and the helper's `partner_view` followed at 13:45:29.746: 200, `CrewluveAlerts/45`. A write 15 seconds before it gave `partner-push: nothing new to send`.
+  - **Step 6, done before Steps 4 and 5,** so the TestFlight partner could have their phone back: the first try, with Out for Dinner, showed Crewluve's screen change but no banner that the user saw. The push and the helper's read were as in the other steps: `1 sent (1 as alerts)` at 13:49:29.155 UTC, and `CrewluveAlerts/45`'s `partner_view` at 13:49:29.320. Crewluve, open, read next at 13:50:06 with its 60-second check, which is when the screen changed, and posted no alert of its own, as alert pushes bring them (spec §6.3). Its only notification delegate asks iOS for a banner and a sound while it's open. On the phone, Crewluve's Lock Screen, Notification Center and Banners were all on, with no Focus. The try again, with Free to Talk and the phone's screen watched from the send: one banner, "is free to talk", shown once, and none when the screen changed. `partner-push: 1 sent (1 as alerts), 0 dead, 0 retried, 0 failed` at 13:58:01.582 UTC, and the helper's `partner_view` at 13:58:01.736. So the first banner most likely came, about 2 seconds after the send, and went before the user looked.
+  - **Step 4:** Free to Talk, to the moved partner only, written at 14:06:36.804 UTC: `partner-push: 1 sent (0 as alerts), 0 dead, 0 retried, 0 failed` at 14:06:47.255, and the moved partner's 1.2 read at 14:06:48, with no read from the helper. One hidden push, to the 1.2 only. This closes plan 1's Task 8 Step 5, part 2. A write half a minute before, at 14:06:02, gave `partner-push: nothing new to send`.
+  - **Step 5:** CrewLu, brought to the front again, wrote at 14:09:24.544 UTC, and partner-push answered `partner-push: nothing new to send` at 14:09:32.898, with no `sent` line. This closes plan 1's Task 8 Step 5, part 1. The writes before Steps 3 and 4 gave the same.
+  - **Step 7:** nothing to put back, as Background App Refresh was already off. Clearing the quick statuses sent is left to the user.
 - **Task 7 Steps 1 to 4 (2026-10-24), done while the beta review waits:** version 1.3 has the What's New text and build 1.3 (45), the review notes, and automatic release, and the privacy answers are unchanged. All saved; Step 5, the submission, waits for Task 6.
