@@ -88,6 +88,20 @@ describe('Root: a browser that follows no one', () => {
     expect(store.device()).toBeNull()
   })
 
+  it('comes back from a code the door refuses with the reason and empty boxes', async () => {
+    const { f, store } = setUp()
+    const { container } = render(<Root door={f.door} store={store} />)
+    fireEvent.input(screen.getByLabelText('Code'), { target: { value: 'zzzzzz' } }) // a code the door doesn't know
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      "Code Not Working That code didn't work. Codes last 10 minutes and work once. Make a new one on your other device.",
+    )
+    // Root shows Connecting between attempts, which remounts the welcome screen: that is what empties the boxes (spec §8).
+    expect([...container.querySelectorAll('.code-box')].map((box) => box.textContent)).toEqual(['', '', '', '', '', ''])
+    expect((screen.getByLabelText('Code') as HTMLInputElement).value).toBe('')
+    expect(f.calls[0]).toMatch(/^redeem ZZZZZZ /)
+    expect(store.device()).toBeNull()
+  })
+
   it('joins with a link that arrives in the address while the page is open', async () => {
     const { f, store } = setUp()
     render(<Root door={f.door} store={store} />)
