@@ -68,7 +68,7 @@ export function fakeDoor() {
     if (!partner) return { error: 'sharing_ended' }
     const summary = summaries.get(partner)
     if (!summary) return { partnerId: partner, updatedAt: null, unchanged: false, status: null }
-    if (since === summary.updatedAt) return { partnerId: partner, updatedAt: summary.updatedAt, unchanged: true }
+    if (since != null && summary.updatedAt <= since) return { partnerId: partner, updatedAt: summary.updatedAt, unchanged: true }
     return { partnerId: partner, updatedAt: summary.updatedAt, unchanged: false, status: summary.status }
   }
   const door: PartnerDoor = {

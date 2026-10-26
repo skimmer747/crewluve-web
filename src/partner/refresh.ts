@@ -31,11 +31,11 @@ export async function refreshSummary(door: PartnerDoor, store: PartnerStore, now
   const kept = stored?.partnerId === device.partnerId ? stored : null
   const answer = await door.view(device.key, kept?.updatedAt ?? null)
 
-  // The browser let go of this device while the call was out: write nothing for it.
+  // The browser let go of this device while the call was out, or gave its key to another partner: write nothing for it.
   const current = store.device()
   if (!current) throw new NotConnected()
-  if (current.key !== device.key) {
-    // Another tab connected a new device meanwhile, and stored its summary.
+  if (current.key !== device.key || current.partnerId !== device.partnerId) {
+    // Another tab, or a join in this one, connected a device meanwhile, and stored its summary.
     const theirs = store.summary()
     if (theirs) return theirs
     throw new Error('The device changed during the refresh')
@@ -46,9 +46,19 @@ export async function refreshSummary(door: PartnerDoor, store: PartnerStore, now
     store.forget()
     throw new SharingEnded(kept ? nameIn(kept.status, kept.partnerId) : null)
   }
+  if (answer.partnerId !== device.partnerId) {
+    // The door gave this key to another partner: this browser's join sent it with that partner's link after its old
+    // device was removed, and the page closed before the join could save it. Follow the door. The since sent was the
+    // old partner's, so an unchanged answer says nothing: ask again for everything.
+    if (!store.saveDevice({ key: device.key, partnerId: answer.partnerId })) throw new Error('The device could not be saved')
+    if (answer.unchanged) return refreshSummary(door, store, now)
+  }
   if (answer.unchanged) {
-    if (!kept) throw new Error('partner_view answered unchanged to a call that asked for everything')
-    const checked = { ...kept, checkedAt: now() }
+    // Another tab may have stored this partner's summary meanwhile: "Checked" moves on whatever is stored now.
+    const latest = store.summary()
+    const base = latest?.partnerId === device.partnerId ? latest : kept
+    if (!base) throw new Error('partner_view answered unchanged to a call that asked for everything')
+    const checked = { ...base, checkedAt: now() }
     store.saveSummary(checked)
     return checked
   }

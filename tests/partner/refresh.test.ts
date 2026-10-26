@@ -46,11 +46,12 @@ describe('refreshSummary (piece 5a §5)', () => {
 
   it('forgets the key and the summary when sharing ends, and names the pilot as this partner saw them', async () => {
     const { f, store } = connected()
+    store.savePendingKey(key(2))
     f.devices.clear() // the pilot removed this browser in CrewLu
     const err = await refreshSummary(f.door, store).catch((e: unknown) => e)
     expect(err).toBeInstanceOf(SharingEnded)
     expect((err as SharingEnded).pilotName).toBe('Alex')
-    expect([store.device(), store.pendingKey(), store.summary()]).toEqual([null, null, null])
+    expect([store.device(), store.pendingKey(), store.summary()]).toEqual([null, key(2), null])
   })
 
   it('has no name for an ending before the first summary', async () => {
@@ -103,5 +104,64 @@ describe('refreshSummary (piece 5a §5)', () => {
     }
     expect(await refreshSummary(f.door, store)).toEqual(theirs)
     expect(store.summary()).toEqual(theirs)
+  })
+
+  it("writes nothing when a join gives this browser's key to another partner while the call is out", async () => {
+    const { f, store } = connected()
+    const view = f.door.view
+    const theirs = { partnerId: PARTNER_B, updatedAt: 'b1', status: example('home', 'B'), checkedAt: 3 }
+    f.door.view = async (k, since) => {
+      store.saveDevice({ key: key(1), partnerId: PARTNER_B }) // the same key, now the other partner's
+      store.saveSummary(theirs)
+      return view(k, since)
+    }
+    expect(await refreshSummary(f.door, store)).toEqual(theirs)
+    expect(store.device()).toEqual({ key: key(1), partnerId: PARTNER_B })
+  })
+
+  it('ignores a stale sharing_ended when a join gave the key to another partner meanwhile', async () => {
+    const { f, store } = connected()
+    f.devices.clear() // the old device is gone, so the door answers sharing_ended for it
+    const view = f.door.view
+    f.door.view = async (k, since) => {
+      const answer = await view(k, since)
+      store.saveDevice({ key: key(1), partnerId: PARTNER_B })
+      store.saveSummary({ partnerId: PARTNER_B, updatedAt: 'b1', status: null, checkedAt: 3 })
+      return answer
+    }
+    await refreshSummary(f.door, store)
+    expect(store.device()).toEqual({ key: key(1), partnerId: PARTNER_B })
+  })
+
+  it('follows the door when it answers this key for another partner, asking again for everything after an unchanged', async () => {
+    const { f, store } = connected()
+    f.devices.set(key(1), PARTNER_B) // the door gave this key to partner B
+    f.summaries.set(PARTNER_B, { updatedAt: 'a1', status: example('home', 'B') })
+    const after = await refreshSummary(f.door, store, () => 5)
+    expect(store.device()).toEqual({ key: key(1), partnerId: PARTNER_B })
+    expect(after).toEqual({ partnerId: PARTNER_B, updatedAt: 'a1', status: example('home', 'B'), checkedAt: 5 })
+    expect(f.calls).toEqual([`view ${key(1)} a1`, `view ${key(1)} null`])
+  })
+
+  it("follows the door when it answers this key with another partner's new summary", async () => {
+    const { f, store } = connected()
+    f.devices.set(key(1), PARTNER_B)
+    f.summaries.set(PARTNER_B, { updatedAt: 'b1', status: example('home', 'B') })
+    const after = await refreshSummary(f.door, store, () => 5)
+    expect(store.device()).toEqual({ key: key(1), partnerId: PARTNER_B })
+    expect(after.partnerId).toBe(PARTNER_B)
+    expect(f.calls).toEqual([`view ${key(1)} a1`])
+  })
+
+  it('moves Checked on the summary another tab stored meanwhile, not on the one read before the call', async () => {
+    const { f, store } = connected()
+    const view = f.door.view
+    const newer = { partnerId: PARTNER_A, updatedAt: 'a2', status: example('commuting-home'), checkedAt: 3 }
+    f.door.view = async (k, since) => {
+      const answer = await view(k, since) // unchanged since a1
+      store.saveSummary(newer)
+      return answer
+    }
+    expect(await refreshSummary(f.door, store, () => 5)).toEqual({ ...newer, checkedAt: 5 })
   })
 })
