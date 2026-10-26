@@ -39,15 +39,16 @@
   line-height: 34px;
 }
 
-/* The pilot's quick status (piece 5a §7): its icon in blue, and its words at 15 px semibold, under the city. */
+/* The pilot's quick status (piece 5a §7), where Crewluve's QuickStatusIndicatorView sits, between the weather and the
+   time: a 20 px blue icon, and the words at 16 px medium in the primary color, which stays readable on the glass. */
 .quick-status {
   margin: 0;
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 15px;
-  line-height: 20px;
-  font-weight: 600;
+  font-size: 16px;
+  line-height: 21px;
+  font-weight: 500;
 }
 
 /* Weather: the icon, the temperature (20 px bold) and the words (15 px, secondary); the credit 11 px like the app's. */

@@ -178,7 +178,12 @@ describe('StatusScreen: the notice and the quick status (piece 5a)', () => {
 
   it('puts the quick status on the location card', () => {
     const { container } = render(withExtras(-1440, { quickStatus: { text: 'Out for Dinner', icon: 'fork.knife', expiresAt: null } }))
-    expect(container.querySelector('.location .quick-status')?.textContent).toBe('Out for Dinner')
+    expect(container.querySelector('.location .quick-status')?.textContent).toBe('Quick status: Out for Dinner')
+  })
+
+  it('shows no quick status while the pilot is flying, as the location card goes too', () => {
+    const { container } = render(withExtras(100, { quickStatus: { text: 'Call Me', icon: 'phone.fill', expiresAt: null } }))
+    expect(container.querySelector('.quick-status')).toBeNull()
   })
 })
 

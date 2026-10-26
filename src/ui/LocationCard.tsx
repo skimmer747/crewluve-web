@@ -3,9 +3,9 @@ import { shortTimeText } from '../copy/format'
 import { timeDifference } from '../copy/location'
 import { temperatureText } from '../copy/weather'
 import type { Weather } from '../data/weather'
+import type { Snapshot } from '../engine/snapshot'
 import type { IconName } from '../icons/iconPaths'
 import type { QuickStatus } from '../partner/summary'
-import type { Snapshot } from '../engine/snapshot'
 import { cssColor } from './colors'
 import { Icon } from './Icon'
 import { showsDial, type LocationFacts } from './locationFacts'
@@ -44,7 +44,7 @@ export interface LocationCardProps {
   onOpenSun?: (dial: HTMLElement) => void
   /** The city's heading, which takes focus from code when a popup closes by itself (popup follow-ups §4.2). */
   headingRef?: Ref<HTMLHeadingElement>
-  /** The pilot's quick status, under the city (piece 5a §7), or null. */
+  /** The pilot's quick status, between the weather and the time as in Crewluve (piece 5a §7), or null. */
   quickStatus?: QuickStatus | null
 }
 
@@ -62,12 +62,6 @@ export function LocationCard({ airport, facts, now, homeTz, h24, weather, onOpen
           <h2 ref={headingRef} class="location-city" tabIndex={-1}>{city}</h2>
           {flag && <span class="location-flag">{flag}</span>}
         </div>
-        {quickStatus && (
-          <p class="quick-status">
-            <Icon name={quickStatusIcon(quickStatus.icon)} size={17} color="var(--blue)" />
-            <span>{quickStatus.text}</span>
-          </p>
-        )}
         {airport &&
           (weather && visual ? (
             <>
@@ -84,6 +78,13 @@ export function LocationCard({ airport, facts, now, homeTz, h24, weather, onOpen
               <span>{airport}</span>
             </p>
           ))}
+        {quickStatus && (
+          <p class="quick-status">
+            <span class="sr-only">Quick status: </span>
+            <Icon name={quickStatusIcon(quickStatus.icon)} size={20} color="var(--blue)" />
+            <span>{quickStatus.text}</span>
+          </p>
+        )}
         {tz && (
           <div class="location-time">
             <p class="time-row">

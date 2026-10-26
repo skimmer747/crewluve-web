@@ -6,6 +6,7 @@ import { demoRaw } from '../../src/data/demo'
 import type { Weather } from '../../src/data/weather'
 import { makeSnapshot } from '../../src/engine/snapshot'
 import type { StatusKind } from '../../src/engine/status'
+import type { IconName } from '../../src/icons/iconPaths'
 import { LocationCard, quickStatusIcon, showsLocationCard } from '../../src/ui/LocationCard'
 import { locationFacts } from '../../src/ui/locationFacts'
 import { testAirports } from '../fixtures/airports'
@@ -190,17 +191,28 @@ describe('showsLocationCard', () => {
 })
 
 describe('LocationCard: the quick status (piece 5a §7)', () => {
-  it("shows the pilot's quick status under the city, with its icon", () => {
+  it("shows the pilot's quick status between the weather and the time, as Crewluve does", () => {
     const { container } = render(
       <LocationCard airport="ANC" facts={locationFacts('ANC', NOW, testAirports, null)} now={NOW} homeTz={NY} h24={false} weather={null}
         quickStatus={{ text: 'Call Me', icon: 'phone.fill', expiresAt: null }} />,
     )
-    expect(container.querySelector('.quick-status')?.textContent).toBe('Call Me')
-    expect(iconNameOf(container.querySelector('.quick-status svg'))).toBe('Phone')
-    expect(container.querySelector('.location-head')!.compareDocumentPosition(container.querySelector('.quick-status')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const row = container.querySelector('.quick-status')!
+    expect(row.textContent).toBe('Quick status: Call Me')
+    expect(iconNameOf(row.querySelector('svg'))).toBe('Phone')
+    expect((row.querySelector('svg') as SVGElement).style.color).toBe('var(--blue)')
+    expect(row.previousElementSibling?.classList.contains('weather-row')).toBe(true)
+    expect(row.nextElementSibling).toBe(container.querySelector('.location-time'))
   })
 
-  it.each<[string | null, string]>([
+  it('shows the quick status where the place is unknown too', () => {
+    const { container } = render(
+      <LocationCard airport={null} facts={locationFacts(null, NOW, testAirports, null)} now={NOW} homeTz={NY} h24={false} weather={null}
+        quickStatus={{ text: 'Sleeping', icon: 'moon.zzz.fill', expiresAt: null }} />,
+    )
+    expect(container.querySelector('.quick-status')?.textContent).toBe('Quick status: Sleeping')
+  })
+
+  it.each<[string | null, IconName]>([
     ['phone.fill', 'Phone'],
     ['bubble.left.fill', 'ChatCircle'],
     ['fork.knife', 'ForkKnife'],
