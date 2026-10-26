@@ -20,7 +20,7 @@ function setUp() {
   f.summaries.set(PARTNER_B, { updatedAt: 'b1', status: example('home', 'B') })
   f.summaries.set(SAM, { updatedAt: 's1', status: { ...example('home'), pilotId: 'SAM-PILOT', pilotFirstName: 'Sam' } })
   const store = localPartnerStore(memoryStorage())
-  const confirmSwitch = vi.fn((_newPilot: string, _currentPilot: string) => true)
+  const confirmSwitch = vi.fn<JoinOptions['confirmSwitch']>(() => true)
   let made = 0
   const options: JoinOptions = { door: f.door, store, label: 'Chrome on Mac', confirmSwitch, makeKey: () => key(++made), now: () => 9 }
   return { f, store, confirmSwitch, options }
@@ -151,6 +151,85 @@ describe('joining, in a browser that follows a pilot', () => {
       `join invite-sam ${key(2)} Chrome on Mac`,
     ])
   })
+
+  it('forgets a device the pilot removed when its key joins another partner, and a retry gets the same device', async () => {
+    const { f, store, options, confirmSwitch } = await connectedToA()
+    f.devices.delete(key(1)) // the pilot removed this browser in CrewLu
+    const view = f.door.view
+    f.door.view = async () => {
+      throw new TypeError('Failed to fetch')
+    }
+    expect(await joinWithLink(INVITE_SAM, options)).toEqual({ kind: 'failed', message: COULDNT_CONNECT })
+    expect([store.device(), store.summary(), store.pendingKey()]).toEqual([null, null, key(1)])
+    f.door.view = view
+    expect(await joinWithLink(INVITE_SAM, options)).toEqual({ kind: 'connected', newDevice: true })
+    expect(store.device()).toEqual({ key: key(1), partnerId: SAM })
+    expect(confirmSwitch).not.toHaveBeenCalled()
+    expect(f.devices.size).toBe(1)
+  })
+
+  it("forgets a removed device even when the new link's summary can't be read", async () => {
+    const { f, store, options } = await connectedToA()
+    f.devices.delete(key(1))
+    f.summaries.set(SAM, { updatedAt: 's2', status: { schemaVersion: 2 } })
+    expect(await joinWithLink(INVITE_SAM, options)).toEqual({ kind: 'failed', message: COULDNT_CONNECT })
+    expect([store.device(), store.pendingKey()]).toEqual([null, key(1)])
+  })
+
+  it("switches on a yes with the removed device's key, and that new device doesn't leave", async () => {
+    const { f, store, options } = await connectedToA()
+    f.devices.delete(key(1))
+    expect(await joinWithLink(INVITE_SAM, options)).toEqual({ kind: 'connected', newDevice: true })
+    expect(store.device()).toEqual({ key: key(1), partnerId: SAM })
+    expect(f.calls.some((call) => call.startsWith('leave'))).toBe(false)
+    expect(f.devices.get(key(1))).toBe(SAM)
+  })
+
+  it('keeps its own key when the answer to it is lost, making no pending key', async () => {
+    const { f, store, options } = await connectedToA()
+    f.network.loseNext = true
+    expect(await joinWithLink(INVITE_B, options)).toEqual({ kind: 'failed', message: COULDNT_CONNECT })
+    expect(f.calls).toEqual([`join invite-b ${key(1)} Chrome on Mac`])
+    expect(store.pendingKey()).toBeNull()
+    expect(store.device()).toEqual({ key: key(1), partnerId: PARTNER_A })
+  })
+
+  it('settles whether a leave fails or never answers, on Cancel and on Connect', async () => {
+    const failing = async () => {
+      throw new TypeError('Failed to fetch')
+    }
+    const hanging = () => new Promise<void>(() => {})
+    for (const leave of [failing, hanging]) {
+      const cancel = await connectedToA()
+      cancel.f.door.leave = leave
+      cancel.confirmSwitch.mockReturnValue(false)
+      expect(await joinWithLink(INVITE_SAM, cancel.options)).toEqual({ kind: 'cancelled' })
+      const connect = await connectedToA()
+      connect.f.door.leave = leave
+      expect(await joinWithLink(INVITE_B, connect.options)).toEqual({ kind: 'connected', newDevice: true })
+    }
+  })
+
+  it("doesn't ask when the new summary is the same pilot's, written in another case", async () => {
+    const { f, options, confirmSwitch } = await connectedToA()
+    f.summaries.set(PARTNER_B, { updatedAt: 'b2', status: { ...example('home', 'B'), pilotId: '6f1c2d3e-4b5a-4c6d-8e7f-90a1b2c3d4e5' } })
+    expect(await joinWithLink(INVITE_B, options)).toEqual({ kind: 'connected', newDevice: true })
+    expect(confirmSwitch).not.toHaveBeenCalled()
+  })
+
+  it('asks about "your pilot" when the new summary has no name', async () => {
+    const { f, options, confirmSwitch } = await connectedToA()
+    f.summaries.set(SAM, { updatedAt: 's1', status: { ...example('home'), pilotId: 'SAM-PILOT', pilotFirstName: '' } })
+    await joinWithLink(INVITE_SAM, options)
+    expect(confirmSwitch).toHaveBeenCalledWith('your pilot', 'Dad')
+  })
+
+  it('waits for an answer given later, as a dialog gives it', async () => {
+    const { store, options, confirmSwitch } = await connectedToA()
+    confirmSwitch.mockImplementation(async () => false)
+    expect(await joinWithLink(INVITE_SAM, options)).toEqual({ kind: 'cancelled' })
+    expect(store.device()).toEqual({ key: key(1), partnerId: PARTNER_A })
+  })
 })
 
 describe('what a partner is told (piece 5a §4.4)', () => {
@@ -193,6 +272,21 @@ describe('what a partner is told (piece 5a §4.4)', () => {
   it("can't connect when the read after joining is refused", async () => {
     const { f, store, options } = setUp()
     f.door.view = async () => ({ error: 'sharing_ended' })
+    expect(await joinWithLink(INVITE_A, options)).toEqual({ kind: 'failed', message: COULDNT_CONNECT })
+    expect(store.device()).toBeNull()
+  })
+
+  it("can't connect when the device can't be saved, and keeps the pending key for the next try", async () => {
+    const { store, options } = setUp()
+    const failingStore = { ...store, saveDevice: () => false }
+    expect(await joinWithLink(INVITE_A, { ...options, store: failingStore })).toEqual({ kind: 'failed', message: COULDNT_CONNECT })
+    expect(store.pendingKey()).toBe(key(1))
+    expect(store.device()).toBeNull()
+  })
+
+  it("can't connect when the read after joining answers unchanged, which a read with no since can't", async () => {
+    const { f, store, options } = setUp()
+    f.door.view = async () => ({ partnerId: PARTNER_A, updatedAt: 'a1', unchanged: true })
     expect(await joinWithLink(INVITE_A, options)).toEqual({ kind: 'failed', message: COULDNT_CONNECT })
     expect(store.device()).toBeNull()
   })

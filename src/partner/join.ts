@@ -16,9 +16,11 @@ export interface JoinOptions {
   store: PartnerStore
   /** This browser's name in the pilot's list (label.ts). */
   label: string
-  /** "Switch to {newPilot}?": true to follow the link's pilot instead of {currentPilot}. */
-  confirmSwitch: (newPilot: string, currentPilot: string) => boolean
+  /** "Switch to {newPilot}?": true to follow the link's pilot instead of {currentPilot}. It may answer later, as a dialog does. */
+  confirmSwitch: (newPilot: string, currentPilot: string) => boolean | Promise<boolean>
+  /** A new device key (store.ts's newKey). */
   makeKey: () => string
+  /** The time, for when the summary was checked. */
   now?: () => number
 }
 
@@ -42,6 +44,7 @@ interface Attempt {
  * Joins with an invite link or a hand-off code (piece 5a §4.3), as Crewluve does (PartnerJoiner.swift and
  * CrewluCloudDevice.swift): with this browser's key, else the pending key, saved before it's sent, so trying again
  * after a lost answer gets the same device. The connected key changes only when the browser switches to the new device.
+ * It never rejects: every failure is an outcome.
  */
 export async function joinWithLink(link: PartnerLink, options: JoinOptions): Promise<JoinOutcome> {
   const { door, store, now = Date.now } = options
@@ -56,15 +59,23 @@ export async function joinWithLink(link: PartnerLink, options: JoinOptions): Pro
     const refusal = err instanceof Refusal ? err.code : null
     return { kind: 'failed', message: joinMessage(refusal, link, followedSummary?.name ?? null) }
   }
-  // This browser's own device again, from tapping its own link twice: nothing changes.
-  if (attempt.isDeviceKey && attempt.joined.partnerId === connected?.partnerId) return { kind: 'connected', newDevice: false }
+  if (attempt.isDeviceKey) {
+    // This browser's own device again, from tapping its own link twice: nothing changes.
+    if (attempt.joined.partnerId === connected?.partnerId) return { kind: 'connected', newDevice: false }
+    // The connected key now names a device of the link's partner, so this browser's old device is gone: the pilot
+    // removed it. Carry on as a join with a pending key, so a retry reaches the same device, and nothing here goes on
+    // naming the old one (spec §4.3, step 6).
+    if (!store.savePendingKey(attempt.key)) return { kind: 'failed', message: COULDNT_CONNECT }
+    store.forget()
+  }
 
   let status: unknown
   let updatedAt: string | null
   try {
     const answer = await door.view(attempt.key, null)
-    if (isRefused(answer)) return { kind: 'failed', message: COULDNT_CONNECT }
-    status = answer.unchanged ? null : answer.status
+    // Unchanged can't answer a read with no since; like a refusal, it's no answer.
+    if (isRefused(answer) || answer.unchanged) return { kind: 'failed', message: COULDNT_CONNECT }
+    status = answer.status
     updatedAt = answer.updatedAt
   } catch {
     return { kind: 'failed', message: COULDNT_CONNECT }
@@ -75,20 +86,20 @@ export async function joinWithLink(link: PartnerLink, options: JoinOptions): Pro
   // A summary this site can't read: Crewluve can't connect then either, since it can't tell whose status it is.
   if (status != null && !newSummary) return { kind: 'failed', message: COULDNT_CONNECT }
   if (newSummary && followedSummary && newSummary.pilotId.toLowerCase() !== followedSummary.pilotId.toLowerCase()) {
-    if (!options.confirmSwitch(newSummary.name ?? 'your pilot', followedSummary.name ?? 'your pilot')) {
-      await door.leave(attempt.key).catch(() => {})
-      // This browser's own key made a new device, so its old one was already gone: that sharing had ended.
-      if (attempt.isDeviceKey) store.forget()
-      else store.forgetPendingKey()
+    if (!(await options.confirmSwitch(newSummary.name ?? 'your pilot', followedSummary.name ?? 'your pilot'))) {
+      // The device the join made leaves, tried once, without waiting on it.
+      void door.leave(attempt.key).catch(() => {})
+      store.forgetPendingKey()
       return { kind: 'cancelled' }
     }
   }
 
-  // Connect: the new key becomes this browser's, and the device it replaces leaves, tried once.
+  // Connect: the new key becomes this browser's, and the device it replaces, if one is still here, leaves, tried once.
+  const replaced = store.device()
   if (!store.saveDevice({ key: attempt.key, partnerId: attempt.joined.partnerId })) return { kind: 'failed', message: COULDNT_CONNECT }
-  if (!attempt.isDeviceKey) store.forgetPendingKey()
+  store.forgetPendingKey()
   store.saveSummary({ partnerId: attempt.joined.partnerId, updatedAt, status, checkedAt: now() })
-  if (connected && connected.key !== attempt.key) void door.leave(connected.key).catch(() => {})
+  if (replaced && replaced.key !== attempt.key) void door.leave(replaced.key).catch(() => {})
   return { kind: 'connected', newDevice: true }
 }
 
