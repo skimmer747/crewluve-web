@@ -7,6 +7,7 @@ import type { RawSchedule } from '../../src/data/rows'
 import { tempUnitFor, type WeatherLoader } from '../../src/data/weather'
 import { buildLegs } from '../../src/engine/legs'
 import { buildSchedule } from '../../src/engine/normalize'
+import type { Schedule } from '../../src/engine/types'
 import { WEATHER_REFRESH_MS } from '../../src/ui/hooks/useWeather'
 import type { ScheduleHandle } from '../../src/ui/hooks/useSchedule'
 import { PilotPages } from '../../src/ui/PilotPages'
@@ -29,7 +30,10 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-const handle = (raw: RawSchedule | null): ScheduleHandle => ({ raw, lastSuccessAt: NOW, problem: null, refreshing: false, refresh: () => {} })
+/** What useSchedule hands the pages: the schedule built from these rows, as the demo builds it. */
+const handle = (raw: RawSchedule | null): ScheduleHandle => ({
+  schedule: raw && buildSchedule(raw, NOW), lastSuccessAt: NOW, problem: null, refreshing: false, refresh: () => {},
+})
 
 describe('PilotPages', () => {
   it('renders the demo pilot on the late last leg', () => {
@@ -41,7 +45,7 @@ describe('PilotPages', () => {
     expect(screen.getByText('Checked just now')).toBeTruthy()
   })
 
-  it('shows the empty state for an account with nothing in CrewLu Cloud', () => {
+  it("shows the waiting state before the pilot's first update", () => {
     render(<PilotPages schedule={handle(new RawBuilder(NOW).build())} airports={testAirports} demo={false} onSignOut={() => {}} />)
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('CrewLuve')
     expect(screen.getByText("Waiting for your pilot's first update…")).toBeTruthy()
@@ -55,12 +59,12 @@ describe('PilotPages', () => {
 })
 
 describe('PilotPages details', () => {
-  it('labels the footer button "Exit demo" in the demo and "Sign out" when live', () => {
+  it('labels the footer button "Exit demo" in the demo and "Disconnect" when live', () => {
     const { unmount } = render(<PilotPages schedule={handle(demoRawForScene('flying', NOW))} airports={testAirports} demo onSignOut={() => {}} />)
     expect(screen.getByRole('button', { name: 'Exit demo' })).toBeTruthy()
     unmount()
     render(<PilotPages schedule={handle(demoRawForScene('flying', NOW))} airports={testAirports} demo={false} onSignOut={() => {}} />)
-    expect(screen.getByRole('button', { name: 'Sign out' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Disconnect' })).toBeTruthy()
   })
 
   it("shows the homecoming in the pilot's home time zone, not the base's", () => {
@@ -79,12 +83,12 @@ describe('PilotPages details', () => {
     expect(screen.getByText(/(1:00 PM|13:00) · Ontario/)).toBeTruthy()
   })
 
-  it('falls back to the title and footer when the rows cannot be read', () => {
+  it('falls back to the title and footer when the schedule cannot be read', () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const unreadable = { ...new RawBuilder(NOW).build(), trips: null } as unknown as RawSchedule
-    render(<PilotPages schedule={handle(unreadable)} airports={testAirports} demo={false} onSignOut={() => {}} />)
+    const unreadable = { ...buildSchedule(new RawBuilder(NOW).build(), NOW), trips: null } as unknown as Schedule
+    render(<PilotPages schedule={{ ...handle(null), schedule: unreadable }} airports={testAirports} demo={false} onSignOut={() => {}} />)
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('CrewLuve')
-    expect(screen.getByRole('button', { name: 'Sign out' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Disconnect' })).toBeTruthy()
     expect(error).toHaveBeenCalled()
     error.mockRestore()
   })
@@ -317,5 +321,25 @@ describe('PilotPages side by side (slice 3C)', () => {
     const { container } = render(<PilotPages schedule={handle(new RawBuilder(NOW).build())} airports={testAirports} demo={false} onSignOut={() => {}} />)
     expect(screen.getByText("Waiting for your pilot's first update…")).toBeTruthy()
     expect(layout(container)).toBe('screen')
+  })
+})
+
+describe('PilotPages: the notice and the quick status (piece 5a)', () => {
+  it('shows the notice with the status, and before the first update', () => {
+    const { unmount } = render(<PilotPages schedule={handle(demoRawForScene('home', NOW))} airports={testAirports} demo={false} onSignOut={() => {}}
+      notice="Connected on this browser. Add it to your Home Screen to keep it handy." />)
+    expect(screen.getByRole('status').textContent).toBe('Connected on this browser. Add it to your Home Screen to keep it handy.')
+    unmount()
+    render(<PilotPages schedule={handle(new RawBuilder(NOW).build())} airports={testAirports} demo={false} onSignOut={() => {}} notice="Couldn't connect. Check your connection and try again." />)
+    expect(screen.getByRole('status').textContent).toBe("Couldn't connect. Check your connection and try again.")
+    expect(screen.getByText("Waiting for your pilot's first update…")).toBeTruthy()
+  })
+
+  it('asks for the quick status at the moment shown, and puts it on the location card', () => {
+    const quickStatusAt = vi.fn((now: number) => (now === NOW ? { text: 'Free to Talk', icon: 'bubble.left.fill', expiresAt: null } : null))
+    const { container } = render(<PilotPages schedule={handle(demoRawForScene('home', NOW))} airports={testAirports} demo={false} onSignOut={() => {}}
+      quickStatusAt={quickStatusAt} />)
+    expect(quickStatusAt).toHaveBeenCalledWith(NOW)
+    expect(container.querySelector('.location .quick-status')?.textContent).toBe('Quick status: Free to Talk')
   })
 })

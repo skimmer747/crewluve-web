@@ -79,6 +79,6 @@ export interface Schedule {
   events: DutyEvent[]
   fetchedAt: number
   newestUpdatedAt: number | null
-  /** No pilot profile and no trips at all: CrewLu Cloud has nothing for this account. */
+  /** Nothing to show yet: the demo's rows hold no pilot and no trips, or the pilot hasn't sent a first summary (piece 5a §5). */
   empty: boolean
 }

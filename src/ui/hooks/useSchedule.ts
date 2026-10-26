@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks'
-import type { ScheduleCache } from '../../data/cache'
-import { ScheduleFetchError } from '../../data/fetchSchedule'
-import type { RawSchedule } from '../../data/rows'
+import type { Schedule } from '../../engine/types'
 import type { Problem } from '../problem'
 
 export interface ScheduleState {
-  raw: RawSchedule | null
+  schedule: Schedule | null
   lastSuccessAt: number | null
   problem: Problem
   refreshing: boolean
@@ -14,27 +12,32 @@ export interface ScheduleState {
 export type ScheduleHandle = ScheduleState & { refresh: () => void }
 
 export interface UseScheduleOptions {
-  load: () => Promise<RawSchedule>
-  cache: ScheduleCache
+  load: () => Promise<Schedule>
+  /** Shown until the first load lands: the schedule this browser kept from its last visit, if any. */
+  initial?: Schedule | null
   intervalMs?: number
-  onAuthError?: () => void
+  /** Hears about every load that fails, once the footer shows the problem. */
+  onError?: (err: unknown) => void
   isOnline?: () => boolean
 }
 
-export const REFRESH_MS = 5 * 60_000
+/** How often the page asks again while it's showing: the partner door's poll (piece 5a §5). */
+export const REFRESH_MS = 30_000
 const RETURN_MIN_GAP_MS = 30_000
 
-/** The cached schedule first, then CrewLu Cloud, refreshed every 5 min while visible and when the visitor returns (spec §5). */
-export function useSchedule({ load, cache, intervalMs = REFRESH_MS, onAuthError, isOnline = () => navigator.onLine }: UseScheduleOptions): ScheduleHandle {
-  const [state, setState] = useState<ScheduleState>(() => {
-    const cached = cache.load()
-    return { raw: cached, lastSuccessAt: cached?.fetchedAt ?? null, problem: null, refreshing: true }
-  })
-  const latest = useRef({ load, cache, onAuthError, isOnline })
-  latest.current = { load, cache, onAuthError, isOnline }
+/** The kept schedule first, then a fresh one: every 30 s while visible, and when the visitor returns (piece 5a §5). */
+export function useSchedule({ load, initial = null, intervalMs = REFRESH_MS, onError, isOnline = () => navigator.onLine }: UseScheduleOptions): ScheduleHandle {
+  const [state, setState] = useState<ScheduleState>(() => ({
+    schedule: initial,
+    lastSuccessAt: initial?.fetchedAt ?? null,
+    problem: null,
+    refreshing: true,
+  }))
+  const latest = useRef({ load, onError, isOnline })
+  latest.current = { load, onError, isOnline }
   const busy = useRef(false)
   const lastAttempt = useRef(0)
-  // False once unmounted (for example after sign-out): a fetch that finishes later must never write the cache back.
+  // False once unmounted (after Disconnect, say): a load that finishes later must change nothing.
   const alive = useRef(true)
   useEffect(() => () => {
     alive.current = false
@@ -46,14 +49,13 @@ export function useSchedule({ load, cache, intervalMs = REFRESH_MS, onAuthError,
     lastAttempt.current = Date.now()
     setState((s) => ({ ...s, refreshing: true }))
     try {
-      const raw = await latest.current.load()
+      const schedule = await latest.current.load()
       if (!alive.current) return
-      latest.current.cache.save(raw)
-      setState({ raw, lastSuccessAt: raw.fetchedAt, problem: null, refreshing: false })
+      setState({ schedule, lastSuccessAt: schedule.fetchedAt, problem: null, refreshing: false })
     } catch (err) {
       if (!alive.current) return
       setState((s) => ({ ...s, refreshing: false, problem: latest.current.isOnline() ? { kind: 'unreachable' } : { kind: 'offline' } }))
-      if (err instanceof ScheduleFetchError && err.isAuth) latest.current.onAuthError?.()
+      latest.current.onError?.(err)
     } finally {
       busy.current = false
     }

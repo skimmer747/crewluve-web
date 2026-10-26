@@ -1,13 +1,12 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ScheduleCache } from '../../src/data/cache'
-import { ScheduleFetchError } from '../../src/data/fetchSchedule'
 import { RawBuilder } from '../../src/data/rowBuilder'
-import type { RawSchedule } from '../../src/data/rows'
+import { buildSchedule } from '../../src/engine/normalize'
+import type { Schedule } from '../../src/engine/types'
 import { useAirports } from '../../src/ui/hooks/useAirports'
 import { useNow } from '../../src/ui/hooks/useNow'
-import { useSchedule, type ScheduleHandle, type UseScheduleOptions } from '../../src/ui/hooks/useSchedule'
+import { REFRESH_MS, useSchedule, type ScheduleHandle, type UseScheduleOptions } from '../../src/ui/hooks/useSchedule'
 import { useVisibilityCount } from '../../src/ui/hooks/useVisibilityCount'
 
 afterEach(() => {
@@ -16,72 +15,54 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-const raw = (fetchedAt: number): RawSchedule => ({ ...new RawBuilder(0).build(), fetchedAt })
-
-function memoryCache(initial: RawSchedule | null = null): ScheduleCache & { saved: number[] } {
-  let value = initial
-  const saved: number[] = []
-  return {
-    saved,
-    load: () => value,
-    save: (r) => {
-      value = r
-      saved.push(r.fetchedAt)
-    },
-    clear: () => {
-      value = null
-    },
-  }
-}
+const sched = (fetchedAt: number): Schedule => buildSchedule({ ...new RawBuilder(0).build(), fetchedAt }, 0)
 
 function Probe(props: UseScheduleOptions) {
   const s = useSchedule(props)
-  return <pre data-testid="state">{JSON.stringify({ fetchedAt: s.raw?.fetchedAt ?? null, lastSuccessAt: s.lastSuccessAt, problem: s.problem, refreshing: s.refreshing })}</pre>
+  return <pre data-testid="state">{JSON.stringify({ fetchedAt: s.schedule?.fetchedAt ?? null, lastSuccessAt: s.lastSuccessAt, problem: s.problem, refreshing: s.refreshing })}</pre>
 }
 
 const state = () => JSON.parse(screen.getByTestId('state').textContent!)
 
 describe('useSchedule', () => {
-  it('shows the cached schedule at once, then the fresh one', async () => {
-    const cache = memoryCache(raw(1))
-    let resolve!: (r: RawSchedule) => void
-    render(<Probe load={() => new Promise<RawSchedule>((r) => { resolve = r })} cache={cache} />)
-    expect(state()).toMatchObject({ fetchedAt: 1, refreshing: true })
-    resolve(raw(2))
+  it('shows the schedule it starts with at once, then the fresh one', async () => {
+    let resolve!: (s: Schedule) => void
+    render(<Probe load={() => new Promise<Schedule>((r) => { resolve = r })} initial={sched(1)} />)
+    expect(state()).toMatchObject({ fetchedAt: 1, lastSuccessAt: 1, refreshing: true })
+    resolve(sched(2))
     await waitFor(() => expect(state()).toMatchObject({ fetchedAt: 2, lastSuccessAt: 2, problem: null, refreshing: false }))
-    expect(cache.saved).toEqual([2])
   })
 
-  it('keeps the old schedule and reports trouble when a fetch fails', async () => {
-    render(<Probe load={() => Promise.reject(new Error('down'))} cache={memoryCache(raw(1))} isOnline={() => true} />)
+  it('starts with nothing when it is given nothing', () => {
+    render(<Probe load={() => new Promise<Schedule>(() => {})} />)
+    expect(state()).toMatchObject({ fetchedAt: null, lastSuccessAt: null, refreshing: true })
+  })
+
+  it('keeps the old schedule and reports trouble when a load fails', async () => {
+    render(<Probe load={() => Promise.reject(new Error('down'))} initial={sched(1)} isOnline={() => true} />)
     await waitFor(() => expect(state()).toMatchObject({ fetchedAt: 1, problem: { kind: 'unreachable' }, refreshing: false }))
   })
 
   it('says offline when the browser is offline', async () => {
-    render(<Probe load={() => Promise.reject(new Error('down'))} cache={memoryCache(raw(1))} isOnline={() => false} />)
+    render(<Probe load={() => Promise.reject(new Error('down'))} initial={sched(1)} isOnline={() => false} />)
     await waitFor(() => expect(state()).toMatchObject({ problem: { kind: 'offline' } }))
   })
 
-  it('hands an expired session to onAuthError', async () => {
-    const onAuthError = vi.fn()
-    render(<Probe load={() => Promise.reject(new ScheduleFetchError('JWT expired', 401, 'PGRST301'))} cache={memoryCache()} onAuthError={onAuthError} />)
-    await waitFor(() => expect(onAuthError).toHaveBeenCalledTimes(1))
-  })
-
-  it('never writes the cache after it unmounts, as on sign-out', async () => {
-    const cache = memoryCache()
-    let resolve!: (r: RawSchedule) => void
-    const { unmount } = render(<Probe load={() => new Promise<RawSchedule>((r) => { resolve = r })} cache={cache} />)
-    unmount()
-    resolve(raw(2))
-    await new Promise((r) => setTimeout(r, 0))
-    expect(cache.saved).toEqual([])
+  it('tells onError about a load that fails', async () => {
+    const onError = vi.fn()
+    const err = new Error('Sharing has ended')
+    render(<Probe load={() => Promise.reject(err)} onError={onError} />)
+    await waitFor(() => expect(onError).toHaveBeenCalledWith(err))
   })
 
   it('refreshes on its interval', async () => {
     let n = 0
-    render(<Probe load={async () => raw(++n)} cache={memoryCache()} intervalMs={30} />)
+    render(<Probe load={async () => sched(++n)} intervalMs={30} />)
     await waitFor(() => expect(state().fetchedAt).toBeGreaterThanOrEqual(2), { timeout: 1000 })
+  })
+
+  it("asks every 30 seconds by default: the partner door's poll", () => {
+    expect(REFRESH_MS).toBe(30_000)
   })
 })
 
@@ -294,24 +275,24 @@ describe('useSchedule, timing and cleanup', () => {
   function Grab(props: UseScheduleOptions) {
     const s = useSchedule(props)
     handle = s
-    return <pre data-testid="state">{JSON.stringify({ fetchedAt: s.raw?.fetchedAt ?? null, problem: s.problem })}</pre>
+    return <pre data-testid="state">{JSON.stringify({ fetchedAt: s.schedule?.fetchedAt ?? null, problem: s.problem })}</pre>
   }
 
-  it('runs one fetch at a time', async () => {
-    let finish!: (r: RawSchedule) => void
-    const load = vi.fn(() => new Promise<RawSchedule>((resolve) => (finish = resolve)))
-    render(<Grab load={load} cache={memoryCache()} />)
+  it('runs one load at a time', async () => {
+    let finish!: (r: Schedule) => void
+    const load = vi.fn(() => new Promise<Schedule>((resolve) => (finish = resolve)))
+    render(<Grab load={load} />)
     handle!.refresh()
     handle!.refresh()
     expect(load).toHaveBeenCalledTimes(1)
-    finish(raw(1))
+    finish(sched(1))
     await waitFor(() => expect(state().fetchedAt).toBe(1))
   })
 
   it('skips its interval refresh while the page is hidden', async () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
-    const load = vi.fn(async () => raw(1))
-    render(<Grab load={load} cache={memoryCache()} intervalMs={1000} />)
+    const load = vi.fn(async () => sched(1))
+    render(<Grab load={load} intervalMs={1000} />)
     await flush()
     expect(load).toHaveBeenCalledTimes(1)
     setVisibility('hidden')
@@ -329,8 +310,8 @@ describe('useSchedule, timing and cleanup', () => {
   it('refreshes on a return to the page only after a 30-second gap', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(1_000_000)
-    const load = vi.fn(async () => raw(1))
-    render(<Grab load={load} cache={memoryCache()} />)
+    const load = vi.fn(async () => sched(1))
+    render(<Grab load={load} />)
     await flush()
     vi.setSystemTime(1_029_000)
     await act(async () => {
@@ -347,8 +328,8 @@ describe('useSchedule, timing and cleanup', () => {
   it('does not refresh when the page is being hidden', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(1_000_000)
-    const load = vi.fn(async () => raw(1))
-    render(<Grab load={load} cache={memoryCache()} />)
+    const load = vi.fn(async () => sched(1))
+    render(<Grab load={load} />)
     await flush()
     vi.setSystemTime(1_060_000)
     setVisibility('hidden')
@@ -361,8 +342,8 @@ describe('useSchedule, timing and cleanup', () => {
   it('refreshes at once when the connection comes back, even inside the 30-second gap', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(1_000_000)
-    const load = vi.fn(async () => raw(1))
-    render(<Grab load={load} cache={memoryCache()} />)
+    const load = vi.fn(async () => sched(1))
+    render(<Grab load={load} />)
     await flush()
     vi.setSystemTime(1_005_000)
     await act(async () => {
@@ -374,8 +355,8 @@ describe('useSchedule, timing and cleanup', () => {
   it('waits for the page to be visible again before refreshing on reconnect', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(1_000_000)
-    const load = vi.fn(async () => raw(1))
-    render(<Grab load={load} cache={memoryCache()} />)
+    const load = vi.fn(async () => sched(1))
+    render(<Grab load={load} />)
     await flush()
     setVisibility('hidden')
     await act(async () => {
@@ -385,7 +366,7 @@ describe('useSchedule, timing and cleanup', () => {
   })
 
   it('says offline as soon as the connection drops', async () => {
-    render(<Grab load={async () => raw(1)} cache={memoryCache()} />)
+    render(<Grab load={async () => sched(1)} />)
     await waitFor(() => expect(state().fetchedAt).toBe(1))
     await act(async () => {
       window.dispatchEvent(new Event('offline'))
@@ -393,21 +374,14 @@ describe('useSchedule, timing and cleanup', () => {
     expect(state().problem).toEqual({ kind: 'offline' })
   })
 
-  it('leaves the session alone for errors that are not about sign-in', async () => {
-    const onAuthError = vi.fn()
-    render(<Grab load={() => Promise.reject(new ScheduleFetchError('Server error', 500, 'XX000'))} cache={memoryCache()} onAuthError={onAuthError} isOnline={() => true} />)
-    await waitFor(() => expect(state().problem).toEqual({ kind: 'unreachable' }))
-    expect(onAuthError).not.toHaveBeenCalled()
-  })
-
-  it('ignores a fetch that fails after it unmounts', async () => {
+  it('ignores a load that fails after it unmounts', async () => {
     let fail!: (err: unknown) => void
-    const onAuthError = vi.fn()
-    const { unmount } = render(<Grab load={() => new Promise<RawSchedule>((_, reject) => (fail = reject))} cache={memoryCache()} onAuthError={onAuthError} />)
+    const onError = vi.fn()
+    const { unmount } = render(<Grab load={() => new Promise<Schedule>((_, reject) => (fail = reject))} onError={onError} />)
     unmount()
-    fail(new ScheduleFetchError('JWT expired', 401, 'PGRST301'))
+    fail(new Error('down'))
     await new Promise((r) => setTimeout(r, 0))
-    expect(onAuthError).not.toHaveBeenCalled()
+    expect(onError).not.toHaveBeenCalled()
   })
 
   it('removes its listeners and its timer when it unmounts', () => {
@@ -416,7 +390,7 @@ describe('useSchedule, timing and cleanup', () => {
     const docRemove = vi.spyOn(document, 'removeEventListener')
     const winAdd = vi.spyOn(window, 'addEventListener')
     const winRemove = vi.spyOn(window, 'removeEventListener')
-    const { unmount } = render(<Grab load={() => new Promise<RawSchedule>(() => {})} cache={memoryCache()} />)
+    const { unmount } = render(<Grab load={() => new Promise<Schedule>(() => {})} />)
     const added = [
       ...docAdd.mock.calls.filter(([type]) => type === 'visibilitychange'),
       ...winAdd.mock.calls.filter(([type]) => type === 'online' || type === 'offline'),

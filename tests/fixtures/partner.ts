@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import type { Joined, PartnerDoor, Refused, Viewed } from '../../src/partner/door'
 import type { KeyValueStore } from '../../src/partner/store'
 
@@ -13,7 +14,8 @@ export const EXAMPLES = [
 
 /** One example summary, as partner_view gives it to partner A or B. A fresh copy each call, so a test can change it. */
 export function example(name: string, partner: 'A' | 'B' = 'A'): Record<string, unknown> {
-  return JSON.parse(readFileSync(new URL(`./partner-status/${name}.${partner}.json`, import.meta.url), 'utf8'))
+  // A path, not new URL(…, import.meta.url): under happy-dom, Vite rewrites that pattern as a web asset's address.
+  return JSON.parse(readFileSync(join(import.meta.dirname, 'partner-status', `${name}.${partner}.json`), 'utf8'))
 }
 
 /** A device key that passes the door's rule, from a number: key(1) is 63 zeros and a 1. */

@@ -1,211 +1,252 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import * as session from '../../src/auth/session'
-import { CACHE_KEY, localScheduleCache } from '../../src/data/cache'
-import { demoRawForScene } from '../../src/data/demo'
-import { fetchSchedule, ScheduleFetchError } from '../../src/data/fetchSchedule'
-import { RawBuilder } from '../../src/data/rowBuilder'
-import type { RawSchedule } from '../../src/data/rows'
+import { localPartnerStore } from '../../src/partner/store'
 import { Root } from '../../src/ui/Root'
+import { example, fakeDoor, key, memoryStorage, PARTNER_A, PARTNER_B } from '../fixtures/partner'
 
-// Root's collaborators are faked, so these tests never reach CrewLu Cloud.
-vi.mock('../../src/auth/session', () => ({
-  hasStoredSession: vi.fn(),
-  hasSession: vi.fn(),
-  hasLiveSession: vi.fn(),
-  signIn: vi.fn(),
-  signOut: vi.fn(),
-  onSignedOut: vi.fn(),
-}))
-vi.mock('../../src/supabase', () => ({ supabase: { fake: true } }))
-vi.mock('../../src/data/fetchSchedule', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../src/data/fetchSchedule')>()),
-  fetchSchedule: vi.fn(),
-}))
+// The airport list is a fixture, so these tests fetch nothing; every Crewlu Cloud call goes to the fake door.
 vi.mock('../../src/ui/hooks/useAirports', async () => {
   const { testAirports } = await import('../fixtures/airports')
   return { useAirports: () => testAirports }
 })
 
-const alex = (): RawSchedule => demoRawForScene('flying', Date.now())
-const nothing = (): RawSchedule => ({ ...new RawBuilder(Date.now()).build(), fetchedAt: Date.now() })
-const cached = () => localStorage.getItem(CACHE_KEY)
+const CONNECTED_NOTE = 'Connected on this browser. Add it to your Home Screen to keep it handy.'
+const SAM = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
+
+/** Crewlu Cloud with Alex's two partners, A (who calls Alex "Dad") and B, and this browser's own storage. */
+function setUp() {
+  const f = fakeDoor()
+  f.invites.set('invite-a', PARTNER_A).set('invite-b', PARTNER_B)
+  f.codes.set('AB2C3D', PARTNER_A)
+  f.summaries.set(PARTNER_A, { updatedAt: 'a1', status: example('display-names', 'A') })
+  f.summaries.set(PARTNER_B, { updatedAt: 'b1', status: example('home', 'B') })
+  const storage = memoryStorage()
+  return { f, storage, store: localPartnerStore(storage) }
+}
+
+/** The same, with this browser already connected as partner B, which sees Alex. */
+function connectedAsB() {
+  const s = setUp()
+  s.f.devices.set(key(1), PARTNER_B)
+  s.store.saveDevice({ key: key(1), partnerId: PARTNER_B })
+  s.store.saveSummary({ partnerId: PARTNER_B, updatedAt: 'b1', status: example('home', 'B'), checkedAt: Date.now() })
+  return s
+}
 
 beforeEach(() => {
   window.history.replaceState(null, '', '/')
   localStorage.clear()
-  vi.mocked(session.hasStoredSession).mockReturnValue(true)
-  vi.mocked(session.hasSession).mockResolvedValue(true)
-  vi.mocked(session.hasLiveSession).mockResolvedValue(true)
-  vi.mocked(session.signIn).mockResolvedValue(null)
-  vi.mocked(session.signOut).mockResolvedValue(undefined)
-  vi.mocked(session.onSignedOut).mockImplementation(() => () => {})
-  vi.mocked(fetchSchedule).mockImplementation(async () => alex())
 })
 
 afterEach(() => {
   cleanup()
-  vi.clearAllMocks()
   vi.unstubAllGlobals()
 })
 
-describe('Root: starting up', () => {
-  it('opens on the schedule when a session is stored, and fetches it', async () => {
-    render(<Root />)
-    expect(await screen.findByText("Where's Alex?")).toBeTruthy()
-    expect(fetchSchedule).toHaveBeenCalledTimes(1)
+describe('Root: a browser that follows no one', () => {
+  it('shows the welcome screen, and calls nothing', () => {
+    const { f, store } = setUp()
+    render(<Root door={f.door} store={store} />)
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Welcome to CrewLuve')
+    expect(f.calls).toEqual([])
   })
 
-  it('shows sign-in, and fetches nothing, when no session is stored', () => {
-    vi.mocked(session.hasStoredSession).mockReturnValue(false)
-    render(<Root />)
-    expect(screen.getByRole('button', { name: 'Sign in' })).toBeTruthy()
-    expect(fetchSchedule).not.toHaveBeenCalled()
+  it("deletes the password sign-in's leftovers", () => {
+    localStorage.setItem('crewluve-auth', '{"access_token":"old"}')
+    localStorage.setItem('crewluve.schedule.v1', '{}')
+    const { f, store } = setUp()
+    render(<Root door={f.door} store={store} />)
+    expect([localStorage.getItem('crewluve-auth'), localStorage.getItem('crewluve.schedule.v1')]).toEqual([null, null])
   })
 
-  it('moves from sign-in to the schedule once signed in', async () => {
-    vi.mocked(session.hasStoredSession).mockReturnValue(false)
-    render(<Root />)
-    fireEvent.input(screen.getByLabelText('Email'), { target: { value: 'pilot@example.com' } })
-    fireEvent.input(screen.getByLabelText('Password'), { target: { value: 'test-password' } })
-    fireEvent.submit(screen.getByRole('button', { name: 'Sign in' }).closest('form')!)
+  it('joins with the invite link in the address, and takes the link out of the address', async () => {
+    const { f, store } = setUp()
+    window.history.replaceState(null, '', '/join#t=invite-a')
+    render(<Root door={f.door} store={store} />)
+    expect(screen.getByText('Connecting…')).toBeTruthy()
+    expect(`${window.location.pathname}${window.location.hash}`).toBe('/')
+    expect(await screen.findByText("Where's Dad?")).toBeTruthy()
+    expect(screen.getByText(CONNECTED_NOTE)).toBeTruthy()
+    expect(store.device()?.partnerId).toBe(PARTNER_A)
+    expect(f.calls[0]).toMatch(/^join invite-a [0-9a-f]{64} /)
+  })
+
+  it('redeems the code typed into the boxes', async () => {
+    const { f, store } = setUp()
+    render(<Root door={f.door} store={store} />)
+    fireEvent.input(screen.getByLabelText('Code'), { target: { value: 'ab2c3d' } })
+    expect(await screen.findByText("Where's Dad?")).toBeTruthy()
+    expect(f.calls[0]).toMatch(/^redeem AB2C3D /)
+  })
+
+  it("comes back to the welcome screen with the reason when a link doesn't connect", async () => {
+    const { f, store } = setUp()
+    window.history.replaceState(null, '', '/join#t=gone')
+    render(<Root door={f.door} store={store} />)
+    expect((await screen.findByRole('alert')).textContent).toBe("Invite Link Not Working This invite link doesn't work anymore. Ask your pilot to send it again.")
+    expect(store.device()).toBeNull()
+  })
+
+  it('joins with a link that arrives in the address while the page is open', async () => {
+    const { f, store } = setUp()
+    render(<Root door={f.door} store={store} />)
+    await act(async () => {
+      window.history.replaceState(null, '', '/#t=invite-a')
+      window.dispatchEvent(new Event('hashchange'))
+    })
+    expect(await screen.findByText("Where's Dad?")).toBeTruthy()
+  })
+})
+
+describe('Root: a connected browser', () => {
+  it('shows the kept summary at once, then asks only for a change', async () => {
+    const { f, store } = connectedAsB()
+    render(<Root door={f.door} store={store} />)
+    expect(screen.getByText("Where's Alex?")).toBeTruthy()
+    await waitFor(() => expect(f.calls).toEqual([`view ${key(1)} b1`]))
+  })
+
+  it("doesn't show a kept summary that's another partner's, only the poll's answer", async () => {
+    const { f, store } = connectedAsB()
+    // The summary kept here is another partner's, of a pilot called Sam, though the device is still B's.
+    store.saveSummary({ partnerId: SAM, updatedAt: 's1', status: { ...example('home'), pilotId: 'SAM-PILOT', pilotFirstName: 'Sam' }, checkedAt: Date.now() })
+    const view = f.door.view
+    let answer!: () => void
+    f.door.view = async (k, since) => {
+      await new Promise<void>((resolve) => (answer = resolve)) // the first poll's answer is held
+      return view(k, since)
+    }
+    render(<Root door={f.door} store={store} />)
+    expect(screen.queryAllByText(/\bSam\b/)).toEqual([])
+    await act(async () => answer())
     expect(await screen.findByText("Where's Alex?")).toBeTruthy()
+  })
+
+  it("waits for the pilot's first summary", () => {
+    const { f, store } = connectedAsB()
+    f.summaries.delete(PARTNER_B)
+    store.saveSummary({ partnerId: PARTNER_B, updatedAt: null, status: null, checkedAt: Date.now() })
+    render(<Root door={f.door} store={store} />)
+    expect(screen.getByText("Waiting for your pilot's first update…")).toBeTruthy()
+  })
+
+  it('goes back to the welcome screen, naming the pilot, when sharing ends', async () => {
+    const { f, store } = connectedAsB()
+    f.devices.clear() // the pilot removed this browser in CrewLu
+    render(<Root door={f.door} store={store} />)
+    expect(await screen.findByText('Sharing with Alex has ended.')).toBeTruthy()
+    expect(store.device()).toBeNull()
+  })
+
+  it("keeps the status, and says why, when a link doesn't connect", async () => {
+    const { f, store } = connectedAsB()
+    window.history.replaceState(null, '', '/join#t=gone')
+    render(<Root door={f.door} store={store} />)
+    expect(await screen.findByText("This invite link doesn't work anymore. You're still connected to Alex.")).toBeTruthy()
+    expect(screen.getByText("Where's Alex?")).toBeTruthy()
+  })
+
+  it("asks before following another pilot's link, and stays on a no", async () => {
+    const { f, store } = connectedAsB()
+    f.invites.set('invite-sam', SAM)
+    f.summaries.set(SAM, { updatedAt: 's1', status: { ...example('home'), pilotId: 'SAM-PILOT', pilotFirstName: 'Sam' } })
+    const confirm = vi.fn(() => false)
+    vi.stubGlobal('confirm', confirm)
+    window.history.replaceState(null, '', '/join#t=invite-sam')
+    render(<Root door={f.door} store={store} />)
+    expect(await screen.findByText("Where's Alex?")).toBeTruthy()
+    expect(confirm).toHaveBeenCalledWith("Switch to Sam?\n\nYou'll stop seeing Alex's status in this browser.")
+    expect(store.device()).toEqual({ key: key(1), partnerId: PARTNER_B })
+  })
+
+  it('says sharing has ended when a link shows the pilot had removed this browser, and the partner stays put', async () => {
+    const { f, store } = connectedAsB()
+    f.devices.clear() // the pilot removed this browser in CrewLu
+    f.invites.set('invite-sam', SAM)
+    f.summaries.set(SAM, { updatedAt: 's1', status: { ...example('home'), pilotId: 'SAM-PILOT', pilotFirstName: 'Sam' } })
+    vi.stubGlobal('confirm', vi.fn(() => false))
+    window.history.replaceState(null, '', '/join#t=invite-sam')
+    render(<Root door={f.door} store={store} />)
+    expect(await screen.findByText('Sharing with Alex has ended.')).toBeTruthy()
+    expect(store.device()).toBeNull()
+  })
+})
+
+describe('Root: Disconnect', () => {
+  it('asks first, and stays on a no', () => {
+    const { f, store } = connectedAsB()
+    const confirm = vi.fn(() => false)
+    vi.stubGlobal('confirm', confirm)
+    render(<Root door={f.door} store={store} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }))
+    expect(confirm).toHaveBeenCalledWith(
+      "Disconnect from Alex?\n\nYou'll stop seeing Alex's status in this browser. To connect again, open the invite link Alex sent you.",
+    )
+    expect(screen.getByText("Where's Alex?")).toBeTruthy()
+    expect(f.calls.some((call) => call.startsWith('leave'))).toBe(false)
+  })
+
+  it('leaves, forgets this browser, and shows the welcome screen', async () => {
+    const { f, store } = connectedAsB()
+    vi.stubGlobal('confirm', vi.fn(() => true))
+    render(<Root door={f.door} store={store} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }))
+    expect(await screen.findByText('Welcome to CrewLuve')).toBeTruthy()
+    expect(f.calls).toContain(`leave ${key(1)}`)
+    expect([store.device(), store.summary()]).toEqual([null, null])
+  })
+
+  it('stays connected, and says so, when the leave gets no answer', async () => {
+    const { f, store } = connectedAsB()
+    vi.stubGlobal('confirm', vi.fn(() => true))
+    const alert = vi.fn()
+    vi.stubGlobal('alert', alert)
+    render(<Root door={f.door} store={store} />)
+    await waitFor(() => expect(f.calls.length).toBe(1)) // the first poll has answered
+    f.network.down = true
+    fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }))
+    await waitFor(() => expect(alert).toHaveBeenCalledWith("Couldn't disconnect. Check your connection and try again."))
+    expect(store.device()).toEqual({ key: key(1), partnerId: PARTNER_B })
+    expect(screen.getByText("Where's Alex?")).toBeTruthy()
+  })
+
+  it("doesn't call it sharing ended when a poll finds the device gone while Disconnect's leave is out", async () => {
+    const { f, store } = connectedAsB()
+    vi.stubGlobal('confirm', vi.fn(() => true))
+    render(<Root door={f.door} store={store} />)
+    await waitFor(() => expect(f.calls.length).toBe(1)) // the first poll has answered
+    let finishLeave!: () => void
+    f.door.leave = async (k) => {
+      f.devices.delete(k)
+      await new Promise<void>((resolve) => (finishLeave = resolve))
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    await waitFor(() => expect(f.calls).toEqual([`view ${key(1)} b1`, `view ${key(1)} b1`]))
+    await act(() => new Promise<void>((resolve) => setTimeout(resolve, 0))) // the refresh has finished
+    expect(screen.queryByText(/has ended/)).toBeNull()
+    await act(async () => finishLeave())
+    expect(await screen.findByText('Welcome to CrewLuve')).toBeTruthy()
+    expect(screen.queryByText(/has ended/)).toBeNull()
   })
 })
 
 describe('Root: the demo', () => {
   beforeEach(() => window.history.replaceState(null, '', '/?demo=1&scene=flying'))
 
-  it('keeps the demo off this device and away from CrewLu Cloud', async () => {
-    render(<Root />)
+  it('shows the sample pilot, calls nothing, and keeps nothing on this browser', async () => {
+    const { f, store, storage } = setUp()
+    render(<Root door={f.door} store={store} />)
     expect(await screen.findByText("Where's Alex?")).toBeTruthy()
-    expect(cached()).toBeNull()
-    expect(fetchSchedule).not.toHaveBeenCalled()
-    expect(session.onSignedOut).not.toHaveBeenCalled()
+    expect(f.calls).toEqual([])
+    expect(storage.data.size).toBe(0)
   })
 
   it('leaves the demo for the plain address', async () => {
-    render(<Root />)
+    const { f, store } = setUp()
+    render(<Root door={f.door} store={store} />)
     fireEvent.click(await screen.findByRole('button', { name: 'Exit demo' }))
     await waitFor(() => expect(window.location.search).toBe(''))
-  })
-})
-
-describe('Root: ending the session', () => {
-  it('asks before signing out, and stays put if the visitor cancels', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => false))
-    render(<Root />)
-    await screen.findByText("Where's Alex?")
-    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
-    expect(window.confirm).toHaveBeenCalledWith('Sign out on this device?')
-    expect(session.signOut).not.toHaveBeenCalled()
-    expect(screen.getByText("Where's Alex?")).toBeTruthy()
-  })
-
-  it('signs out on this device and forgets the schedule', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true))
-    render(<Root />)
-    await screen.findByText("Where's Alex?")
-    await waitFor(() => expect(cached()).not.toBeNull())
-    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
-    expect(await screen.findByRole('button', { name: 'Sign in' })).toBeTruthy()
-    expect(session.signOut).toHaveBeenCalledTimes(1)
-    expect(cached()).toBeNull()
-  })
-
-  it('still forgets the schedule when signing out fails', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true))
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
-    vi.mocked(session.signOut).mockRejectedValue(new Error('offline'))
-    render(<Root />)
-    await screen.findByText("Where's Alex?")
-    await waitFor(() => expect(cached()).not.toBeNull())
-    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
-    expect(await screen.findByRole('button', { name: 'Sign in' })).toBeTruthy()
-    expect(cached()).toBeNull()
-    error.mockRestore()
-  })
-
-  it('never writes a fetch that lands while signing out to the device', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true))
-    let land!: (raw: RawSchedule) => void
-    vi.mocked(fetchSchedule).mockImplementation(() => new Promise<RawSchedule>((resolve) => (land = resolve)))
-    let finishSignOut!: () => void
-    vi.mocked(session.signOut).mockImplementation(() => new Promise<void>((resolve) => (finishSignOut = resolve)))
-    render(<Root />)
-    await waitFor(() => expect(fetchSchedule).toHaveBeenCalledTimes(1))
-    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
-    // The load settles over several promise hops, so give it a macrotask.
-    await act(async () => {
-      land(alex())
-      await new Promise((r) => setTimeout(r, 0))
-    })
-    expect(cached()).toBeNull()
-    expect(screen.queryByText("Where's Alex?")).toBeNull()
-    await act(async () => finishSignOut())
-    expect(await screen.findByRole('button', { name: 'Sign in' })).toBeTruthy()
-    expect(cached()).toBeNull()
-  })
-
-  it('forgets the schedule before the sign-out request finishes', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true))
-    vi.mocked(session.signOut).mockImplementation(() => new Promise<void>(() => {}))
-    render(<Root />)
-    await screen.findByText("Where's Alex?")
-    await waitFor(() => expect(cached()).not.toBeNull())
-    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
-    await waitFor(() => expect(cached()).toBeNull())
-  })
-
-  it('clears this device and returns to sign-in when the session ends elsewhere', async () => {
-    let endedElsewhere!: () => void
-    vi.mocked(session.onSignedOut).mockImplementation((onOut) => {
-      endedElsewhere = onOut
-      return () => {}
-    })
-    render(<Root />)
-    await screen.findByText("Where's Alex?")
-    await waitFor(() => expect(cached()).not.toBeNull())
-    await act(async () => endedElsewhere())
-    expect(cached()).toBeNull()
-    expect(screen.getByRole('button', { name: 'Sign in' })).toBeTruthy()
-  })
-
-  it('ends the session when CrewLu Cloud rejects it', async () => {
-    vi.mocked(fetchSchedule).mockRejectedValue(new ScheduleFetchError('JWT expired', 401, 'PGRST301'))
-    render(<Root />)
-    expect(await screen.findByRole('button', { name: 'Sign in' })).toBeTruthy()
-    expect(session.signOut).toHaveBeenCalledTimes(1)
-  })
-})
-
-describe('Root: an all-empty answer from CrewLu Cloud', () => {
-  it('signs out when the session is gone, since row-level security answers that with empty tables', async () => {
-    vi.mocked(fetchSchedule).mockImplementation(async () => nothing())
-    vi.mocked(session.hasLiveSession).mockResolvedValue(false)
-    vi.mocked(session.hasSession).mockResolvedValue(false)
-    render(<Root />)
-    expect(await screen.findByRole('button', { name: 'Sign in' })).toBeTruthy()
-    expect(session.signOut).toHaveBeenCalledTimes(1)
-  })
-
-  it('keeps the session and the cached schedule through a sign-in outage', async () => {
-    localScheduleCache().save(alex())
-    vi.mocked(fetchSchedule).mockImplementation(async () => nothing())
-    vi.mocked(session.hasLiveSession).mockResolvedValue(false)
-    vi.mocked(session.hasSession).mockResolvedValue(true)
-    render(<Root />)
-    expect(await screen.findByText("Where's Alex?")).toBeTruthy()
-    expect(await screen.findByText("Couldn't reach CrewLu Cloud — will retry")).toBeTruthy()
-    expect(session.signOut).not.toHaveBeenCalled()
-    expect(cached()).not.toBeNull()
-  })
-
-  it('shows the empty state for a signed-in account with nothing in CrewLu Cloud', async () => {
-    vi.mocked(fetchSchedule).mockImplementation(async () => nothing())
-    render(<Root />)
-    expect(await screen.findByText("Waiting for your pilot's first update…")).toBeTruthy()
-    expect(session.signOut).not.toHaveBeenCalled()
   })
 })
