@@ -29,6 +29,7 @@ const BYPASSES: Array<[string, string, string, RegExp]> = [
   ],
   ['a client package other than supabase-js', 'src/data/Second.ts', `import { PostgrestClient } from '@supabase/postgrest-js'\nexport const p = PostgrestClient`, /imports @supabase\/postgrest-js/],
   ['a raw PATCH fetch', 'src/data/Raw.ts', `export const patch = (url: string) => fetch(url, { method: 'PATCH', body: '{}' })`, /fetch with method PATCH and with a body/],
+  ['a POST to the partner door from any other file', 'src/partner/join.ts', `export const go = (url: string) => fetch(url, { method: 'POST', body: '{}' })`, /fetch with method POST and with a body/],
   ['a raw fetch through window', 'src/data/Raw.ts', `export const del = (url: string) => window.fetch(url, { method: 'DELETE' })`, /fetch with method DELETE/],
   ['a raw fetch through a bracket', 'src/data/Raw.ts', `export const del = (url: string) => globalThis['fetch'](url, { method: 'PUT' })`, /fetch with method PUT/],
   ['a raw fetch with options held in a variable', 'src/data/Raw.ts', `const init = { method: 'POST' }\nexport const go = (url: string) => fetch(url, init)`, /options it cannot read/],
@@ -64,6 +65,7 @@ describe('the source rules leave ordinary code alone', () => {
     ['mentions in comments and strings', 'src/data/Notes.ts', `// never call .update( or .insert( or client.from('trips').delete()\nexport const note = "fetch(url, { method: 'PATCH' }) is not allowed"`],
     ['type-only imports of the client module', 'src/ui/Types.ts', `import type { supabase } from '../supabase'\nexport type Client = typeof supabase`],
     ['the sign-in calls the site makes', 'src/auth/Calls.ts', `import { supabase } from '../supabase'\nexport const go = () => supabase.auth.signInWithPassword({ email: 'a', password: 'b' })\nexport const out = () => supabase.auth.signOut({ scope: 'local' })`],
+    ['the partner door module, which sends its POSTs through the door guard', 'src/partner/door.ts', `export const go = (url: string, init: RequestInit) => fetch(url, init)`],
   ])('%s', (_name, path, code) => {
     expect(violations(path, code)).toEqual([])
   })

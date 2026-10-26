@@ -13,6 +13,8 @@ export const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 export const SRC = join(ROOT, 'src')
 /** The one module that creates the CrewLu Cloud client, with the read-only fetch. */
 export const SUPABASE_MODULE = 'src/supabase.ts'
+/** The one module that sends the partner door's POSTs, each through the door guard (piece 5a §9). */
+export const DOOR_MODULE = 'src/partner/door.ts'
 
 /** Every .ts and .tsx file under src/, as absolute paths. */
 export function sourceFiles(dir: string = SRC): string[] {
@@ -231,9 +233,10 @@ function networkProblems(path: string, { sf, refs }: Facts): string[] {
     if (ts.isIdentifier(n) && NETWORK_GLOBALS.has(n.text)) found.push(`${path}:${lineOf(sf, n)} uses ${n.text}`)
     else if (ts.isNewExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'Request') {
       found.push(`${path}:${lineOf(sf, n)} constructs a Request; the site makes plain GET fetches only`)
-    } else if (ts.isCallExpression(n) && isFetchCallee(n.expression) && path !== SUPABASE_MODULE) {
+    } else if (ts.isCallExpression(n) && isFetchCallee(n.expression) && path !== SUPABASE_MODULE && path !== DOOR_MODULE) {
       const problem = fetchProblem(n)
-      // src/supabase.ts passes the page's fetch to the client, which wraps it in readOnlyFetch.
+      // src/supabase.ts passes the page's fetch to the client, which wraps it in readOnlyFetch; src/partner/door.ts
+      // passes it to the door guard.
       if (problem) found.push(`${path}:${lineOf(sf, n)} calls fetch ${problem}; the site makes plain GET fetches only`)
     }
   })
