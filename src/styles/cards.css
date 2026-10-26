@@ -347,7 +347,8 @@
 /* Unseen, but not by opacity: iOS hides the caret, the selection handles and the Paste menu on an editable field it
    judges invisible by its opacity (WebKit bug 195894). So the field stays opaque, and its parts are transparent: the
    text and the caret, the background and the border, the outline and the selection. In Windows' high-contrast mode,
-   forced-color-adjust keeps the browser from painting the hidden text over the boxes. */
+   forced-color-adjust keeps the browser from painting the hidden text over the boxes. iOS can flash grey over an
+   element that has a click handler; -webkit-tap-highlight-color stops it, as it does for .linked. */
 .code-input {
   position: absolute;
   top: 0;
@@ -364,19 +365,24 @@
   -webkit-appearance: none;
   appearance: none;
   forced-color-adjust: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .code-input::selection {
   background: transparent;
 }
 
-/* The browser's autofill tint, which opacity used to hide. Two rules, not one list: a selector a browser doesn't know
-   voids the whole list it's in. */
+/* The browser's autofill tint. Chrome's own rule for an autofilled field sets its background and its text color with
+   !important, and Safari's is !important too, and a browser's !important outranks the page's: only the text fill wins,
+   so these can't take the tint away. While the field is autofilled it hides itself with opacity instead, as input-otp's
+   does, so a value that isn't a whole code can't paint a tint across the boxes. iOS needn't offer Paste then, and any
+   edit clears the autofilled state. Two rules, not one list: a selector a browser doesn't know voids the whole list. */
 .code-input:-webkit-autofill {
   background: transparent !important;
   color: transparent !important;
   -webkit-text-fill-color: transparent !important;
   box-shadow: none !important;
+  opacity: 0 !important;
 }
 
 .code-input:autofill {
@@ -384,6 +390,7 @@
   color: transparent !important;
   -webkit-text-fill-color: transparent !important;
   box-shadow: none !important;
+  opacity: 0 !important;
 }
 
 .code-boxes {

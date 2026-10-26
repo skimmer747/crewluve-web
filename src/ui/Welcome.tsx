@@ -26,16 +26,20 @@ function Heading({ title }: { title: string }) {
 }
 
 /**
- * Keeps the caret at the end of the code. The boxes show the code from its start, so typing always goes on the end; a
- * caret left anywhere else, by a tap or an arrow key, would put the next letter in the middle. It waits a frame, for
- * the browser to place the caret first, and leaves a caret already at the end alone, so a keyboard that is mid-word
- * (on Android) gets no selection change it didn't need.
+ * Keeps typing on the end of the code. The boxes show the code from its start, so a caret left anywhere else, by a tap
+ * or an arrow key, would put the next letter in the middle. It waits a frame, for the browser to place the caret first.
+ * On focus the caret always goes to the end, as input-otp's does: a Tab into a part-typed code would otherwise select
+ * it all. After a click or a key, a selection that reaches the end is left alone: a select-all, a double-click or
+ * Shift+Left is the person's own, and the next paste or letter should replace it. A caret or a selection that stops
+ * short of the end goes to the end. A caret already at the end is left alone too, so a keyboard that is mid-word (on
+ * Android) gets no selection change it didn't need.
  */
-function caretToEnd(e: { currentTarget: HTMLInputElement }) {
+function caretToEnd(e: { currentTarget: HTMLInputElement; type: string }) {
   const input = e.currentTarget // taken now: it's null once the event has finished
+  const keepSelection = e.type !== 'focus' // a select-all, a double-click or Shift+Left the person made
   requestAnimationFrame(() => {
     const end = input.value.length
-    if (input.selectionStart !== end || input.selectionEnd !== end) input.setSelectionRange(end, end)
+    if (input.selectionEnd !== end || (!keepSelection && input.selectionStart !== end)) input.setSelectionRange(end, end)
   })
 }
 

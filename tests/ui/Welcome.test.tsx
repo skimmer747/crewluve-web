@@ -21,6 +21,19 @@ const connect = () => {
 /** What the six boxes show. */
 const boxes = (container: Element) => [...container.querySelectorAll('.code-box')].map((box) => box.textContent)
 
+/** The code field's selection a frame after `event`, with the code k7m typed and the selection set as given. */
+async function selectionAfter(event: 'focus' | 'click' | 'keyUp', from: number, to: number) {
+  const frames = stubAnimationFrames()
+  render(<Welcome message={null} ended={null} onJoin={() => {}} />)
+  const field = screen.getByLabelText('Code') as HTMLInputElement
+  fireEvent.input(field, { target: { value: 'k7m' } })
+  field.setSelectionRange(from, to)
+  fireEvent[event](field)
+  expect([field.selectionStart, field.selectionEnd]).toEqual([from, to]) // nothing moves before the frame
+  await frames.frame(0)
+  return [field.selectionStart, field.selectionEnd]
+}
+
 describe('Welcome (piece 5a §8)', () => {
   it('greets like the app and says how to connect', () => {
     render(<Welcome message={null} ended={null} onJoin={() => {}} />)
@@ -219,6 +232,38 @@ describe('Welcome (piece 5a §8)', () => {
     expect(setSelectionRange).not.toHaveBeenCalled()
   })
 
+  it.each<[string, 'click' | 'keyUp', number, number]>([
+    ['a select-all or a double-click', 'click', 0, 3],
+    ['a select-all or a double-click', 'keyUp', 0, 3],
+    ['Shift+Left from the end', 'click', 2, 3],
+    ['Shift+Left from the end', 'keyUp', 2, 3],
+  ])("leaves %s alone after a %s, since it reaches the end and is the person's own: the next paste or letter replaces it", async (_what, event, from, to) => {
+    expect(await selectionAfter(event, from, to)).toEqual([from, to])
+  })
+
+  it.each<['click' | 'keyUp']>([['click'], ['keyUp']])('takes a selection that stops short of the end to the end after a %s', async (event) => {
+    expect(await selectionAfter(event, 0, 2)).toEqual([3, 3])
+  })
+
+  it('puts the caret at the end on focus, even where the browser selected the whole code, as a Tab into it does', async () => {
+    expect(await selectionAfter('focus', 0, 3)).toEqual([3, 3])
+  })
+
+  it('lets a paste replace a code that was selected all, instead of adding to it', async () => {
+    const frames = stubAnimationFrames()
+    const onJoin = vi.fn()
+    render(<Welcome message={null} ended={null} onJoin={onJoin} />)
+    const field = screen.getByLabelText('Code') as HTMLInputElement
+    fireEvent.input(field, { target: { value: 'k7' } })
+    field.setSelectionRange(0, 2) // a select-all...
+    fireEvent.keyUp(field) // ...whose key is let go
+    await frames.frame(0)
+    // What a paste does: the pasted text takes the selection's place, or goes in at the caret when nothing is selected.
+    field.setRangeText('K7MQ2X', field.selectionStart!, field.selectionEnd!, 'end')
+    fireEvent.input(field)
+    expect(onJoin).toHaveBeenCalledWith({ kind: 'code', code: 'K7MQ2X' }) // not the K7K7MQ that adding to K7 makes
+  })
+
   it("shows why the last link or code didn't connect", () => {
     render(<Welcome message={{ title: 'Too Many Tries', text: 'Too many tries. Wait a minute, then try again.' }} ended={null} onJoin={() => {}} />)
     expect(screen.getByRole('alert').textContent).toBe('Too Many Tries Too many tries. Wait a minute, then try again.')
@@ -238,7 +283,7 @@ describe('Connecting', () => {
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('CrewLuve')
   })
 
-  it('is not marked busy, which would hold its announcement back for good', () => {
+  it('is not marked busy', () => {
     const { container } = render(<Connecting />)
     expect(container.querySelector('[aria-busy]')).toBeNull()
   })

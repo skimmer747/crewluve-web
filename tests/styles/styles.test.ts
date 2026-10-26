@@ -326,6 +326,31 @@ describe('cards.css', () => {
     expect(input.map(([prop]) => prop)).not.toContain('opacity')
     expect(input).toEqual(expect.arrayContaining([['color', 'transparent'], ['caret-color', 'transparent']]))
   })
+
+  it('keeps the code input’s text from showing over the boxes, in the browsers that override its color and in high-contrast mode', () => {
+    // -webkit-text-fill-color is what wins where a browser's own rule sets color; forced-color-adjust keeps Windows'
+    // high-contrast mode from painting the text over the boxes.
+    const input = declarations(find(top, '.code-input')!.body)
+    expect(input).toEqual(expect.arrayContaining([['-webkit-text-fill-color', 'transparent'], ['forced-color-adjust', 'none']]))
+  })
+
+  it('stops iOS flashing grey over the code input, which has a click handler, as it does for the linked cards', () => {
+    expect(declarations(find(top, '.code-input')!.body)).toContainEqual(['-webkit-tap-highlight-color', 'transparent'])
+  })
+
+  it.each(['.code-input:-webkit-autofill', '.code-input:autofill'])('hides the code input itself while %s tints it, one rule each', (head) => {
+    // A browser's own autofill rule is !important and outranks the page's !important, so the tint can't be made
+    // transparent: the field hides itself with opacity while it is autofilled. Two rules, because one selector a
+    // browser doesn't know voids the whole list it's in.
+    expect(declarations(find(top, head)!.body)).toContainEqual(['opacity', '0 !important'])
+  })
+
+  it('rings the box that typing goes in next with an outline, not a box-shadow, so high-contrast mode keeps it', () => {
+    // The input's own outline is off (the boxes are what is seen), so this is the one sign of keyboard focus.
+    const next = declarations(find(top, '.code-input:focus + .code-boxes .code-box.next')!.body)
+    expect(next.map(([prop]) => prop)).toContain('outline')
+    expect(next.map(([prop]) => prop)).not.toContain('box-shadow')
+  })
 })
 
 describe('trips.css', () => {
