@@ -14,6 +14,11 @@ const UA: Record<string, string> = {
   firefoxWindows: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:131.0) Gecko/20100101 Firefox/131.0',
   firefoxLinux: 'Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0',
   chromeOS: 'Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
+  edgeAndroid: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Mobile Safari/537.36 EdgA/129.0.0.0',
+  edgeIPhone: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) EdgiOS/129.0.0.0 Version/18.0 Mobile/15E148 Safari/604.1',
+  firefoxIPhone: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/131.0 Mobile/15E148 Safari/605.1.15',
+  oldEdgeWindows: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.19041',
+  safariIPad: 'Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
 }
 
 describe('browserLabel (piece 5a P5-6)', () => {
@@ -31,6 +36,11 @@ describe('browserLabel (piece 5a P5-6)', () => {
     ['firefoxWindows', 0, 'Firefox on Windows'],
     ['firefoxLinux', 0, 'Firefox on Linux'],
     ['chromeOS', 0, 'Chrome on ChromeOS'],
+    ['edgeAndroid', 0, 'Edge on Android'],
+    ['edgeIPhone', 5, 'Edge on iPhone'],
+    ['firefoxIPhone', 5, 'Firefox on iPhone'],
+    ['oldEdgeWindows', 0, 'Edge on Windows'],
+    ['safariIPad', 5, 'Safari on iPad'],
   ])('names %s, with %i touch points, "%s"', (name, touchPoints, label) => {
     expect(browserLabel(UA[name], touchPoints)).toBe(label)
   })

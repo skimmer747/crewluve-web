@@ -10,6 +10,13 @@ describe('linkFromHash (piece 5a §4.1)', () => {
   it('reads nothing else, such as the schedule page\'s #schedule', () => {
     for (const hash of ['', '#', '#schedule', '#t=', '#c=', '#x=1', 't=abc']) expect(linkFromHash(hash)).toBeNull()
   })
+
+  it('tidies a code from a link as Crewluve does, and refuses one that is not six letters or digits', () => {
+    expect(linkFromHash('#c=ab2c3d')).toEqual({ kind: 'code', code: 'AB2C3D' })
+    expect(linkFromHash('#c=AB-2C+3D')).toEqual({ kind: 'code', code: 'AB2C3D' })
+    expect(linkFromHash('#c=AB2C3')).toBeNull()
+    expect(linkFromHash('#c=AB2C3D7')).toBeNull()
+  })
 })
 
 describe('linkFromText', () => {
@@ -29,6 +36,23 @@ describe('linkFromText', () => {
       expect(linkFromText(text)).toBeNull()
     }
   })
+
+  it('leaves out punctuation and spaces around the link', () => {
+    for (const text of [
+      'Open https://crewluve.crewlu.net/join#t=abc123.',
+      '<https://crewluve.crewlu.net/join#t=abc123>',
+      '(https://crewluve.crewlu.net/join#t=abc123)',
+      '"https://crewluve.crewlu.net/join#t=abc123"',
+      'https://crewluve.crewlu.net/join#t=abc123​',
+      'https://crewluve.crewlu.net/join/#t=abc123',
+    ]) {
+      expect(linkFromText(text)).toEqual({ kind: 'invite', invite: 'abc123' })
+    }
+  })
+
+  it('reads a code link in lower case', () => {
+    expect(linkFromText('https://crewluve.crewlu.net/join#c=ab2c3d')).toEqual({ kind: 'code', code: 'AB2C3D' })
+  })
 })
 
 describe('codeFrom', () => {
@@ -37,6 +61,10 @@ describe('codeFrom', () => {
     expect(codeFrom('ab-2c 3d')).toBe('AB2C3D')
     expect(codeFrom('AB2C3D9X')).toBe('AB2C3D')
     expect(codeFrom('O0I1L')).toBe('')
+  })
+
+  it('drops letters that only become code letters in upper case', () => {
+    expect(codeFrom('ßﬆ2a')).toBe('2A')
   })
 
   it("uses the door's alphabet, which leaves out 0, 1, I, L and O", () => {

@@ -2,8 +2,8 @@ import type { PartnerLink } from './link'
 
 /** What a partner is told when a link or code didn't connect: Crewluve's words (Models/JoinMessage.swift). */
 export interface JoinMessage {
-  title: string
-  text: string
+  readonly title: string
+  readonly text: string
 }
 
 export const COULDNT_CONNECT: JoinMessage = { title: "Couldn't Connect", text: "Couldn't connect. Check your connection and try again." }

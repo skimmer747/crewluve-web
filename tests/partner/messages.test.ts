@@ -15,6 +15,10 @@ describe("joinMessage: Crewluve's words (piece 5a §4.4)", () => {
     })
   })
 
+  it('asks for a new link when the pilot this browser follows has no name to give', () => {
+    expect(joinMessage('sharing_ended', INVITE, '').text).toBe("This invite link doesn't work anymore. Ask your pilot to send it again.")
+  })
+
   it('says a dead code is dead', () => {
     expect(joinMessage('sharing_ended', CODE, 'Dad')).toEqual({
       title: 'Code Not Working', text: "That code didn't work. Codes last 10 minutes and work once. Make a new one on your other device.",
