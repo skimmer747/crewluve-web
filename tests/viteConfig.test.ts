@@ -1,3 +1,6 @@
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import type { Plugin, PluginOption } from 'vite'
 import { describe, expect, it } from 'vitest'
 import { SUPABASE_URL } from '../src/cloud'
@@ -41,7 +44,24 @@ describe('production CSP plugin', () => {
     expect(csp).not.toContain("'unsafe-inline'")
   })
 
-  it('lets the app reach the CrewLu Cloud project the client uses, and Open-Meteo for the weather, and nothing else', () => {
+  it('lets the app reach the CrewLu Cloud project the partner door calls, and Open-Meteo for the weather, and nothing else', () => {
     expect(injectCsp('<!--csp-->')).toContain(`connect-src 'self' ${SUPABASE_URL} https://api.open-meteo.com;`)
+  })
+})
+
+describe('the /join page (piece 5a §4.1)', () => {
+  const joinPage = findPlugin(config.plugins ?? [], 'crewluve-join-page')!
+  const writeBundle = joinPage.writeBundle as unknown as (options: { dir?: string }) => void
+
+  it('is made only by the build', () => {
+    expect(joinPage.apply).toBe('build')
+  })
+
+  it('is an exact copy of the built index.html, so it runs the same bundle under the same CSP', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'crewluve-join-'))
+    const built = '<!doctype html><meta http-equiv="Content-Security-Policy" content="x" /><script type="module" src="/assets/index-abc.js"></script>'
+    writeFileSync(join(dir, 'index.html'), built)
+    writeBundle({ dir })
+    expect(readFileSync(join(dir, 'join.html'), 'utf8')).toBe(built)
   })
 })

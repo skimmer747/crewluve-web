@@ -1,3 +1,5 @@
+import { copyFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { defineConfig } from 'vite'
 import preact from '@preact/preset-vite'
 import { SUPABASE_URL } from './src/cloud'
@@ -28,6 +30,16 @@ export default defineConfig({
         // Fail the build rather than ship a production page with no CSP.
         if (!html.includes('<!--csp-->')) throw new Error('index.html lost its <!--csp--> placeholder')
         return html.replace('<!--csp-->', `<meta http-equiv="Content-Security-Policy" content="${CSP}" />`)
+      },
+    },
+    {
+      // /join is the app itself (partner links piece 5a §4.1): an invite link opened anywhere but in Crewluve joins in
+      // the browser. GitHub Pages serves join.html for /join, and an exact copy runs the same bundle under the same CSP.
+      name: 'crewluve-join-page',
+      apply: 'build',
+      writeBundle(options) {
+        const dir = options.dir ?? 'dist'
+        copyFileSync(join(dir, 'index.html'), join(dir, 'join.html'))
       },
     },
   ],
