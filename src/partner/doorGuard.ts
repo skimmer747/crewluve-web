@@ -58,7 +58,7 @@ export function doorFetch(base: typeof fetch): typeof fetch {
   return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const { method, url } = requested(input, init)
     if (!url || !allowed(method, url)) throw new DoorGuardError(refusal(method, url))
-    // Fetch gets the method the guard judged, read once, so an init can't answer one method here and another there.
+    // Fetch gets the method the guard judged, so an init can't answer one method here and another there.
     return base(input, { ...init, method })
   }
 }

@@ -44,7 +44,7 @@ describe('doorFetch (piece 5a §9)', () => {
     expect(Object.isFrozen(DOOR_RPCS)).toBe(true)
   })
 
-  it.each([...DOOR_RPCS])('lets a POST to %s through, untouched', async (name) => {
+  it.each([...DOOR_RPCS])('lets a POST to %s through, with its own init', async (name) => {
     const { base, response, guarded } = guard()
     const init = { method: 'POST', body: '{}' }
     expect(await guarded(`${HOST}/rest/v1/rpc/${name}`, init)).toBe(response)

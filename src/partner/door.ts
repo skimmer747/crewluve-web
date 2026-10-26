@@ -45,7 +45,7 @@ const TIMEOUT_MS = 20_000
 function timeLimit(ms: number): AbortSignal {
   if (typeof AbortSignal.timeout === 'function') return AbortSignal.timeout(ms)
   const controller = new AbortController()
-  setTimeout(() => controller.abort(), ms)
+  setTimeout(() => controller.abort(new DOMException('The operation timed out.', 'TimeoutError')), ms)
   return controller.signal
 }
 

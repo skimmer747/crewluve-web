@@ -139,9 +139,11 @@ describe('the partner door (piece 5a §9)', () => {
       const { send, door } = doorAnswering({ ok: true })
       await door.leave(key(1))
       const signal = send.mock.calls[0][1]?.signal
+      vi.advanceTimersByTime(19_999)
       expect(signal?.aborted).toBe(false)
-      vi.advanceTimersByTime(20_000)
+      vi.advanceTimersByTime(1)
       expect(signal?.aborted).toBe(true)
+      expect((signal?.reason as DOMException).name).toBe('TimeoutError')
     } finally {
       vi.useRealTimers()
       Object.defineProperty(AbortSignal, 'timeout', own)
