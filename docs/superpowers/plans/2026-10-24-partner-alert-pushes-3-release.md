@@ -476,7 +476,7 @@ Expected: in App Store Connect → **Crewluve** → **TestFlight**, 1.3 (45) sho
 
 **Who:** the user, with Claude's check.
 
-- [ ] **Step 1: Give the build to the external group**
+- [x] **Step 1: Give the build to the external group**
 
 1. In App Store Connect → **Crewluve** → **TestFlight**, under **External Testing**, open the external group.
 2. Check its **Testers**. Anyone besides the TestFlight partner gets 1.3 too. That's safe: a partner still on iCloud keeps working as before, with Crewluve's own alerts (spec §7).
@@ -491,14 +491,14 @@ Expected: in App Store Connect → **Crewluve** → **TestFlight**, 1.3 (45) sho
 
 Expected: the build shows **Approved** for the group, and TestFlight tells the partner it's ready.
 
-- [ ] **Step 2: The partner installs it**
+- [x] **Step 2: The partner installs it**
 
 1. On the TestFlight partner's phone, open **TestFlight**, and update to **Crewluve 1.3 (45)**. Don't delete Crewluve first: the key 1.2 saved has to stay.
 2. Open Crewluve once.
 
 Expected: your status, with the •••, with no link and no tap.
 
-- [ ] **Step 3: Claude checks their device**
+- [x] **Step 3: Claude checks their device**
 
 With the user's yes, Claude runs Task 3 Step 2's query again.
 
@@ -672,5 +672,6 @@ Filled in as the release goes: each task's result, and anything that differed. N
   - **Step 4:** the running helper, attached right after it handled a push, used 3.5 MB, with a high of 3.6 MB: under the 12 MB bar. The reading while stopped at the breakpoint couldn't be taken. Xcode's gauge showed Zero KB for a process paused before its first sample, and an lldb expression asking the kernel for its figures didn't finish. The summary it read is 29,974 bytes.
   - **Step 5:** Test 1 is removed, and Crewlu Cloud lists only the two real partners' devices.
 - **Task 4 (2026-10-24):** the archive, from `11e4714` with nothing else changed, passed all 8 of `check_archive.py`'s checks: both bundles 1.3 (45) for iOS 26.0, the helper a notification service, signed with its own App ID on the app's team, its one Keychain group Crewluve's own, the app with no group of its own, and the signatures verifying. The upload through **Distribute App → App Store Connect** worked.
-- **Task 5 Step 1 (2026-10-24):** 1.3 (45) went to the external group with the What to Test text, and was submitted for Apple's beta review.
+- **Task 5 Step 1 (2026-10-24):** 1.3 (45) went to the external group with the What to Test text, and was submitted for Apple's beta review. It showed **In Review** the next evening, and was approved by 2026-10-26.
+- **Task 5 Steps 2 and 3 (2026-10-26):** the TestFlight partner updated to 1.3 (45) over 1.2, without deleting Crewluve, and opened it once. With the user's yes, the device read gave the two rows expected: the moved partner's, joined 2026-10-21, `production`, a token, `push_alerts` false; and the TestFlight partner's, joined 2026-10-22, `production`, a token, and now `push_alerts` true.
 - **Task 7 Steps 1 to 4 (2026-10-24), done while the beta review waits:** version 1.3 has the What's New text and build 1.3 (45), the review notes, and automatic release, and the privacy answers are unchanged. All saved; Step 5, the submission, waits for Task 6.
