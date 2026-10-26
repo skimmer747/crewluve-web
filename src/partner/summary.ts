@@ -5,7 +5,9 @@
  * a lastUpdated can't be read at all.
  */
 
-export type SummaryLegType = 'flight' | 'turn' | 'layover' | 'home' | 'base' | 'drive' | 'reserve' | 'hotStandby' | 'event' | 'unknown'
+const LEG_TYPES = ['flight', 'turn', 'layover', 'home', 'base', 'drive', 'reserve', 'hotStandby', 'event', 'unknown'] as const
+
+export type SummaryLegType = (typeof LEG_TYPES)[number]
 
 export interface SummaryLeg {
   id: string
@@ -47,17 +49,23 @@ export interface PartnerSummary {
   quickStatuses: QuickStatus[]
 }
 
-const LEG_TYPES: ReadonlySet<string> = new Set(['flight', 'turn', 'layover', 'home', 'base', 'drive', 'reserve', 'hotStandby', 'event', 'unknown'])
-
 type Fields = Record<string, unknown>
 const isFields = (v: unknown): v is Fields => typeof v === 'object' && v !== null && !Array.isArray(v)
 const text = (v: unknown): string | null => (typeof v === 'string' && v.trim() !== '' ? v.trim() : null)
 const count = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null)
-/** Seconds since 1970 → epoch ms. */
+const isLegType = (v: unknown): v is SummaryLegType => typeof v === 'string' && (LEG_TYPES as readonly string[]).includes(v)
+/** The times a summary's can be: from 2000, as the rows' are (normalize.ts), to the last instant a Date can hold. */
+const FIRST_MS = Date.UTC(2000, 0, 1)
+const LAST_MS = 8.64e15
+/** Seconds since 1970 → epoch ms, or null for a time no schedule has. */
 const instant = (v: unknown): number | null => {
   const seconds = count(v)
-  return seconds == null ? null : Math.round(seconds * 1000)
+  if (seconds == null) return null
+  const ms = Math.round(seconds * 1000)
+  return ms >= FIRST_MS && ms <= LAST_MS ? ms : null
 }
+/** A quick status's expiry: null for no limit, undefined for one that can't be read (so that status isn't shown forever). */
+const expiry = (v: unknown): number | null | undefined => (v == null ? null : (instant(v) ?? undefined))
 
 /** The summary partner_view gave `partnerId`, or null when it isn't one this site can read. */
 export function readSummary(status: unknown, partnerId: string): PartnerSummary | null {
@@ -91,7 +99,7 @@ export function currentQuickStatus(summary: PartnerSummary, now: number): QuickS
 function readLeg(v: unknown): SummaryLeg | null {
   if (!isFields(v)) return null
   const id = text(v.id)
-  const type = typeof v.type === 'string' && LEG_TYPES.has(v.type) ? (v.type as SummaryLegType) : null
+  const type = isLegType(v.type) ? v.type : null
   const start = instant(v.startTime)
   const end = instant(v.endTime)
   if (!id || !type || start == null || end == null) return null
@@ -117,15 +125,17 @@ function readQuickStatuses(status: Fields, id: string): QuickStatus[] {
   const own = isFields(status.quickStatusByPartner) ? status.quickStatusByPartner[id] : null
   if (isFields(own)) {
     const ownText = text(own.status)
-    if (ownText) found.push({ text: ownText, icon: text(own.icon), expiresAt: instant(own.expiry) })
+    const ownExpiry = expiry(own.expiry)
+    if (ownText && ownExpiry !== undefined) found.push({ text: ownText, icon: text(own.icon), expiresAt: ownExpiry })
   }
   // The status for everyone: Crewlu Cloud leaves it out for a partner it wasn't sent to. Null targets means everyone,
   // [] nobody (partner-api.md, "The summary JSON"), so this is the same rule again, as Crewluve keeps it.
   const targets = status.quickStatusTargets
   const forThisPartner = targets == null || (Array.isArray(targets) && targets.some((t) => typeof t === 'string' && t.toLowerCase() === id))
   const everyone = text(status.quickStatus)
-  if (everyone && forThisPartner) {
-    found.push({ text: everyone, icon: text(status.quickStatusIcon), expiresAt: instant(status.quickStatusExpiry) })
+  const everyoneExpiry = expiry(status.quickStatusExpiry)
+  if (everyone && forThisPartner && everyoneExpiry !== undefined) {
+    found.push({ text: everyone, icon: text(status.quickStatusIcon), expiresAt: everyoneExpiry })
   }
   return found
 }

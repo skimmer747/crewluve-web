@@ -4,7 +4,8 @@ What `partner_view` answers as `status` for CrewLu's nine example summaries: `<e
 (`aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa`) and `<example>.B.json` for partner B (`bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb`).
 
 - **Copied from** Crewluve's `CrewluvTests/Fixtures/PartnerSummary/`, which makes them with Crewlu Cloud's own
-  trimming (`private.trim_status_for`) from CrewLu's examples in `supabase/partner-status/examples/`.
+  trimming (`private.trim_status_for`) from CrewLu's examples in `supabase/partner-status/examples/`. They last changed
+  there in Crewluve's commit fe45730 (2026-10-18); compare against it to see whether they've drifted.
 - **When they change** there, copy them again.
 - **The schedule:** one made-up pilot, Alex, at home in Atlanta (ATL) with base Louisville (SDF). Each file is one
   moment of the same week:

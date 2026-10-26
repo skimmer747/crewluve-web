@@ -45,6 +45,22 @@ describe('readSummary', () => {
     expect(readSummary({ ...status, tripLegs: broken }, PARTNER_A)?.legs).toHaveLength(5)
     expect(readSummary({ ...status, tripLegs: null }, PARTNER_A)?.legs).toEqual([])
   })
+
+  it('reads a delay, a label and a jumpseat', () => {
+    const status = example('layover')
+    const legs = status.tripLegs as Array<Record<string, unknown>>
+    const summary = readSummary({ ...status, tripLegs: [{ ...legs[0], delayMinutes: 45 }, { ...legs[3], type: 'reserve', label: 'RSV-A' }, legs[5]] }, PARTNER_A)!
+    expect(summary.legs[0].delayMinutes).toBe(45)
+    expect(summary.legs[1]).toMatchObject({ type: 'reserve', label: 'RSV-A' })
+    expect(summary.legs[2]).toMatchObject({ tripId: null, airlineCode: 'DL', flightNumber: 'DL1180', start: 1792515900000 })
+  })
+
+  it('skips a leg whose times no schedule has', () => {
+    const status = example('home')
+    const legs = status.tripLegs as Array<Record<string, unknown>>
+    const odd = [{ ...legs[0], startTime: 1e300 }, { ...legs[1], endTime: 0 }, legs[2]]
+    expect(readSummary({ ...status, tripLegs: odd }, PARTNER_A)?.legs).toHaveLength(1)
+  })
 })
 
 describe('quick status (piece 5a §7)', () => {
@@ -68,7 +84,8 @@ describe('quick status (piece 5a §7)', () => {
   })
 
   it('shows the status sent to everyone, which has no limit', () => {
-    expect(shownTo('quick-status-everyone', 'B')(1792605600000 + 86_400_000)).toEqual({ text: 'Sleeping', icon: 'moon.zzz.fill', expiresAt: null })
+    const summary = readSummary({ ...example('quick-status-everyone', 'B'), quickStatusByPartner: null }, PARTNER_B)!
+    expect(currentQuickStatus(summary, 1792605600000 + 86_400_000)).toEqual({ text: 'Sleeping', icon: 'moon.zzz.fill', expiresAt: null })
   })
 
   it("puts the partner's own status first, then the one for everyone once their own expires", () => {
@@ -84,6 +101,22 @@ describe('quick status (piece 5a §7)', () => {
 
   it('leaves out a status for everyone whose targets say nobody', () => {
     const status = { ...example('home'), quickStatus: 'Free to Talk', quickStatusIcon: 'bubble.left.fill', quickStatusExpiry: null, quickStatusTargets: [] }
+    expect(readSummary(status, PARTNER_A)?.quickStatuses).toEqual([])
+  })
+
+  it('shows a status for everyone whose targets name this partner, in any case, or that has no targets at all', () => {
+    const base = { ...example('home'), quickStatus: 'Free to Talk', quickStatusIcon: 'bubble.left.fill', quickStatusExpiry: null }
+    expect(readSummary({ ...base, quickStatusTargets: [PARTNER_A.toUpperCase()] }, PARTNER_A)?.quickStatuses).toHaveLength(1)
+    expect(readSummary(base, PARTNER_A)?.quickStatuses).toHaveLength(1)
+    expect(readSummary({ ...base, quickStatusTargets: [PARTNER_B] }, PARTNER_A)?.quickStatuses).toEqual([])
+  })
+
+  it("doesn't show a status whose expiry can't be read, rather than showing it forever", () => {
+    const status = {
+      ...example('home'),
+      quickStatusByPartner: { [PARTNER_A]: { status: 'Call Me', icon: 'phone.fill', expiry: '2026-10-21T20:00:00Z' } },
+      quickStatus: 'Free to Talk', quickStatusIcon: 'bubble.left.fill', quickStatusExpiry: 'soon', quickStatusTargets: null,
+    }
     expect(readSummary(status, PARTNER_A)?.quickStatuses).toEqual([])
   })
 })
