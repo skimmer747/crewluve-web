@@ -13,7 +13,7 @@ describe('linkFromHash (piece 5a §4.1)', () => {
 
   it('tidies a code from a link as Crewluve does, and refuses one that is not six letters or digits', () => {
     expect(linkFromHash('#c=ab2c3d')).toEqual({ kind: 'code', code: 'AB2C3D' })
-    expect(linkFromHash('#c=AB-2C+3D')).toEqual({ kind: 'code', code: 'AB2C3D' })
+    expect(linkFromHash('#c=AB-2C%203D')).toEqual({ kind: 'code', code: 'AB2C3D' })
     expect(linkFromHash('#c=AB2C3')).toBeNull()
     expect(linkFromHash('#c=AB2C3D7')).toBeNull()
   })
@@ -43,7 +43,7 @@ describe('linkFromText', () => {
       '<https://crewluve.crewlu.net/join#t=abc123>',
       '(https://crewluve.crewlu.net/join#t=abc123)',
       '"https://crewluve.crewlu.net/join#t=abc123"',
-      'https://crewluve.crewlu.net/join#t=abc123​',
+      'https://crewluve.crewlu.net/join#t=abc123\u200b',
       'https://crewluve.crewlu.net/join/#t=abc123',
     ]) {
       expect(linkFromText(text)).toEqual({ kind: 'invite', invite: 'abc123' })
@@ -64,7 +64,8 @@ describe('codeFrom', () => {
   })
 
   it('drops letters that only become code letters in upper case', () => {
-    expect(codeFrom('ßﬆ2a')).toBe('2A')
+    // The German sharp s and the "st" ligature upper-case to SS and ST: two letters each, so neither is one code letter.
+    expect(codeFrom('\u00df\ufb06' + '2a')).toBe('2A')
   })
 
   it("uses the door's alphabet, which leaves out 0, 1, I, L and O", () => {
