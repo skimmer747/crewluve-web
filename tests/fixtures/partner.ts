@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import type { Joined, PartnerDoor, Refused, Viewed } from '../../src/partner/door'
 import type { KeyValueStore } from '../../src/partner/store'
 
 export const PARTNER_A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
@@ -31,4 +32,73 @@ export function memoryStorage(): KeyValueStore & { data: Map<string, string> } {
       data.delete(name)
     },
   }
+}
+
+/**
+ * An in-memory partner door with Crewlu Cloud's rules (partner-api.md and private.create_device): an invite or a code
+ * names a partner; a key is one partner's device, and the same key with the same partner answers with the same
+ * device; each partner's summary has an updated_at. Tests fill `invites`, `codes` and `summaries`, read `devices`
+ * (key → partner) and `calls`, and set `network.down`, or `network.loseNext` to lose the next answer after its work is done.
+ */
+export function fakeDoor() {
+  const invites = new Map<string, string>()
+  const codes = new Map<string, string>()
+  const summaries = new Map<string, { updatedAt: string; status: unknown }>()
+  const devices = new Map<string, string>()
+  const calls: string[] = []
+  const network = { down: false, loseNext: false }
+  const reach = () => {
+    if (network.down) throw new TypeError('Failed to fetch')
+  }
+  const lose = () => {
+    if (network.loseNext) {
+      network.loseNext = false
+      throw new TypeError('Failed to fetch')
+    }
+  }
+  const device = (partner: string | undefined, key: string): Joined | Refused => {
+    if (!partner) return { error: 'sharing_ended' }
+    const has = devices.get(key)
+    if (has && has !== partner) return { error: 'key_in_use' }
+    devices.set(key, partner)
+    return { deviceId: `device-${key.slice(-4)}`, partnerId: partner }
+  }
+  const viewed = (key: string, since: string | null): Viewed | Refused => {
+    const partner = devices.get(key)
+    if (!partner) return { error: 'sharing_ended' }
+    const summary = summaries.get(partner)
+    if (!summary) return { partnerId: partner, updatedAt: null, unchanged: false, status: null }
+    if (since === summary.updatedAt) return { partnerId: partner, updatedAt: summary.updatedAt, unchanged: true }
+    return { partnerId: partner, updatedAt: summary.updatedAt, unchanged: false, status: summary.status }
+  }
+  const door: PartnerDoor = {
+    async join(invite, key, label) {
+      calls.push(`join ${invite} ${key} ${label}`)
+      reach()
+      const answer = device(invites.get(invite), key)
+      lose()
+      return answer
+    },
+    async redeem(code, key, label) {
+      calls.push(`redeem ${code} ${key} ${label}`)
+      reach()
+      const answer = device(codes.get(code), key)
+      lose()
+      return answer
+    },
+    async view(key, since) {
+      calls.push(`view ${key} ${since}`)
+      reach()
+      const answer = viewed(key, since)
+      lose()
+      return answer
+    },
+    async leave(key) {
+      calls.push(`leave ${key}`)
+      reach()
+      devices.delete(key)
+      lose()
+    },
+  }
+  return { door, invites, codes, summaries, devices, calls, network }
 }
