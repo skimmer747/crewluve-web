@@ -9,6 +9,19 @@
   - the guard's new file;
   - `rows.ts` stays;
   - the fixtures are the 18 trimmed summaries.
+- **Amended again:** 2026-10-26, from the code reviews while building:
+  - §4.1: what pasted text yields;
+  - §4.2: forgetting keeps a pending key;
+  - §4.3:
+    - a connected key freed by the pilot is let go at once;
+    - an unreadable or `unchanged` first read is Couldn't Connect;
+    - Cancel doesn't wait;
+    - a code retried after a lost answer, by a browser connected to another pilot, is refused;
+  - §5: the races, and an answer for another partner, followed once per poll;
+  - §6: delay bounds, UPSGND, and three more thin spots;
+  - §7: the quick status's place, look and spacing;
+  - §8: links pasted into the boxes, the code field on phones, repeated alerts, and contrast;
+  - §9: the frozen list, the time limit and refused redirects.
 - **Part of:** the partner-links design, `docs/superpowers/specs/2026-10-15-partner-links-design.md` (the umbrella): §5.2, §5.5, §6.2, §7.3 and §9 (piece 5).
 - **Contract:**
   - the partner door, `~/Dev/Duty/supabase/partner-api.md`, live since 2026-10-15;
@@ -54,6 +67,7 @@ A partner opens their invite link anywhere other than an iPhone or iPad with Cre
   - A `/join` address with no link goes to `/` too.
   - Any other fragment stays, such as the Schedule page's `#schedule`.
   - A link pasted into the address bar while the page is open changes only the fragment, and joins too.
+- Pasted text yields only the link's own letters and digits (`#[tc]=[0-9a-z]+`), so a full stop or a bracket after the link isn't taken as part of it. A code from a link is tidied as Crewluve's `PartnerLink.code(from:)` tidies one: spaces and dashes go, it's upper-cased, and it must be six letters or digits.
 - `public/.well-known/apple-app-site-association` doesn't change. On an iPhone or iPad with Crewluve, the link still opens the app.
 
 ### 4.2 The key and what's stored
@@ -63,6 +77,8 @@ A partner opens their invite link anywhere other than an iPhone or iPad with Cre
   - `crewluve.device.v1`: `{key, partnerId}`, once connected;
   - `crewluve.pendingKey.v1`: the key being tried, saved before it's sent;
   - `crewluve.summary.v1`: `{partnerId, updatedAt, status, checkedAt}`, the last answer, and when the door last answered (§5).
+- **Forgetting** (Disconnect, or sharing ended): the device and the summary go. A pending key stays, as in Crewluve, so a join whose answer was lost reaches the same device when it's tried again.
+- **Keys are checked** on the way in and on the way out: a stored key that isn't 64 lower-case hex is ignored, and one can't be saved.
 - **The old sign-in's leftovers:** on load, the site deletes the stored session (`crewluve-auth`) and the old schedule cache (`crewluve.schedule.v1`).
 - **Kind and label:** `p_kind` is `web`. `p_label` is P5-6's label. When neither the browser nor the platform is recognized, the label is empty, and the door writes "Web browser".
 
@@ -74,19 +90,28 @@ The steps follow Crewluve (`Services/PartnerJoiner.swift`, `Services/PartnerClou
 2. **Pick the key:** the connected key if there is one, otherwise the pending key, otherwise a new key, saved as pending first.
 3. **Call the door:** `partner_join(p_invite, p_device_key, 'web', label)`, or `partner_handoff_redeem(p_token, p_device_key, 'web', label)` for a code.
 4. **`key_in_use` with the connected key:** try again with the pending key, otherwise with a new pending key. The connected key is never sent with a different partner's link.
-5. **The answer is for the connected key:** refresh and show the status.
-6. **Otherwise,** call `partner_view` with the new key and no `since`. If the browser already follows a different pilot (`pilotId` differs), ask "Switch to {Name}?" / "You'll stop seeing {Current}'s status in this browser." (Crewluve's `SwitchQuestion`):
-   - **Cancel:** call `partner_leave` with the new key, and forget the pending key. If the connected key made the new device, the browser's old device was already gone, so the browser forgets everything, as Crewluve does.
-   - **Switch:** go on to step 7.
+5. **The answer is for the connected key and its own partner:** nothing changes; refresh and show the status.
+
+   **The connected key joined another partner:** the pilot had removed this browser's device, which freed the key.
+   - The browser forgets its old device and summary at once, and keeps the key as the pending key. A retry then reaches the same device, and nothing here goes on naming the old one. Crewluve has this gap still; it's a follow-up there.
+   - If the join then ends without connecting, the welcome screen says "Sharing with {Name} has ended."
+6. **Otherwise,** call `partner_view` with the new key and no `since`.
+   - An `unchanged` answer, which a read with no `since` can't get, is no answer.
+   - A summary this site can't read means "Couldn't Connect", as in Crewluve.
+   - If the browser already follows a different pilot (`pilotId` differs, in any case), ask "Switch to {Name}?" / "You'll stop seeing {Current}'s status in this browser." (Crewluve's `SwitchQuestion`). A question that fails to ask counts as a No, so a join never rejects.
+     - **Cancel:** call `partner_leave` with the new key, tried once without waiting on it, and forget the pending key.
+     - **Switch:** go on to step 7.
 
    A browser that follows no one yet goes straight to step 7.
 7. **Connect:**
    - the new key becomes the connected key;
-   - the old device leaves (one try, and failures are ignored);
+   - the device it replaces leaves (one try, and failures are ignored). It's read again just before, so a device another tab connected meanwhile isn't left behind;
    - the stored summary is replaced;
    - the status shows with one line: "Connected on this browser. Add it to your Home Screen to keep it handy."
 
 A lost answer shows "Couldn't Connect" and keeps both keys. Trying again sends the same key, so the same device answers.
+
+One retry doesn't: a code tried again by a browser that's connected to another pilot, after the first answer was lost on the pending key. The retry sends the connected key first. The server has the code as used by another device, so it answers `sharing_ended` and counts a failure toward the pause. A new code from the pilot reaches the same device, through the kept pending key. Crewluve has the same gap.
 
 `sharing_ended` from `partner_join` or `partner_handoff_redeem` means only that this link or code is dead. The browser keeps any key it's connected with (`partner-api.md:78-80`).
 
@@ -112,6 +137,9 @@ The same words as Crewluve (`Models/JoinMessage.swift`):
   - **a summary:** store it, then convert and show it (§6);
   - **`status: null`:** "Waiting for your pilot's first update…";
   - **`sharing_ended`:** forget the key and the stored summary, then show the welcome screen with "Sharing with {Name} has ended." The name comes from the stored summary.
+  - **While Disconnect's own `partner_leave` is out:** a poll that finds the device gone is that Disconnect, not sharing ending, so it says nothing (as Crewluve's `isDisconnecting`).
+  - **An answer that names another partner:** the door gave this browser's key to that partner, through a join whose answer never came back, or whose page closed before it could save. The browser follows the door. After an `unchanged` answer it asks again with no `since`, because the `since` sent was the other partner's. It follows once per poll: a second such answer in the same poll fails that poll, and the next poll tries again, so a store that doesn't keep what it's given can't make one poll call the door forever.
+- **Races:** a poll writes nothing when the device changed while it was out, by key or by partner: another tab, or a join in this one, moved it. On `unchanged`, "Checked" moves on whatever summary is stored by then.
 - **Next visit:** the stored summary shows at once, then it's refreshed.
 - **What ends a connection:**
   - Disconnect;
@@ -139,7 +167,7 @@ Its input is one summary. Its output is the `Schedule` the website's engine alre
 
 | `type` | Website | How |
 |---|---|---|
-| `flight` with a `tripId` | a `Move` in that trip | `dep`/`arr` from `departureAirport`/`arrivalAirport`. `startTime`/`endTime` are the schedule (`schedStart`/`schedEnd`); `delayMinutes`, on the leg that carries it, moves both ends (`start`/`end`), as Crewluve's `TripStateResolver.effectiveStart`/`effectiveEnd` do. The airline and number come from `flightNumber`: "UPS2961" is a company flight; "DL1180" with `airlineCode` "DL" is Delta. `deadhead` is true when `airlineCode` is set (a commercial deadhead) or the number is CML. `ground` is true for "GND". |
+| `flight` with a `tripId` | a `Move` in that trip | `dep`/`arr` from `departureAirport`/`arrivalAirport`. `startTime`/`endTime` are the schedule (`schedStart`/`schedEnd`); `delayMinutes`, on the leg that carries it, moves both ends (`start`/`end`), as Crewluve's `TripStateResolver.effectiveStart`/`effectiveEnd` do. A delay is read only as a whole number within ±24 hours; CrewLu offers up to about 11 hours. The airline and number come from `flightNumber`, spaces ignored: "UPS2961" is a company flight; "DL1180" with `airlineCode` "DL" is Delta. `deadhead` is true when `airlineCode` is set (a commercial deadhead) or the number is CML. `ground` is true for "GND", and for "UPSGND": CrewLu writes "UPS" before a company flight's GND when its ground flag isn't set. |
 | `flight` with no `tripId` (`js-` ids) | a jumpseat `Move` | As above. A jumpseat always rides. |
 | `turn` | made again | `buildLegs` makes the turn between two flights of one duty period. |
 | `layover`, `home`, `base` | made again | They split the trip's flights into duty periods, and `buildLegs` makes the night between them. |
@@ -159,11 +187,19 @@ Its input is one summary. Its output is the `Schedule` the website's engine alre
 - A planned time differs from the actual time only on the leg that carries `delayMinutes`.
 - A drive home doesn't move with a late last flight.
 - A trip whose flights are all hidden isn't in the summary at all, so it doesn't show as "On duty".
+- **No night written:** when CrewLu writes no night between two duty periods (the next one's flights are all gone), they merge, and the gap shows as one long turn.
+- **No flight after a night:** a night with no flight after it, such as the last duty period hidden, is dropped.
+- **Reserve codes inside words:** CrewLu matches reserve codes inside words, so a title such as "Welcome dinner" arrives as reserve "LCO". The rows had been fixed for this (normalize.ts); the fix belongs in CrewLu now, which would fix Crewluve too.
 
 ## 7. Quick status
 
 - **Order:** the partner's own entry (`quickStatusByPartner[partnerId]`) comes first, then the status for everyone (`quickStatus`, `quickStatusIcon`, `quickStatusExpiry`). Each shows until it expires, as in Crewluve (`Models/CloudSummary.swift:155-165`).
-- **Where:** on the location card.
+- **Where:** on the location card, where Crewluve's `QuickStatusIndicatorView` sits, between the weather and the time.
+  - A 20 px blue icon.
+  - The words at 16 px medium, in the primary text color: Crewluve's blue words wouldn't pass contrast on the glass.
+  - A hidden "Quick status:" for screen readers.
+  - 4 px above it, as Crewluve pads it, which makes 16 below the weather credit.
+  - Not yet, for 5b: Crewluve's pulsing icon, and its "(42:13 left)" before an expiry.
 - **Icons:** CrewLu's icons are SF Symbol names. They map to the website's own icons through a fixed table, and an icon that isn't in the table shows a speech bubble.
 
 ## 8. The welcome screen
@@ -174,13 +210,23 @@ It replaces the sign-in screen, and shows whenever this browser isn't connected:
 - **Paste Invite Link:** a box for "Paste the invite link your pilot sent you.", with a Connect button.
   - It takes `#t=` and `#c=` links, also inside CrewLu's whole message.
   - Text with no link says "Not an Invite Link" without calling the door.
+  - Each problem shows as a new alert, so one that repeats is announced again.
 - "or type the code from CrewLuve on another device", with six boxes:
   - one field drawn as six boxes, so typing, pasting and the keyboard's suggestions all work;
-  - the letters are upper-cased, from the door's alphabet `23456789ABCDEFGHJKMNPQRSTUVWXYZ`;
+  - **the field on phones:**
+    - It's opaque, with its text, caret and background transparent. iOS hides Paste on a field it judges invisible by its opacity.
+    - It's left uncontrolled, and rewritten only when a character is dropped, never for case. Rewriting a field mid-word makes Android keyboards double letters.
+    - The caret stays at the end, since the boxes show the code from its start.
+    - The next box shows the focus.
+  - the letters are upper-cased in the boxes, from the door's alphabet `23456789ABCDEFGHJKMNPQRSTUVWXYZ`;
   - the code is sent on the sixth character;
-  - the boxes clear on a failure;
+  - a whole link pasted into them, an invite link or a code link, connects as the link would, not as its first six letters;
+  - other text with `/`, `#` or `=`, the pieces of a link, says "Not an Invite Link" instead of being sent as a code;
+  - the boxes clear on a failure: Root shows "Connecting…" between attempts, which starts the screen afresh;
 - **Try Demo:** the existing `?demo=1`;
 - "Sharing with {Name} has ended.", when that's why it's showing (§5).
+
+The small labels, the ended line and the alert are in the primary text color: the site's grey and red don't reach 4.5:1 at 13–15 px.
 
 **Disconnect** replaces Sign Out in the footer. It asks first, as Crewluve does (`DisconnectQuestion`): "Disconnect from {Name}?" / "You'll stop seeing {Name}'s status in this browser. To connect again, open the invite link {Name} sent you."
 - **On a yes:** it calls `partner_leave` (always `{ok:true}`), forgets the key and the stored summary, then shows the welcome screen.
@@ -196,6 +242,10 @@ It replaces the sign-in screen, and shows whenever this browser isn't connected:
 
   Everything else to that host is refused, including `/auth/v1/` and table reads. The weather and `airports.json` are unchanged.
 - **One module:** the four calls come from a single module, `src/partner/door.ts`, with the publishable key from `src/cloud.ts`. The source rules let no other file send more than a plain GET.
+- **The guard's list** is frozen. Fetch gets the method the guard judged.
+- **Each call:**
+  - has a 20-second time limit, by a timer where Safari has no `AbortSignal.timeout`;
+  - refuses redirects, so a key is never sent on to another address.
 - **The CSP's `connect-src`** is unchanged: the Crewlu Cloud host and Open-Meteo.
 
 ## 10. Removed

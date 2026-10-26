@@ -1,12 +1,14 @@
 # Crewluve Web
 
 The Crewluve app's "Where's {Name}?" screen, and its Schedule, as a website for pilots' families.
-Sign in with the pilot's CrewLu Cloud account. The site only reads; it never changes anything.
+A partner connects with the invite link their pilot sends from CrewLu, or with a code from Crewluve on another device; there's no password.
+The site shows what CrewLu shares with that partner, and changes nothing but its own connection (joining and Disconnect).
 
 - Live: https://crewluve.crewlu.net
 - Demo: https://crewluve.crewlu.net/?demo=1 (add `&scene=layover`, `last-leg`, `home`, `commuting-home`, `nothing-ahead`, …)
 - Schedule: add `#schedule` to either address, or tap a card with a chevron.
 - Design: docs/superpowers/specs/2026-10-08-crewluve-web-slice1-design.md
+- Joining with the invite link: docs/superpowers/specs/2026-10-26-partner-links-piece5a-website-join-design.md
 
 ## Develop
 

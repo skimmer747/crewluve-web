@@ -4338,8 +4338,8 @@ Then go to Task 14.
 ### Task 14: The user's checks with a real invite, then the push
 
 **Who:**
-- **The user:** Steps 1–6 and 9, on their own devices. They use the iPhone's CrewLu build from Xcode, signed in to Crewlu Cloud. Their account and partners are test data.
-- **The agent:** Steps 7 and 8, with the user's yes.
+- **The user:** Steps 1–7 and 10, on their own devices. They use the iPhone's CrewLu build from Xcode, signed in to Crewlu Cloud. Their account and partners are test data.
+- **The agent:** Steps 8 and 9, with the user's yes.
 
 Give the user each step click by click, and wait for their result before the next.
 
@@ -4374,7 +4374,7 @@ It prints a "Network" address, such as `http://192.168.1.20:5181/`. Keep it runn
 
 1. Open the Network address from Step 1, with the link's `/join#t=…` on the end.
 2. Expected: your status.
-3. Safari's "Get the app" banner for Crewluve may show only on the real site. Step 9 checks it there.
+3. Safari's "Get the app" banner for Crewluve may show only on the real site. Step 10 checks it there.
 
 - [ ] **Step 5 (the user): A code from Crewluve**
 
@@ -4382,14 +4382,31 @@ It prints a "Network" address, such as `http://192.168.1.20:5181/`. Keep it runn
 2. In Safari on the Mac, click the footer's left button, **Disconnect**, then **OK**. Expected: the welcome screen.
 3. Type the code into the six boxes. Expected: it connects on the sixth letter, as that partner.
 
-- [ ] **Step 6 (the user): Sharing ends**
+- [ ] **Step 6 (the user): The code boxes on a phone**
+
+The Mac can't show these: phones handle the hidden code field their own way. A code connects once, so make a new one for each part.
+
+On the iPhone, in Safari, at the Network address:
+1. Tap the footer's **Disconnect**, then **OK**. Expected: the welcome screen.
+2. Tap the boxes. Expected: the keyboard opens, and the page doesn't zoom in.
+3. Turn on VoiceOver and touch the boxes. Expected: it says "Code". Turn VoiceOver off.
+4. In Crewluve, open **Use on Another Device**, and copy its code.
+5. Back in Safari, touch and hold the boxes, then tap **Paste**. Expected: **Paste** shows, and it connects as that partner.
+6. Disconnect again, make a new code, and type it, tapping the first box after the third letter. Expected: every letter goes on the end, and Backspace takes off the last one.
+
+If there's an Android phone, in Chrome at the Network address:
+1. Disconnect, then type a new code in lower case, with a space after the third letter. Expected: capitals in the boxes, no space, and it connects on the sixth letter.
+2. Partway through another code, tap the first box, then type the rest. Expected: every letter goes on the end.
+3. With TalkBack on, touch the boxes. Expected: it says "Code".
+
+- [ ] **Step 7 (the user): Sharing ends**
 
 1. In CrewLu, open **Web test**, then remove the device **Chrome on Mac**.
 2. Expected: within 30 seconds, Chrome shows the welcome screen with "Sharing with {your name} has ended."
 
 If any step goes wrong, stop. Fix it under `superpowers:systematic-debugging`, then do the step again.
 
-- [ ] **Step 7: Push, with the user's fresh yes**
+- [ ] **Step 8: Push, with the user's fresh yes**
 
 Show the user what will go:
 
@@ -4412,7 +4429,7 @@ git push origin main
 
 `docs/superpowers/plans/2026-10-26-partner-links-piece2-release.md` stays untracked; don't add it.
 
-- [ ] **Step 8: Check the deploy and the live site**
+- [ ] **Step 9: Check the deploy and the live site**
 
 1. About three minutes after the push, check once:
 
@@ -4427,7 +4444,7 @@ gh run list --repo skimmer747/crewluve-web --workflow deploy-pages.yml --limit 1
    - Open `https://crewluve.crewlu.net/join`. Expected: the address becomes `/`, with the welcome screen.
    - Open `https://crewluve.crewlu.net/.well-known/apple-app-site-association`. Expected: the JSON for `/join`.
 
-- [ ] **Step 9 (the user): The real link, live**
+- [ ] **Step 10 (the user): The real link, live**
 
 1. On the Mac, open the **Web test** invite link as it is, on `https://crewluve.crewlu.net`. Expected: it connects.
 2. On an iPhone without Crewluve, open the link in Safari. Expected: it connects, with Safari's banner for Crewluve at the top.
