@@ -1,6 +1,14 @@
 # Partner Links Piece 5a: the Website Joins with the Invite Link
 
 - **Status:** Design approved in brainstorming on 2026-10-26.
+- **Amended:** 2026-10-26, while writing the plan (`docs/superpowers/plans/2026-10-26-partner-links-piece5a-website-join.md`). The changes are in P5-2, §4.1, §4.2, §4.3, §6, §8, §9, §10 and §11:
+  - the converter builds the engine's `Schedule`;
+  - delays move both ends of a flight, as in Crewluve;
+  - the name comes from `displayNameByPartner` first;
+  - Disconnect asks first and can fail;
+  - the guard's new file;
+  - `rows.ts` stays;
+  - the fixtures are the 18 trimmed summaries.
 - **Part of:** the partner-links design, `docs/superpowers/specs/2026-10-15-partner-links-design.md` (the umbrella): §5.2, §5.5, §6.2, §7.3 and §9 (piece 5).
 - **Contract:**
   - the partner door, `~/Dev/Duty/supabase/partner-api.md`, live since 2026-10-15;
@@ -27,7 +35,7 @@ A partner opens their invite link anywhere other than an iPhone or iPad with Cre
 | # | Decision |
 |---|---|
 | P5-1 | **Piece 5 splits in two.**<br>• **5a, this spec:** links, the summary as the only data, and the password sign-in removed.<br>• **5b, later:** the website follows Crewluve's logic, with the golden cases (umbrella §7.4, piece 4's P4-1) and a demo built from Crewluve's demo summary. |
-| P5-2 | **The website keeps its own engine and screens** (the user's choice of two options). A converter turns the summary into the website's `Leg[]`, trip spans and pilot. `buildSchedule` and `buildLegs` stay, for the demo only. |
+| P5-2 | **The website keeps its own engine and screens** (the user's choice of two options). A converter turns the summary into the website's `Schedule`: the pilot, the trips with their duty periods, the jumpseats, the drives and the events. `buildLegs` then makes the legs from it, as it does for the demo, by the same rules CrewLu used to write them. `buildSchedule` stays, for the demo only. |
 | P5-3 | **The password sign-in goes with this piece** (the user's choice). Anyone who uses the pilot's password loses access until the pilot sends their link. A pilot who wants to see their own status adds themselves as a partner ("Me") and opens that link (umbrella §7.3). |
 | P5-4 | **The website redeems hand-off codes but doesn't make them.** Use on Another Device stays in Crewluve. |
 | P5-5 | **No alerts on the web.** The site polls while it's visible (umbrella D12). |
@@ -43,6 +51,9 @@ A partner opens their invite link anywhere other than an iPhone or iPad with Cre
   - `#t=<invite>` joins with `partner_join`;
   - `#c=<code>` redeems with `partner_handoff_redeem`.
 - Once it has read the fragment, it replaces the address with `/` (`history.replaceState`). The secret leaves the address bar, and a reload doesn't join again.
+  - A `/join` address with no link goes to `/` too.
+  - Any other fragment stays, such as the Schedule page's `#schedule`.
+  - A link pasted into the address bar while the page is open changes only the fragment, and joins too.
 - `public/.well-known/apple-app-site-association` doesn't change. On an iPhone or iPad with Crewluve, the link still opens the app.
 
 ### 4.2 The key and what's stored
@@ -51,7 +62,7 @@ A partner opens their invite link anywhere other than an iPhone or iPad with Cre
 - **localStorage:**
   - `crewluve.device.v1`: `{key, partnerId}`, once connected;
   - `crewluve.pendingKey.v1`: the key being tried, saved before it's sent;
-  - `crewluve.summary.v1`: `{partnerId, updatedAt, status}`, the last summary (§5).
+  - `crewluve.summary.v1`: `{partnerId, updatedAt, status, checkedAt}`, the last answer, and when the door last answered (§5).
 - **The old sign-in's leftovers:** on load, the site deletes the stored session (`crewluve-auth`) and the old schedule cache (`crewluve.schedule.v1`).
 - **Kind and label:** `p_kind` is `web`. `p_label` is P5-6's label. When neither the browser nor the platform is recognized, the label is empty, and the door writes "Web browser".
 
@@ -64,8 +75,8 @@ The steps follow Crewluve (`Services/PartnerJoiner.swift`, `Services/PartnerClou
 3. **Call the door:** `partner_join(p_invite, p_device_key, 'web', label)`, or `partner_handoff_redeem(p_token, p_device_key, 'web', label)` for a code.
 4. **`key_in_use` with the connected key:** try again with the pending key, otherwise with a new pending key. The connected key is never sent with a different partner's link.
 5. **The answer is for the connected key:** refresh and show the status.
-6. **Otherwise,** call `partner_view` with the new key and no `since`. If the browser already follows a different pilot (`pilotId` differs), ask "Switch to {Name}?":
-   - **Cancel:** call `partner_leave` with the new key, and forget the pending key;
+6. **Otherwise,** call `partner_view` with the new key and no `since`. If the browser already follows a different pilot (`pilotId` differs), ask "Switch to {Name}?" / "You'll stop seeing {Current}'s status in this browser." (Crewluve's `SwitchQuestion`):
+   - **Cancel:** call `partner_leave` with the new key, and forget the pending key. If the connected key made the new device, the browser's old device was already gone, so the browser forgets everything, as Crewluve does.
    - **Switch:** go on to step 7.
 
    A browser that follows no one yet goes straight to step 7.
@@ -115,34 +126,39 @@ The same words as Crewluve (`Models/JoinMessage.swift`):
 
 ## 6. The converter
 
-Its input is one summary. Its output is the pilot, the legs and the trip spans that the website's engine already reads.
+Its input is one summary. Its output is the `Schedule` the website's engine already reads. `buildLegs` then makes the legs from it, as it does for the demo.
+- **Checked while planning:** all 18 trimmed examples come out with CrewLu's own legs, at the same times, and with the statuses Crewluve shows: home, turn, in flight, layover and commuting home.
 
 **Pilot:**
-- the name from `pilotFirstName`;
-- home from `homeAirportCode`, which is already the effective home;
-- base from `baseAirportCode`;
-- the home zone from `homeTimezone`.
+- **Name:** the name this partner sees: `displayNameByPartner[partnerId]` (for example "Dad"), else `pilotFirstName` (Crewluve's `CloudSummary.displayName(for:)`).
+- **Home:** from `homeAirportCode`, which is already the effective home.
+- **Base:** from `baseAirportCode`.
+- **Home zone:** from the airport list, as before. `homeTimezone` isn't needed.
 
 **Legs, by the summary's `type`:**
 
-| `type` | Website `Leg` | How |
+| `type` | Website | How |
 |---|---|---|
-| `flight` with a `tripId` | `flight` | `dep`/`arr` from `departureAirport`/`arrivalAirport`; `start`/`end` from `startTime`/`endTime`. `schedStart`/`schedEnd` are the start and end minus `delayMinutes` where the leg carries a delay, otherwise the same. The airline and number come from `flightNumber` ("UPS2961"), or from `airlineCode` when it's set. `deadhead` is true when `airlineCode` is set (a commercial deadhead). `ground` is true for "GND". |
-| `flight` with no `tripId` (`js-` ids) | `jumpseat` | As above, with the airline from `airlineCode`. |
-| `turn`, `layover`, `home`, `base` | the same kind | The airport from `airportCode`, plus `start`, `end` and `tripId`. |
-| `drive` | `drive` | `from`/`to` from `departureAirport`/`arrivalAirport`; `toHome` when the label is "Driving home"; `schedEnd` is `end`. |
-| `reserve`, `hotStandby` | the same kind | The title from `label`, the airport from `airportCode`. |
-| `event` | `training` when the id starts with `te-`, otherwise `event` | The title from `label`. `airportCode` becomes the airport when it's an airport code, otherwise the location. `driveLike` comes from the label, by the website's existing rule. |
+| `flight` with a `tripId` | a `Move` in that trip | `dep`/`arr` from `departureAirport`/`arrivalAirport`. `startTime`/`endTime` are the schedule (`schedStart`/`schedEnd`); `delayMinutes`, on the leg that carries it, moves both ends (`start`/`end`), as Crewluve's `TripStateResolver.effectiveStart`/`effectiveEnd` do. The airline and number come from `flightNumber`: "UPS2961" is a company flight; "DL1180" with `airlineCode` "DL" is Delta. `deadhead` is true when `airlineCode` is set (a commercial deadhead) or the number is CML. `ground` is true for "GND". |
+| `flight` with no `tripId` (`js-` ids) | a jumpseat `Move` | As above. A jumpseat always rides. |
+| `turn` | made again | `buildLegs` makes the turn between two flights of one duty period. |
+| `layover`, `home`, `base` | made again | They split the trip's flights into duty periods, and `buildLegs` makes the night between them. |
+| `drive` | a `Commute` | `from`/`to` from `departureAirport`/`arrivalAirport`; `toHome` when it ends at home or its label is "Driving home" (the rows' rule); `schedEnd` is `end`. |
+| `reserve`, `hotStandby` | a duty event of the same kind | The title from `label`, the airport from `airportCode`. |
+| `event` | `training` when the id starts with `te-`, otherwise `event` | The title from `label`. `airportCode` becomes the airport when it's an airport code, and the location either way. `driveLike` comes from the title, by the website's existing rule. |
 | `unknown` | dropped | |
 
-**Trip spans:** one per `tripId`:
+**Trips:** one per `tripId`:
 - the start is the earliest leg's start, and the end is the latest leg's end;
-- the days are `tripTotalDays`, or are counted from the dates when that's 0.
+- each duty period starts at its first flight, so there are no report legs;
+- the days are `tripTotalDays`; 0 is counted from the dates, as before.
 
 **What's thinner than today:**
 - There are no report legs, as in Crewluve.
 - Company deadheads aren't marked in the summary, so they show as ordinary flights.
 - A planned time differs from the actual time only on the leg that carries `delayMinutes`.
+- A drive home doesn't move with a late last flight.
+- A trip whose flights are all hidden isn't in the summary at all, so it doesn't show as "On duty".
 
 ## 7. Quick status
 
@@ -155,39 +171,46 @@ Its input is one summary. Its output is the pilot, the legs and the trip spans t
 It replaces the sign-in screen, and shows whenever this browser isn't connected:
 - "Welcome to CrewLuve" and "Stay connected with your pilot";
 - "Open the invite link your pilot sent you, on this device.";
-- **Paste Invite Link:** a box for "Paste the invite link your pilot sent you." It takes `#t=` and `#c=` links;
+- **Paste Invite Link:** a box for "Paste the invite link your pilot sent you.", with a Connect button.
+  - It takes `#t=` and `#c=` links, also inside CrewLu's whole message.
+  - Text with no link says "Not an Invite Link" without calling the door.
 - "or type the code from CrewLuve on another device", with six boxes:
+  - one field drawn as six boxes, so typing, pasting and the keyboard's suggestions all work;
   - the letters are upper-cased, from the door's alphabet `23456789ABCDEFGHJKMNPQRSTUVWXYZ`;
   - the code is sent on the sixth character;
   - the boxes clear on a failure;
 - **Try Demo:** the existing `?demo=1`;
 - "Sharing with {Name} has ended.", when that's why it's showing (§5).
 
-**Disconnect** replaces Sign Out in the footer. It calls `partner_leave` (always `{ok:true}`), forgets the key and the stored summary, then shows the welcome screen.
+**Disconnect** replaces Sign Out in the footer. It asks first, as Crewluve does (`DisconnectQuestion`): "Disconnect from {Name}?" / "You'll stop seeing {Name}'s status in this browser. To connect again, open the invite link {Name} sent you."
+- **On a yes:** it calls `partner_leave` (always `{ok:true}`), forgets the key and the stored summary, then shows the welcome screen.
+- **When `partner_leave` gets no answer:** it says "Couldn't disconnect. Check your connection and try again." and stays connected, as Crewluve does. A browser that forgot its key would leave its device in the pilot's list with no way to remove itself.
 
 ## 9. The guard and the CSP
 
-- **The guard:** `src/data/readOnlyFetch.ts` becomes a partner-door guard. It allows only POSTs to these RPCs on the Crewlu Cloud host:
+- **The guard:** `src/partner/doorGuard.ts` replaces `src/data/readOnlyFetch.ts`. It allows only POSTs to these RPCs on the Crewlu Cloud host, with no query string:
   - `/rest/v1/rpc/partner_join`;
   - `/rest/v1/rpc/partner_handoff_redeem`;
   - `/rest/v1/rpc/partner_view`;
   - `/rest/v1/rpc/partner_leave`.
 
   Everything else to that host is refused, including `/auth/v1/` and table reads. The weather and `airports.json` are unchanged.
-- **One module:** the four calls come from a single module, with the publishable key from `src/cloud.ts`.
+- **One module:** the four calls come from a single module, `src/partner/door.ts`, with the publishable key from `src/cloud.ts`. The source rules let no other file send more than a plain GET.
 - **The CSP's `connect-src`** is unchanged: the Crewlu Cloud host and Open-Meteo.
 
 ## 10. Removed
 
 - `src/auth/` and `src/ui/SignIn.tsx`.
-- `src/data/fetchSchedule.ts`, `src/data/rows.ts` and the schedule cache.
-- `@supabase/supabase-js`, if nothing else needs it.
+- `src/data/fetchSchedule.ts`, the schedule cache (`src/data/cache.ts`), `src/data/readOnlyFetch.ts` and `src/supabase.ts`.
+- `@supabase/supabase-js`: nothing else needs it.
 - Their tests.
+
+`src/data/rows.ts` and `src/data/rowBuilder.ts` stay: the demo's rows and `buildSchedule` use them.
 
 ## 11. Testing
 
 - **The converter:**
-  - The fixtures are the nine examples from `~/Dev/Duty/supabase/partner-status/examples/` and the trimmed copies for partners A and B from `~/Dev/Crewluv/CrewluvTests/Fixtures/PartnerSummary/`. They're copied into `tests/fixtures/partner-status/`, with their sources noted.
+  - The fixtures are the 18 trimmed copies for partners A and B from `~/Dev/Crewluv/CrewluvTests/Fixtures/PartnerSummary/`, which are what `partner_view` really gives a partner. They're copied into `tests/fixtures/partner-status/`, with their source noted. The nine untrimmed examples aren't needed: a partner never sees one.
   - Each one converts, and builds a snapshot without the engine's fallback.
   - Each example also has its own expectations, for example the drive home in the commuting example and partner A's own quick status.
 - **Joining and refreshing,** against an in-memory door:
