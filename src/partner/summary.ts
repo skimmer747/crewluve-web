@@ -54,9 +54,9 @@ const isFields = (v: unknown): v is Fields => typeof v === 'object' && v !== nul
 const text = (v: unknown): string | null => (typeof v === 'string' && v.trim() !== '' ? v.trim() : null)
 const count = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null)
 const isLegType = (v: unknown): v is SummaryLegType => typeof v === 'string' && (LEG_TYPES as readonly string[]).includes(v)
-/** The times a summary's can be: from 2000, as the rows' are (normalize.ts), to the last instant a Date can hold. */
+/** The times a summary can hold: from 2000, as the rows' times are (normalize.ts), to the year 9999, well inside a Date's range. */
 const FIRST_MS = Date.UTC(2000, 0, 1)
-const LAST_MS = 8.64e15
+const LAST_MS = Date.UTC(9999, 11, 31)
 /** Seconds since 1970 → epoch ms, or null for a time no schedule has. */
 const instant = (v: unknown): number | null => {
   const seconds = count(v)

@@ -1,6 +1,7 @@
 /**
  * What this browser keeps in localStorage (piece 5a §4.2): the device it's connected with, the key a join is trying,
- * and the last summary, so a return visit shows it at once. Only the device key ever reaches Crewlu Cloud.
+ * and the last summary, so a return visit shows it at once. None of it is the pilot's sign-in: the keys go to the
+ * partner door, and so does the summary's updated_at, as the next poll's p_since.
  */
 export const DEVICE_KEY = 'crewluve.device.v1'
 export const PENDING_KEY = 'crewluve.pendingKey.v1'
@@ -37,7 +38,10 @@ export interface PartnerStore {
   forgetPendingKey(): void
   summary(): StoredSummary | null
   saveSummary(summary: StoredSummary): void
-  /** Disconnected, or sharing ended: the device, the pending key and the summary all go. */
+  /**
+   * Disconnected, or sharing ended: the device and the summary go. A pending key stays, as in Crewluve, so a join
+   * whose answer was lost gets the same device when it's tried again (piece 5a §4.3).
+   */
   forget(): void
 }
 
@@ -79,7 +83,8 @@ export function localPartnerStore(storage: KeyValueStore | null = pageStorage())
     try {
       storage?.removeItem(name)
     } catch {
-      // Nothing more can be done; a key left behind only means the next join tries it first.
+      // Nothing more can be done. A device or summary left behind is cleared again by the next sharing_ended, and a
+      // pending key left behind is what the next join tries first.
     }
   }
   return {
@@ -87,12 +92,12 @@ export function localPartnerStore(storage: KeyValueStore | null = pageStorage())
       const d = read(DEVICE_KEY) as Partial<Device> | null
       return d && typeof d.key === 'string' && KEY_SHAPE.test(d.key) && typeof d.partnerId === 'string' ? { key: d.key, partnerId: d.partnerId } : null
     },
-    saveDevice: (device) => write(DEVICE_KEY, device),
+    saveDevice: (device) => KEY_SHAPE.test(device.key) && write(DEVICE_KEY, device),
     pendingKey() {
       const key = read(PENDING_KEY)
       return typeof key === 'string' && KEY_SHAPE.test(key) ? key : null
     },
-    savePendingKey: (key) => write(PENDING_KEY, key),
+    savePendingKey: (key) => KEY_SHAPE.test(key) && write(PENDING_KEY, key),
     forgetPendingKey: () => remove(PENDING_KEY),
     summary() {
       const s = read(SUMMARY_KEY) as Partial<StoredSummary> | null
@@ -101,11 +106,11 @@ export function localPartnerStore(storage: KeyValueStore | null = pageStorage())
       return { partnerId: s.partnerId, updatedAt: s.updatedAt, status: s.status ?? null, checkedAt: s.checkedAt }
     },
     saveSummary: (summary) => {
-      write(SUMMARY_KEY, summary)
+      // One that can't be saved mustn't leave the last one, which may be another pilot's, to show on the next visit.
+      if (!write(SUMMARY_KEY, summary)) remove(SUMMARY_KEY)
     },
     forget() {
       remove(DEVICE_KEY)
-      remove(PENDING_KEY)
       remove(SUMMARY_KEY)
     },
   }
