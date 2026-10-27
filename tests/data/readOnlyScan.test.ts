@@ -1,33 +1,69 @@
 import { describe, expect, it } from 'vitest'
-import { fromCallers, importersOf, staticClosure, touchesClient, violations } from '../fixtures/sourceScan'
+import { importersOf, violations } from '../fixtures/sourceScan'
 
-// The ways around a network guard that a code review found. Each must be flagged by the source rules; the partner door
-// guard refuses anything else at the network (tests/partner/doorGuard.test.ts).
+// Ways around the partner door that code reviews found. Each must be flagged by a source rule; whatever the rules can't
+// see, the door guard refuses at the network (tests/partner/doorGuard.test.ts).
 const BYPASSES: Array<[string, string, string, RegExp]> = [
-  ['updateUser rewrites the pilot account', 'src/ui/Rename.ts', `export const rename = (c: any) => c.auth.updateUser({ data: { first_name: 'X' } })`, /\.updateUser/],
-  ['functions.invoke calls an edge function', 'src/ui/Poke.ts', `export const poke = (c: any) => c.functions.invoke('anything')`, /\.functions/],
+  // A Supabase client: the site has none.
+  ['a createClient from supabase-js', 'src/data/Client.ts', `import { createClient } from '@supabase/supabase-js'\nexport const db = createClient('https://example.supabase.co', 'key')`, /imports @supabase\/supabase-js/],
+  ['a client package other than supabase-js', 'src/data/Client.ts', `import { PostgrestClient } from '@supabase/postgrest-js'\nexport const p = PostgrestClient`, /imports @supabase\/postgrest-js/],
+
+  // A Crewlu Cloud address anywhere but src/cloud.ts, the door and its guard: a plain GET passes the network rules, so
+  // this rule is what stops a table read, or a device key put in an address.
   [
-    'an aliased client',
-    'src/ui/Wipe.ts',
-    `import { supabase } from '../supabase'\nconst db = supabase\nexport const wipe = () => db.from('trips').delete().eq('id', 'x')`,
-    /\.delete/,
+    'a table read through the project address, with the publishable key',
+    'src/ui/Flights.ts',
+    `import { SUPABASE_PUBLISHABLE_KEY as KEY, SUPABASE_URL } from '../cloud'\nexport const flights = () => fetch(SUPABASE_URL + '/rest/v1/flights?select=*', { headers: { apikey: KEY } })`,
+    /names a Crewlu Cloud address/,
   ],
   [
-    'bracket access',
-    'src/ui/Wipe.ts',
-    `import { supabase } from '../supabase'\nexport const add = () => supabase['from']('trips')['insert']({ id: 'x' })`,
-    /\.insert/,
+    'a read that puts a device key in the address',
+    'src/ui/Peek.ts',
+    'export const peek = (k: string) => fetch(`https://example.supabase.co/rest/v1/rpc/partner_view?p_key=${k}`)',
+    /names a Crewlu Cloud address/,
   ],
-  ['`from (` with a space', 'src/ui/Add.ts', `export const add = (c: any) => c.from ('trips').upsert({ id: 'x' })`, /\.upsert/],
-  ['rpc','src/ui/Call.ts', `export const call = (c: any) => c.rpc('delete_everything')`, /\.rpc/],
-  ['storage', 'src/ui/Upload.ts', `export const up = (c: any) => c.storage.from('b').upload('a', new Blob())`, /\.storage/],
+  ['the project host in a string', 'src/ui/Host.ts', `export const host = 'https://example.supabase.co'`, /names a Crewlu Cloud address/],
+  ['an address in a template with no holes', 'src/ui/Url.ts', 'export const url = `https://example.supabase.co/rest/v1/trips`', /names a Crewlu Cloud address/],
+  ['an address cut in the middle by a template hole', 'src/ui/Url.ts', 'export const url = (base: string, table: string) => `${base}/rest/v1/${table}`', /names a Crewlu Cloud address/],
+  ['an address at the end of a template', 'src/ui/Url.ts', 'export const url = (base: string) => `${base}/rest/v1`', /names a Crewlu Cloud address/],
   [
-    'a second createClient',
-    'src/data/Second.ts',
-    `import { createClient } from '@supabase/supabase-js'\nexport const other = createClient('https://x.supabase.co', 'key')`,
-    /imports @supabase\/supabase-js/,
+    'a PUT to sign-in that rewrites the pilot account',
+    'src/ui/Rename.ts',
+    `import { SUPABASE_URL } from '../cloud'\nexport const rename = (token: string) => fetch(SUPABASE_URL + '/auth/v1/user', { method: 'PUT', headers: { authorization: token }, body: '{}' })`,
+    /names a Crewlu Cloud address/,
   ],
-  ['a client package other than supabase-js', 'src/data/Second.ts', `import { PostgrestClient } from '@supabase/postgrest-js'\nexport const p = PostgrestClient`, /imports @supabase\/postgrest-js/],
+  [
+    'a call to an edge function',
+    'src/ui/Poke.ts',
+    `import { SUPABASE_URL } from '../cloud'\nexport const poke = () => fetch(SUPABASE_URL + '/functions/v1/anything', { method: 'POST' })`,
+    /names a Crewlu Cloud address/,
+  ],
+  [
+    'an upload to storage',
+    'src/ui/Upload.ts',
+    `import { SUPABASE_URL } from '../cloud'\nexport const up = (body: Blob) => fetch(SUPABASE_URL + '/storage/v1/object/b/a', { method: 'POST', body })`,
+    /names a Crewlu Cloud address/,
+  ],
+  [
+    'a realtime address',
+    'src/ui/Live.ts',
+    `import { SUPABASE_URL } from '../cloud'\nexport const live = SUPABASE_URL.replace('https', 'wss') + '/realtime/v1/websocket'`,
+    /names a Crewlu Cloud address/,
+  ],
+  [
+    'a call to an RPC the door does not make',
+    'src/ui/Call.ts',
+    `import { SUPABASE_URL } from '../cloud'\nexport const call = () => fetch(SUPABASE_URL + '/rest/v1/rpc/delete_everything', { method: 'POST', body: '{}' })`,
+    /names a Crewlu Cloud address/,
+  ],
+  [
+    'the door address in a partner module that is not the door',
+    'src/partner/join.ts',
+    'export const rpc = (base: string, name: string) => `${base}/rest/v1/rpc/${name}`',
+    /names a Crewlu Cloud address/,
+  ],
+
+  // A request the door guard would refuse, sent some other way.
   ['a raw PATCH fetch', 'src/data/Raw.ts', `export const patch = (url: string) => fetch(url, { method: 'PATCH', body: '{}' })`, /fetch with method PATCH and with a body/],
   ['a POST to the partner door from any other file', 'src/partner/join.ts', `export const go = (url: string) => fetch(url, { method: 'POST', body: '{}' })`, /fetch with method POST and with a body/],
   ['a raw fetch through window', 'src/data/Raw.ts', `export const del = (url: string) => window.fetch(url, { method: 'DELETE' })`, /fetch with method DELETE/],
@@ -41,56 +77,70 @@ const BYPASSES: Array<[string, string, string, RegExp]> = [
   ['XMLHttpRequest', 'src/data/Raw.ts', `export const x = () => new XMLHttpRequest()`, /XMLHttpRequest/],
   ['sendBeacon', 'src/data/Raw.ts', `export const b = (url: string) => navigator.sendBeacon(url, 'x')`, /sendBeacon/],
   ['a WebSocket', 'src/data/Raw.ts', `export const s = (url: string) => new WebSocket(url)`, /WebSocket/],
+
+  // Code the import graph can't follow, or that loads from outside the site.
   ['an import from a CDN', 'src/data/Cdn.ts', `export const load = () => import('https://esm.sh/@supabase/supabase-js')`, /imports https:/],
   ['an import named by an expression', 'src/data/Computed.ts', `const name = './supabase'\nexport const load = () => import(name)`, /computed name/],
   ['a require named by an expression', 'src/data/Computed.ts', `declare const require: (n: string) => unknown\nexport const load = (n: string) => require(n)`, /computed name/],
   ['import.meta.glob', 'src/data/Glob.ts', `export const all = import.meta.glob('./*.ts')`, /computed name/],
-  ['injected HTML', 'src/ui/Html.ts', `export const html = (el: HTMLElement) => { el.innerHTML = '<b>x</b>' }`, /injects HTML/],
 ]
 
-describe('the source rules catch the ways around the first guard', () => {
+describe('the source rules catch the ways around the partner door', () => {
   it.each(BYPASSES)('%s', (_name, path, code, expected) => {
     expect(violations(path, code).join('\n')).toMatch(expected)
   })
 })
 
+// Every place text can become markup, which Preact would have escaped: used as a member of anything, as a key in an
+// object literal, as an attribute in JSX, and the two document.write calls.
+const HTML_SINKS: Array<[string, string, string]> = [
+  ['innerHTML assigned', 'src/ui/Html.ts', `export const html = (el: HTMLElement) => { el.innerHTML = '<b>x</b>' }`],
+  ['outerHTML assigned', 'src/ui/Html.ts', `export const html = (el: HTMLElement) => { el.outerHTML = '<b>x</b>' }`],
+  ['insertAdjacentHTML called', 'src/ui/Html.ts', `export const html = (el: HTMLElement) => el.insertAdjacentHTML('beforeend', '<b>x</b>')`],
+  ['innerHTML named by a bracket', 'src/ui/Html.ts', `export const html = (el: HTMLElement) => { el['innerHTML'] = '<b>x</b>' }`],
+  ['innerHTML only read', 'src/ui/Html.ts', `export const copy = (a: HTMLElement) => a.innerHTML`],
+  ['innerHTML destructured from an element', 'src/ui/Html.ts', `export const copy = (a: HTMLElement) => { const { innerHTML } = a; return innerHTML }`],
+  ['innerHTML as a key handed to Object.assign', 'src/ui/Html.ts', `export const html = (el: HTMLElement, h: string) => Object.assign(el, { innerHTML: h })`],
+  ['innerHTML as a shorthand key', 'src/ui/Html.ts', `export const html = (el: HTMLElement, innerHTML: string) => Object.assign(el, { innerHTML })`],
+  ['dangerouslySetInnerHTML as a key handed to h()', 'src/ui/Html.ts', `export const html = (h: Function, s: string) => h('div', { dangerouslySetInnerHTML: { __html: s } })`],
+  ['dangerouslySetInnerHTML in JSX', 'src/ui/Raw.tsx', `export const Raw = (p: { html: string }) => <div dangerouslySetInnerHTML={{ __html: p.html }} />`],
+  ['innerHTML in JSX', 'src/ui/Raw.tsx', `export const Raw = (p: { html: string }) => <div innerHTML={p.html} />`],
+  ['document.write', 'src/ui/Doc.ts', `export const html = (s: string) => document.write(s)`],
+  ['document.writeln', 'src/ui/Doc.ts', `export const html = (s: string) => document.writeln(s)`],
+  ['document.write through window', 'src/ui/Doc.ts', `export const html = (s: string) => window.document.write(s)`],
+  ['document.write named by a bracket', 'src/ui/Doc.ts', `export const html = (s: string) => document['write'](s)`],
+]
+
+describe('the source rules catch every way text becomes markup', () => {
+  it.each(HTML_SINKS)('%s', (_name, path, code) => {
+    expect(violations(path, code).join('\n')).toMatch(/injects HTML/)
+  })
+})
+
 describe('the source rules leave ordinary code alone', () => {
   it.each([
-    ['a Set and a Map in a file that never touches the client', 'src/ui/Selection.ts', `const s = new Set<number>()\ns.delete(1)\nconst m = new Map<string, number>()\nm.delete('a')\nexport const all = Array.from(s)`],
-    ['Array.from next to delete(), which is not the database', 'src/ui/Selection.ts', `export const f = (s: Set<number>) => { const a = Array.from(s); s.delete(a[0]); return a }`],
-    ['a field named from, as on a leg, next to delete()', 'src/engine/Leg.ts', `export const drop = (seen: Map<string, number>, leg: { from: string }) => seen.delete(leg.from)`],
-    ['a leg destructured into from and to', 'src/engine/Leg.ts', `export const ends = (leg: { from: string; to: string }) => { const { from, to } = leg; return [from, to] }`],
     ['the airport list fetch', 'src/data/Airports.ts', `export const load = (url: string) => fetch(url)`],
     ['a fetch with options that only read', 'src/data/Airports.ts', `export const load = (url: string, signal: AbortSignal) => fetch(url, { signal, cache: 'force-cache', method: 'GET' })`],
-    ['mentions in comments and strings', 'src/data/Notes.ts', `// never call .update( or .insert( or client.from('trips').delete()\nexport const note = "fetch(url, { method: 'PATCH' }) is not allowed"`],
+    ['the weather address, Open-Meteo, whose path also has a /v1', 'src/data/Weather.ts', 'export const url = (q: string) => `https://api.open-meteo.com/v1/forecast?${q}`'],
+    ['mentions of network calls in comments and strings', 'src/data/Notes.ts', `// never call fetch(url, { method: 'PATCH' }), new XMLHttpRequest() or navigator.sendBeacon(url)\nexport const note = "fetch(url, { method: 'PATCH' }) is not allowed"`],
+    ['mentions of a Crewlu Cloud address in a comment', 'src/ui/Notes.ts', `// the door calls https://example.supabase.co/rest/v1/rpc/partner_view\nexport const note = 1`],
+    ['the project address, in the module that holds it', 'src/cloud.ts', `export const SUPABASE_URL = 'https://example.supabase.co'`],
+    ['the partner door building a partner RPC address, and fetching it', 'src/partner/door.ts', 'export const go = (base: string, name: string, init: RequestInit) => fetch(`${base}/rest/v1/rpc/${name}`, init)'],
+    ['the door guard naming the RPC path', 'src/partner/doorGuard.ts', `export const RPC_PATH = '/rest/v1/rpc/'`],
+    ['a comment that mentions innerHTML and the other sinks', 'src/ui/Notes.ts', `// never assign el.innerHTML or el.outerHTML, or call insertAdjacentHTML or document.write\n/* dangerouslySetInnerHTML */\nexport const note = 1`],
+    ['a string that mentions innerHTML and the other sinks', 'src/ui/Notes.ts', `export const note = "innerHTML, outerHTML, insertAdjacentHTML and document.write('x') are not allowed"`],
+    ['a template of text that mentions innerHTML', 'src/ui/Notes.ts', 'export const note = (n: number) => `${n} uses of el.innerHTML`'],
+    ['text in JSX that mentions innerHTML', 'src/ui/Notes.tsx', `export const Note = () => <p>never use innerHTML</p>`],
+    ['text set as text, not as markup', 'src/ui/Text.ts', `export const set = (el: HTMLElement, s: string) => { el.textContent = s }`],
+    ['write on something that is not the document', 'src/ui/Log.ts', `export const log = (out: { write(s: string): void }) => out.write('x')`],
     ['the partner door module, which sends its POSTs through the door guard', 'src/partner/door.ts', `export const go = (url: string, init: RequestInit) => fetch(url, init)`],
   ])('%s', (_name, path, code) => {
     expect(violations(path, code)).toEqual([])
   })
-
-  it('treats a Set.delete in a file that queries a table as a write, so keep them apart', () => {
-    const code = `export const f = (c: any, s: Set<number>) => { s.delete(1); return c.from('trips') }`
-    expect(violations('src/ui/Mixed.ts', code).join('\n')).toMatch(/\.delete/)
-  })
-})
-
-describe('touchesClient', () => {
-  it('is true for a file that imports a Supabase package or queries with .from(', () => {
-    expect(touchesClient('src/data/x.ts', `import { createClient } from '@supabase/supabase-js'`)).toBe(true)
-    expect(touchesClient('src/data/x.ts', `export const f = () => import('@supabase/supabase-js')`)).toBe(true)
-    expect(touchesClient('src/data/x.ts', `export const q = (c: any) => c.from('trips')`)).toBe(true)
-    expect(touchesClient('src/data/x.ts', `export const q = (c: any) => c['from']('trips')`)).toBe(true)
-  })
-
-  it('is false for built-ins named from, for a data field named from, and for files that touch neither', () => {
-    expect(touchesClient('src/data/x.ts', `export const a = Array.from([1])`)).toBe(false)
-    expect(touchesClient('src/data/x.ts', `export const b = Uint8Array.from([1])`)).toBe(false)
-    expect(touchesClient('src/engine/x.ts', `export const origin = (leg: { from: string }) => leg.from`)).toBe(false)
-    expect(touchesClient('src/data/x.ts', `export const c = 1`)).toBe(false)
-  })
 })
 
 describe('the import graph', () => {
+  // Made-up sources: importersOf works on any module, so these names are only examples.
   const sources = {
     'src/supabase.ts': '',
     'src/main.tsx': `import { Root } from './ui/Root'`,
@@ -111,18 +161,5 @@ describe('the import graph', () => {
     expect(byPath['src/data/require.ts']).toMatchObject({ kind: 'require' })
     expect(byPath['src/data/types.ts']).toMatchObject({ kind: 'static', typeOnly: true })
     expect(byPath['src/data/typeofImport.ts']).toMatchObject({ kind: 'dynamic', typeOnly: true })
-  })
-
-  it('follows only the imports the browser runs at startup', () => {
-    expect([...staticClosure('src/main.tsx', sources)].sort()).toEqual(['src/auth/session.ts', 'src/main.tsx', 'src/ui/Root.tsx'])
-  })
-
-  it('reaches the client once any file on the startup path imports it statically', () => {
-    const wired = { ...sources, 'src/ui/Root.tsx': `import { supabase } from '../supabase'\nexport const Root = supabase` }
-    expect(staticClosure('src/main.tsx', wired)).toContain('src/supabase.ts')
-  })
-
-  it('finds the files that query with .from(', () => {
-    expect(fromCallers({ 'src/a.ts': `export const q = (c: any) => c.from('x')`, 'src/b.ts': `export const r = Array.from([1])`, 'src/c.ts': `export const s = (c: any) => c ['from'] ('x')` })).toEqual(['src/a.ts', 'src/c.ts'])
   })
 })

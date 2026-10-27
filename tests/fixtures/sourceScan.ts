@@ -2,9 +2,19 @@
 // four partner RPCs.
 //
 // The guarantee itself is src/partner/doorGuard.ts: every request src/partner/door.ts sends passes through it. These
-// checks keep it from being bypassed (a Supabase client, a raw POST from another file) and catch a write call before it
-// ships. They parse with the TypeScript compiler instead of matching text, so comments, strings, line breaks, bracket
-// access (`client['from']`) and spacing (`client.from (`) can neither hide a call nor fake one.
+// checks keep code from going around the door. In every file under src/ they flag:
+//   - an import of a Supabase package, from a URL, or by a computed name;
+//   - a string that names a Crewlu Cloud address, anywhere but src/cloud.ts, the door and its guard;
+//   - a fetch with a body or a method other than GET and HEAD, and Request, XMLHttpRequest, WebSocket, EventSource,
+//     importScripts and sendBeacon (the door module may fetch; tests/data/readOnly.test.ts pins what it sends);
+//   - the members and attributes that turn text into markup (innerHTML and the like), and document.write.
+// They parse with the TypeScript compiler instead of matching text, so a comment or a string can't fake a call, and line
+// breaks, bracket access (`el['innerHTML']`) and spacing can't hide one.
+//
+// What they cannot see: an aliased fetch (`const f = fetch`), `fetch.call` or `Reflect.apply`, a computed member name
+// (`el[name]`), an address built from pieces, and a third-party HTTP client. The browser is the backstop for those: the
+// CSP's connect-src (vite.config.ts) lists the four partner RPC addresses, so the browser itself refuses any other
+// request to Crewlu Cloud.
 import { existsSync, readdirSync, statSync } from 'node:fs'
 import { join, posix, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -14,6 +24,10 @@ export const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 export const SRC = join(ROOT, 'src')
 /** The one module that sends the partner door's POSTs, each through the door guard (piece 5a §9). */
 export const DOOR_MODULE = 'src/partner/door.ts'
+const CLOUD_MODULE = 'src/cloud.ts'
+const GUARD_MODULE = 'src/partner/doorGuard.ts'
+/** The modules that may name a Crewlu Cloud address: the project's own address, the door that calls it and the guard that judges every call. */
+const CLOUD_ADDRESS_MODULES: ReadonlySet<string> = new Set([CLOUD_MODULE, DOOR_MODULE, GUARD_MODULE])
 
 /** Every .ts and .tsx file under src/, as absolute paths. */
 export function sourceFiles(dir: string = SRC): string[] {
@@ -24,7 +38,7 @@ export function sourceFiles(dir: string = SRC): string[] {
   })
 }
 
-/** A project-relative path with forward slashes: src/auth/session.ts. */
+/** A project-relative path with forward slashes: src/partner/door.ts. */
 export function rel(absolute: string): string {
   return relative(ROOT, absolute).split(sep).join('/')
 }
@@ -98,30 +112,13 @@ export function importersOf(target: string, sources: Record<string, string>): Ar
   )
 }
 
-/** The modules the browser loads before any user action: static imports reachable from `entry`, type-only ones ignored. */
-export function staticClosure(entry: string, sources: Record<string, string>): Set<string> {
-  const exists = (p: string) => p in sources
-  const seen = new Set<string>()
-  const pending = [entry]
-  for (let path = pending.pop(); path !== undefined; path = pending.pop()) {
-    if (seen.has(path) || !(path in sources)) continue
-    seen.add(path)
-    for (const ref of importsOf(parse(sources[path], path))) {
-      if (ref.kind !== 'static' || ref.typeOnly || ref.specifier === null) continue
-      const next = resolveImport(path, ref.specifier, exists)
-      if (next) pending.push(next)
-    }
-  }
-  return seen
-}
-
 // ---------- member references ----------
 
 interface MemberRef {
   name: string
-  /** The name just before the dot: `Array` in `Array.from`, `client` in `client.from`. */
+  /** The name just before the dot: `document` in `document.write`, `window.document.write` and `document['write']`. */
   receiver: string | null
-  /** The member is called (`a.name(...)`), not just read (`a.name`): a leg's `leg.from` is data, `client.from('x')` is a query. */
+  /** The member is called (`a.name(...)`), not just read (`a.name`). */
   isCall: boolean
   line: number
 }
@@ -151,49 +148,36 @@ function memberRefs(sf: ts.SourceFile): MemberRef[] {
   return refs
 }
 
-/** Built-ins with a static `from`, which are not the CrewLu Cloud client. */
-const BUILTIN_RECEIVERS = new Set([
-  'Array', 'Buffer', 'Int8Array', 'Uint8Array', 'Uint8ClampedArray', 'Int16Array', 'Uint16Array',
-  'Int32Array', 'Uint32Array', 'Float32Array', 'Float64Array', 'BigInt64Array', 'BigUint64Array',
-])
-/** A query: `x.from(...)` or `x['from'](...)`. Reading a `leg.from` field is not one. */
-const isClientFrom = (r: MemberRef) => r.isCall && r.name === 'from' && !(r.receiver && BUILTIN_RECEIVERS.has(r.receiver))
-
-/** Names that only a Supabase client has. Any use of one is refused anywhere in src/. */
-const CLIENT_ONLY = new Set([
-  'rpc', 'updateUser', 'invoke', 'signUp', 'resetPasswordForEmail', 'signInWithOtp', 'linkIdentity', 'unlinkIdentity',
-  'reauthenticate', 'storage', 'functions', 'admin',
-])
-/** Methods a Set, Map or URLSearchParams has too, so calling them is refused only in files that work with the client. */
-const GENERIC_WRITES = new Set(['insert', 'update', 'upsert', 'delete'])
-
 // ---------- per-file facts ----------
 
 interface Facts {
   sf: ts.SourceFile
   imports: ImportRef[]
   refs: MemberRef[]
-  /** The file imports a Supabase package or calls `.from(`: it would work with a Crewlu Cloud client. */
-  touchesClient: boolean
 }
 
 function factsOf(path: string, code: string): Facts {
   const sf = parse(code, path)
-  const imports = importsOf(sf)
-  const refs = memberRefs(sf)
-  const importsClient = imports.some((i) => i.specifier?.startsWith('@supabase/') === true)
-  return { sf, imports, refs, touchesClient: importsClient || refs.some(isClientFrom) }
+  return { sf, imports: importsOf(sf), refs: memberRefs(sf) }
 }
 
-/** Files whose code reads `.from` on something that isn't a built-in: the ones that query the database. */
-export function fromCallers(sources: Record<string, string>): string[] {
-  return Object.entries(sources)
-    .filter(([path, code]) => memberRefs(parse(code, path)).some(isClientFrom))
-    .map(([path]) => path)
-}
+// ---------- Crewlu Cloud addresses ----------
 
-export function touchesClient(path: string, code: string): boolean {
-  return factsOf(path, code).touchesClient
+/** The project's host, or a path only Crewlu Cloud serves: its tables (/rest/v1/), sign-in, functions, storage and realtime. */
+const CLOUD_ADDRESS = /supabase\.co|\/(rest|auth|functions|storage|realtime)\/v1\b/
+
+/** Every string in the file that names a Crewlu Cloud address, unless the file is one of the three that may. */
+function cloudAddressProblems(path: string, { sf }: Facts): string[] {
+  if (CLOUD_ADDRESS_MODULES.has(path)) return []
+  const found: string[] = []
+  walk(sf, (n) => {
+    // A template's text comes in pieces around its ${} holes: a head, any number of middles, and a tail.
+    const text = ts.isStringLiteralLike(n) || ts.isTemplateHead(n) || ts.isTemplateMiddle(n) || ts.isTemplateTail(n) ? n.text : null
+    if (text !== null && CLOUD_ADDRESS.test(text)) {
+      found.push(`${path}:${lineOf(sf, n)} names a Crewlu Cloud address; only ${CLOUD_MODULE}, ${DOOR_MODULE} and ${GUARD_MODULE} may`)
+    }
+  })
+  return found
 }
 
 // ---------- raw network access ----------
@@ -259,14 +243,34 @@ function networkProblems(path: string, { sf, refs }: Facts): string[] {
   return found
 }
 
+// ---------- HTML injection ----------
+
+/** Members and attributes that turn text into markup, which Preact would have escaped. */
+const HTML_SINKS = new Set(['innerHTML', 'outerHTML', 'insertAdjacentHTML', 'dangerouslySetInnerHTML'])
+const DOCUMENT_WRITES = new Set(['write', 'writeln'])
+
+/** A use of a sink as a member of anything, as a key in an object literal or an attribute in JSX, and a call to document.write. */
+function htmlProblems(path: string, { sf, refs }: Facts): string[] {
+  const found: string[] = []
+  const flag = (what: string, line: number) => found.push(`${path}:${line} injects HTML with ${what}; Preact escapes text, keep it that way`)
+  for (const r of refs) {
+    if (HTML_SINKS.has(r.name)) flag(r.name, r.line)
+    else if (r.isCall && DOCUMENT_WRITES.has(r.name) && r.receiver === 'document') flag(`document.${r.name}`, r.line)
+  }
+  walk(sf, (n) => {
+    // `Object.assign(el, { innerHTML: html })` and `<div innerHTML={html} />` set the same member as `el.innerHTML = html`.
+    const key = ts.isPropertyAssignment(n) || ts.isShorthandPropertyAssignment(n) || ts.isJsxAttribute(n) ? n.name : null
+    if (key && (ts.isIdentifier(key) || ts.isStringLiteralLike(key)) && HTML_SINKS.has(key.text)) flag(key.text, lineOf(sf, n))
+  })
+  return found
+}
+
 // ---------- the per-file rules ----------
 
-/** Everything wrong with one source file under the read-only rules; an empty list means it passes. */
+/** Everything wrong with one source file under the source rules; an empty list means it passes. */
 export function violations(path: string, code: string): string[] {
   const facts = factsOf(path, code)
   const found: string[] = []
-
-  if (/innerHTML|dangerouslySetInnerHTML/.test(code)) found.push(`${path} injects HTML (innerHTML or dangerouslySetInnerHTML); Preact escapes text, keep it that way`)
 
   for (const ref of facts.imports) {
     if (ref.specifier === null) {
@@ -278,13 +282,5 @@ export function violations(path: string, code: string): string[] {
     }
   }
 
-  for (const r of facts.refs) {
-    if (CLIENT_ONLY.has(r.name)) {
-      found.push(`${path}:${r.line} uses .${r.name}, which only a Supabase client has; the site reaches Crewlu Cloud only through the partner door`)
-    } else if (facts.touchesClient && r.isCall && GENERIC_WRITES.has(r.name)) {
-      found.push(`${path}:${r.line} calls .${r.name} in a file that queries tables; the site never writes`)
-    }
-  }
-
-  return [...found, ...networkProblems(path, facts)]
+  return [...found, ...cloudAddressProblems(path, facts), ...networkProblems(path, facts), ...htmlProblems(path, facts)]
 }
