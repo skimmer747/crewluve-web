@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import type { PartnerLink } from '../../src/partner/link'
-import { connectedNote, COULDNT_CONNECT, joinMessage, NOT_AN_INVITE_LINK, type JoinMessage } from '../../src/partner/messages'
+import {
+  connectedNote,
+  COULDNT_CONNECT,
+  joinMessage,
+  NO_LINK_YET,
+  NOT_AN_INVITE_LINK,
+  PASSWORD_SIGN_IN_ENDED,
+  type JoinMessage,
+} from '../../src/partner/messages'
 
 const INVITE: PartnerLink = { kind: 'invite', invite: 'abc' }
 const CODE: PartnerLink = { kind: 'code', code: 'AB2C3D' }
@@ -40,6 +48,16 @@ describe("joinMessage: Crewluve's words (piece 5a §4.4)", () => {
   it('has the words for text with no link, and for no answer', () => {
     expect(NOT_AN_INVITE_LINK).toEqual({ title: 'Not an Invite Link', text: "That doesn't look like an invite link." })
     expect(COULDNT_CONNECT).toEqual({ title: "Couldn't Connect", text: "Couldn't connect. Check your connection and try again." })
+  })
+})
+
+describe("the welcome screen's two lines that send people to their pilot (piece 5a §8)", () => {
+  // A CrewLu older than 3.1.0 can't make invite links, so both name the update.
+  it('asks the pilot to update CrewLu before inviting', () => {
+    expect(NO_LINK_YET).toBe('No link yet? Ask your pilot to update CrewLu, then invite you from Settings → Partner Sharing.')
+    expect(PASSWORD_SIGN_IN_ENDED).toBe(
+      "Signing in with your pilot's password has ended. Ask your pilot to update CrewLu and send you your own invite link.",
+    )
   })
 })
 

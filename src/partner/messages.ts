@@ -34,11 +34,15 @@ export function connectedNote(platform: Platform | null): string {
   }
 }
 
-/** The welcome screen's way forward for someone with no link, as Crewluve's welcome gives one (piece 5a §8). */
-export const NO_LINK_YET = 'No link yet? Ask your pilot to invite you from Settings → Partner Sharing in CrewLu.'
+/**
+ * The welcome screen's way forward for someone with no link, as Crewluve's welcome gives one (piece 5a §8). Both
+ * this and the next line name the update: a CrewLu older than 3.1.0 can't make invite links.
+ */
+export const NO_LINK_YET = 'No link yet? Ask your pilot to update CrewLu, then invite you from Settings → Partner Sharing.'
 
 /** The welcome screen's note, on the first visit of a browser that used the password sign-in (piece 5a §8). */
-export const PASSWORD_SIGN_IN_ENDED = "Signing in with your pilot's password has ended. Ask your pilot for your own invite link."
+export const PASSWORD_SIGN_IN_ENDED =
+  "Signing in with your pilot's password has ended. Ask your pilot to update CrewLu and send you your own invite link."
 
 /**
  * The message for the door's refusal of `link` (piece 5a §4.4), or for no usable answer (null). `stillConnectedTo`
