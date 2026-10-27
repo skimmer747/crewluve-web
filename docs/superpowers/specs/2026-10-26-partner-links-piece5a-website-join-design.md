@@ -223,6 +223,7 @@ It replaces the sign-in screen, and shows whenever this browser isn't connected:
 - **Paste Invite Link:** a box for "Paste the invite link your pilot sent you.", with a Connect button.
   - It takes `#t=` and `#c=` links, also inside CrewLu's whole message.
   - A bare code is taken as a code, much as Crewluve's paste box takes one: six characters once spaces and dashes go, in either case. Unlike Crewluve, only the door's alphabet counts: a look-alike such as `K0MQ2X` is refused here, where Crewluve would send it and be told the code didn't work, a failure toward the pause.
+  - A bare invite token, the 32 hex characters after `#t=` that the door always makes, is taken as that invite. Crewluve's paste box doesn't take one; the website is kinder, since someone who copies only the token can mean nothing else.
   - Other text with no link says "Not an Invite Link" without calling the door.
   - Each problem shows as a new alert, so one that repeats is announced again.
 - "or type the code from CrewLuve on another device", with six boxes:
@@ -234,7 +235,7 @@ It replaces the sign-in screen, and shows whenever this browser isn't connected:
     - The next box shows the focus.
   - the letters are upper-cased in the boxes, from the door's alphabet `23456789ABCDEFGHJKMNPQRSTUVWXYZ`;
   - the code is sent on the sixth character;
-  - a whole link pasted into them, an invite link or a code link, connects as the link would, not as its first six letters;
+  - a whole link pasted into them, an invite link or a code link, connects as the link would, not as its first six letters, and so does a bare invite token;
   - other text with `/`, `#` or `=`, the pieces of a link, says "Not an Invite Link" instead of being sent as a code;
   - the boxes clear on a failure: Root shows "Connecting…" between attempts, which starts the screen afresh;
 - **Try Demo:** the existing `?demo=1`;

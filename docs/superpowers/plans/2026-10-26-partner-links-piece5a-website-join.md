@@ -4546,6 +4546,7 @@ Record:
 | 12, `/join` is the app | 177f337 | 970c33d |
 | Docs | 689010a, beabc9b, and the commit that added these notes | |
 | The whole-branch review | | 44901e3, 509b66c, ef90100, 0de163e, 9b6342b, 65f9376 |
+| Task 14, from the user's first check | | e3fd4c2: a bare invite token joins |
 
 **What changed from the plan.** Each change is also in the spec's "Amended again" list.
 - **Joining (6):** a connected key that the pilot freed is demoted at once. An `unchanged` or unreadable first read is Couldn't Connect. Cancel doesn't wait.
@@ -4588,6 +4589,6 @@ Record:
   - Fixtures read their files by path: under happy-dom, Vite rewrites `new URL('./x', import.meta.url)` as a web asset's address.
   - happy-dom reports `navigator.webdriver` as true, so the Root tests stub it false.
 
-**Test count:** 2,467 before Task 10; 2,349 at the end. Task 11 took out the sign-in's 243 tests.
+**Test count:** 2,467 before Task 10; 2,353 at the end. Task 11 took out the sign-in's 243 tests.
 
 **Task 13:** passed at b2d4e71 and again at 9b6342b. 2,346 tests passed, the build was clean, and `join.html` and `404.html` were the same as `index.html`. In the browser pane: the welcome screen, "Not an Invite Link", `/join` and `/join/` going to `/`, and the demo. There were no console errors, and the CSP blocked a table read.
