@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks'
-import { CODE_LENGTH, codeFrom, linkFromText, type PartnerLink } from '../partner/link'
+import { bareCode, CODE_LENGTH, codeFrom, linkFromText, type PartnerLink } from '../partner/link'
 import { NO_LINK_YET, NOT_AN_INVITE_LINK, PASSWORD_SIGN_IN_ENDED, type JoinMessage } from '../partner/messages'
 
 /**
@@ -65,7 +65,8 @@ export function Welcome({ message, ended, passwordEnded = false, onJoin }: Welco
 
   const connect = (event: Event) => {
     event.preventDefault()
-    const link = linkFromText(pasted)
+    // A link, or else a bare code, which Crewluve's paste box takes too.
+    const link = linkFromText(pasted) ?? bareCode(pasted)
     if (link) onJoin(link)
     else showProblem(NOT_AN_INVITE_LINK)
   }

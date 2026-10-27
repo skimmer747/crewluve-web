@@ -26,6 +26,15 @@ export function linkFromText(text: string): PartnerLink | null {
   return found ? linkFromHash(found[1]) : null
 }
 
+/**
+ * Pasted text that is exactly a code, as Crewluve's paste box takes one (PartnerLink(text:)): six characters of the
+ * door's alphabet once spaces and dashes go, in either case. Null for anything else.
+ */
+export function bareCode(text: string): PartnerLink | null {
+  const code = text.replace(/[\s-]/g, '').toUpperCase()
+  return code.length === CODE_LENGTH && [...code].every((c) => CODE_LETTERS.has(c)) ? { kind: 'code', code } : null
+}
+
 /** What the code boxes keep of what was typed or pasted: the code's own letters, in upper case, six at most. */
 export function codeFrom(typed: string): string {
   return [...typed].map((c) => c.toUpperCase()).filter((c) => CODE_LETTERS.has(c)).join('').slice(0, CODE_LENGTH)

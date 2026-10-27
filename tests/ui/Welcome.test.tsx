@@ -65,6 +65,27 @@ describe('Welcome (piece 5a §8)', () => {
     expect(screen.getByRole('alert').textContent).toBe(NOT_AN_INVITE_LINK)
   })
 
+  it.each(['K7M Q2X', 'k7m-q2x', 'K7MQ2X'])('connects with a bare code pasted as "%s", as Crewluve\'s paste box does', (text) => {
+    const onJoin = vi.fn()
+    render(<Welcome message={null} ended={null} onJoin={onJoin} />)
+    fireEvent.input(screen.getByLabelText('Paste Invite Link'), { target: { value: text } })
+    connect()
+    expect(onJoin).toHaveBeenCalledWith({ kind: 'code', code: 'K7MQ2X' })
+  })
+
+  it.each([
+    ['K7MQ2', 'five characters'],
+    ['K7MQ2XA', 'seven'],
+    ['K0MQ2X', 'a zero, which no code has: it looks like an O'],
+  ])('says Not an Invite Link for "%s" (%s), and joins nothing', (text) => {
+    const onJoin = vi.fn()
+    render(<Welcome message={null} ended={null} onJoin={onJoin} />)
+    fireEvent.input(screen.getByLabelText('Paste Invite Link'), { target: { value: text } })
+    connect()
+    expect(onJoin).not.toHaveBeenCalled()
+    expect(screen.getByRole('alert').textContent).toBe(NOT_AN_INVITE_LINK)
+  })
+
   it('shows the alert again on a second bad paste, so a screen reader announces it again', () => {
     render(<Welcome message={null} ended={null} onJoin={() => {}} />)
     const paste = screen.getByLabelText('Paste Invite Link')
