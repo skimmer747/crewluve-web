@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks'
 import { CODE_LENGTH, codeFrom, linkFromText, type PartnerLink } from '../partner/link'
-import { NOT_AN_INVITE_LINK, type JoinMessage } from '../partner/messages'
+import { NO_LINK_YET, NOT_AN_INVITE_LINK, PASSWORD_SIGN_IN_ENDED, type JoinMessage } from '../partner/messages'
 
 /**
  * Root shows `Connecting` between attempts. That remounts this screen, which is what empties the boxes after a failure.
@@ -10,6 +10,8 @@ export interface WelcomeProps {
   message: JoinMessage | null
   /** The pilot whose sharing just ended, as this partner saw them, when that's why this shows (piece 5a §5). */
   ended: string | null
+  /** This browser used the password sign-in until this page loaded: it's told that has ended (piece 5a §8). */
+  passwordEnded?: boolean
   onJoin: (link: PartnerLink) => void
 }
 
@@ -47,7 +49,7 @@ function caretToEnd(e: { currentTarget: HTMLInputElement; type: string }) {
  * The screen of a browser that follows no one (piece 5a §8). The invite link, opened on this device, connects by
  * itself; here the partner can paste it instead, or type the code Crewluve's Use on Another Device shows.
  */
-export function Welcome({ message, ended, onJoin }: WelcomeProps) {
+export function Welcome({ message, ended, passwordEnded = false, onJoin }: WelcomeProps) {
   const [pasted, setPasted] = useState('')
   const [problem, setProblem] = useState<JoinMessage | null>(message)
   // How many problems this screen has shown. It keys the alert, so every problem is a new alert, which a screen reader
@@ -101,7 +103,9 @@ export function Welcome({ message, ended, onJoin }: WelcomeProps) {
       <Heading title="Welcome to CrewLuve" />
       <p class="signin-sub">Stay connected with your pilot</p>
       {ended && <p class="signin-note">Sharing with {ended} has ended.</p>}
+      {passwordEnded && <p class="signin-note">{PASSWORD_SIGN_IN_ENDED}</p>}
       <p class="welcome-step">Open the invite link your pilot sent you, on this device.</p>
+      <p class="signin-note">{NO_LINK_YET}</p>
       {problem && (
         <p key={shown} class="signin-error" role="alert">
           <strong>{problem.title}</strong> {problem.text}

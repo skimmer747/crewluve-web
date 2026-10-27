@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, render, screen } from '@testing-library/preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { NO_LINK_YET, PASSWORD_SIGN_IN_ENDED } from '../../src/partner/messages'
 import { Connecting, Welcome } from '../../src/ui/Welcome'
 import { stubAnimationFrames } from '../fixtures/ui'
 
@@ -272,6 +273,20 @@ describe('Welcome (piece 5a §8)', () => {
   it('says whose sharing ended, when that is why it shows', () => {
     render(<Welcome message={null} ended="Dad" onJoin={() => {}} />)
     expect(screen.getByText('Sharing with Dad has ended.')).toBeTruthy()
+  })
+
+  it('says what to do with no link yet, under the step, as Crewluve does', () => {
+    render(<Welcome message={null} ended={null} onJoin={() => {}} />)
+    const step = screen.getByText('Open the invite link your pilot sent you, on this device.')
+    expect(step.nextElementSibling?.textContent).toBe(NO_LINK_YET)
+  })
+
+  it('tells a browser that used the password sign-in that it has ended, and no other', () => {
+    const { unmount } = render(<Welcome message={null} ended={null} passwordEnded onJoin={() => {}} />)
+    expect(screen.getByText(PASSWORD_SIGN_IN_ENDED)).toBeTruthy()
+    unmount()
+    render(<Welcome message={null} ended={null} onJoin={() => {}} />)
+    expect(screen.queryByText(PASSWORD_SIGN_IN_ENDED)).toBeNull()
   })
 })
 

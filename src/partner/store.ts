@@ -6,8 +6,10 @@
 export const DEVICE_KEY = 'crewluve.device.v1'
 export const PENDING_KEY = 'crewluve.pendingKey.v1'
 export const SUMMARY_KEY = 'crewluve.summary.v1'
+/** The password sign-in's stored session, from before piece 5a. */
+export const OLD_SESSION_KEY = 'crewluve-auth'
 /** The password sign-in's session and schedule cache, from before piece 5a: deleted on load. */
-export const OLD_SIGN_IN_KEYS: readonly string[] = ['crewluve-auth', 'crewluve.schedule.v1']
+export const OLD_SIGN_IN_KEYS: readonly string[] = [OLD_SESSION_KEY, 'crewluve.schedule.v1']
 
 /** The door's rule for a device key (partner-api.md, "The device key"). */
 const KEY_SHAPE = /^[0-9a-f]{64}$/
@@ -113,6 +115,18 @@ export function localPartnerStore(storage: KeyValueStore | null = pageStorage())
       remove(DEVICE_KEY)
       remove(SUMMARY_KEY)
     },
+  }
+}
+
+/**
+ * Whether this browser still holds the password sign-in's session: it signed in with the pilot's password before piece
+ * 5a (§8). The schedule cache alone doesn't count. Only a read, so it can be asked before clearOldSignIn deletes it.
+ */
+export function hadPasswordSignIn(storage: KeyValueStore | null = pageStorage()): boolean {
+  try {
+    return storage?.getItem(OLD_SESSION_KEY) != null
+  } catch {
+    return false
   }
 }
 

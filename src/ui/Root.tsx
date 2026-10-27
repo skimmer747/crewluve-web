@@ -6,9 +6,9 @@ import { liveDoor, type PartnerDoor } from '../partner/door'
 import { joinWithLink, type JoinOutcome } from '../partner/join'
 import { browserLabel } from '../partner/label'
 import { linkFromHash, type PartnerLink } from '../partner/link'
-import { CONNECTED_NOTE, COULDNT_CONNECT, type JoinMessage } from '../partner/messages'
+import { CONNECTED_NOTE, COULDNT_CONNECT, PASSWORD_SIGN_IN_ENDED, type JoinMessage } from '../partner/messages'
 import { NotConnected, refreshSummary, SharingEnded } from '../partner/refresh'
-import { clearOldSignIn, localPartnerStore, newKey, type PartnerStore, type StoredSummary } from '../partner/store'
+import { clearOldSignIn, hadPasswordSignIn, localPartnerStore, newKey, type PartnerStore, type StoredSummary } from '../partner/store'
 import { currentQuickStatus, nameIn, type PartnerSummary } from '../partner/summary'
 import { useAirports } from './hooks/useAirports'
 import { useSchedule } from './hooks/useSchedule'
@@ -115,13 +115,16 @@ function after(outcome: JoinOutcome, store: PartnerStore, followedName: string |
   }
 }
 
-/** What the live region says in each phase: the words that change, as they change. */
-function spokenIn(phase: Phase): string {
+/**
+ * What the live region says in each phase: the words that change, as they change. On the welcome screen, its notes:
+ * that sharing has ended, and that the password sign-in has, when this browser used it.
+ */
+function spokenIn(phase: Phase, passwordEnded: boolean): string {
   switch (phase.kind) {
     case 'joining':
       return 'Connecting…'
     case 'welcome':
-      return phase.ended ? `Sharing with ${phase.ended} has ended.` : ''
+      return [phase.ended && `Sharing with ${phase.ended} has ended.`, passwordEnded && PASSWORD_SIGN_IN_ENDED].filter(Boolean).join(' ')
     case 'connected':
       return phase.notice ?? ''
   }
@@ -130,6 +133,9 @@ function spokenIn(phase: Phase): string {
 /** A browser's own connection: the welcome screen, joining, or its pilot's status (piece 5a §4, §5). */
 function PartnerRoot({ door, given }: { door: PartnerDoor; given?: PartnerStore }) {
   const [store] = useState(() => given ?? localPartnerStore())
+  // Whether this browser used the password sign-in until this load, read before Root's effect deletes its session.
+  // The welcome screen says so during this load only: the next finds nothing.
+  const [passwordEnded] = useState(() => hadPasswordSignIn())
   // The link the address carries at load, read once. It leaves the address either way; an automated browser's isn't
   // joined, so that page shows what it would with no link.
   const [first] = useState(() => {
@@ -192,7 +198,9 @@ function PartnerRoot({ door, given }: { door: PartnerDoor; given?: PartnerStore 
 
   const screen =
     phase.kind === 'joining' ? <Connecting />
-      : phase.kind === 'welcome' ? <Welcome message={phase.message} ended={phase.ended} onJoin={(link) => void join(link)} />
+      : phase.kind === 'welcome' ? (
+        <Welcome message={phase.message} ended={phase.ended} passwordEnded={passwordEnded} onJoin={(link) => void join(link)} />
+      )
         : (
           <PartnerLive
             door={door}
@@ -208,7 +216,7 @@ function PartnerRoot({ door, given }: { door: PartnerDoor; given?: PartnerStore 
   // and nothing is read twice. The welcome screen's alert stays its own, since an alert is read as it appears.
   return (
     <>
-      <p class="sr-only" role="status">{spokenIn(phase)}</p>
+      <p class="sr-only" role="status">{spokenIn(phase, passwordEnded)}</p>
       {screen}
     </>
   )

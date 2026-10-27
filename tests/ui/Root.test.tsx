@@ -2,6 +2,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/preact'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { joinWithLink } from '../../src/partner/join'
+import { PASSWORD_SIGN_IN_ENDED } from '../../src/partner/messages'
 import { localPartnerStore } from '../../src/partner/store'
 import { Root } from '../../src/ui/Root'
 import { example, fakeDoor, key, memoryStorage, PARTNER_A, PARTNER_B } from '../fixtures/partner'
@@ -100,6 +101,26 @@ describe('Root: a browser that follows no one', () => {
     const { f, store } = setUp()
     render(<Root door={f.door} store={store} />)
     expect([localStorage.getItem('crewluve-auth'), localStorage.getItem('crewluve.schedule.v1')]).toEqual([null, null])
+  })
+
+  it('tells a browser that used the password sign-in that it has ended, during that load only', () => {
+    localStorage.setItem('crewluve-auth', '{"access_token":"old"}')
+    const { f, store } = setUp()
+    const { unmount } = render(<Root door={f.door} store={store} />)
+    expect(page().getByText(PASSWORD_SIGN_IN_ENDED)).toBeTruthy()
+    expect(region().textContent).toBe(PASSWORD_SIGN_IN_ENDED)
+    expect(localStorage.getItem('crewluve-auth')).toBeNull()
+    unmount()
+    render(<Root door={f.door} store={store} />) // the next load
+    expect(screen.queryAllByText(PASSWORD_SIGN_IN_ENDED)).toEqual([])
+  })
+
+  it('says nothing about the password to a browser that kept only the old schedule cache', () => {
+    localStorage.setItem('crewluve.schedule.v1', '{}')
+    const { f, store } = setUp()
+    render(<Root door={f.door} store={store} />)
+    expect(screen.queryAllByText(PASSWORD_SIGN_IN_ENDED)).toEqual([])
+    expect(localStorage.getItem('crewluve.schedule.v1')).toBeNull()
   })
 
   it('joins with the invite link in the address, and takes the link out of the address', async () => {

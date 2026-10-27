@@ -12,6 +12,12 @@ export const NOT_AN_INVITE_LINK: JoinMessage = { title: 'Not an Invite Link', te
 /** The line above the status once this browser has connected (piece 5a §4.3, step 7). */
 export const CONNECTED_NOTE = 'Connected on this browser. Add it to your Home Screen to keep it handy.'
 
+/** The welcome screen's way forward for someone with no link, as Crewluve's welcome gives one (piece 5a §8). */
+export const NO_LINK_YET = 'No link yet? Ask your pilot to invite you from Settings → Partner Sharing in CrewLu.'
+
+/** The welcome screen's note, on the first visit of a browser that used the password sign-in (piece 5a §8). */
+export const PASSWORD_SIGN_IN_ENDED = "Signing in with your pilot's password has ended. Ask your pilot for your own invite link."
+
 /**
  * The message for the door's refusal of `link` (piece 5a §4.4), or for no usable answer (null). `stillConnectedTo`
  * is the pilot this browser still follows, as this partner sees them, if it follows one.
