@@ -222,7 +222,7 @@ It replaces the sign-in screen, and shows whenever this browser isn't connected:
 - once, on the first visit of a browser that used the password sign-in: "Signing in with your pilot's password has ended. Ask your pilot for your own invite link.";
 - **Paste Invite Link:** a box for "Paste the invite link your pilot sent you.", with a Connect button.
   - It takes `#t=` and `#c=` links, also inside CrewLu's whole message.
-  - A bare code is taken as a code, as Crewluve's paste box takes one: six characters of the door's alphabet once spaces and dashes go, in either case.
+  - A bare code is taken as a code, much as Crewluve's paste box takes one: six characters once spaces and dashes go, in either case. Unlike Crewluve, only the door's alphabet counts: a look-alike such as `K0MQ2X` is refused here, where Crewluve would send it and be told the code didn't work, a failure toward the pause.
   - Other text with no link says "Not an Invite Link" without calling the door.
   - Each problem shows as a new alert, so one that repeats is announced again.
 - "or type the code from CrewLuve on another device", with six boxes:

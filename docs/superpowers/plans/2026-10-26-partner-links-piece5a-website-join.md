@@ -4390,7 +4390,9 @@ The Mac can't show these: phones handle the hidden code field their own way. A c
 
 On the iPhone, in Safari, at the Network address:
 1. Tap the footer's **Disconnect**, then **OK**. Expected: the welcome screen.
-2. Tap the boxes. Expected: the keyboard opens, and the page doesn't zoom in.
+2. Tap the boxes. Expected:
+   - the keyboard opens, and the page doesn't zoom in;
+   - on a small phone, the page scrolls so the boxes stay in view above the keyboard.
 3. Turn on VoiceOver and touch the boxes. Expected: it says "Code". Turn VoiceOver off.
 4. In Crewluve, open **Use on Another Device**, and copy its code.
 5. Back in Safari, touch and hold the boxes, then tap **Paste**. Expected: **Paste** shows, and it connects as that partner.
@@ -4543,7 +4545,7 @@ Record:
 | 11, the sign-in removed | e428d65 | e7fa4c6, c769cd7, 470b957, cd417b6, 3675e5f, b2d4e71, 1530be1 |
 | 12, `/join` is the app | 177f337 | 970c33d |
 | Docs | 689010a, beabc9b, and the commit that added these notes | |
-| The whole-branch review | | 44901e3, 509b66c, ef90100, 0de163e, 9b6342b |
+| The whole-branch review | | 44901e3, 509b66c, ef90100, 0de163e, 9b6342b, 65f9376 |
 
 **What changed from the plan.** Each change is also in the spec's "Amended again" list.
 - **Joining (6):** a connected key that the pilot freed is demoted at once. An `unchanged` or unreadable first read is Couldn't Connect. Cancel doesn't wait.
@@ -4586,6 +4588,6 @@ Record:
   - Fixtures read their files by path: under happy-dom, Vite rewrites `new URL('./x', import.meta.url)` as a web asset's address.
   - happy-dom reports `navigator.webdriver` as true, so the Root tests stub it false.
 
-**Test count:** 2,467 before Task 10; 2,346 at the end. Task 11 took out the sign-in's 243 tests.
+**Test count:** 2,467 before Task 10; 2,349 at the end. Task 11 took out the sign-in's 243 tests.
 
 **Task 13:** passed at b2d4e71 and again at 9b6342b. 2,346 tests passed, the build was clean, and `join.html` and `404.html` were the same as `index.html`. In the browser pane: the welcome screen, "Not an Invite Link", `/join` and `/join/` going to `/`, and the demo. There were no console errors, and the CSP blocked a table read.
