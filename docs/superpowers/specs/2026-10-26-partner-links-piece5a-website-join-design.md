@@ -21,7 +21,8 @@
   - §6: delay bounds, UPSGND, and three more thin spots;
   - §7: the quick status's place, look and spacing;
   - §8: links pasted into the boxes, the code field on phones, repeated alerts, and contrast;
-  - §9: the frozen list, the time limit and refused redirects.
+  - §9: the frozen list, the time limit, refused redirects, the source rules, and the CSP's four addresses;
+  - §10: the column lists and the client-era rules go.
 - **Part of:** the partner-links design, `docs/superpowers/specs/2026-10-15-partner-links-design.md` (the umbrella): §5.2, §5.5, §6.2, §7.3 and §9 (piece 5).
 - **Contract:**
   - the partner door, `~/Dev/Duty/supabase/partner-api.md`, live since 2026-10-15;
@@ -241,12 +242,20 @@ The small labels, the ended line and the alert are in the primary text color: th
   - `/rest/v1/rpc/partner_leave`.
 
   Everything else to that host is refused, including `/auth/v1/` and table reads. The weather and `airports.json` are unchanged.
-- **One module:** the four calls come from a single module, `src/partner/door.ts`, with the publishable key from `src/cloud.ts`. The source rules let no other file send more than a plain GET.
+- **One module:** the four calls come from a single module, `src/partner/door.ts`, with the publishable key from `src/cloud.ts`.
+- **The source rules** (static checks over `src/`) keep it that way:
+  - only `door.ts` and the guard import `src/cloud.ts`, and no other file names a Crewlu Cloud address;
+  - no file imports a Supabase package;
+  - no file but `door.ts` sends more than a plain GET, and none uses XMLHttpRequest, WebSocket, EventSource or sendBeacon;
+  - `door.ts`'s one fetch is the page's own, handed to the guard;
+  - nothing injects HTML: no `innerHTML`, `outerHTML`, `insertAdjacentHTML`, `dangerouslySetInnerHTML` or `document.write`.
+
+  They can't see an aliased fetch, a computed member name or a third-party HTTP client. The CSP is the browser's backstop for those.
 - **The guard's list** is frozen. Fetch gets the method the guard judged.
 - **Each call:**
   - has a 20-second time limit, by a timer where Safari has no `AbortSignal.timeout`;
   - refuses redirects, so a key is never sent on to another address.
-- **The CSP's `connect-src`** is unchanged: the Crewlu Cloud host and Open-Meteo.
+- **The CSP's `connect-src`** names the four RPC addresses, built from the guard's own list, instead of the whole Crewlu Cloud host, plus Open-Meteo and the site itself. So the browser allows nothing else there, even to code that slipped past the source rules. It relies on CSP Level 2's path matching; paths aren't checked after a redirect, which the door refuses anyway.
 
 ## 10. Removed
 
@@ -255,7 +264,7 @@ The small labels, the ended line and the alert are in the primary text color: th
 - `@supabase/supabase-js`: nothing else needs it.
 - Their tests.
 
-`src/data/rows.ts` and `src/data/rowBuilder.ts` stay: the demo's rows and `buildSchedule` use them.
+`src/data/rows.ts` and `src/data/rowBuilder.ts` stay: the demo's rows and `buildSchedule` use them. `rows.ts`'s column lists (`COLUMNS`) go, since nothing reads a table now. So do the source rules that only made sense with a client: its member names, `.from(` and the write methods.
 
 ## 11. Testing
 

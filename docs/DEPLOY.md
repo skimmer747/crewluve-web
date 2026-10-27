@@ -63,7 +63,7 @@ curl -s "https://crewluve.crewlu.net/?cb=$RANDOM" | grep -c Content-Security-Pol
 
 Expect `HTTP/2 200` and `1`.
 
-Then open https://crewluve.crewlu.net/?demo=1 on a phone, and sign in with a real CrewLu Cloud account.
+Then open https://crewluve.crewlu.net/?demo=1 on a phone, and open a real invite link from CrewLu (Partner Sharing, then Share Invite Link) to connect as a partner.
 
 ## Later deploys
 
