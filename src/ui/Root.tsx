@@ -134,8 +134,9 @@ function spokenIn(phase: Phase, passwordEnded: boolean): string {
 function PartnerRoot({ door, given }: { door: PartnerDoor; given?: PartnerStore }) {
   const [store] = useState(() => given ?? localPartnerStore())
   // Whether this browser used the password sign-in until this load, read before Root's effect deletes its session.
-  // The welcome screen says so during this load only: the next finds nothing.
-  const [passwordEnded] = useState(() => hadPasswordSignIn())
+  // The welcome screen says so until a join starts, so it's shown and read once, as the ended line is; the next load
+  // finds nothing.
+  const [passwordEnded, setPasswordEnded] = useState(() => hadPasswordSignIn())
   // The link the address carries at load, read once. It leaves the address either way; an automated browser's isn't
   // joined, so that page shows what it would with no link.
   const [first] = useState(() => {
@@ -147,11 +148,16 @@ function PartnerRoot({ door, given }: { door: PartnerDoor; given?: PartnerStore 
     return store.device() ? { kind: 'connected', notice: null } : welcome()
   })
   const joining = useRef(false)
+  // A join starts: "Connecting…" shows, and the password note is done with.
+  const showJoining = () => {
+    setPhase({ kind: 'joining' })
+    setPasswordEnded(false)
+  }
 
   const join = async (link: PartnerLink) => {
     if (joining.current) return
     joining.current = true
-    setPhase({ kind: 'joining' })
+    showJoining()
     // Whom this browser followed, in case the join finds that sharing already over: the pilot had removed it.
     const wasConnected = store.device() != null
     const stored = store.summary()
@@ -186,7 +192,7 @@ function PartnerRoot({ door, given }: { door: PartnerDoor; given?: PartnerStore 
     const onHashChange = () => {
       const link = takeLinkFromAddress()
       if (!link || automated()) return
-      setPhase({ kind: 'joining' })
+      showJoining()
       joinWhenShown(link)
     }
     window.addEventListener('hashchange', onHashChange)

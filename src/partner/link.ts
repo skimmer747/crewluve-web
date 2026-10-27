@@ -27,8 +27,10 @@ export function linkFromText(text: string): PartnerLink | null {
 }
 
 /**
- * Pasted text that is exactly a code, as Crewluve's paste box takes one (PartnerLink(text:)): six characters of the
- * door's alphabet once spaces and dashes go, in either case. Null for anything else.
+ * Pasted text that is exactly a code: six characters of the door's alphabet once spaces and dashes go, in either case.
+ * Null for anything else. Crewluve's paste box (PartnerLink.code(from:)) takes any six letters or digits, and sends a
+ * look-alike such as K0MQ2X to be told the code didn't work. This one refuses it here instead, so it doesn't count as a
+ * failure toward the door's pause on wrong codes.
  */
 export function bareCode(text: string): PartnerLink | null {
   const code = text.replace(/[\s-]/g, '').toUpperCase()

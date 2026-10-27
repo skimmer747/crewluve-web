@@ -220,6 +220,15 @@ describe('joining, in a browser that follows a pilot', () => {
     expect([...f.devices].filter(([, partner]) => partner === SAM)).toEqual([[key(2), SAM]])
   })
 
+  it("is refused a code that another of its partner's devices used: only the device that used it is answered again", async () => {
+    const { f, store, options } = await connectedToA()
+    await f.door.redeem('AB2C3D', key(9), 'Safari on iPhone') // partner A's other device uses the code
+    f.calls.length = 0
+    expect(await joinWithLink(CODE_A, options)).toMatchObject({ kind: 'failed', message: { title: 'Code Not Working' } })
+    expect(f.calls).toEqual([`redeem AB2C3D ${key(1)} Chrome on Mac`])
+    expect(store.device()).toEqual({ key: key(1), partnerId: PARTNER_A })
+  })
+
   it('keeps its own key when the answer to it is lost, making no pending key', async () => {
     const { f, store, options } = await connectedToA()
     f.network.loseNext = true

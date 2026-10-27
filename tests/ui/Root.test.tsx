@@ -115,6 +115,30 @@ describe('Root: a browser that follows no one', () => {
     expect(screen.queryAllByText(PASSWORD_SIGN_IN_ENDED)).toEqual([])
   })
 
+  it("says it once: a failed code's welcome screen neither shows the password note nor reads it again", async () => {
+    localStorage.setItem('crewluve-auth', '{"access_token":"old"}')
+    const { f, store } = setUp()
+    render(<Root door={f.door} store={store} />)
+    expect(page().getByText(PASSWORD_SIGN_IN_ENDED)).toBeTruthy()
+    fireEvent.input(screen.getByLabelText('Code'), { target: { value: 'zzzzzz' } }) // a code the door doesn't know
+    expect((await screen.findByRole('alert')).textContent).toMatch(/^Code Not Working /)
+    expect(screen.queryAllByText(PASSWORD_SIGN_IN_ENDED)).toEqual([])
+    expect(region().textContent).toBe('')
+  })
+
+  it("doesn't show the password note after this load's own join and a Disconnect", async () => {
+    localStorage.setItem('crewluve-auth', '{"access_token":"old"}')
+    const { f, store } = setUp()
+    vi.stubGlobal('confirm', vi.fn(() => true))
+    render(<Root door={f.door} store={store} />)
+    expect(page().getByText(PASSWORD_SIGN_IN_ENDED)).toBeTruthy()
+    fireEvent.input(screen.getByLabelText('Code'), { target: { value: 'ab2c3d' } })
+    expect(await screen.findByText("Where's Dad?")).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Welcome to CrewLuve' })).toBeTruthy()
+    expect(screen.queryAllByText(PASSWORD_SIGN_IN_ENDED)).toEqual([])
+  })
+
   it('says nothing about the password to a browser that kept only the old schedule cache', () => {
     localStorage.setItem('crewluve.schedule.v1', '{}')
     const { f, store } = setUp()
