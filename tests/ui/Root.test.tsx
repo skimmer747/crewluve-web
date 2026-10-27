@@ -61,14 +61,29 @@ const pollAnswered = () =>
 /** Lets everything under way finish: the fake door answers at once, so one turn of the event loop is enough. */
 const settle = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)))
 
+/** How to put back what stub() changed: each runs after its test, so no other test sees the stub. */
+const restores: Array<() => void> = []
+/** Makes `object[name]` read `get()` until the test ends. */
+function stub(object: object, name: string, get: () => unknown) {
+  const own = Object.getOwnPropertyDescriptor(object, name)
+  Object.defineProperty(object, name, { configurable: true, get })
+  restores.push(() => {
+    if (own) Object.defineProperty(object, name, own)
+    else Reflect.deleteProperty(object, name)
+  })
+}
+
 beforeEach(() => {
   window.history.replaceState(null, '', '/')
   localStorage.clear()
+  // happy-dom says it is an automated browser, as it is. These tests are a person's browser unless they say otherwise.
+  stub(navigator, 'webdriver', () => false)
 })
 
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
+  for (const restore of restores.splice(0).reverse()) restore()
 })
 
 describe('Root: a browser that follows no one', () => {
@@ -188,6 +203,110 @@ describe('Root: a browser that follows no one', () => {
     expect((await screen.findByRole('alert')).textContent).toBe(`Couldn't Connect ${COULDNT_CONNECT}`)
     fireEvent.input(screen.getByLabelText('Code'), { target: { value: 'ab2c3d' } })
     expect(await screen.findByText("Where's Dad?")).toBeTruthy()
+  })
+})
+
+describe('Root: a link in the address joins only for a person', () => {
+  it("doesn't join for an automated browser, such as a mail scanner, and still takes the link out of the address", async () => {
+    const { f, store } = setUp()
+    stub(navigator, 'webdriver', () => true)
+    window.history.replaceState(null, '', '/join#t=invite-a')
+    render(<Root door={f.door} store={store} />)
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Welcome to CrewLuve')
+    expect(`${window.location.pathname}${window.location.hash}`).toBe('/')
+    await settle()
+    expect(f.calls).toEqual([])
+  })
+
+  it('keeps a connected automated browser on its pilot, with no join, for a link at load or by hashchange', async () => {
+    const { f, store } = connectedAsB()
+    stub(navigator, 'webdriver', () => true)
+    window.history.replaceState(null, '', '/join#t=invite-a')
+    render(<Root door={f.door} store={store} />)
+    expect(screen.getByText("Where's Alex?")).toBeTruthy()
+    expect(`${window.location.pathname}${window.location.hash}`).toBe('/')
+    await act(async () => {
+      window.history.replaceState(null, '', '/#t=invite-a')
+      window.dispatchEvent(new Event('hashchange'))
+    })
+    await settle()
+    expect(`${window.location.pathname}${window.location.hash}`).toBe('/')
+    expect(f.calls.filter((call) => !call.startsWith('view'))).toEqual([]) // its own polls, and nothing else
+    expect(screen.getByText("Where's Alex?")).toBeTruthy()
+    expect(store.device()).toEqual({ key: key(1), partnerId: PARTNER_B })
+  })
+
+  it('waits for a hidden page to be shown before it joins, and joins once', async () => {
+    const { f, store } = setUp()
+    let visibility: DocumentVisibilityState = 'hidden'
+    stub(document, 'visibilityState', () => visibility)
+    window.history.replaceState(null, '', '/join#t=invite-a')
+    render(<Root door={f.door} store={store} />)
+    await settle()
+    expect(f.calls).toEqual([])
+    expect(page().getByText('Connecting…')).toBeTruthy()
+    expect(`${window.location.pathname}${window.location.hash}`).toBe('/')
+    visibility = 'visible'
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    expect(await screen.findByText("Where's Dad?")).toBeTruthy()
+    // It stopped listening once the join had started: another return to the page joins nothing more.
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    await settle()
+    expect(f.calls.filter((call) => call.startsWith('join'))).toHaveLength(1)
+  })
+
+  it('waits for a prerendered page to be shown before it joins', async () => {
+    const { f, store } = setUp()
+    let prerendering = true
+    stub(document, 'prerendering', () => prerendering)
+    window.history.replaceState(null, '', '/join#t=invite-a')
+    render(<Root door={f.door} store={store} />)
+    await settle()
+    expect(f.calls).toEqual([])
+    expect(page().getByText('Connecting…')).toBeTruthy()
+    prerendering = false
+    await act(async () => {
+      document.dispatchEvent(new Event('prerenderingchange'))
+    })
+    expect(await screen.findByText("Where's Dad?")).toBeTruthy()
+  })
+
+  it('waits in the same way for a link that arrives by hashchange while the page is hidden', async () => {
+    const { f, store } = setUp()
+    render(<Root door={f.door} store={store} />)
+    let visibility: DocumentVisibilityState = 'hidden'
+    stub(document, 'visibilityState', () => visibility)
+    await act(async () => {
+      window.history.replaceState(null, '', '/#t=invite-a')
+      window.dispatchEvent(new Event('hashchange'))
+    })
+    await settle()
+    expect(f.calls).toEqual([])
+    expect(page().getByText('Connecting…')).toBeTruthy()
+    expect(`${window.location.pathname}${window.location.hash}`).toBe('/')
+    visibility = 'visible'
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    expect(await screen.findByText("Where's Dad?")).toBeTruthy()
+  })
+
+  it('stops waiting when it unmounts: a later visibilitychange or prerenderingchange joins nothing', async () => {
+    const { f, store } = setUp()
+    let visibility: DocumentVisibilityState = 'hidden'
+    stub(document, 'visibilityState', () => visibility)
+    window.history.replaceState(null, '', '/join#t=invite-a')
+    const { unmount } = render(<Root door={f.door} store={store} />)
+    unmount()
+    visibility = 'visible'
+    document.dispatchEvent(new Event('visibilitychange'))
+    document.dispatchEvent(new Event('prerenderingchange'))
+    await settle()
+    expect(f.calls).toEqual([])
   })
 })
 

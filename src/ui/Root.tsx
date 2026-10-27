@@ -62,6 +62,38 @@ function takeLinkFromAddress(): PartnerLink | null {
   return link
 }
 
+/**
+ * An automated browser: a mail scanner or a link checker opening the link to check it, never a partner. Its link isn't
+ * joined, which would add a device under the partner each time, toward their 10, and use a code up.
+ */
+const automated = (): boolean => navigator.webdriver === true
+
+/**
+ * Runs `then` once the page is shown: at once if it is, else when a visibilitychange or prerenderingchange finds it
+ * visible and no longer prerendering. Returns what stops the wait. So a link opened in a background tab, or
+ * prerendered, joins when the partner looks, not before.
+ */
+function whenShown(then: () => void): () => void {
+  // document.prerendering is newer than TypeScript's DOM types, so it's read through this narrow type.
+  const shown = () => document.visibilityState === 'visible' && !(document as Document & { prerendering?: boolean }).prerendering
+  if (shown()) {
+    then()
+    return () => {}
+  }
+  const stop = () => {
+    document.removeEventListener('visibilitychange', check)
+    document.removeEventListener('prerenderingchange', check)
+  }
+  const check = () => {
+    if (!shown()) return
+    stop()
+    then()
+  }
+  document.addEventListener('visibilitychange', check)
+  document.addEventListener('prerenderingchange', check)
+  return stop
+}
+
 /** "Switch to Sam?", as Crewluve asks it (SwitchQuestion), in this browser's words. */
 const askSwitch = (newPilot: string, currentPilot: string) =>
   window.confirm(`Switch to ${newPilot}?\n\nYou'll stop seeing ${currentPilot}'s status in this browser.`)
@@ -98,8 +130,12 @@ function spokenIn(phase: Phase): string {
 /** A browser's own connection: the welcome screen, joining, or its pilot's status (piece 5a §4, §5). */
 function PartnerRoot({ door, given }: { door: PartnerDoor; given?: PartnerStore }) {
   const [store] = useState(() => given ?? localPartnerStore())
-  // The link the address carries at load, read once.
-  const [first] = useState(() => takeLinkFromAddress())
+  // The link the address carries at load, read once. It leaves the address either way; an automated browser's isn't
+  // joined, so that page shows what it would with no link.
+  const [first] = useState(() => {
+    const link = takeLinkFromAddress()
+    return automated() ? null : link
+  })
   const [phase, setPhase] = useState<Phase>(() => {
     if (first) return { kind: 'joining' }
     return store.device() ? { kind: 'connected', notice: null } : welcome()
@@ -133,14 +169,25 @@ function PartnerRoot({ door, given }: { door: PartnerDoor; given?: PartnerStore 
   }
 
   useEffect(() => {
-    if (first) void join(first)
+    // A link from the address joins once the page is shown, showing "Connecting…" meanwhile. This stops that wait.
+    let stopWaiting = () => {}
+    const joinWhenShown = (link: PartnerLink) => {
+      stopWaiting()
+      stopWaiting = whenShown(() => void join(link))
+    }
+    if (first) joinWhenShown(first)
     // A link pasted into the address bar while the page is open changes only the fragment.
     const onHashChange = () => {
       const link = takeLinkFromAddress()
-      if (link) void join(link)
+      if (!link || automated()) return
+      setPhase({ kind: 'joining' })
+      joinWhenShown(link)
     }
     window.addEventListener('hashchange', onHashChange)
-    return () => window.removeEventListener('hashchange', onHashChange)
+    return () => {
+      window.removeEventListener('hashchange', onHashChange)
+      stopWaiting()
+    }
   }, [])
 
   const screen =
