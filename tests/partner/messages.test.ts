@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PartnerLink } from '../../src/partner/link'
-import { CONNECTED_NOTE, COULDNT_CONNECT, joinMessage, NOT_AN_INVITE_LINK, type JoinMessage } from '../../src/partner/messages'
+import { connectedNote, COULDNT_CONNECT, joinMessage, NOT_AN_INVITE_LINK, type JoinMessage } from '../../src/partner/messages'
 
 const INVITE: PartnerLink = { kind: 'invite', invite: 'abc' }
 const CODE: PartnerLink = { kind: 'code', code: 'AB2C3D' }
@@ -37,9 +37,25 @@ describe("joinMessage: Crewluve's words (piece 5a §4.4)", () => {
     expect(joinMessage(refusal, CODE, null)).toEqual(message)
   })
 
-  it('has the words for text with no link, for no answer, and for a new connection', () => {
+  it('has the words for text with no link, and for no answer', () => {
     expect(NOT_AN_INVITE_LINK).toEqual({ title: 'Not an Invite Link', text: "That doesn't look like an invite link." })
     expect(COULDNT_CONNECT).toEqual({ title: "Couldn't Connect", text: "Couldn't connect. Check your connection and try again." })
-    expect(CONNECTED_NOTE).toBe('Connected on this browser. Add it to your Home Screen to keep it handy.')
+  })
+})
+
+describe('connectedNote: how to come back, on this kind of device (piece 5a §4.3)', () => {
+  // A site added to an iPhone's Home Screen keeps storage of its own, so it starts unconnected.
+  it.each(['iPhone', 'iPad'] as const)('sends an %s to the Crewluve app', (platform) => {
+    expect(connectedNote(platform)).toBe(
+      'Connected on this browser. Get the CrewLuve app from the App Store, then open your invite link again to connect the app.',
+    )
+  })
+
+  it("puts it on an Android Home Screen, which opens the same browser", () => {
+    expect(connectedNote('Android')).toBe('Connected on this browser. Add it to your Home Screen to keep it handy.')
+  })
+
+  it.each(['Mac', 'Windows', 'Linux', 'ChromeOS', null] as const)('has %s keep a bookmark', (platform) => {
+    expect(connectedNote(platform)).toBe('Connected on this browser. Bookmark this page to come back to it.')
   })
 })

@@ -19,8 +19,12 @@ vi.mock('../../src/partner/join', async (importOriginal) => {
   return { ...actual, joinWithLink: vi.fn(actual.joinWithLink) }
 })
 
-const CONNECTED_NOTE = 'Connected on this browser. Add it to your Home Screen to keep it handy.'
+/** The connected note on a computer, which these tests' browser is unless they say otherwise (beforeEach). */
+const CONNECTED_NOTE = 'Connected on this browser. Bookmark this page to come back to it.'
+const APP_NOTE = 'Connected on this browser. Get the CrewLuve app from the App Store, then open your invite link again to connect the app.'
 const COULDNT_CONNECT = "Couldn't connect. Check your connection and try again."
+const SAFARI_MAC = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15'
+const SAFARI_IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'
 const SAM = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
 
 /** Another pilot's summary, as partner SAM gets it: the pilot is Sam. */
@@ -77,8 +81,11 @@ function stub(object: object, name: string, get: () => unknown) {
 beforeEach(() => {
   window.history.replaceState(null, '', '/')
   localStorage.clear()
-  // happy-dom says it is an automated browser, as it is. These tests are a person's browser unless they say otherwise.
+  // happy-dom says it is an automated browser, as it is. These tests are a person's browser unless they say otherwise,
+  // and a Mac's.
   stub(navigator, 'webdriver', () => false)
+  stub(navigator, 'userAgent', () => SAFARI_MAC)
+  stub(navigator, 'maxTouchPoints', () => 0)
 })
 
 afterEach(() => {
@@ -167,6 +174,25 @@ describe('Root: a browser that follows no one', () => {
     await pollAnswered()
     expect(f.calls.filter((call) => call.startsWith('view'))).toHaveLength(2) // the join's read, then the first poll
     expect(page().getByText(CONNECTED_NOTE)).toBeTruthy()
+  })
+
+  it('sends an iPhone to the Crewluve app, since a site on its Home Screen starts unconnected', async () => {
+    stub(navigator, 'userAgent', () => SAFARI_IPHONE)
+    stub(navigator, 'maxTouchPoints', () => 5)
+    const { f, store } = setUp()
+    window.history.replaceState(null, '', '/join#t=invite-a')
+    render(<Root door={f.door} store={store} />)
+    expect(await screen.findByText("Where's Dad?")).toBeTruthy()
+    expect(page().getByText(APP_NOTE)).toBeTruthy()
+  })
+
+  it('sends an iPad that asks for the desktop site there too: its touch screen tells it from a Mac', async () => {
+    stub(navigator, 'maxTouchPoints', () => 5) // the user agent stays a Mac's
+    const { f, store } = setUp()
+    window.history.replaceState(null, '', '/join#t=invite-a')
+    render(<Root door={f.door} store={store} />)
+    expect(await screen.findByText("Where's Dad?")).toBeTruthy()
+    expect(page().getByText(APP_NOTE)).toBeTruthy()
   })
 
   it('redeems the code typed into the boxes', async () => {

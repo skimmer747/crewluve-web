@@ -1,3 +1,4 @@
+import type { Platform } from './label'
 import type { PartnerLink } from './link'
 
 /** What a partner is told when a link or code didn't connect: Crewluve's words (Models/JoinMessage.swift). */
@@ -15,8 +16,23 @@ export const CANT_STAY_CONNECTED: JoinMessage = {
   text: "This browser is blocking site data, so it can't stay connected. Allow site data for this site, or use another browser.",
 }
 
-/** The line above the status once this browser has connected (piece 5a §4.3, step 7). */
-export const CONNECTED_NOTE = 'Connected on this browser. Add it to your Home Screen to keep it handy.'
+/**
+ * The line above the status once this browser has connected (piece 5a §4.3, step 7): how to come back, on this kind
+ * of device. An iPhone or iPad is sent to Crewluve, because a site added to its Home Screen keeps storage of its own
+ * and starts unconnected. On Android, a Home Screen icon opens the same browser, so it stays connected. A computer
+ * keeps a bookmark.
+ */
+export function connectedNote(platform: Platform | null): string {
+  switch (platform) {
+    case 'iPhone':
+    case 'iPad':
+      return 'Connected on this browser. Get the CrewLuve app from the App Store, then open your invite link again to connect the app.'
+    case 'Android':
+      return 'Connected on this browser. Add it to your Home Screen to keep it handy.'
+    default:
+      return 'Connected on this browser. Bookmark this page to come back to it.'
+  }
+}
 
 /** The welcome screen's way forward for someone with no link, as Crewluve's welcome gives one (piece 5a §8). */
 export const NO_LINK_YET = 'No link yet? Ask your pilot to invite you from Settings → Partner Sharing in CrewLu.'

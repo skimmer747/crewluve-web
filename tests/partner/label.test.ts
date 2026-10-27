@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { browserLabel } from '../../src/partner/label'
+import { browserLabel, platformOf } from '../../src/partner/label'
 
 // Real user agents, as each browser sends them.
 const UA: Record<string, string> = {
@@ -49,5 +49,27 @@ describe('browserLabel (piece 5a P5-6)', () => {
     expect(browserLabel('Mozilla/5.0 (Nintendo Switch) Safari/605.1.15')).toBe('Safari')
     expect(browserLabel('Mozilla/5.0 (Windows NT 10.0)')).toBe('Windows')
     expect(browserLabel('curl/8.4.0')).toBe('')
+  })
+})
+
+describe("platformOf: the device, for the connected note (piece 5a §4.3)", () => {
+  it.each([
+    ['safariIPhone', 5, 'iPhone'],
+    ['chromeIPhone', 5, 'iPhone'],
+    ['safariIPad', 5, 'iPad'],
+    // An iPad asks for the desktop site as a Mac, but has a touch screen.
+    ['safariMac', 5, 'iPad'],
+    ['safariMac', 0, 'Mac'],
+    ['chromeAndroid', 5, 'Android'],
+    ['firefoxAndroid', 5, 'Android'],
+    ['chromeOS', 0, 'ChromeOS'],
+    ['edgeWindows', 0, 'Windows'],
+    ['firefoxLinux', 0, 'Linux'],
+  ])('finds %s, with %i touch points, on %s', (name, touchPoints, platform) => {
+    expect(platformOf(UA[name], touchPoints)).toBe(platform)
+  })
+
+  it('finds nothing in a user agent that names no device', () => {
+    expect(platformOf('curl/8.4.0')).toBeNull()
   })
 })

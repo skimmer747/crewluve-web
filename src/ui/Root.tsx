@@ -4,9 +4,9 @@ import { buildSchedule } from '../engine/normalize'
 import { scheduleFromStored } from '../partner/convert'
 import { liveDoor, type PartnerDoor } from '../partner/door'
 import { joinWithLink, type JoinOutcome } from '../partner/join'
-import { browserLabel } from '../partner/label'
+import { browserLabel, platformOf } from '../partner/label'
 import { linkFromHash, type PartnerLink } from '../partner/link'
-import { CONNECTED_NOTE, COULDNT_CONNECT, PASSWORD_SIGN_IN_ENDED, type JoinMessage } from '../partner/messages'
+import { connectedNote, COULDNT_CONNECT, PASSWORD_SIGN_IN_ENDED, type JoinMessage } from '../partner/messages'
 import { NotConnected, refreshSummary, SharingEnded } from '../partner/refresh'
 import { clearOldSignIn, hadPasswordSignIn, localPartnerStore, newKey, type PartnerStore, type StoredSummary } from '../partner/store'
 import { currentQuickStatus, nameIn, type PartnerSummary } from '../partner/summary'
@@ -107,7 +107,10 @@ function after(outcome: JoinOutcome, store: PartnerStore, followedName: string |
   const ended = connected ? null : followedName
   switch (outcome.kind) {
     case 'connected':
-      return { kind: 'connected', notice: outcome.newDevice ? CONNECTED_NOTE : null }
+      return {
+        kind: 'connected',
+        notice: outcome.newDevice ? connectedNote(platformOf(navigator.userAgent, navigator.maxTouchPoints)) : null,
+      }
     case 'cancelled':
       return connected ? { kind: 'connected', notice: null } : welcome(null, ended)
     case 'failed':
