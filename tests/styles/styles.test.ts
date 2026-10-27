@@ -155,7 +155,7 @@ const HIGH_CONTRAST: Array<[name: string, light: string, dark: string]> = [
   ['--rest-text', '#2A6FB8', '#8CA6CC'],
 ]
 
-/** The nine colors white text sits on: the city pills' blends, the badges and the sign-in button (spec §3.3). */
+/** The nine colors white text sits on: the city pills' blends, the badges and the welcome screen's Connect button (spec §3.3). */
 const FILLS = ['green', 'blue', 'orange', 'purple', 'pink', 'yellow', 'teal', 'cyan', 'indigo']
 
 describe('tokens.css: Increase Contrast', () => {
@@ -272,11 +272,11 @@ describe('cards.css', () => {
     }
   })
 
-  it('draws the sign-in button on the readable fill behind its white text', () => {
+  it("draws the welcome screen's Connect button on the readable fill behind its white text", () => {
     expect(declarations(find(top, '.primary')!.body)).toContainEqual(['background', 'var(--fill-blue, var(--blue))'])
   })
 
-  it('gives the glass and the sign-in fields a 1 px edge under Increase Contrast, after both rules so it wins', () => {
+  it("gives the glass and the welcome screen's fields a 1 px edge under Increase Contrast, after both rules so it wins", () => {
     const media = find(top, '@media (prefers-contrast: more)')
     expect(media).toBeDefined()
     const edge = find(blocks(media!.body), '.glass, .field')
@@ -859,7 +859,7 @@ describe('full-height blocks', () => {
         })
       }
     }
-    expect(pairs).toBeGreaterThanOrEqual(2) // the page body (base.css) and the sign-in screen (cards.css)
+    expect(pairs).toBeGreaterThanOrEqual(2) // the page body (base.css) and the welcome screen (cards.css)
   })
 })
 

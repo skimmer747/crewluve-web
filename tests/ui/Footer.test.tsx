@@ -14,8 +14,8 @@ const props = (extra: Partial<FooterProps> = {}): FooterProps => ({
   problem: null,
   refreshing: false,
   onRefresh: () => {},
-  onSignOut: () => {},
-  signOutLabel: 'Sign out',
+  onLeave: () => {},
+  leaveLabel: 'Disconnect',
   viewerTz: 'America/New_York',
   h24: false,
   ...extra,
@@ -36,15 +36,15 @@ describe('Footer', () => {
     expect(screen.queryByText(/Checked/)).toBeNull()
   })
 
-  it('wires the sign-out and refresh buttons', () => {
-    const onSignOut = vi.fn()
+  it('wires the Disconnect and refresh buttons', () => {
+    const onLeave = vi.fn()
     const onRefresh = vi.fn()
-    const { rerender } = render(<Footer {...props({ onSignOut, onRefresh })} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+    const { rerender } = render(<Footer {...props({ onLeave, onRefresh })} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }))
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
-    expect(onSignOut).toHaveBeenCalledTimes(1)
+    expect(onLeave).toHaveBeenCalledTimes(1)
     expect(onRefresh).toHaveBeenCalledTimes(1)
-    rerender(<Footer {...props({ refreshing: true, signOutLabel: 'Exit demo' })} />)
+    rerender(<Footer {...props({ refreshing: true, leaveLabel: 'Exit demo' })} />)
     expect((screen.getByRole('button', { name: 'Refresh' }) as HTMLButtonElement).disabled).toBe(true)
     expect(screen.getByRole('button', { name: 'Exit demo' })).toBeTruthy()
   })

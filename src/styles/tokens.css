@@ -149,7 +149,8 @@
 }
 
 /* The dark high-contrast colors. They're lighter, so white text would get harder to read on them: the --fill-* colors
-   keep the light high-contrast ones behind the pills', badges' and sign-in button's white text (spec §3.3). */
+   keep the light high-contrast ones behind the pills', badges' and the welcome screen's Connect button's white text
+   (spec §3.3). */
 @media (prefers-color-scheme: dark) and (prefers-contrast: more) {
   :root {
     --text-2: rgba(235, 235, 245, 0.678);

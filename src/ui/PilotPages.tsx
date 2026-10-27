@@ -28,7 +28,7 @@ export interface PilotPagesProps {
   airports: AirportIndex
   demo: boolean
   /** Disconnect, or Exit demo: the footer's left button. */
-  onSignOut: () => void
+  onLeave: () => void
   /** Where the location card's weather comes from: Open-Meteo, or the made-up samples in the demo. Tests pass a fake. */
   loadWeather?: WeatherLoader
   /** The pilot's quick status at a moment, for the location card (piece 5a §7). The demo has none. */
@@ -43,7 +43,7 @@ export interface PilotPagesProps {
  * address (3C §3, §5.1). While there's nothing to show, the same screen as ever, at every width.
  */
 export function PilotPages({
-  schedule, airports, demo, onSignOut, loadWeather = demo ? loadDemoWeather : loadLiveWeather, quickStatusAt, notice = null,
+  schedule, airports, demo, onLeave, loadWeather = demo ? loadDemoWeather : loadLiveWeather, quickStatusAt, notice = null,
 }: PilotPagesProps) {
   const now = useNow()
   const celebrateKey = useVisibilityCount()
@@ -68,8 +68,8 @@ export function PilotPages({
     problem: schedule.problem,
     refreshing: schedule.refreshing,
     onRefresh: schedule.refresh,
-    onSignOut,
-    signOutLabel: demo ? 'Exit demo' : 'Disconnect',
+    onLeave,
+    leaveLabel: demo ? 'Exit demo' : 'Disconnect',
     viewerTz,
     h24,
   }

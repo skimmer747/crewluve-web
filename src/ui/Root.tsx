@@ -40,7 +40,7 @@ function DemoApp({ scene }: { scene: DemoScene }) {
   const schedule = useSchedule({ load: async () => buildSchedule({ ...demoRawForScene(scene, anchor), fetchedAt: Date.now() }, Date.now()) })
   if (!airports) return null
   return (
-    <PilotPages schedule={schedule} airports={airports} demo onSignOut={() => { window.location.href = window.location.pathname }} />
+    <PilotPages schedule={schedule} airports={airports} demo onLeave={() => { window.location.href = window.location.pathname }} />
   )
 }
 
@@ -266,7 +266,7 @@ function PartnerLive({ door, store, notice, onEnded, onFollowed, onDisconnected 
       demo={false}
       notice={notice}
       quickStatusAt={(now) => (shown.current ? currentQuickStatus(shown.current, now) : null)}
-      onSignOut={() => void disconnect()}
+      onLeave={() => void disconnect()}
     />
   )
 }

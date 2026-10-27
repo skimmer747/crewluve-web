@@ -9,8 +9,8 @@ export interface FooterProps {
   problem: Problem
   refreshing: boolean
   onRefresh: () => void
-  onSignOut: () => void
-  signOutLabel: string
+  onLeave: () => void
+  leaveLabel: string
   viewerTz: string
   h24: boolean
 }
@@ -23,11 +23,11 @@ export function freshnessColor(ageMs: number): string {
   return 'var(--red)'
 }
 
-/** Freshness rows between sign-out and refresh (spec §4.5). */
+/** Freshness rows between the leave button (Disconnect, or Exit demo) and refresh (spec §4.5). */
 export function Footer(p: FooterProps) {
   return (
     <footer class="footer">
-      <button type="button" class="glass round" aria-label={p.signOutLabel} title={p.signOutLabel} onClick={p.onSignOut}>
+      <button type="button" class="glass round" aria-label={p.leaveLabel} title={p.leaveLabel} onClick={p.onLeave}>
         <Icon name="SignOut" size={12} />
       </button>
       <div class="sync">

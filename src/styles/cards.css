@@ -496,8 +496,8 @@
   }
 }
 
-/* Increase Contrast (Part A follow-ups spec §3.4): the glass's edge, and the sign-in fields', at 1 px so it shows on
-   every screen; tokens.css makes it stronger. It comes after both rules, so it wins. */
+/* Increase Contrast (Part A follow-ups spec §3.4): the glass's edge, and the welcome screen's fields', at 1 px so it
+   shows on every screen; tokens.css makes it stronger. It comes after both rules, so it wins. */
 @media (prefers-contrast: more) {
   .glass,
   .field {

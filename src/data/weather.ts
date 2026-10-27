@@ -70,7 +70,7 @@ export const WEATHER_TIMEOUT_MS = 10_000
 /**
  * The current weather from Open-Meteo, or null when it can't be had within 10 seconds. A plain GET that sends no cookies
  * and no referrer, and that the browser never caches (slice 2B1 §6, §7). Tests pass their own `fetch`; the parameter
- * keeps that name so the read-only scan still checks this call.
+ * keeps that name so the source rules (tests/fixtures/sourceScan.ts) still check this call.
  */
 export async function fetchWeather(lat: number, lng: number, unit: TempUnit, fetch: typeof globalThis.fetch = globalThis.fetch): Promise<Weather | null> {
   // A timer and an AbortController rather than AbortSignal.timeout, which iOS 15 lacks. Aborting stops a stalled body too.

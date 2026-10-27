@@ -28,7 +28,7 @@ const NY = 'America/New_York'
 const e = engineFor(demoRaw('driver', A))
 const footer = (now: number): FooterProps => ({
   now, lastSuccessAt: now, newestUpdatedAt: now - 3_600_000, problem: null, refreshing: false,
-  onRefresh: () => {}, onSignOut: () => {}, signOutLabel: 'Sign out', viewerTz: NY, h24: false,
+  onRefresh: () => {}, onLeave: () => {}, leaveLabel: 'Disconnect', viewerTz: NY, h24: false,
 })
 
 function screenAt(minutes: number, snap: Snapshot = makeSnapshot(e.schedule, e.legs, at(minutes), NY), demo = false, celebrateKey = 0) {
