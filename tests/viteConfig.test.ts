@@ -77,15 +77,21 @@ describe('the /join page (piece 5a §4.1)', () => {
     expect(joinPage.apply).toBe('build')
   })
 
-  it('is an exact copy of the built index.html, so it runs the same bundle under the same CSP', () => {
+  it('is an exact copy of the built index.html, as join.html and as 404.html, so each runs the same bundle under the same CSP', () => {
     const dir = mkdtempSync(join(tmpdir(), 'crewluve-join-'))
     try {
       const built = '<!doctype html><meta http-equiv="Content-Security-Policy" content="x" /><script type="module" src="/assets/index-abc.js"></script>'
       writeFileSync(join(dir, 'index.html'), built)
       writeBundle({ dir })
-      expect(readFileSync(join(dir, 'join.html'), 'utf8')).toBe(built)
+      // Pages serves join.html for /join, and 404.html (with status 404, which browsers show as a page) for a path it
+      // has no file for, such as /join/ or /Join.
+      for (const name of ['join.html', '404.html']) expect(readFileSync(join(dir, name), 'utf8'), name).toBe(built)
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
+  })
+
+  it('fails the build when it is given no output folder, rather than copying in whatever folder the shell is in', () => {
+    expect(() => writeBundle({})).toThrow('crewluve-join-page: no output folder')
   })
 })

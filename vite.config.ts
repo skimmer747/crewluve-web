@@ -42,11 +42,14 @@ export default defineConfig({
     {
       // /join is the app itself (partner links piece 5a §4.1): an invite link opened anywhere but in Crewluve joins in
       // the browser. GitHub Pages serves join.html for /join, and an exact copy runs the same bundle under the same CSP.
+      // For a path it has no file for (/join/, /Join) Pages serves 404.html instead, with status 404, which browsers
+      // show as a page. So a copy there runs the app too, and the app reads the invite from the fragment on any path.
       name: 'crewluve-join-page',
       apply: 'build',
       writeBundle(options) {
-        const dir = options.dir ?? 'dist'
-        copyFileSync(join(dir, 'index.html'), join(dir, 'join.html'))
+        // Fail the build rather than copy in the shell's folder: Vite always passes the output folder.
+        if (!options.dir) throw new Error('crewluve-join-page: no output folder')
+        for (const name of ['join.html', '404.html']) copyFileSync(join(options.dir, 'index.html'), join(options.dir, name))
       },
     },
   ],

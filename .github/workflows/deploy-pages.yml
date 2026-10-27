@@ -31,6 +31,13 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      # What /join sends invite links to is the built page: join.html for /join, and 404.html for the other unknown paths,
+      # both exact copies of index.html, with the Safari banner tag and the CSP. A deploy without them fails here.
+      - run: |
+          cmp dist/index.html dist/join.html
+          cmp dist/index.html dist/404.html
+          grep -q 'name="apple-itunes-app"' dist/join.html
+          grep -q 'http-equiv="Content-Security-Policy"' dist/join.html
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
