@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { joinWithLink, type JoinOptions } from '../../src/partner/join'
 import type { PartnerLink } from '../../src/partner/link'
-import { COULDNT_CONNECT } from '../../src/partner/messages'
+import { CANT_STAY_CONNECTED, COULDNT_CONNECT } from '../../src/partner/messages'
 import { localPartnerStore } from '../../src/partner/store'
 import { example, fakeDoor, key, memoryStorage, PARTNER_A, PARTNER_B } from '../fixtures/partner'
 
@@ -76,9 +76,10 @@ describe('joining, in a browser that follows no one (piece 5a §4.3)', () => {
     expect(store.summary()).toEqual({ partnerId: PARTNER_A, updatedAt: null, status: null, checkedAt: 9 })
   })
 
-  it('fails without calling the door when the new key cannot be saved', async () => {
+  it("fails without calling the door when the new key cannot be saved, saying the browser can't stay connected", async () => {
     const { f, options } = setUp()
-    expect(await joinWithLink(INVITE_A, { ...options, store: localPartnerStore(null) })).toEqual({ kind: 'failed', message: COULDNT_CONNECT })
+    // A store that keeps nothing, as localStorage is when the browser blocks site data.
+    expect(await joinWithLink(INVITE_A, { ...options, store: localPartnerStore(null) })).toEqual({ kind: 'failed', message: CANT_STAY_CONNECTED })
     expect(f.calls).toEqual([])
   })
 
@@ -166,6 +167,13 @@ describe('joining, in a browser that follows a pilot', () => {
     expect(store.device()).toEqual({ key: key(1), partnerId: SAM })
     expect(confirmSwitch).not.toHaveBeenCalled()
     expect(f.devices.size).toBe(1)
+  })
+
+  it("says the browser can't stay connected when a removed device's key can't be kept as the pending key", async () => {
+    const { f, store, options } = await connectedToA()
+    f.devices.delete(key(1)) // the pilot removed this browser in CrewLu
+    const blocked = { ...store, savePendingKey: () => false }
+    expect(await joinWithLink(INVITE_SAM, { ...options, store: blocked })).toEqual({ kind: 'failed', message: CANT_STAY_CONNECTED })
   })
 
   it("forgets a removed device even when the new link's summary can't be read", async () => {

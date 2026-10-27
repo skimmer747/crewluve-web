@@ -2,7 +2,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/preact'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { joinWithLink } from '../../src/partner/join'
-import { PASSWORD_SIGN_IN_ENDED } from '../../src/partner/messages'
+import { CANT_STAY_CONNECTED, PASSWORD_SIGN_IN_ENDED } from '../../src/partner/messages'
 import { localPartnerStore } from '../../src/partner/store'
 import { Root } from '../../src/ui/Root'
 import { example, fakeDoor, key, memoryStorage, PARTNER_A, PARTNER_B } from '../fixtures/partner'
@@ -159,6 +159,14 @@ describe('Root: a browser that follows no one', () => {
     render(<Root door={f.door} store={store} />)
     expect((await screen.findByRole('alert')).textContent).toBe("Invite Link Not Working This invite link doesn't work anymore. Ask your pilot to send it again.")
     expect(store.device()).toBeNull()
+  })
+
+  it("says this browser can't stay connected when it blocks site data, without calling the door", async () => {
+    const { f } = setUp()
+    window.history.replaceState(null, '', '/join#t=invite-a')
+    render(<Root door={f.door} store={localPartnerStore(null)} />) // a store that keeps nothing, as blocked localStorage
+    expect((await screen.findByRole('alert')).textContent).toBe(`${CANT_STAY_CONNECTED.title} ${CANT_STAY_CONNECTED.text}`)
+    expect(f.calls).toEqual([])
   })
 
   it('comes back from a code the door refuses with the reason and empty boxes', async () => {

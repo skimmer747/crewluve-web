@@ -9,6 +9,12 @@ export interface JoinMessage {
 export const COULDNT_CONNECT: JoinMessage = { title: "Couldn't Connect", text: "Couldn't connect. Check your connection and try again." }
 export const NOT_AN_INVITE_LINK: JoinMessage = { title: 'Not an Invite Link', text: "That doesn't look like an invite link." }
 
+/** The website's own (piece 5a §4.4): this browser won't keep a key because its site data is blocked, so no retry helps. */
+export const CANT_STAY_CONNECTED: JoinMessage = {
+  title: "Can't Stay Connected",
+  text: "This browser is blocking site data, so it can't stay connected. Allow site data for this site, or use another browser.",
+}
+
 /** The line above the status once this browser has connected (piece 5a §4.3, step 7). */
 export const CONNECTED_NOTE = 'Connected on this browser. Add it to your Home Screen to keep it handy.'
 

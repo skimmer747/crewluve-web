@@ -1,6 +1,6 @@
 import { isRefused, type Joined, type PartnerDoor } from './door'
 import type { PartnerLink } from './link'
-import { COULDNT_CONNECT, joinMessage, type JoinMessage } from './messages'
+import { CANT_STAY_CONNECTED, COULDNT_CONNECT, joinMessage, type JoinMessage } from './messages'
 import type { Device, PartnerStore } from './store'
 import { readSummary } from './summary'
 
@@ -32,6 +32,14 @@ class Refusal extends Error {
   }
 }
 
+/** This browser wouldn't keep a pending key, before it was sent: its site data is blocked. */
+class KeyNotKept extends Error {
+  constructor() {
+    super('The new key could not be saved')
+    this.name = 'KeyNotKept'
+  }
+}
+
 /** The key a join sent, and the door's answer. */
 interface Attempt {
   key: string
@@ -56,6 +64,8 @@ export async function joinWithLink(link: PartnerLink, options: JoinOptions): Pro
   try {
     attempt = await tryKeys(link, options, connected)
   } catch (err) {
+    // A browser that won't keep its key can't stay connected, which no retry changes: it's not the connection.
+    if (err instanceof KeyNotKept) return { kind: 'failed', message: CANT_STAY_CONNECTED }
     const refusal = err instanceof Refusal ? err.code : null
     return { kind: 'failed', message: joinMessage(refusal, link, followedSummary?.name ?? null) }
   }
@@ -65,7 +75,7 @@ export async function joinWithLink(link: PartnerLink, options: JoinOptions): Pro
     // The connected key now names a device of the link's partner, so this browser's old device is gone: the pilot
     // removed it. Carry on as a join with a pending key, so a retry reaches the same device, and nothing here goes on
     // naming the old one (spec §4.3, step 6).
-    if (!store.savePendingKey(attempt.key)) return { kind: 'failed', message: COULDNT_CONNECT }
+    if (!store.savePendingKey(attempt.key)) return { kind: 'failed', message: CANT_STAY_CONNECTED }
     store.forget()
   }
 
@@ -136,7 +146,7 @@ function pendingKey({ store, makeKey }: JoinOptions, reuse: boolean): string {
   const kept = reuse ? store.pendingKey() : null
   if (kept) return kept
   const key = makeKey()
-  if (!store.savePendingKey(key)) throw new Error('The new key could not be saved')
+  if (!store.savePendingKey(key)) throw new KeyNotKept()
   return key
 }
 
