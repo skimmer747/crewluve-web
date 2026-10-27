@@ -52,7 +52,7 @@ describe('production CSP plugin', () => {
     const rpcs = ['partner_join', 'partner_handoff_redeem', 'partner_view', 'partner_leave'].map((name) => `${SUPABASE_URL}/rest/v1/rpc/${name}`)
     const connect = directive('connect-src')
     expect(connect).toBe(`connect-src 'self' ${rpcs.join(' ')} https://api.open-meteo.com`)
-    // Not the project's own address, which would let the page reach its tables, sign-in, functions and storage.
+    // Not the project's own address, which would let the page reach its tables, Auth, functions and storage.
     expect(connect!.split(' ')).not.toContain(SUPABASE_URL)
   })
 

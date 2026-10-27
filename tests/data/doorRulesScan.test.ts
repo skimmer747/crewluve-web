@@ -28,7 +28,7 @@ const BYPASSES: Array<[string, string, string, RegExp]> = [
   ['an address cut in the middle by a template hole', 'src/ui/Url.ts', 'export const url = (base: string, table: string) => `${base}/rest/v1/${table}`', /names a Crewlu Cloud address/],
   ['an address at the end of a template', 'src/ui/Url.ts', 'export const url = (base: string) => `${base}/rest/v1`', /names a Crewlu Cloud address/],
   [
-    'a PUT to sign-in that rewrites the pilot account',
+    'a PUT to Auth that rewrites the pilot account',
     'src/ui/Rename.ts',
     `import { SUPABASE_URL } from '../cloud'\nexport const rename = (token: string) => fetch(SUPABASE_URL + '/auth/v1/user', { method: 'PUT', headers: { authorization: token }, body: '{}' })`,
     /names a Crewlu Cloud address/,
@@ -179,26 +179,34 @@ describe('the source rules leave ordinary code alone', () => {
 })
 
 describe('the import graph', () => {
-  // Made-up sources: importersOf works on any module, so these names are only examples.
+  // The target of the pin in doorRules.test.ts, src/cloud.ts, imported in every form that pin has to see.
   const sources = {
-    'src/supabase.ts': '',
-    'src/main.tsx': `import { Root } from './ui/Root'`,
-    'src/ui/Root.tsx': `import { signIn } from '../auth/session'\nexport const Root = signIn`,
-    'src/auth/session.ts': `export const signIn = async () => (await import('../supabase')).supabase`,
-    'src/data/reexport.ts': `export { supabase } from '../supabase'`,
-    'src/data/types.ts': `import type { supabase } from '../supabase'\nexport type C = typeof supabase`,
-    'src/data/require.ts': `import supabase = require('../supabase')\nexport default supabase`,
-    'src/data/typeofImport.ts': `export type C = typeof import('../supabase')`,
+    'src/cloud.ts': '',
+    'src/ui/Static.ts': `import { SUPABASE_URL } from '../cloud'\nexport const u = SUPABASE_URL`,
+    'src/ui/Dynamic.ts': `export const load = async () => (await import('../cloud')).SUPABASE_URL`,
+    'src/ui/Reexport.ts': `export { SUPABASE_URL } from '../cloud'`,
+    'src/ui/TypeOnly.ts': `import type { SUPABASE_URL } from '../cloud'\nexport type U = typeof SUPABASE_URL`,
+    'src/ui/Require.ts': `import cloud = require('../cloud')\nexport default cloud`,
+    'src/ui/RequireCall.ts': `declare const require: (n: string) => { SUPABASE_URL: string }\nexport const u = require('../cloud').SUPABASE_URL`,
+    'src/ui/TypeofImport.ts': `export type C = typeof import('../cloud')`,
+    // Not importers: a file that imports an importer, and a file that imports something else.
+    'src/ui/Root.tsx': `import { u } from './Static'\nexport const Root = u`,
+    'src/ui/Other.ts': `import { x } from '../data/other'\nexport const o = x`,
+    'src/data/other.ts': `export const x = 1`,
   }
 
-  it('finds every importer of a module, static, dynamic, re-export, require and type-only', () => {
-    const found = importersOf('src/supabase.ts', sources)
+  it('finds every importer of a module, static, dynamic, re-export, type-only, require and typeof import()', () => {
+    const found = importersOf('src/cloud.ts', sources)
     const byPath = Object.fromEntries(found.map((f) => [f.path, f]))
-    expect(Object.keys(byPath).sort()).toEqual(['src/auth/session.ts', 'src/data/reexport.ts', 'src/data/require.ts', 'src/data/typeofImport.ts', 'src/data/types.ts'])
-    expect(byPath['src/auth/session.ts']).toMatchObject({ kind: 'dynamic', typeOnly: false })
-    expect(byPath['src/data/reexport.ts']).toMatchObject({ kind: 'static', typeOnly: false })
-    expect(byPath['src/data/require.ts']).toMatchObject({ kind: 'require' })
-    expect(byPath['src/data/types.ts']).toMatchObject({ kind: 'static', typeOnly: true })
-    expect(byPath['src/data/typeofImport.ts']).toMatchObject({ kind: 'dynamic', typeOnly: true })
+    expect(Object.keys(byPath).sort()).toEqual([
+      'src/ui/Dynamic.ts', 'src/ui/Reexport.ts', 'src/ui/Require.ts', 'src/ui/RequireCall.ts', 'src/ui/Static.ts', 'src/ui/TypeOnly.ts', 'src/ui/TypeofImport.ts',
+    ])
+    expect(byPath['src/ui/Static.ts']).toMatchObject({ kind: 'static', typeOnly: false })
+    expect(byPath['src/ui/Dynamic.ts']).toMatchObject({ kind: 'dynamic', typeOnly: false })
+    expect(byPath['src/ui/Reexport.ts']).toMatchObject({ kind: 'static', typeOnly: false })
+    expect(byPath['src/ui/TypeOnly.ts']).toMatchObject({ kind: 'static', typeOnly: true })
+    expect(byPath['src/ui/Require.ts']).toMatchObject({ kind: 'require', typeOnly: false })
+    expect(byPath['src/ui/RequireCall.ts']).toMatchObject({ kind: 'require', typeOnly: false })
+    expect(byPath['src/ui/TypeofImport.ts']).toMatchObject({ kind: 'dynamic', typeOnly: true })
   })
 })

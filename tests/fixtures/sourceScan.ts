@@ -6,7 +6,7 @@
 //   - an import of a Supabase package, from a URL, or by a computed name;
 //   - a string that names a Crewlu Cloud address, anywhere but src/cloud.ts, the door and its guard;
 //   - a fetch with a body or a method other than GET and HEAD, and Request, XMLHttpRequest, WebSocket, EventSource,
-//     importScripts and sendBeacon (the door module may fetch; tests/data/readOnly.test.ts pins what it sends);
+//     importScripts and sendBeacon (the door module may fetch; tests/data/doorRules.test.ts pins what it sends);
 //   - Worker, SharedWorker and navigator.serviceWorker: the CSP doesn't reach inside a worker, because a worker served
 //     from the site takes its CSP from its own response headers, and GitHub Pages sends none;
 //   - the members, attributes and names that turn text into markup (innerHTML, srcdoc and the like), and document.write.
@@ -18,8 +18,8 @@
 // and for both, a computed member name (`el[name]`). The browser is the backstop, through the CSP in vite.config.ts. For
 // the network gaps it is connect-src, which lists the four partner RPC addresses, so the browser itself refuses a request
 // to any other address. For the HTML gaps it is script-src, which allows no inline script, so markup that gets in can't run.
-import { existsSync, readdirSync, statSync } from 'node:fs'
-import { join, posix, relative, resolve, sep } from 'node:path'
+import { readdirSync, statSync } from 'node:fs'
+import { join, posix, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
 
@@ -94,10 +94,8 @@ export function importsOf(sf: ts.SourceFile): ImportRef[] {
   return refs
 }
 
-const onDisk = (path: string) => existsSync(resolve(ROOT, path)) && statSync(resolve(ROOT, path)).isFile()
-
-/** The project-relative .ts/.tsx module a relative specifier points at; null for packages and non-code files. */
-export function resolveImport(from: string, specifier: string, exists: (path: string) => boolean = onDisk): string | null {
+/** The project-relative .ts/.tsx module a relative specifier points at, if `exists` says it is one; null for packages and non-code files. */
+export function resolveImport(from: string, specifier: string, exists: (path: string) => boolean): string | null {
   if (!specifier.startsWith('.')) return null
   const target = posix.join(posix.dirname(from), specifier)
   const stem = target.replace(/\.jsx?$/, '')
@@ -168,7 +166,7 @@ function factsOf(path: string, code: string): Facts {
 // ---------- Crewlu Cloud addresses ----------
 
 /**
- * The project's host, or a path only Crewlu Cloud serves: its tables (/rest/v1/), sign-in, functions, storage, realtime and
+ * The project's host, or a path only Crewlu Cloud serves: its tables (/rest/v1/), Auth, functions, storage, realtime and
  * GraphQL (which reads tables too). The host ends at a word boundary, so supabase.com's docs and status page aren't taken for it.
  */
 const CLOUD_ADDRESS = /supabase\.co\b|\/(rest|auth|functions|storage|realtime|graphql)\/v1\b/

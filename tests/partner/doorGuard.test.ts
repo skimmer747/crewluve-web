@@ -21,7 +21,7 @@ const BLOCKED: Array<[string, string]> = [
   ['POST', '/rest/v1/rpc/partner_set_push'],
   ['POST', '/rest/v1/rpc/set_partner_status'],
   ['POST', '/rest/v1/rpc/delete_everything'],
-  // tables, sign-in and the other services
+  // tables, Auth and the other services
   ['GET', '/rest/v1/trips?select=id'],
   ['POST', '/rest/v1/partner_devices'],
   ['GET', '/auth/v1/user'],
