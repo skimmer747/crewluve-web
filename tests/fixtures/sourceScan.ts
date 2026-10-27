@@ -9,15 +9,20 @@
 //     importScripts and sendBeacon (the door module may fetch; tests/data/doorRules.test.ts pins what it sends);
 //   - Worker, SharedWorker and navigator.serviceWorker: the CSP doesn't reach inside a worker, because a worker served
 //     from the site takes its CSP from its own response headers, and GitHub Pages sends none;
-//   - the members, attributes and names that turn text into markup (innerHTML, srcdoc and the like), and document.write.
-// They parse with the TypeScript compiler instead of matching text, so a comment or a string can't fake a call, and line
-// breaks, bracket access (`el['innerHTML']`) and spacing can't hide one.
+//   - the members, attributes and names that turn text into markup (innerHTML, outerHTML, insertAdjacentHTML,
+//     dangerouslySetInnerHTML, setHTMLUnsafe, parseHTMLUnsafe, createContextualFragment and srcdoc), and document.write.
+// They parse with the TypeScript compiler instead of matching text, so a comment can't fake a call, and line breaks,
+// bracket access (`el['innerHTML']`, `window['XMLHttpRequest']`), parentheses, casts and spacing can't hide one. Strings
+// are read on purpose: a string that names a Crewlu Cloud address, or is exactly the name of a markup sink, is flagged.
+// (A sink's name in a type, such as `Omit<Props, 'dangerouslySetInnerHTML'>`, is erased, so there it passes.)
 //
 // What they cannot see: for the network, an aliased fetch (`const f = fetch`), `fetch.call` or `Reflect.apply`, an
-// address built from pieces, and a third-party HTTP client; for markup, an alias of the document (`const d = document`);
+// address built from pieces, and a third-party HTTP client; for markup, a document reached through an alias or a call
+// (`const d = document`, `document.open().write(s)`) and a route the list doesn't name (`execCommand('insertHTML', …)`);
 // and for both, a computed member name (`el[name]`). The browser is the backstop, through the CSP in vite.config.ts. For
-// the network gaps it is connect-src, which lists the four partner RPC addresses, so the browser itself refuses a request
-// to any other address. For the HTML gaps it is script-src, which allows no inline script, so markup that gets in can't run.
+// the network gaps it is connect-src, which allows the site, Open-Meteo and the four partner RPC addresses, so the browser
+// itself refuses a request to anywhere else. For the HTML gaps it is script-src, which allows no inline script, so markup
+// that gets in can't run.
 import { readdirSync, statSync } from 'node:fs'
 import { join, posix, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -118,18 +123,29 @@ export function importersOf(target: string, sources: Record<string, string>): Ar
 interface MemberRef {
   name: string
   /**
-   * The name just before the dot: `document` in `document.write`, `window.document.write` and `document['write']`. For a
-   * destructured name, the name of what it is destructured from: `document` in `const { write } = document`.
+   * The name just before the dot: `document` in `document.write`, `window.document.write`, `window['document'].write` and
+   * `document['write']`. For a destructured name, the name of what it is destructured from: `document` in
+   * `const { write } = document`.
    */
   receiver: string | null
   line: number
 }
 
-function receiverName(expression: ts.Expression): string | null {
+/** The expression inside parentheses, `!`, a cast and a comma: `(0, fetch as typeof fetch)` is `fetch`. */
+function unwrap(expression: ts.Expression): ts.Expression {
   let e = expression
-  while (ts.isParenthesizedExpression(e) || ts.isNonNullExpression(e) || ts.isAsExpression(e)) e = e.expression
+  for (;;) {
+    if (ts.isParenthesizedExpression(e) || ts.isNonNullExpression(e) || ts.isAsExpression(e) || ts.isTypeAssertionExpression(e) || ts.isSatisfiesExpression(e)) e = e.expression
+    else if (ts.isBinaryExpression(e) && e.operatorToken.kind === ts.SyntaxKind.CommaToken) e = e.right
+    else return e
+  }
+}
+
+function receiverName(expression: ts.Expression): string | null {
+  const e = unwrap(expression)
   if (ts.isIdentifier(e)) return e.text
   if (ts.isPropertyAccessExpression(e)) return e.name.text
+  if (ts.isElementAccessExpression(e)) return literal(e.argumentExpression)
   return null
 }
 
@@ -190,8 +206,13 @@ function cloudAddressProblems(path: string, { sf }: Facts): string[] {
 /** Ways to open a connection the fetch rules can't see, and workers, which run outside the page's CSP. */
 const NETWORK_GLOBALS = new Set(['XMLHttpRequest', 'WebSocket', 'EventSource', 'importScripts', 'Worker', 'SharedWorker'])
 
-const isFetchCallee = (e: ts.Expression) => (ts.isIdentifier(e) && e.text === 'fetch') || (ts.isPropertyAccessExpression(e) && e.name.text === 'fetch') ||
-  (ts.isElementAccessExpression(e) && literal(e.argumentExpression) === 'fetch')
+/** The name a callee or constructor goes by: `fetch`, `window.fetch`, `window['fetch']` and `(0, fetch as typeof fetch)` are all "fetch". */
+function calleeName(callee: ts.Expression): string | null {
+  const e = unwrap(callee)
+  return ts.isIdentifier(e) ? e.text : ts.isPropertyAccessExpression(e) ? e.name.text : ts.isElementAccessExpression(e) ? literal(e.argumentExpression) : null
+}
+
+const isFetchCallee = (e: ts.Expression) => calleeName(e) === 'fetch'
 
 /** Every call to fetch in a file: `fetch(…)`, or `.fetch(…)` on anything, as the rules judge them. */
 export function fetchCalls(sf: ts.SourceFile): ts.CallExpression[] {
@@ -238,10 +259,11 @@ function networkProblems(path: string, { sf, refs }: Facts): string[] {
   for (const r of refs) {
     if (r.name === 'sendBeacon') found.push(`${path}:${r.line} uses sendBeacon, which POSTs`)
     else if (r.name === 'serviceWorker') found.push(`${path}:${r.line} uses serviceWorker, which runs a script the CSP does not reach into`)
+    else if (NETWORK_GLOBALS.has(r.name)) found.push(`${path}:${r.line} uses ${r.name}`) // window['WebSocket'] has no identifier to see
   }
   walk(sf, (n) => {
     if (ts.isIdentifier(n) && NETWORK_GLOBALS.has(n.text)) found.push(`${path}:${lineOf(sf, n)} uses ${n.text}`)
-    else if (ts.isNewExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'Request') {
+    else if (ts.isNewExpression(n) && calleeName(n.expression) === 'Request') {
       found.push(`${path}:${lineOf(sf, n)} constructs a Request; the site's fetches are plain calls it can check`)
     } else if (ts.isCallExpression(n) && isFetchCallee(n.expression) && path !== DOOR_MODULE) {
       const problem = fetchProblem(n)
@@ -249,39 +271,49 @@ function networkProblems(path: string, { sf, refs }: Facts): string[] {
       if (problem) found.push(`${path}:${lineOf(sf, n)} calls fetch ${problem}; only ${DOOR_MODULE} may send more than a plain GET`)
     }
   })
-  return found
+  return [...new Set(found)] // a set, because window.Worker is both a member and an identifier
 }
 
 // ---------- HTML injection ----------
 
-/**
- * Members and attributes that turn text into markup, which Preact would have escaped. HTML attribute names aren't
- * case-sensitive, so srcDoc, the spelling React-style JSX uses, sets the same attribute as srcdoc.
- */
+/** Members and attributes that turn text into markup, which Preact would have escaped. */
 const HTML_SINKS = new Set([
   'innerHTML', 'outerHTML', 'insertAdjacentHTML', 'dangerouslySetInnerHTML',
-  'setHTMLUnsafe', 'parseHTMLUnsafe', 'createContextualFragment', 'srcdoc', 'srcDoc',
+  'setHTMLUnsafe', 'parseHTMLUnsafe', 'createContextualFragment', 'srcdoc',
 ])
+const HTML_SINKS_LOWER = new Set([...HTML_SINKS].map((name) => name.toLowerCase()))
+/**
+ * A sink used as a member, an object key or a JSX attribute. srcdoc is an HTML attribute, and attribute names aren't
+ * case-sensitive, so srcDoc (how React-style JSX spells it) and SRCDOC set it too; the others are JavaScript names.
+ */
+const isSink = (name: string) => HTML_SINKS.has(name) || name.toLowerCase() === 'srcdoc'
+/** A string that is exactly a sink's name, in any case: `setAttribute('SRCDOC', s)`, `Reflect.set(el, 'innerHTML', s)`. */
+const isSinkString = (text: string) => HTML_SINKS_LOWER.has(text.toLowerCase())
+/** What write and writeln are called on to write into a document: the page's, an iframe's, or an element's own. */
+const DOCUMENTS = new Set(['document', 'contentDocument', 'ownerDocument'])
 const DOCUMENT_WRITES = new Set(['write', 'writeln'])
 
 /**
  * A sink used as a member of anything, as a key in an object literal, as an attribute in JSX, or named by a string that is
- * exactly its name (`Reflect.set(el, 'innerHTML', s)`, `el[k]` with `const k = 'innerHTML'`, `setAttribute('srcdoc', s)`);
- * prose that merely mentions a sink isn't exactly its name, so it passes. And document.write or document.writeln used at
- * all, not only called: `.call`, `.apply`, `.bind`, `(0, document.write)(s)` and `const w = document.write` reach it too.
+ * exactly its name. Prose that merely mentions a sink isn't exactly its name, so it passes; and neither does a name in a
+ * type (`Omit<Props, 'dangerouslySetInnerHTML'>`, `HTMLElement['innerHTML']`), which is erased. And write or writeln on a
+ * document used at all, not only called: `.call`, `.apply`, `.bind`, `(0, document.write)(s)` and `const w = document.write`
+ * reach it too. A document is `document`, an iframe's `contentDocument` or an element's `ownerDocument`, however it is
+ * reached: `window['document']`.
  */
 function htmlProblems(path: string, { sf, refs }: Facts): string[] {
   const found = new Set<string>() // a set, because a sink named in brackets is both a member and a string
   const flag = (what: string, line: number) => found.add(`${path}:${line} injects HTML with ${what}; Preact escapes text, keep it that way`)
   for (const r of refs) {
-    if (HTML_SINKS.has(r.name)) flag(r.name, r.line)
-    else if (DOCUMENT_WRITES.has(r.name) && r.receiver === 'document') flag(`document.${r.name}`, r.line)
+    if (isSink(r.name)) flag(r.name, r.line)
+    else if (DOCUMENT_WRITES.has(r.name) && r.receiver !== null && DOCUMENTS.has(r.receiver)) flag(`${r.receiver}.${r.name}`, r.line)
   }
   walk(sf, (n) => {
     // `Object.assign(el, { innerHTML: html })` and `<div innerHTML={html} />` set the same member as `el.innerHTML = html`.
     const key = ts.isPropertyAssignment(n) || ts.isShorthandPropertyAssignment(n) || ts.isJsxAttribute(n) ? n.name : null
-    if (key && (ts.isIdentifier(key) || ts.isStringLiteralLike(key)) && HTML_SINKS.has(key.text)) flag(key.text, lineOf(sf, n))
-    if (ts.isStringLiteralLike(n) && HTML_SINKS.has(n.text)) flag(n.text, lineOf(sf, n))
+    if (key && (ts.isIdentifier(key) || ts.isStringLiteralLike(key)) && isSink(key.text)) flag(key.text, lineOf(sf, key))
+    // `Reflect.set(el, 'innerHTML', s)`, `el[k]` with `const k = 'innerHTML'`, `setAttribute('srcdoc', s)`. A name in a type is erased.
+    if (ts.isStringLiteralLike(n) && !ts.isLiteralTypeNode(n.parent) && isSinkString(n.text)) flag(n.text, lineOf(sf, n))
   })
   return [...found]
 }

@@ -74,6 +74,7 @@ const BYPASSES: Array<[string, string, string, RegExp]> = [
   // GitHub Pages sends none.
   ['a Worker', 'src/data/Raw.ts', `export const w = () => new Worker('/w.js')`, /uses Worker/],
   ['a Worker through window', 'src/data/Raw.ts', `export const w = () => new window.Worker('/w.js')`, /uses Worker/],
+  ['a Worker named by a bracket', 'src/data/Raw.ts', `export const w = () => new globalThis['Worker']('/w.js')`, /uses Worker/],
   ['a SharedWorker', 'src/data/Raw.ts', `export const w = () => new SharedWorker('/w.js')`, /uses SharedWorker/],
   ['a service worker', 'src/data/Raw.ts', `export const sw = () => navigator.serviceWorker.register('/sw.js')`, /uses serviceWorker/],
   ['a service worker named by a bracket', 'src/data/Raw.ts', `export const sw = () => navigator['serviceWorker']`, /uses serviceWorker/],
@@ -93,6 +94,16 @@ const BYPASSES: Array<[string, string, string, RegExp]> = [
   ['XMLHttpRequest', 'src/data/Raw.ts', `export const x = () => new XMLHttpRequest()`, /XMLHttpRequest/],
   ['sendBeacon', 'src/data/Raw.ts', `export const b = (url: string) => navigator.sendBeacon(url, 'x')`, /sendBeacon/],
   ['a WebSocket', 'src/data/Raw.ts', `export const s = (url: string) => new WebSocket(url)`, /WebSocket/],
+  ['an EventSource', 'src/data/Raw.ts', `export const e = (url: string) => new EventSource(url)`, /uses EventSource/],
+  ['importScripts', 'src/data/Raw.ts', `export const i = () => importScripts('/x.js')`, /uses importScripts/],
+  ['XMLHttpRequest named by a bracket', 'src/data/Raw.ts', `export const x = () => new window['XMLHttpRequest']()`, /uses XMLHttpRequest/],
+  ['a WebSocket named by a bracket', 'src/data/Raw.ts', `export const s = (url: string) => new window['WebSocket'](url)`, /uses WebSocket/],
+  ['importScripts named by a bracket', 'src/data/Raw.ts', `export const i = () => self['importScripts']('/x.js')`, /uses importScripts/],
+  ['a Request built through window', 'src/data/Raw.ts', `export const go = (url: string) => fetch(new window.Request(url, { method: 'PATCH' }))`, /constructs a Request/],
+  ['a Request built through a bracket', 'src/data/Raw.ts', `export const go = (url: string) => fetch(new window['Request'](url, { method: 'PATCH' }))`, /constructs a Request/],
+  ['a Request built behind parentheses', 'src/data/Raw.ts', `export const go = (url: string) => fetch(new (window['Request'])(url, { method: 'PATCH' }))`, /constructs a Request/],
+  ['a raw fetch behind a cast', 'src/data/Raw.ts', `export const go = (url: string) => (fetch as typeof fetch)(url, { method: 'POST', body: '{}' })`, /fetch with method POST and with a body/],
+  ['a raw fetch behind parentheses and a comma', 'src/data/Raw.ts', `export const go = (url: string) => (0, window.fetch)(url, { method: 'DELETE' })`, /fetch with method DELETE/],
 
   // Code the import graph can't follow, or that loads from outside the site.
   ['an import from a CDN', 'src/data/Cdn.ts', `export const load = () => import('https://esm.sh/@supabase/supabase-js')`, /imports https:/],
@@ -108,8 +119,8 @@ describe('the source rules catch the ways around the partner door', () => {
 })
 
 // Every place text can become markup, which Preact would have escaped: a sink used as a member of anything, as a key in an
-// object literal, as an attribute in JSX, or named by a string that is exactly its name; and document.write and
-// document.writeln, however they're reached.
+// object literal, as an attribute in JSX, or named by a string that is exactly its name, in any case; and document.write
+// and document.writeln, on any document and however they're reached.
 const HTML_SINKS: Array<[string, string, string]> = [
   ['innerHTML assigned', 'src/ui/Html.ts', `export const html = (el: HTMLElement) => { el.innerHTML = '<b>x</b>' }`],
   ['outerHTML assigned', 'src/ui/Html.ts', `export const html = (el: HTMLElement) => { el.outerHTML = '<b>x</b>' }`],
@@ -133,6 +144,9 @@ const HTML_SINKS: Array<[string, string, string]> = [
   ['a sink named by a constant used as the key', 'src/ui/Html.ts', `const k = 'innerHTML'\nexport const html = (el: any, s: string) => { el[k] = s }`],
   ['srcdoc set as an attribute', 'src/ui/Frame.ts', `export const frame = (f: HTMLIFrameElement, s: string) => f.setAttribute('srcdoc', s)`],
   ['a sink named by a template with no holes', 'src/ui/Html.ts', 'export const html = (el: HTMLElement, s: string) => Reflect.set(el, `outerHTML`, s)'],
+  ['a sink named in other capitals in a string', 'src/ui/Html.ts', `export const html = (el: object, s: string) => Reflect.set(el, 'InnerHTML', s)`],
+  ['srcdoc in capitals set as an attribute', 'src/ui/Frame.ts', `export const frame = (f: HTMLIFrameElement, s: string) => f.setAttribute('SRCDOC', s)`],
+  ['SRCDOC in JSX', 'src/ui/Frame.tsx', `export const Frame = (p: { html: string }) => <iframe SRCDOC={p.html} />`],
   ['document.write', 'src/ui/Doc.ts', `export const html = (s: string) => document.write(s)`],
   ['document.writeln', 'src/ui/Doc.ts', `export const html = (s: string) => document.writeln(s)`],
   ['document.write through window', 'src/ui/Doc.ts', `export const html = (s: string) => window.document.write(s)`],
@@ -143,6 +157,10 @@ const HTML_SINKS: Array<[string, string, string]> = [
   ['document.write through a comma expression', 'src/ui/Doc.ts', `export const html = (s: string) => (0, document.write)(s)`],
   ['document.write held in a variable', 'src/ui/Doc.ts', `const w = document.write\nexport const html = (s: string) => w.call(document, s)`],
   ['document.write destructured from the document', 'src/ui/Doc.ts', `const { write } = document\nexport const html = (s: string) => write.call(document, s)`],
+  ['document.write on a document behind a cast', 'src/ui/Doc.ts', `export const html = (s: string) => (document as Document).write(s)`],
+  ['document.write on an iframe contentDocument', 'src/ui/Doc.ts', `export const html = (f: HTMLIFrameElement, s: string) => f.contentDocument?.write(s)`],
+  ['document.write on an element ownerDocument', 'src/ui/Doc.ts', `export const html = (el: Element, s: string) => el.ownerDocument.write(s)`],
+  ['document.write on a document named by a bracket', 'src/ui/Doc.ts', `export const html = (s: string) => window['document'].write(s)`],
 ]
 
 describe('the source rules catch every way text becomes markup', () => {
@@ -169,12 +187,26 @@ describe('the source rules leave ordinary code alone', () => {
     ['write on something that is not the document', 'src/ui/Log.ts', `export const log = (out: { write(s: string): void }) => out.write('x')`],
     ['the Supabase docs and status page, which are supabase.com and not Crewlu Cloud', 'src/ui/Notes.ts', `export const links = ['https://supabase.com/docs', 'https://status.supabase.com']`],
     ['a label that only starts with a sink name', 'src/ui/Notes.ts', `export const label = 'srcdoc frame'`],
+    ['a label in capitals that only starts with a sink name', 'src/ui/Notes.ts', `export const label = 'SRCDOC frame'`],
+    ['a Preact wrapper typed with Omit, which names dangerouslySetInnerHTML only in a type', 'src/ui/Wrapper.ts', `import type { JSX } from 'preact'\nexport type Props = Omit<JSX.HTMLAttributes<HTMLDivElement>, 'dangerouslySetInnerHTML'>`],
+    ['a type that is a union of member names', 'src/ui/Keys.ts', `export type K = 'innerHTML' | 'textContent'`],
+    ['an indexed access type', 'src/ui/Types.ts', `export type Html = HTMLElement['innerHTML']`],
     ['a sentence that only contains a sink name', 'src/ui/Notes.ts', `export const note = 'never set el.innerHTML'`],
     ['write.call on something that is not the document', 'src/ui/Log.ts', `export const log = (out: { write(s: string): void }) => out.write.call(out, 'x')`],
     ['a variable called worker, and Workers in prose', 'src/ui/Notes.ts', `export const worker = 1\nexport const note = 'Workers are not allowed'`],
     ['the partner door module, which sends its POSTs through the door guard', 'src/partner/door.ts', `export const go = (url: string, init: RequestInit) => fetch(url, init)`],
   ])('%s', (_name, path, code) => {
     expect(violations(path, code)).toEqual([])
+  })
+
+  it('flags the runtime string, and not the type on the line above that names the same sink', () => {
+    const code = `export type K = 'innerHTML' | 'textContent'\nexport const set = (el: object, s: string) => Reflect.set(el, 'innerHTML', s)`
+    expect(violations('src/ui/Html.ts', code)).toEqual([expect.stringMatching(/^src\/ui\/Html\.ts:2 injects HTML with innerHTML/)])
+  })
+
+  it('says a problem once, even when two of the rules see it', () => {
+    expect(violations('src/data/Raw.ts', `export const w = () => new window.Worker('/w.js')`)).toHaveLength(1) // an identifier and a member
+    expect(violations('src/ui/Html.ts', `export const html = (el: HTMLElement) => { el['innerHTML'] = 'x' }`)).toHaveLength(1) // a member and a string
   })
 })
 
