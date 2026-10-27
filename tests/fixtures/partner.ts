@@ -36,15 +36,29 @@ export function memoryStorage(): KeyValueStore & { data: Map<string, string> } {
   }
 }
 
+/** A partner's most devices (private.create_device). */
+const MAX_DEVICES = 10
+
 /**
- * An in-memory partner door with Crewlu Cloud's rules (partner-api.md and private.create_device): an invite or a code
- * names a partner; a key is one partner's device, and the same key with the same partner answers with the same
- * device; each partner's summary has an updated_at. Tests fill `invites`, `codes` and `summaries`, read `devices`
- * (key → partner) and `calls`, and set `network.down`, or `network.loseNext` to lose the next answer after its work is done.
+ * An in-memory partner door with Crewlu Cloud's rules (partner-api.md, and private.create_device and
+ * partner_handoff_redeem in the partner RPCs' migration):
+ * - an invite or a code names a partner;
+ * - a key is one partner's device: the same key with the same partner answers with the same device, and a key another
+ *   partner's device has answers key_in_use;
+ * - a partner has 10 devices at most, after which a new one answers too_many_devices;
+ * - a code works once. The device that used it gets the same answer again with the same key, as after a lost answer,
+ *   and any other key gets sharing_ended. key_in_use and too_many_devices leave the code unused. (Codes don't expire
+ *   here, and failures don't pause redemption: no test needs a clock.)
+ * - each partner's summary has an updated_at.
+ *
+ * Tests fill `invites`, `codes` and `summaries`, read `devices` (key → partner) and `calls`, and set `network.down`, or
+ * `network.loseNext` to lose the next answer after its work is done.
  */
 export function fakeDoor() {
   const invites = new Map<string, string>()
   const codes = new Map<string, string>()
+  // The key of the device that used each code, once one has (partner_handoffs.used_by_device).
+  const usedBy = new Map<string, string>()
   const summaries = new Map<string, { updatedAt: string; status: unknown }>()
   const devices = new Map<string, string>()
   const calls: string[] = []
@@ -62,8 +76,20 @@ export function fakeDoor() {
     if (!partner) return { error: 'sharing_ended' }
     const has = devices.get(key)
     if (has && has !== partner) return { error: 'key_in_use' }
+    if (!has && [...devices.values()].filter((p) => p === partner).length >= MAX_DEVICES) return { error: 'too_many_devices' }
     devices.set(key, partner)
     return { deviceId: `device-${key.slice(-4)}`, partnerId: partner }
+  }
+  const redeemed = (code: string, key: string): Joined | Refused => {
+    const partner = codes.get(code)
+    const user = usedBy.get(code)
+    if (user !== undefined) {
+      // Used: only the device that used it, still there, gets its answer again.
+      return user === key && partner !== undefined && devices.get(key) === partner ? device(partner, key) : { error: 'sharing_ended' }
+    }
+    const answer = device(partner, key)
+    if (!('error' in answer)) usedBy.set(code, key)
+    return answer
   }
   const viewed = (key: string, since: string | null): Viewed | Refused => {
     const partner = devices.get(key)
@@ -84,7 +110,7 @@ export function fakeDoor() {
     async redeem(code, key, label) {
       calls.push(`redeem ${code} ${key} ${label}`)
       reach()
-      const answer = device(codes.get(code), key)
+      const answer = redeemed(code, key)
       lose()
       return answer
     },

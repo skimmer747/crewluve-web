@@ -58,13 +58,17 @@ describe('joining, in a browser that follows no one (piece 5a §4.3)', () => {
     expect(f.calls[0]).toBe(`redeem AB2C3D ${key(1)} Chrome on Mac`)
   })
 
-  it('keeps the key when the answer is lost, so trying again gets the same device', async () => {
+  // A code works once, but the device that used it gets the same answer again with the same key.
+  it.each([
+    ['an invite link', INVITE_A],
+    ['a code', CODE_A],
+  ])('keeps the key when the answer is lost, so trying %s again gets the same device', async (_, link) => {
     const { f, store, options } = setUp()
     f.network.loseNext = true
-    expect(await joinWithLink(INVITE_A, options)).toEqual({ kind: 'failed', message: COULDNT_CONNECT })
+    expect(await joinWithLink(link, options)).toEqual({ kind: 'failed', message: COULDNT_CONNECT })
     expect(store.pendingKey()).toBe(key(1))
     expect(store.device()).toBeNull()
-    expect(await joinWithLink(INVITE_A, options)).toEqual({ kind: 'connected', newDevice: true })
+    expect(await joinWithLink(link, options)).toEqual({ kind: 'connected', newDevice: true })
     expect(store.device()).toEqual({ key: key(1), partnerId: PARTNER_A })
     expect(f.devices.size).toBe(1)
   })
@@ -193,6 +197,29 @@ describe('joining, in a browser that follows a pilot', () => {
     expect(f.devices.get(key(1))).toBe(SAM)
   })
 
+  it("can't retry a code whose answer was lost on the pending key, but a new code reaches the same device (spec §4.3)", async () => {
+    const { f, store, options } = await connectedToA()
+    f.codes.set('K7MQ2X', SAM).set('Q2XK7M', SAM) // two codes from Sam's partner
+    const first: PartnerLink = { kind: 'code', code: 'K7MQ2X' }
+    const redeem = f.door.redeem
+    f.door.redeem = async (code, k, label) => {
+      if (k === key(2)) f.network.loseNext = true // the pending key's answer is lost, after it used the code
+      return redeem(code, k, label)
+    }
+    expect(await joinWithLink(first, options)).toEqual({ kind: 'failed', message: COULDNT_CONNECT })
+    // A's device has the connected key, so that answered key_in_use, and the pending key used the code.
+    expect(f.calls).toEqual([`redeem K7MQ2X ${key(1)} Chrome on Mac`, `redeem K7MQ2X ${key(2)} Chrome on Mac`])
+    expect([store.device(), store.pendingKey()]).toEqual([{ key: key(1), partnerId: PARTNER_A }, key(2)])
+    f.door.redeem = redeem
+    // The retry sends the connected key first, and the server has the code as used by another device: it's refused.
+    expect(await joinWithLink(first, options)).toMatchObject({ kind: 'failed', message: { title: 'Code Not Working' } })
+    expect(last(f.calls)).toBe(`redeem K7MQ2X ${key(1)} Chrome on Mac`)
+    // A new code from the pilot reaches the same device, through the kept pending key.
+    expect(await joinWithLink({ kind: 'code', code: 'Q2XK7M' }, options)).toEqual({ kind: 'connected', newDevice: true })
+    expect(store.device()).toEqual({ key: key(2), partnerId: SAM })
+    expect([...f.devices].filter(([, partner]) => partner === SAM)).toEqual([[key(2), SAM]])
+  })
+
   it('keeps its own key when the answer to it is lost, making no pending key', async () => {
     const { f, store, options } = await connectedToA()
     f.network.loseNext = true
@@ -289,6 +316,15 @@ describe('what a partner is told (piece 5a §4.4)', () => {
     const { f, options } = setUp()
     f.door.redeem = async () => ({ error })
     expect(await joinWithLink(CODE_A, options)).toMatchObject({ kind: 'failed', message: { title } })
+  })
+
+  it('says Too Many Devices for a partner that has 10, and the code still works once one is gone', async () => {
+    const { f, store, options } = setUp()
+    for (let n = 101; n <= 110; n++) f.devices.set(key(n), PARTNER_A)
+    expect(await joinWithLink(CODE_A, options)).toMatchObject({ kind: 'failed', message: { title: 'Too Many Devices' } })
+    f.devices.delete(key(101)) // the pilot removed one in CrewLu
+    expect(await joinWithLink(CODE_A, options)).toEqual({ kind: 'connected', newDevice: true })
+    expect(store.device()).toEqual({ key: key(1), partnerId: PARTNER_A })
   })
 
   it("can't connect with no network, and keeps the pending key for the next try", async () => {
