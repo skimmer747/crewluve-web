@@ -32,12 +32,13 @@ jobs:
       - run: npm test
       - run: npm run build
       # What /join sends invite links to is the built page: join.html for /join, and 404.html for the other unknown paths,
-      # both exact copies of index.html, with the Safari banner tag and the CSP. A deploy without them fails here.
+      # both exact copies of index.html, with the Safari banner tag and the CSP. A deploy without them fails here, and the
+      # log says which check failed: grep -q prints nothing, so each line names itself.
       - run: |
-          cmp dist/index.html dist/join.html
-          cmp dist/index.html dist/404.html
-          grep -q 'name="apple-itunes-app"' dist/join.html
-          grep -q 'http-equiv="Content-Security-Policy"' dist/join.html
+          cmp dist/index.html dist/join.html || { echo "::error::dist/join.html isn't a copy of dist/index.html"; exit 1; }
+          cmp dist/index.html dist/404.html || { echo "::error::dist/404.html isn't a copy of dist/index.html"; exit 1; }
+          grep -q 'name="apple-itunes-app"' dist/join.html || { echo "::error::dist/join.html has no Safari banner tag"; exit 1; }
+          grep -q 'http-equiv="Content-Security-Policy"' dist/join.html || { echo "::error::dist/join.html has no Content-Security-Policy tag"; exit 1; }
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
