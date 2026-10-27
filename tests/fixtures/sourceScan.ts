@@ -7,14 +7,17 @@
 //   - a string that names a Crewlu Cloud address, anywhere but src/cloud.ts, the door and its guard;
 //   - a fetch with a body or a method other than GET and HEAD, and Request, XMLHttpRequest, WebSocket, EventSource,
 //     importScripts and sendBeacon (the door module may fetch; tests/data/readOnly.test.ts pins what it sends);
-//   - the members and attributes that turn text into markup (innerHTML and the like), and document.write.
+//   - Worker, SharedWorker and navigator.serviceWorker: the CSP doesn't reach inside a worker, because a worker served
+//     from the site takes its CSP from its own response headers, and GitHub Pages sends none;
+//   - the members, attributes and names that turn text into markup (innerHTML, srcdoc and the like), and document.write.
 // They parse with the TypeScript compiler instead of matching text, so a comment or a string can't fake a call, and line
 // breaks, bracket access (`el['innerHTML']`) and spacing can't hide one.
 //
-// What they cannot see: an aliased fetch (`const f = fetch`), `fetch.call` or `Reflect.apply`, a computed member name
-// (`el[name]`), an address built from pieces, and a third-party HTTP client. The browser is the backstop for those: the
-// CSP's connect-src (vite.config.ts) lists the four partner RPC addresses, so the browser itself refuses any other
-// request to Crewlu Cloud.
+// What they cannot see: for the network, an aliased fetch (`const f = fetch`), `fetch.call` or `Reflect.apply`, an
+// address built from pieces, and a third-party HTTP client; for markup, an alias of the document (`const d = document`);
+// and for both, a computed member name (`el[name]`). The browser is the backstop, through the CSP in vite.config.ts. For
+// the network gaps it is connect-src, which lists the four partner RPC addresses, so the browser itself refuses a request
+// to any other address. For the HTML gaps it is script-src, which allows no inline script, so markup that gets in can't run.
 import { existsSync, readdirSync, statSync } from 'node:fs'
 import { join, posix, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -116,10 +119,11 @@ export function importersOf(target: string, sources: Record<string, string>): Ar
 
 interface MemberRef {
   name: string
-  /** The name just before the dot: `document` in `document.write`, `window.document.write` and `document['write']`. */
+  /**
+   * The name just before the dot: `document` in `document.write`, `window.document.write` and `document['write']`. For a
+   * destructured name, the name of what it is destructured from: `document` in `const { write } = document`.
+   */
   receiver: string | null
-  /** The member is called (`a.name(...)`), not just read (`a.name`). */
-  isCall: boolean
   line: number
 }
 
@@ -134,15 +138,15 @@ function receiverName(expression: ts.Expression): string | null {
 /** Every `.name` and `['name']` in the file, called or not, and every `{ name }` destructured from an object. */
 function memberRefs(sf: ts.SourceFile): MemberRef[] {
   const refs: MemberRef[] = []
-  const called = (n: ts.Node) => ts.isCallExpression(n.parent) && n.parent.expression === n
   walk(sf, (n) => {
     if (ts.isPropertyAccessExpression(n)) {
-      refs.push({ name: n.name.text, receiver: receiverName(n.expression), isCall: called(n), line: lineOf(sf, n) })
+      refs.push({ name: n.name.text, receiver: receiverName(n.expression), line: lineOf(sf, n) })
     } else if (ts.isElementAccessExpression(n) && ts.isStringLiteralLike(n.argumentExpression)) {
-      refs.push({ name: n.argumentExpression.text, receiver: receiverName(n.expression), isCall: called(n), line: lineOf(sf, n) })
+      refs.push({ name: n.argumentExpression.text, receiver: receiverName(n.expression), line: lineOf(sf, n) })
     } else if (ts.isBindingElement(n) && ts.isObjectBindingPattern(n.parent)) {
       const key = n.propertyName ?? n.name
-      if (ts.isIdentifier(key) || ts.isStringLiteralLike(key)) refs.push({ name: key.text, receiver: null, isCall: false, line: lineOf(sf, n) })
+      const source = ts.isVariableDeclaration(n.parent.parent) ? n.parent.parent.initializer : undefined
+      if (ts.isIdentifier(key) || ts.isStringLiteralLike(key)) refs.push({ name: key.text, receiver: source ? receiverName(source) : null, line: lineOf(sf, n) })
     }
   })
   return refs
@@ -163,8 +167,11 @@ function factsOf(path: string, code: string): Facts {
 
 // ---------- Crewlu Cloud addresses ----------
 
-/** The project's host, or a path only Crewlu Cloud serves: its tables (/rest/v1/), sign-in, functions, storage and realtime. */
-const CLOUD_ADDRESS = /supabase\.co|\/(rest|auth|functions|storage|realtime)\/v1\b/
+/**
+ * The project's host, or a path only Crewlu Cloud serves: its tables (/rest/v1/), sign-in, functions, storage, realtime and
+ * GraphQL (which reads tables too). The host ends at a word boundary, so supabase.com's docs and status page aren't taken for it.
+ */
+const CLOUD_ADDRESS = /supabase\.co\b|\/(rest|auth|functions|storage|realtime|graphql)\/v1\b/
 
 /** Every string in the file that names a Crewlu Cloud address, unless the file is one of the three that may. */
 function cloudAddressProblems(path: string, { sf }: Facts): string[] {
@@ -182,7 +189,8 @@ function cloudAddressProblems(path: string, { sf }: Facts): string[] {
 
 // ---------- raw network access ----------
 
-const NETWORK_GLOBALS = new Set(['XMLHttpRequest', 'WebSocket', 'EventSource', 'importScripts'])
+/** Ways to open a connection the fetch rules can't see, and workers, which run outside the page's CSP. */
+const NETWORK_GLOBALS = new Set(['XMLHttpRequest', 'WebSocket', 'EventSource', 'importScripts', 'Worker', 'SharedWorker'])
 
 const isFetchCallee = (e: ts.Expression) => (ts.isIdentifier(e) && e.text === 'fetch') || (ts.isPropertyAccessExpression(e) && e.name.text === 'fetch') ||
   (ts.isElementAccessExpression(e) && literal(e.argumentExpression) === 'fetch')
@@ -229,7 +237,10 @@ function fetchProblem(call: ts.CallExpression): string | null {
 
 function networkProblems(path: string, { sf, refs }: Facts): string[] {
   const found: string[] = []
-  for (const r of refs) if (r.name === 'sendBeacon') found.push(`${path}:${r.line} uses sendBeacon, which POSTs`)
+  for (const r of refs) {
+    if (r.name === 'sendBeacon') found.push(`${path}:${r.line} uses sendBeacon, which POSTs`)
+    else if (r.name === 'serviceWorker') found.push(`${path}:${r.line} uses serviceWorker, which runs a script the CSP does not reach into`)
+  }
   walk(sf, (n) => {
     if (ts.isIdentifier(n) && NETWORK_GLOBALS.has(n.text)) found.push(`${path}:${lineOf(sf, n)} uses ${n.text}`)
     else if (ts.isNewExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'Request') {
@@ -245,24 +256,36 @@ function networkProblems(path: string, { sf, refs }: Facts): string[] {
 
 // ---------- HTML injection ----------
 
-/** Members and attributes that turn text into markup, which Preact would have escaped. */
-const HTML_SINKS = new Set(['innerHTML', 'outerHTML', 'insertAdjacentHTML', 'dangerouslySetInnerHTML'])
+/**
+ * Members and attributes that turn text into markup, which Preact would have escaped. HTML attribute names aren't
+ * case-sensitive, so srcDoc, the spelling React-style JSX uses, sets the same attribute as srcdoc.
+ */
+const HTML_SINKS = new Set([
+  'innerHTML', 'outerHTML', 'insertAdjacentHTML', 'dangerouslySetInnerHTML',
+  'setHTMLUnsafe', 'parseHTMLUnsafe', 'createContextualFragment', 'srcdoc', 'srcDoc',
+])
 const DOCUMENT_WRITES = new Set(['write', 'writeln'])
 
-/** A use of a sink as a member of anything, as a key in an object literal or an attribute in JSX, and a call to document.write. */
+/**
+ * A sink used as a member of anything, as a key in an object literal, as an attribute in JSX, or named by a string that is
+ * exactly its name (`Reflect.set(el, 'innerHTML', s)`, `el[k]` with `const k = 'innerHTML'`, `setAttribute('srcdoc', s)`);
+ * prose that merely mentions a sink isn't exactly its name, so it passes. And document.write or document.writeln used at
+ * all, not only called: `.call`, `.apply`, `.bind`, `(0, document.write)(s)` and `const w = document.write` reach it too.
+ */
 function htmlProblems(path: string, { sf, refs }: Facts): string[] {
-  const found: string[] = []
-  const flag = (what: string, line: number) => found.push(`${path}:${line} injects HTML with ${what}; Preact escapes text, keep it that way`)
+  const found = new Set<string>() // a set, because a sink named in brackets is both a member and a string
+  const flag = (what: string, line: number) => found.add(`${path}:${line} injects HTML with ${what}; Preact escapes text, keep it that way`)
   for (const r of refs) {
     if (HTML_SINKS.has(r.name)) flag(r.name, r.line)
-    else if (r.isCall && DOCUMENT_WRITES.has(r.name) && r.receiver === 'document') flag(`document.${r.name}`, r.line)
+    else if (DOCUMENT_WRITES.has(r.name) && r.receiver === 'document') flag(`document.${r.name}`, r.line)
   }
   walk(sf, (n) => {
     // `Object.assign(el, { innerHTML: html })` and `<div innerHTML={html} />` set the same member as `el.innerHTML = html`.
     const key = ts.isPropertyAssignment(n) || ts.isShorthandPropertyAssignment(n) || ts.isJsxAttribute(n) ? n.name : null
     if (key && (ts.isIdentifier(key) || ts.isStringLiteralLike(key)) && HTML_SINKS.has(key.text)) flag(key.text, lineOf(sf, n))
+    if (ts.isStringLiteralLike(n) && HTML_SINKS.has(n.text)) flag(n.text, lineOf(sf, n))
   })
-  return found
+  return [...found]
 }
 
 // ---------- the per-file rules ----------

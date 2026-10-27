@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { importersOf, violations } from '../fixtures/sourceScan'
 
-// Ways around the partner door that code reviews found. Each must be flagged by a source rule; whatever the rules can't
-// see, the door guard refuses at the network (tests/partner/doorGuard.test.ts).
+// Ways around the partner door that code reviews found. Each must be flagged by a source rule. What the rules can't see
+// has two backstops. The door guard judges everything src/partner/door.ts sends (tests/partner/doorGuard.test.ts). For any
+// other request, the browser has the CSP's connect-src, which lists only the four RPC addresses (tests/viteConfig.test.ts).
 const BYPASSES: Array<[string, string, string, RegExp]> = [
   // A Supabase client: the site has none.
   ['a createClient from supabase-js', 'src/data/Client.ts', `import { createClient } from '@supabase/supabase-js'\nexport const db = createClient('https://example.supabase.co', 'key')`, /imports @supabase\/supabase-js/],
@@ -51,6 +52,12 @@ const BYPASSES: Array<[string, string, string, RegExp]> = [
     /names a Crewlu Cloud address/,
   ],
   [
+    'the GraphQL endpoint, which reads tables',
+    'src/ui/Graph.ts',
+    `import { SUPABASE_URL } from '../cloud'\nexport const ask = (query: string) => fetch(SUPABASE_URL + '/graphql/v1', { method: 'POST', body: query })`,
+    /names a Crewlu Cloud address/,
+  ],
+  [
     'a call to an RPC the door does not make',
     'src/ui/Call.ts',
     `import { SUPABASE_URL } from '../cloud'\nexport const call = () => fetch(SUPABASE_URL + '/rest/v1/rpc/delete_everything', { method: 'POST', body: '{}' })`,
@@ -62,6 +69,15 @@ const BYPASSES: Array<[string, string, string, RegExp]> = [
     'export const rpc = (base: string, name: string) => `${base}/rest/v1/rpc/${name}`',
     /names a Crewlu Cloud address/,
   ],
+
+  // Code the CSP doesn't reach into: a worker served from the site takes its CSP from its own response headers, and
+  // GitHub Pages sends none.
+  ['a Worker', 'src/data/Raw.ts', `export const w = () => new Worker('/w.js')`, /uses Worker/],
+  ['a Worker through window', 'src/data/Raw.ts', `export const w = () => new window.Worker('/w.js')`, /uses Worker/],
+  ['a SharedWorker', 'src/data/Raw.ts', `export const w = () => new SharedWorker('/w.js')`, /uses SharedWorker/],
+  ['a service worker', 'src/data/Raw.ts', `export const sw = () => navigator.serviceWorker.register('/sw.js')`, /uses serviceWorker/],
+  ['a service worker named by a bracket', 'src/data/Raw.ts', `export const sw = () => navigator['serviceWorker']`, /uses serviceWorker/],
+  ['a service worker destructured from the navigator', 'src/data/Raw.ts', `export const sw = () => { const { serviceWorker } = navigator; return serviceWorker }`, /uses serviceWorker/],
 
   // A request the door guard would refuse, sent some other way.
   ['a raw PATCH fetch', 'src/data/Raw.ts', `export const patch = (url: string) => fetch(url, { method: 'PATCH', body: '{}' })`, /fetch with method PATCH and with a body/],
@@ -91,8 +107,9 @@ describe('the source rules catch the ways around the partner door', () => {
   })
 })
 
-// Every place text can become markup, which Preact would have escaped: used as a member of anything, as a key in an
-// object literal, as an attribute in JSX, and the two document.write calls.
+// Every place text can become markup, which Preact would have escaped: a sink used as a member of anything, as a key in an
+// object literal, as an attribute in JSX, or named by a string that is exactly its name; and document.write and
+// document.writeln, however they're reached.
 const HTML_SINKS: Array<[string, string, string]> = [
   ['innerHTML assigned', 'src/ui/Html.ts', `export const html = (el: HTMLElement) => { el.innerHTML = '<b>x</b>' }`],
   ['outerHTML assigned', 'src/ui/Html.ts', `export const html = (el: HTMLElement) => { el.outerHTML = '<b>x</b>' }`],
@@ -105,10 +122,27 @@ const HTML_SINKS: Array<[string, string, string]> = [
   ['dangerouslySetInnerHTML as a key handed to h()', 'src/ui/Html.ts', `export const html = (h: Function, s: string) => h('div', { dangerouslySetInnerHTML: { __html: s } })`],
   ['dangerouslySetInnerHTML in JSX', 'src/ui/Raw.tsx', `export const Raw = (p: { html: string }) => <div dangerouslySetInnerHTML={{ __html: p.html }} />`],
   ['innerHTML in JSX', 'src/ui/Raw.tsx', `export const Raw = (p: { html: string }) => <div innerHTML={p.html} />`],
+  ['setHTMLUnsafe called', 'src/ui/Html.ts', `export const html = (el: HTMLElement, s: string) => (el as any).setHTMLUnsafe(s)`],
+  ['parseHTMLUnsafe called', 'src/ui/Html.ts', `export const html = (s: string) => (Document as any).parseHTMLUnsafe(s)`],
+  ['createContextualFragment called', 'src/ui/Html.ts', `export const html = (r: Range, s: string) => r.createContextualFragment(s)`],
+  ['srcdoc assigned', 'src/ui/Frame.ts', `export const frame = (f: HTMLIFrameElement, s: string) => { f.srcdoc = s }`],
+  ['srcdoc in JSX', 'src/ui/Frame.tsx', `export const Frame = (p: { html: string }) => <iframe srcdoc={p.html} />`],
+  ['srcDoc in JSX, as React spells it', 'src/ui/Frame.tsx', `export const Frame = (p: { html: string }) => <iframe srcDoc={p.html} />`],
+  ['srcdoc as a key handed to h()', 'src/ui/Frame.ts', `export const frame = (h: Function, s: string) => h('iframe', { srcdoc: s })`],
+  ['innerHTML set through Reflect.set', 'src/ui/Html.ts', `export const html = (el: HTMLElement, s: string) => Reflect.set(el, 'innerHTML', s)`],
+  ['a sink named by a constant used as the key', 'src/ui/Html.ts', `const k = 'innerHTML'\nexport const html = (el: any, s: string) => { el[k] = s }`],
+  ['srcdoc set as an attribute', 'src/ui/Frame.ts', `export const frame = (f: HTMLIFrameElement, s: string) => f.setAttribute('srcdoc', s)`],
+  ['a sink named by a template with no holes', 'src/ui/Html.ts', 'export const html = (el: HTMLElement, s: string) => Reflect.set(el, `outerHTML`, s)'],
   ['document.write', 'src/ui/Doc.ts', `export const html = (s: string) => document.write(s)`],
   ['document.writeln', 'src/ui/Doc.ts', `export const html = (s: string) => document.writeln(s)`],
   ['document.write through window', 'src/ui/Doc.ts', `export const html = (s: string) => window.document.write(s)`],
   ['document.write named by a bracket', 'src/ui/Doc.ts', `export const html = (s: string) => document['write'](s)`],
+  ['document.write through call', 'src/ui/Doc.ts', `export const html = (s: string) => document.write.call(document, s)`],
+  ['document.write through apply', 'src/ui/Doc.ts', `export const html = (s: string) => document.write.apply(document, [s])`],
+  ['document.write through bind', 'src/ui/Doc.ts', `export const html = (s: string) => document.write.bind(document)(s)`],
+  ['document.write through a comma expression', 'src/ui/Doc.ts', `export const html = (s: string) => (0, document.write)(s)`],
+  ['document.write held in a variable', 'src/ui/Doc.ts', `const w = document.write\nexport const html = (s: string) => w.call(document, s)`],
+  ['document.write destructured from the document', 'src/ui/Doc.ts', `const { write } = document\nexport const html = (s: string) => write.call(document, s)`],
 ]
 
 describe('the source rules catch every way text becomes markup', () => {
@@ -133,6 +167,11 @@ describe('the source rules leave ordinary code alone', () => {
     ['text in JSX that mentions innerHTML', 'src/ui/Notes.tsx', `export const Note = () => <p>never use innerHTML</p>`],
     ['text set as text, not as markup', 'src/ui/Text.ts', `export const set = (el: HTMLElement, s: string) => { el.textContent = s }`],
     ['write on something that is not the document', 'src/ui/Log.ts', `export const log = (out: { write(s: string): void }) => out.write('x')`],
+    ['the Supabase docs and status page, which are supabase.com and not Crewlu Cloud', 'src/ui/Notes.ts', `export const links = ['https://supabase.com/docs', 'https://status.supabase.com']`],
+    ['a label that only starts with a sink name', 'src/ui/Notes.ts', `export const label = 'srcdoc frame'`],
+    ['a sentence that only contains a sink name', 'src/ui/Notes.ts', `export const note = 'never set el.innerHTML'`],
+    ['write.call on something that is not the document', 'src/ui/Log.ts', `export const log = (out: { write(s: string): void }) => out.write.call(out, 'x')`],
+    ['a variable called worker, and Workers in prose', 'src/ui/Notes.ts', `export const worker = 1\nexport const note = 'Workers are not allowed'`],
     ['the partner door module, which sends its POSTs through the door guard', 'src/partner/door.ts', `export const go = (url: string, init: RequestInit) => fetch(url, init)`],
   ])('%s', (_name, path, code) => {
     expect(violations(path, code)).toEqual([])
