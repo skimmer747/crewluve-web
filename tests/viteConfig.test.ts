@@ -1,9 +1,10 @@
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { Plugin, PluginOption } from 'vite'
 import { describe, expect, it } from 'vitest'
 import { SUPABASE_URL } from '../src/cloud'
+import { DOOR_RPCS, doorFetch } from '../src/partner/doorGuard'
 import config from '../vite.config'
 
 /** Vite's plugin list can nest arrays (preact() returns several plugins), so search it recursively. */
@@ -44,8 +45,27 @@ describe('production CSP plugin', () => {
     expect(csp).not.toContain("'unsafe-inline'")
   })
 
-  it('lets the app reach the CrewLu Cloud project the partner door calls, and Open-Meteo for the weather, and nothing else', () => {
-    expect(injectCsp('<!--csp-->')).toContain(`connect-src 'self' ${SUPABASE_URL} https://api.open-meteo.com;`)
+  /** One directive of the policy, with its name: connect-src 'self' ... */
+  const directive = (name: string) => injectCsp('<!--csp-->').split('; ').find((d) => d.startsWith(`${name} `))
+
+  it('lets the page call the four partner RPCs and Open-Meteo for the weather, and nothing else', () => {
+    const rpcs = ['partner_join', 'partner_handoff_redeem', 'partner_view', 'partner_leave'].map((name) => `${SUPABASE_URL}/rest/v1/rpc/${name}`)
+    const connect = directive('connect-src')
+    expect(connect).toBe(`connect-src 'self' ${rpcs.join(' ')} https://api.open-meteo.com`)
+    // Not the project's own address, which would let the page reach its tables, sign-in, functions and storage.
+    expect(connect!.split(' ')).not.toContain(SUPABASE_URL)
+  })
+
+  it('lists the addresses the door guard lets through, one for each of its RPCs', async () => {
+    const sent: string[] = []
+    const guarded = doorFetch((async (input: RequestInfo | URL) => {
+      sent.push(String(input))
+      return new Response('{}')
+    }) as unknown as typeof fetch)
+    const listed = directive('connect-src')!.split(' ').filter((source) => source.startsWith(SUPABASE_URL))
+    expect(listed).toHaveLength(DOOR_RPCS.length)
+    for (const address of listed) await guarded(address, { method: 'POST' })
+    expect(sent).toEqual(listed)
   })
 })
 
@@ -59,9 +79,13 @@ describe('the /join page (piece 5a §4.1)', () => {
 
   it('is an exact copy of the built index.html, so it runs the same bundle under the same CSP', () => {
     const dir = mkdtempSync(join(tmpdir(), 'crewluve-join-'))
-    const built = '<!doctype html><meta http-equiv="Content-Security-Policy" content="x" /><script type="module" src="/assets/index-abc.js"></script>'
-    writeFileSync(join(dir, 'index.html'), built)
-    writeBundle({ dir })
-    expect(readFileSync(join(dir, 'join.html'), 'utf8')).toBe(built)
+    try {
+      const built = '<!doctype html><meta http-equiv="Content-Security-Policy" content="x" /><script type="module" src="/assets/index-abc.js"></script>'
+      writeFileSync(join(dir, 'index.html'), built)
+      writeBundle({ dir })
+      expect(readFileSync(join(dir, 'join.html'), 'utf8')).toBe(built)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 })
