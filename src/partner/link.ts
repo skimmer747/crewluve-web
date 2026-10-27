@@ -18,12 +18,17 @@ export function linkFromHash(hash: string): PartnerLink | null {
 }
 
 /**
- * The invite link in pasted text, which may be CrewLu's whole message ("Tap this link to see my status…"). Only the
- * letters and digits a link carries are read, so a full stop or a bracket after the link isn't taken as part of it.
+ * The invite link in pasted text, which may be CrewLu's whole message ("Tap this link to see my status…"). A link is
+ * read for just as long as the door makes it: an invite's token is always private.new_secret(16), 32 hex characters
+ * (in either case, lower-cased here), and a code is six letters or digits, tidied as linkFromHash tidies one. iOS can
+ * paste CrewLu's two shared items, the message and the link, glued together with no space between, so whatever follows
+ * the token or the code, a word, hex letters, a full stop or a bracket, isn't taken as part of it. A shorter token or
+ * code isn't a link, and the text goes on to the other rules.
  */
 export function linkFromText(text: string): PartnerLink | null {
-  const found = /(?:https?:\/\/)?crewluve\.crewlu\.net\/join\/?(#[tc]=[0-9a-z]+)/i.exec(text)
-  return found ? linkFromHash(found[1]) : null
+  const found = /(?:https?:\/\/)?crewluve\.crewlu\.net\/join\/?#(?:t=([0-9a-f]{32})|c=([0-9a-z]{6}))/i.exec(text)
+  if (!found) return null
+  return found[1] ? { kind: 'invite', invite: found[1].toLowerCase() } : linkFromHash(`#c=${found[2]}`)
 }
 
 /**

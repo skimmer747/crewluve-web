@@ -11,6 +11,8 @@ afterEach(() => {
 })
 
 const NOT_AN_INVITE_LINK = "Not an Invite Link That doesn't look like an invite link."
+/** A made-up invite token, 32 hex characters as the door's always are. */
+const TOKEN = '0123456789abcdef0123456789abcdef'
 
 /** Presses Connect. It has to be on by then: a button that never turned on would pass a test that only submits the form. */
 const connect = () => {
@@ -50,10 +52,20 @@ describe('Welcome (piece 5a §8)', () => {
     const onJoin = vi.fn()
     render(<Welcome message={null} ended={null} onJoin={onJoin} />)
     fireEvent.input(screen.getByLabelText('Paste Invite Link'), {
-      target: { value: 'Tap this link to see my status in Crewluve. https://crewluve.crewlu.net/join#t=abc123' },
+      target: { value: `Tap this link to see my status in Crewluve. https://crewluve.crewlu.net/join#t=${TOKEN}` },
     })
     connect()
-    expect(onJoin).toHaveBeenCalledWith({ kind: 'invite', invite: 'abc123' })
+    expect(onJoin).toHaveBeenCalledWith({ kind: 'invite', invite: TOKEN })
+  })
+
+  it("connects with CrewLu's link and message pasted glued together, as iOS can paste the two", () => {
+    const onJoin = vi.fn()
+    render(<Welcome message={null} ended={null} onJoin={onJoin} />)
+    fireEvent.input(screen.getByLabelText('Paste Invite Link'), {
+      target: { value: `https://crewluve.crewlu.net/join#t=${TOKEN}Tap this link to see my status in Crewluve.` },
+    })
+    connect()
+    expect(onJoin).toHaveBeenCalledWith({ kind: 'invite', invite: TOKEN })
   })
 
   it('says Not an Invite Link for pasted text with no link, and joins nothing', () => {
@@ -68,9 +80,9 @@ describe('Welcome (piece 5a §8)', () => {
   it("connects with an invite's bare token pasted on its own", () => {
     const onJoin = vi.fn()
     render(<Welcome message={null} ended={null} onJoin={onJoin} />)
-    fireEvent.input(screen.getByLabelText('Paste Invite Link'), { target: { value: '0123456789abcdef0123456789abcdef' } })
+    fireEvent.input(screen.getByLabelText('Paste Invite Link'), { target: { value: TOKEN } })
     connect()
-    expect(onJoin).toHaveBeenCalledWith({ kind: 'invite', invite: '0123456789abcdef0123456789abcdef' })
+    expect(onJoin).toHaveBeenCalledWith({ kind: 'invite', invite: TOKEN })
   })
 
   it.each(['K7M Q2X', 'k7m-q2x', 'K7MQ2X'])('connects with a bare code pasted as "%s", as Crewluve\'s paste box does', (text) => {
@@ -187,9 +199,9 @@ describe('Welcome (piece 5a §8)', () => {
     const onJoin = vi.fn()
     const { container } = render(<Welcome message={null} ended={null} onJoin={onJoin} />)
     const field = screen.getByLabelText('Code') as HTMLInputElement
-    fireEvent.input(field, { target: { value: 'https://crewluve.crewlu.net/join#t=abc123' } })
+    fireEvent.input(field, { target: { value: `https://crewluve.crewlu.net/join#t=${TOKEN}` } })
     expect(onJoin).toHaveBeenCalledTimes(1)
-    expect(onJoin).toHaveBeenCalledWith({ kind: 'invite', invite: 'abc123' })
+    expect(onJoin).toHaveBeenCalledWith({ kind: 'invite', invite: TOKEN })
     expect(field.value).toBe('')
     expect(boxes(container)).toEqual(['', '', '', '', '', ''])
   })
@@ -198,8 +210,8 @@ describe('Welcome (piece 5a §8)', () => {
     const onJoin = vi.fn()
     const { container } = render(<Welcome message={null} ended={null} onJoin={onJoin} />)
     const field = screen.getByLabelText('Code') as HTMLInputElement
-    fireEvent.input(field, { target: { value: '0123456789abcdef0123456789abcdef' } })
-    expect(onJoin.mock.calls).toEqual([[{ kind: 'invite', invite: '0123456789abcdef0123456789abcdef' }]])
+    fireEvent.input(field, { target: { value: TOKEN } })
+    expect(onJoin.mock.calls).toEqual([[{ kind: 'invite', invite: TOKEN }]])
     expect(field.value).toBe('')
     expect(boxes(container)).toEqual(['', '', '', '', '', ''])
   })
