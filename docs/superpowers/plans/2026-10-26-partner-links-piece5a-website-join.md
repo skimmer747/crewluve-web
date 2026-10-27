@@ -4359,6 +4359,7 @@ It prints a "Network" address, such as `http://192.168.1.20:5181/`. Keep it runn
 2. Add a person named **Web test**.
 3. Tap **Share Invite Link**, then **Copy**.
 4. Get the link to the Mac, for example by pasting it into a note.
+5. Also send it to yourself in Messages, and wait for its preview card. Expected: in CrewLu, **Web test** still lists no device. A preview mustn't join.
 
 - [ ] **Step 3 (the user): Join in Chrome and in Safari on the Mac**
 
@@ -4375,6 +4376,7 @@ It prints a "Network" address, such as `http://192.168.1.20:5181/`. Keep it runn
 1. Open the Network address from Step 1, with the link's `/join#t=…` on the end.
 2. Expected: your status.
 3. Safari's "Get the app" banner for Crewluve may show only on the real site. Step 10 checks it there.
+4. Tap Share, then **Add to Home Screen**, then open CrewLuve from the Home Screen. Note whether it shows your status or the welcome screen. iPhones may keep a Home Screen site's storage apart from Safari's. If it shows the welcome screen, the note "Add it to your Home Screen to keep it handy." needs new wording before the push.
 
 - [ ] **Step 5 (the user): A code from Crewluve**
 
@@ -4394,6 +4396,16 @@ On the iPhone, in Safari, at the Network address:
 5. Back in Safari, touch and hold the boxes, then tap **Paste**. Expected: **Paste** shows, and it connects as that partner.
 6. Disconnect again, make a new code, and type it, tapping the first box after the third letter. Expected: every letter goes on the end, and Backspace takes off the last one.
 
+If you can, also tap the invite link where an app opens it in its own browser:
+- from Gmail;
+- from a Meta app (Messenger, Instagram or Facebook).
+
+Try it on an iPhone with Crewluve, and on one without. Note:
+- whether Crewluve, Safari or the app's own browser opens it;
+- whether a device appears under **Web test**.
+
+A partner who joins inside an app's browser is connected only there.
+
 If there's an Android phone, in Chrome at the Network address:
 1. Disconnect, then type a new code in lower case, with a space after the third letter. Expected: capitals in the boxes, no space, and it connects on the sixth letter.
 2. Partway through another code, tap the first box, then type the rest. Expected: every letter goes on the end.
@@ -4405,6 +4417,12 @@ If there's an Android phone, in Chrome at the Network address:
 2. Expected: within 30 seconds, Chrome shows the welcome screen with "Sharing with {your name} has ended."
 
 If any step goes wrong, stop. Fix it under `superpowers:systematic-debugging`, then do the step again.
+
+Before the push, settle these with the user, from the reviews:
+- **Joining by itself, or a Connect button:**
+  - Today a link joins as soon as the page shows. An automated browser, such as a mail scanner, is skipped, and a page in the background waits until it's shown.
+  - A Connect button on every link would also stop scanners that pass as a person. It's one more tap for every partner.
+- **The Home Screen note's wording,** from Step 4.4, and its sense on a computer.
 
 - [ ] **Step 8: Push, with the user's fresh yes**
 
@@ -4430,6 +4448,8 @@ git push origin main
 `docs/superpowers/plans/2026-10-26-partner-links-piece2-release.md` stays untracked; don't add it.
 
 - [ ] **Step 9: Check the deploy and the live site**
+
+Browsers may show the old `/join` page for up to 10 minutes after the deploy, since Pages caches pages that long. Add `?cb=1` before the `#` to get past it.
 
 1. About three minutes after the push, check once:
 
@@ -4495,3 +4515,77 @@ Record:
 - the commit;
 - the device checks' results;
 - that the CrewLu wording above waits for the user in the release plan.
+
+---
+
+## Execution notes (2026-10-26)
+
+**How it was built:**
+- **Method:** subagent-driven, on `partner-links-piece5a`, cut from `main` at 1dc7184.
+- **Reviews:** each task had a spec review and a quality review. Their fixes are the "after review" commits, and fixes were re-reviewed until approved.
+- **Tests:** mutation checks confirmed the new tests fail when the behaviour they pin is removed.
+- **A whole-branch review** came last.
+
+**Commits, by task**
+
+| Task | Built | After review |
+|---|---|---|
+| 1, the summary reader | 4abbee3 | d5c14cd, ed2ae58 |
+| 2, the store | a877842 | c20054c |
+| 3, the converter | b0fb04a | 8948d49 |
+| 4, links, labels and messages | df2f33d | 9868954, 4cba69c |
+| 5, the door guard and the door | 21f48c2 | ec08b14, ad6e455, 0cf7139 |
+| 6, joining | 09ef8bc | ecbda44, 343adbb |
+| 7, refreshing | 8458b0e | f8833a6, cfa9332 |
+| 8, quick status, notice, waiting text | 5e1b261 | 9bff806, eb09d57 |
+| 9, welcome and connecting | 041614b | 0e7ab3e, 30a580b; Root test 91d40ee |
+| 10, the switch-over | 9ce6ae5 | 296c2b1, 8222847, 24b0e88 |
+| 11, the sign-in removed | e428d65 | e7fa4c6, c769cd7, 470b957, cd417b6, 3675e5f, b2d4e71, 1530be1 |
+| 12, `/join` is the app | 177f337 | 970c33d |
+| Docs | 689010a, beabc9b, and the commit that added these notes | |
+| The whole-branch review | | 44901e3, 509b66c, ef90100, 0de163e, 9b6342b |
+
+**What changed from the plan.** Each change is also in the spec's "Amended again" list.
+- **Joining (6):** a connected key that the pilot freed is demoted at once. An `unchanged` or unreadable first read is Couldn't Connect. Cancel doesn't wait.
+- **Refreshing (7):** the race check compares the partner too. An answer for another partner is followed, at most once per poll.
+- **The code field (9):**
+  - It's opaque, with transparent parts, so iOS keeps Paste.
+  - It's uncontrolled, so Android keyboards don't double letters.
+  - The caret stays at the end, while a selection the person made is kept.
+  - Pieces of a link are refused.
+  - A repeated problem is a new alert.
+  - The small labels and the error use the primary text color.
+- **Root (10):**
+  - Disconnect runs once at a time, and keeps a device a join connected while its leave was out.
+  - A followed door clears a stale line.
+  - One live region reads what changes.
+  - The demo clears the old sign-in.
+  - The join has a safety net.
+  - A link in the address joins only for a person: an automated browser skips it, and a hidden or prerendered page waits until it's shown.
+- **The source rules (11):**
+  - Only `src/cloud.ts`, the door and its guard know Crewlu Cloud's address.
+  - The client-era rules went.
+  - HTML sinks are found by parsing.
+  - Workers are refused.
+  - The CSP's `connect-src` lists the four RPC addresses.
+  - `rows.ts`'s `COLUMNS` and the footer's sign-out names went.
+  - The test files were renamed: `tests/data/readOnly.test.ts` is now `doorRules.test.ts`, and `readOnlyScan.test.ts` is now `doorRulesScan.test.ts`. The tasks above still use the old names.
+- **`/join` (12):**
+  - The build also writes `404.html`.
+  - It fails loudly without an output folder.
+  - The deploy compares the copies and checks the tags.
+  - The page has a `<noscript>` line.
+- **The whole-branch review:**
+  - The welcome screen says "No link yet? Ask your pilot to invite you from Settings → Partner Sharing in CrewLu."
+  - A browser that used the password sign-in is told once that it has ended.
+  - A bare code works in the paste box.
+  - Blocked site data says "Can't Stay Connected".
+  - The subtitle and "Connecting…" use the primary text color.
+  - The test fixtures' fake door uses codes up as the server does.
+- **Tests:**
+  - Fixtures read their files by path: under happy-dom, Vite rewrites `new URL('./x', import.meta.url)` as a web asset's address.
+  - happy-dom reports `navigator.webdriver` as true, so the Root tests stub it false.
+
+**Test count:** 2,467 before Task 10; 2,346 at the end. Task 11 took out the sign-in's 243 tests.
+
+**Task 13:** passed at b2d4e71 and again at 9b6342b. 2,346 tests passed, the build was clean, and `join.html` and `404.html` were the same as `index.html`. In the browser pane: the welcome screen, "Not an Invite Link", `/join` and `/join/` going to `/`, and the demo. There were no console errors, and the CSP blocked a table read.

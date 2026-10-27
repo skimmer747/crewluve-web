@@ -12,6 +12,7 @@
 - **Amended again:** 2026-10-26, from the code reviews while building:
   - §4.1: what pasted text yields;
   - §4.2: forgetting keeps a pending key;
+  - §4.1: `404.html`, the deploy's checks, and joining only for a person;
   - §4.3:
     - a connected key freed by the pilot is let go at once;
     - an unreadable or `unchanged` first read is Couldn't Connect;
@@ -20,7 +21,8 @@
   - §5: the races, and an answer for another partner, followed once per poll;
   - §6: delay bounds, UPSGND, and three more thin spots;
   - §7: the quick status's place, look and spacing;
-  - §8: links pasted into the boxes, the code field on phones, repeated alerts, and contrast;
+  - §4.4: blocked site data has its own message;
+  - §8: links pasted into the boxes, the code field on phones, repeated alerts, contrast, a way forward with no link, the note that the password sign-in ended, and a bare code in the paste box;
   - §9: the frozen list, the time limit, refused redirects, the source rules, and the CSP's four addresses;
   - §10: the column lists and the client-era rules go.
 - **Part of:** the partner-links design, `docs/superpowers/specs/2026-10-15-partner-links-design.md` (the umbrella): §5.2, §5.5, §6.2, §7.3 and §9 (piece 5).
@@ -61,6 +63,8 @@ A partner opens their invite link anywhere other than an iPhone or iPad with Cre
 ### 4.1 The `/join` page
 
 - The build writes `join.html` as an exact copy of the built `index.html`: the same bundle and the same CSP. `public/join.html` is deleted, and GitHub Pages serves the new file for `/join`.
+  - It writes `404.html` the same way, so `/join/` and other near misses run the app instead of GitHub's error page.
+  - The deploy compares the copies with `index.html` and checks the tags, so it can't ship without them.
 - The app reads the fragment on any path:
   - `#t=<invite>` joins with `partner_join`;
   - `#c=<code>` redeems with `partner_handoff_redeem`.
@@ -68,6 +72,11 @@ A partner opens their invite link anywhere other than an iPhone or iPad with Cre
   - A `/join` address with no link goes to `/` too.
   - Any other fragment stays, such as the Schedule page's `#schedule`.
   - A link pasted into the address bar while the page is open changes only the fragment, and joins too.
+- A link in the address joins only for a person:
+  - **An automated browser doesn't join** (`navigator.webdriver`): a mail scanner checking links would otherwise add a device under the partner each time, toward their 10, and use up a code.
+  - **A page in a background tab, or prerendered, waits until it's shown.**
+  - Messages' link previews run no script, so they don't join.
+  - A Connect button on every link would stop more, but would cost every partner a tap. That's the user's call before the push.
 - Pasted text yields only the link's own letters and digits (`#[tc]=[0-9a-z]+`), so a full stop or a bracket after the link isn't taken as part of it. A code from a link is tidied as Crewluve's `PartnerLink.code(from:)` tidies one: spaces and dashes go, it's upper-cased, and it must be six letters or digits.
 - `public/.well-known/apple-app-site-association` doesn't change. On an iPhone or iPad with Crewluve, the link still opens the app.
 
@@ -128,6 +137,7 @@ The same words as Crewluve (`Models/JoinMessage.swift`):
 | `try_later` | Too Many Tries | "Too many tries. Wait a minute, then try again." |
 | `invalid_input`, or pasted text that isn't an invite link | Not an Invite Link | "That doesn't look like an invite link." |
 | `key_in_use` after every key, no answer, or anything else | Couldn't Connect | "Couldn't connect. Check your connection and try again." |
+| This browser won't keep the key: site data is blocked (the website's own) | Can't Stay Connected | "This browser is blocking site data, so it can't stay connected. Allow site data for this site, or use another browser." |
 
 ## 5. Staying connected and current
 
@@ -208,9 +218,12 @@ Its input is one summary. Its output is the `Schedule` the website's engine alre
 It replaces the sign-in screen, and shows whenever this browser isn't connected:
 - "Welcome to CrewLuve" and "Stay connected with your pilot";
 - "Open the invite link your pilot sent you, on this device.";
+- "No link yet? Ask your pilot to invite you from Settings → Partner Sharing in CrewLu.", as Crewluve's welcome asks;
+- once, on the first visit of a browser that used the password sign-in: "Signing in with your pilot's password has ended. Ask your pilot for your own invite link.";
 - **Paste Invite Link:** a box for "Paste the invite link your pilot sent you.", with a Connect button.
   - It takes `#t=` and `#c=` links, also inside CrewLu's whole message.
-  - Text with no link says "Not an Invite Link" without calling the door.
+  - A bare code is taken as a code, as Crewluve's paste box takes one: six characters of the door's alphabet once spaces and dashes go, in either case.
+  - Other text with no link says "Not an Invite Link" without calling the door.
   - Each problem shows as a new alert, so one that repeats is announced again.
 - "or type the code from CrewLuve on another device", with six boxes:
   - one field drawn as six boxes, so typing, pasting and the keyboard's suggestions all work;
@@ -227,7 +240,7 @@ It replaces the sign-in screen, and shows whenever this browser isn't connected:
 - **Try Demo:** the existing `?demo=1`;
 - "Sharing with {Name} has ended.", when that's why it's showing (§5).
 
-The small labels, the ended line and the alert are in the primary text color: the site's grey and red don't reach 4.5:1 at 13–15 px.
+The subtitle, "Connecting…", the small labels, the ended line and the alert are in the primary text color: the site's grey and red don't reach 4.5:1 at 13–15 px.
 
 **Disconnect** replaces Sign Out in the footer. It asks first, as Crewluve does (`DisconnectQuestion`): "Disconnect from {Name}?" / "You'll stop seeing {Name}'s status in this browser. To connect again, open the invite link {Name} sent you."
 - **On a yes:** it calls `partner_leave` (always `{ok:true}`), forgets the key and the stored summary, then shows the welcome screen.
@@ -281,7 +294,7 @@ The small labels, the ended line and the alert are in the primary text color: th
   - `sharing_ended` from the door versus from a link;
   - Disconnect;
   - clearing the old sign-in's leftovers.
-- **Rewritten:** the guard, CSP and join-page tests, for §9 and §4.1. `tests/data/readOnly.test.ts` pins the new single module.
+- **Rewritten:** the guard, CSP and join-page tests, for §9 and §4.1. `tests/data/doorRules.test.ts` and `tests/data/doorRulesScan.test.ts` pin the source rules (§9).
 - **The browser label:** from a set of real user-agent strings.
 - **By the user, on real devices, before the push:**
   - an invite made with the phone's CrewLu build, opened in Chrome and in Safari on the Mac, and on an iPhone without Crewluve (with the banner);
