@@ -25,11 +25,17 @@
   - §8: links pasted into the boxes, the code field on phones, repeated alerts, contrast, a way forward with no link, the note that the password sign-in ended, and a bare code in the paste box;
   - §9: the frozen list, the time limit, refused redirects, the source rules, and the CSP's four addresses;
   - §10: the column lists and the client-era rules go.
+- **Amended a third time:** 2026-10-27, from the user's device checks (plan Task 14):
+  - §4.1: pasted text yields exactly an invite's 32 hex characters or a code's six, whatever is glued after them;
+  - §4.3: the connected note depends on the device;
+  - §5: on an iPhone or iPad, a site on the Home Screen keeps storage of its own;
+  - §8: the two lines that send people to their pilot say to update CrewLu;
+  - §12: when the website goes live.
 - **Part of:** the partner-links design, `docs/superpowers/specs/2026-10-15-partner-links-design.md` (the umbrella): §5.2, §5.5, §6.2, §7.3 and §9 (piece 5).
 - **Contract:**
   - the partner door, `~/Dev/Duty/supabase/partner-api.md`, live since 2026-10-15;
   - the summary, schema version 1: `~/Dev/Duty/supabase/partner-status/schema.json`.
-- **Why now:** the user holds CrewLu 3.1.0 (piece 2) until this is live. Then 3.1.0's What's New card, its App Store notes and the Partner Sharing help can say that partners on Android or a computer can connect. The release plan is `docs/superpowers/plans/2026-10-26-partner-links-piece2-release.md`.
+- **Why now:** the user held CrewLu 3.1.0 (piece 2) for this, so that 3.1.0's What's New card, its App Store notes and the Partner Sharing help can say that partners on Android or a computer can connect. The website goes live right before 3.1.0 is released (§12). The release plan is `docs/superpowers/plans/2026-10-26-partner-links-piece2-release.md`.
 
 ---
 
@@ -77,7 +83,7 @@ A partner opens their invite link anywhere other than an iPhone or iPad with Cre
   - **A page in a background tab, or prerendered, waits until it's shown.**
   - Messages' link previews run no script, so they don't join.
   - A Connect button on every link would stop more, but would cost every partner a tap. That's the user's call before the push.
-- Pasted text yields only the link's own letters and digits (`#[tc]=[0-9a-z]+`), so a full stop or a bracket after the link isn't taken as part of it. A code from a link is tidied as Crewluve's `PartnerLink.code(from:)` tidies one: spaces and dashes go, it's upper-cased, and it must be six letters or digits.
+- Pasted text yields exactly as much as the door makes: an invite's 32 hex characters (`#t=[0-9a-f]{32}`) or a code's six letters or digits (`#c=[0-9a-z]{6}`), whatever is glued after them. iOS can paste CrewLu's message and link with no space between, and a full stop or a bracket can follow a link. A shorter token or code isn't a link. A code from a link is tidied as Crewluve's `PartnerLink.code(from:)` tidies one: it's upper-cased.
 - `public/.well-known/apple-app-site-association` doesn't change. On an iPhone or iPad with Crewluve, the link still opens the app.
 
 ### 4.2 The key and what's stored
@@ -117,7 +123,10 @@ The steps follow Crewluve (`Services/PartnerJoiner.swift`, `Services/PartnerClou
    - the new key becomes the connected key;
    - the device it replaces leaves (one try, and failures are ignored). It's read again just before, so a device another tab connected meanwhile isn't left behind;
    - the stored summary is replaced;
-   - the status shows with one line: "Connected on this browser. Add it to your Home Screen to keep it handy."
+   - the status shows with one line, which depends on the device (the user agent, and its touch points for an iPad that asks for the desktop site, as the browser's name does):
+     - **iPhone or iPad:** "Connected on this browser. Get the CrewLuve app from the App Store, then open your invite link again to connect the app." A site added to the Home Screen there keeps storage of its own and starts unconnected (the device checks, plan Task 14);
+     - **Android:** "Connected on this browser. Add it to your Home Screen to keep it handy." The icon opens the same browser, so it stays connected;
+     - **a computer, or a device the user agent doesn't name:** "Connected on this browser. Bookmark this page to come back to it."
 
 A lost answer shows "Couldn't Connect" and keeps both keys. Trying again sends the same key, so the same device answers.
 
@@ -156,7 +165,7 @@ The same words as Crewluve (`Models/JoinMessage.swift`):
   - Disconnect;
   - the pilot removing the person or that browser in CrewLu;
   - cleared site data, or a private window that's closed;
-  - Safari's rule of 7 days of use without a visit. A site added to the Home Screen is exempt.
+  - Safari's rule of 7 days of use without a visit. A site added to the Home Screen is exempt, but on an iPhone or iPad it keeps storage of its own, so it has to be connected there by itself.
 
   The same link reconnects. The old browser stays on the partner's page in CrewLu until the pilot removes it.
 - **The footer:**
@@ -218,8 +227,8 @@ Its input is one summary. Its output is the `Schedule` the website's engine alre
 It replaces the sign-in screen, and shows whenever this browser isn't connected:
 - "Welcome to CrewLuve" and "Stay connected with your pilot";
 - "Open the invite link your pilot sent you, on this device.";
-- "No link yet? Ask your pilot to invite you from Settings → Partner Sharing in CrewLu.", as Crewluve's welcome asks;
-- once, on the first visit of a browser that used the password sign-in: "Signing in with your pilot's password has ended. Ask your pilot for your own invite link.";
+- "No link yet? Ask your pilot to update CrewLu, then invite you from Settings → Partner Sharing.", as Crewluve's welcome asks. A CrewLu older than 3.1.0 can't make invite links, so this line and the next name the update;
+- once, on the first visit of a browser that used the password sign-in: "Signing in with your pilot's password has ended. Ask your pilot to update CrewLu and send you your own invite link.";
 - **Paste Invite Link:** a box for "Paste the invite link your pilot sent you.", with a Connect button.
   - It takes `#t=` and `#c=` links, also inside CrewLu's whole message.
   - A bare code is taken as a code, much as Crewluve's paste box takes one: six characters once spaces and dashes go, in either case. Unlike Crewluve, only the door's alphabet counts: a look-alike such as `K0MQ2X` is refused here, where Crewluve would send it and be told the code didn't work, a failure toward the pause.
@@ -305,6 +314,7 @@ The subtitle, "Connecting…", the small labels, the ended line and the alert ar
 ## 12. Release
 
 1. **The website:** a push to `main`, with the user's yes, deploys it. The password sign-in stops working at that moment.
+   - **When (decided 2026-10-27):** Crewlu Cloud's logs for 2026-10-20 to 2026-10-27 showed one person besides the user still signing in with a pilot's password, from an Android phone, on four of those days. So the push waits until 3.1.0 is approved, and goes right before 3.1.0 is released. That person's pilot can then send a link the same day.
 2. **CrewLu 3.1.0,** in `~/Dev/Duty`. These say the link works on any phone, tablet or computer:
    - the What's New card's first row;
    - the App Store notes;

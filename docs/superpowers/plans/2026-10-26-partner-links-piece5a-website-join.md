@@ -4426,7 +4426,15 @@ Before the push, settle these with the user, from the reviews:
   - A Connect button on every link would also stop scanners that pass as a person. It's one more tap for every partner.
 - **The Home Screen note's wording,** from Step 4.4, and its sense on a computer.
 
+Settled with the user on 2026-10-27:
+- **Joining:** a link still joins by itself.
+- **The note:** it depends on the device (a20ff76, spec §4.3). An iPhone or iPad is sent to the CrewLuve app, because Step 4.4 showed that a site on its Home Screen starts unconnected. Android keeps the Home Screen line, and a computer gets a bookmark.
+- **The wording:** the two lines that send people to their pilot say to update CrewLu (b5226da, spec §8). "Can't Stay Connected" stays as it is.
+- **When to push:** after 3.1.0 is approved, right before it's released (spec §12). Crewlu Cloud's logs showed someone on an Android phone still using the password sign-in.
+
 - [ ] **Step 8: Push, with the user's fresh yes**
+
+This waits until 3.1.0 is approved, and goes right before 3.1.0 is released (spec §12). By then `main` may have moved: the Crewluve releases commit their notes there. If it has, bring it into this branch first, run the checks again, and rebuild.
 
 Show the user what will go:
 
@@ -4544,9 +4552,9 @@ Record:
 | 10, the switch-over | 9ce6ae5 | 296c2b1, 8222847, 24b0e88 |
 | 11, the sign-in removed | e428d65 | e7fa4c6, c769cd7, 470b957, cd417b6, 3675e5f, b2d4e71, 1530be1 |
 | 12, `/join` is the app | 177f337 | 970c33d |
-| Docs | 689010a, beabc9b, and the commit that added these notes | |
+| Docs | 689010a, beabc9b, 8d2cfca, a0d00ca, 9f3b3be, and the commit that added the Task 14 notes | |
 | The whole-branch review | | 44901e3, 509b66c, ef90100, 0de163e, 9b6342b, 65f9376 |
-| Task 14, from the user's first check | | e3fd4c2: a bare invite token joins |
+| Task 14, from the user's device checks | | e3fd4c2: a bare invite token joins; a1de0b4: a pasted link is read for exactly the door's lengths; a20ff76: the connected note depends on the device; b5226da: the two lines name the CrewLu update |
 
 **What changed from the plan.** Each change is also in the spec's "Amended again" list.
 - **Joining (6):** a connected key that the pilot freed is demoted at once. An `unchanged` or unreadable first read is Couldn't Connect. Cancel doesn't wait.
@@ -4585,10 +4593,29 @@ Record:
   - Blocked site data says "Can't Stay Connected".
   - The subtitle and "Connecting…" use the primary text color.
   - The test fixtures' fake door uses codes up as the server does.
+- **The device checks (14):**
+  - A bare invite token joins.
+  - A pasted link is read for exactly 32 hex characters or a code's six. iOS had pasted CrewLu's message and link glued together, and the old pattern took "Tap" into the token.
+  - The connected note depends on the device.
+  - "No link yet?" and the password note say to update CrewLu.
 - **Tests:**
   - Fixtures read their files by path: under happy-dom, Vite rewrites `new URL('./x', import.meta.url)` as a web asset's address.
   - happy-dom reports `navigator.webdriver` as true, so the Root tests stub it false.
 
-**Test count:** 2,467 before Task 10; 2,353 at the end. Task 11 took out the sign-in's 243 tests.
+**Test count:** 2,467 before Task 10; 2,353 after the whole-branch review; 2,380 after Task 14's fixes. Task 11 took out the sign-in's 243 tests.
 
 **Task 13:** passed at b2d4e71 and again at 9b6342b. 2,346 tests passed, the build was clean, and `join.html` and `404.html` were the same as `index.html`. In the browser pane: the welcome screen, "Not an Invite Link", `/join` and `/join/` going to `/`, and the demo. There were no console errors, and the CSP blocked a table read.
+
+**Task 14:** the user's device checks on 2026-10-26 and 2026-10-27, with a "Web Test" invite made in CrewLu:
+- **Steps 2 and 3 passed.** Messages' link preview added no device. Chrome and Safari on the Mac joined, and CrewLu listed both.
+- **Step 4: the iPhone's first paste failed.** CrewLu's share-sheet Copy put its message and the link on the clipboard as two items, and Safari pasted them glued together. Two fixes followed:
+  - the website reads a link for exactly the door's lengths (a1de0b4);
+  - CrewLu's Copy takes the link alone (CrewLu 1894a9dd, on its release line).
+
+  The retry joined. The request reached Crewlu Cloud, so the CSP works in WebKit.
+- **Step 4.4:** the copy of the site on the iPhone's Home Screen showed the welcome screen, because it keeps storage of its own. Hence the note per device (a20ff76).
+- **Step 5 passed:** a CrewLuve code connected Safari on the Mac. An open tab keeps running the page it loaded, so after a rebuild it needs a reload.
+- **Step 6 passed:** the iPhone's code boxes, with Paste and typing, and the app line after connecting.
+- **Step 7 passed:** removing Chrome on Mac in CrewLu brought up "Sharing with … has ended" in Chrome.
+- **Not done:** the optional checks in apps' own browsers and on Android.
+- **Found in CrewLuve, not here:** its ••• → Use on Another Device opened only after many taps on iOS 27.2. That's tracked separately.
