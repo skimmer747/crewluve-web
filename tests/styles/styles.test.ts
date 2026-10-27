@@ -276,8 +276,10 @@ describe('cards.css', () => {
     expect(declarations(find(top, '.primary')!.body)).toContainEqual(['background', 'var(--fill-blue, var(--blue))'])
   })
 
-  it("draws the welcome screen's notes in the primary text color: --text-2 is under 4.5:1 on white at their size (piece 5a §8)", () => {
-    for (const selector of ['.signin-note']) expect(declarations(find(top, selector)!.body), selector).toContainEqual(['color', 'var(--text)'])
+  it("draws the welcome screen's subtitle, Connecting's line and the notes in the primary text color: --text-2 is under 4.5:1 on white at their sizes (piece 5a §8)", () => {
+    for (const selector of ['.signin-sub', '.signin-note']) {
+      expect(declarations(find(top, selector)!.body), selector).toContainEqual(['color', 'var(--text)'])
+    }
   })
 
   it("gives the glass and the welcome screen's fields a 1 px edge under Increase Contrast, after both rules so it wins", () => {

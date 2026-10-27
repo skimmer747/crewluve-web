@@ -256,10 +256,11 @@
   justify-content: center;
 }
 
+/* The subtitle, and all "Connecting…" says: the primary color, since --text-2 is under 4.5:1 at 15 px on white. */
 .signin-sub {
   margin: -12px 0 0;
   font-size: 15px;
-  color: var(--text-2);
+  color: var(--text);
 }
 
 .signin-form {
