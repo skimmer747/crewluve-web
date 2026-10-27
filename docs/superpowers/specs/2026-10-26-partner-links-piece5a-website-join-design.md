@@ -1,6 +1,6 @@
 # Partner Links Piece 5a: the Website Joins with the Invite Link
 
-- **Status:** Design approved in brainstorming on 2026-10-26.
+- **Status:** Live since 2026-10-27 (`main` at 0e6dab3), pushed right after CrewLu 3.1.0 was submitted for review. Design approved in brainstorming on 2026-10-26.
 - **Amended:** 2026-10-26, while writing the plan (`docs/superpowers/plans/2026-10-26-partner-links-piece5a-website-join.md`). The changes are in P5-2, §4.1, §4.2, §4.3, §6, §8, §9, §10 and §11:
   - the converter builds the engine's `Schedule`;
   - delays move both ends of a flight, as in Crewluve;

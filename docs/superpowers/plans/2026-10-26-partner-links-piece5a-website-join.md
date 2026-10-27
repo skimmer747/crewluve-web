@@ -4343,7 +4343,7 @@ Then go to Task 14.
 
 Give the user each step click by click, and wait for their result before the next.
 
-- [ ] **Step 1 (the user): Run the built site where the phone can reach it too**
+- [x] **Step 1 (the user): Run the built site where the phone can reach it too**
 
 In Terminal, from the website folder:
 
@@ -4353,7 +4353,7 @@ cd ~/Dev/"Crewluve Website" && npm run build && npm run preview -- --host
 
 It prints a "Network" address, such as `http://192.168.1.20:5181/`. Keep it running.
 
-- [ ] **Step 2 (the user): Make a test invite**
+- [x] **Step 2 (the user): Make a test invite**
 
 1. In CrewLu on the iPhone, open the gear, then **Partner Sharing**.
 2. Add a person named **Web test**.
@@ -4361,7 +4361,7 @@ It prints a "Network" address, such as `http://192.168.1.20:5181/`. Keep it runn
 4. Get the link to the Mac, for example by pasting it into a note.
 5. Also send it to yourself in Messages, and wait for its preview card. Expected: in CrewLu, **Web test** still lists no device. A preview mustn't join.
 
-- [ ] **Step 3 (the user): Join in Chrome and in Safari on the Mac**
+- [x] **Step 3 (the user): Join in Chrome and in Safari on the Mac**
 
 1. In Chrome, paste the link into the address bar.
 2. Change `https://crewluve.crewlu.net` to `http://localhost:5181`, keeping everything from `/join#t=` on, and press Return.
@@ -4371,20 +4371,20 @@ It prints a "Network" address, such as `http://192.168.1.20:5181/`. Keep it runn
    - in CrewLu, **Web test** lists the device **Chrome on Mac**.
 4. Do the same in Safari. Expected: **Safari on Mac** in the list.
 
-- [ ] **Step 4 (the user): Join on the iPhone, in Safari**
+- [x] **Step 4 (the user): Join on the iPhone, in Safari**
 
 1. Open the Network address from Step 1, with the link's `/join#t=…` on the end.
 2. Expected: your status.
 3. Safari's "Get the app" banner for Crewluve may show only on the real site. Step 10 checks it there.
 4. Tap Share, then **Add to Home Screen**, then open CrewLuve from the Home Screen. Note whether it shows your status or the welcome screen. iPhones may keep a Home Screen site's storage apart from Safari's. If it shows the welcome screen, the note "Add it to your Home Screen to keep it handy." needs new wording before the push.
 
-- [ ] **Step 5 (the user): A code from Crewluve**
+- [x] **Step 5 (the user): A code from Crewluve**
 
 1. On a device with Crewluve connected, open **Use on Another Device** to show its 6-letter code.
 2. In Safari on the Mac, click the footer's left button, **Disconnect**, then **OK**. Expected: the welcome screen.
 3. Type the code into the six boxes. Expected: it connects on the sixth letter, as that partner.
 
-- [ ] **Step 6 (the user): The code boxes on a phone**
+- [x] **Step 6 (the user): The code boxes on a phone**
 
 The Mac can't show these: phones handle the hidden code field their own way. A code connects once, so make a new one for each part.
 
@@ -4413,7 +4413,7 @@ If there's an Android phone, in Chrome at the Network address:
 2. Partway through another code, tap the first box, then type the rest. Expected: every letter goes on the end.
 3. With TalkBack on, touch the boxes. Expected: it says "Code".
 
-- [ ] **Step 7 (the user): Sharing ends**
+- [x] **Step 7 (the user): Sharing ends**
 
 1. In CrewLu, open **Web test**, then remove the device **Chrome on Mac**.
 2. Expected: within 30 seconds, Chrome shows the welcome screen with "Sharing with {your name} has ended."
@@ -4432,7 +4432,7 @@ Settled with the user on 2026-10-27:
 - **The wording:** the two lines that send people to their pilot say to update CrewLu (b5226da, spec §8). "Can't Stay Connected" stays as it is.
 - **When to push:** right after the user submits 3.1.0 for review (spec §12), so Apple's reviewer can open an invite link in a browser. Not sooner: Crewlu Cloud's logs showed someone on an Android phone still using the password sign-in.
 
-- [ ] **Step 8: Push, with the user's fresh yes**
+- [x] **Step 8: Push, with the user's fresh yes**
 
 This goes right after the user submits 3.1.0 for review (spec §12). By then `main` may have moved: the Crewluve releases commit their notes there. If it has, bring it into this branch first, run the checks again, and rebuild.
 
@@ -4457,7 +4457,7 @@ git push origin partner-links-piece5a:main && git fetch origin main:main
 
 `docs/superpowers/plans/2026-10-26-partner-links-piece2-release.md` stays untracked; don't add it.
 
-- [ ] **Step 9: Check the deploy and the live site**
+- [x] **Step 9: Check the deploy and the live site**
 
 Browsers may show the old `/join` page for up to 10 minutes after the deploy, since Pages caches pages that long. Add `?cb=1` before the `#` to get past it.
 
@@ -4474,7 +4474,7 @@ gh run list --repo skimmer747/crewluve-web --workflow deploy-pages.yml --limit 1
    - Open `https://crewluve.crewlu.net/join`. Expected: the address becomes `/`, with the welcome screen.
    - Open `https://crewluve.crewlu.net/.well-known/apple-app-site-association`. Expected: the JSON for `/join`.
 
-- [ ] **Step 10 (the user): The real link, live**
+- [x] **Step 10 (the user): The real link, live**
 
 1. On the Mac, open the **Web test** invite link as it is, on `https://crewluve.crewlu.net`. Expected: it connects.
 2. On an iPhone without Crewluve, open the link in Safari. Expected: it connects, with Safari's banner for Crewluve at the top.
@@ -4494,14 +4494,14 @@ gh run list --repo skimmer747/crewluve-web --workflow deploy-pages.yml --limit 1
   - the App Store notes;
   - the Partner Sharing help.
 
-- [ ] **Step 1: Record it in the release plan**
+- [x] **Step 1: Record it in the release plan**
 
 Under "Changes after Task 5", add a line:
 - website piece 5a went live on {date}, at commit {short sha};
 - partners on Android or a computer now connect with their invite link;
 - 3.1.0 is no longer on hold for it.
 
-- [ ] **Step 2: Offer the user the CrewLu wording, for their yes, one at a time**
+- [x] **Step 2: Offer the user the CrewLu wording, for their yes, one at a time**
 
 1. **What's New card, row 1** (`WhatsNewContent.swift`, "A link for each person"):
 
@@ -4518,7 +4518,7 @@ Under "Changes after Task 5", add a line:
    - **Around 2096:** "They just need to install the free Crewluve app." becomes "They just need the free Crewluve app, or a web browser."
    - **Around 2138:** "Partner Sharing is free during the beta for Pro subscribers…" still says beta. Ask the user whether it should change.
 
-- [ ] **Step 3: Update the memory file for piece 5a**
+- [x] **Step 3: Update the memory file for piece 5a**
 
 Record:
 - that it's live;
@@ -4621,3 +4621,7 @@ Record:
 - **Found in CrewLuve, not here:** its ••• → Use on Another Device opened only after many taps on iOS 27.2. That's tracked separately.
 
 **Task 15 (2026-10-27):** Step 2 is done. The user approved CrewLu's wording for the card, the App Store notes and the Partner Sharing help, and had the beta taken out of Partner Sharing. The release plan records it. Steps 1 and 3 wait for the push, which now goes right after 3.1.0 is submitted for review. Step 8 used to push the local `main`, which doesn't have the site, so it now pushes the branch to `main`.
+
+**Task 14 Steps 8–10 (2026-10-27):** the user submitted CrewLu 3.1.0 for review, then said "push the website". `partner-links-piece5a` went to `main` as `a233859..0e6dab3`, and the password sign-in ended. Deploy run 40558565028 succeeded. In the browser pane, the live site showed the welcome screen with no sign-in form, `/join` went to `/`, and the app-link file answered with `/join` (piece 5a didn't change it). The user's live checks passed: the Mac joined with the real link; on the iPhone, the link pasted into Safari joined in the browser, and the same link tapped in Messages or Notes opened CrewLuve.
+
+**Task 15 (2026-10-27):** all three steps are done. The release plan records the go-live, the CrewLu wording shipped in 3.1.0 (202), and the memory file is up to date. Piece 5a is complete.
