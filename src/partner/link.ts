@@ -27,6 +27,17 @@ export function linkFromText(text: string): PartnerLink | null {
 }
 
 /**
+ * Pasted text that is exactly an invite's token: the 32 hex characters after #t=, in either case, with spaces around
+ * them. Null for anything else. A token is always private.new_secret(16), 16 random bytes in hex, so nothing else is
+ * 32 hex characters, and it can't be mistaken for a code. Crewluve's paste box doesn't take one; the website does, to
+ * be kinder to a partner who copied only the token.
+ */
+export function bareInvite(text: string): PartnerLink | null {
+  const token = text.trim()
+  return /^[0-9a-f]{32}$/i.test(token) ? { kind: 'invite', invite: token.toLowerCase() } : null
+}
+
+/**
  * Pasted text that is exactly a code: six characters of the door's alphabet once spaces and dashes go, in either case.
  * Null for anything else. Crewluve's paste box (PartnerLink.code(from:)) takes any six letters or digits, and sends a
  * look-alike such as K0MQ2X to be told the code didn't work. This one refuses it here instead, so it doesn't count as a

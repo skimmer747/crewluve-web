@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks'
-import { bareCode, CODE_LENGTH, codeFrom, linkFromText, type PartnerLink } from '../partner/link'
+import { bareCode, bareInvite, CODE_LENGTH, codeFrom, linkFromText, type PartnerLink } from '../partner/link'
 import { NO_LINK_YET, NOT_AN_INVITE_LINK, PASSWORD_SIGN_IN_ENDED, type JoinMessage } from '../partner/messages'
 
 /**
@@ -65,8 +65,9 @@ export function Welcome({ message, ended, passwordEnded = false, onJoin }: Welco
 
   const connect = (event: Event) => {
     event.preventDefault()
-    // A link, or else a bare code, which Crewluve's paste box takes too.
-    const link = linkFromText(pasted) ?? bareCode(pasted)
+    // A link, or else an invite's bare token, which only the website takes, or a bare code, which Crewluve's paste box
+    // takes too.
+    const link = linkFromText(pasted) ?? bareInvite(pasted) ?? bareCode(pasted)
     if (link) onJoin(link)
     else showProblem(NOT_AN_INVITE_LINK)
   }
@@ -74,8 +75,9 @@ export function Welcome({ message, ended, passwordEnded = false, onJoin }: Welco
     setProblem(null)
     const typed = input.value
     // Any link that can be read, an invite link or a code link, connects as the link would, not as its first six
-    // letters.
-    const link = linkFromText(typed)
+    // letters. So does an invite's bare token, whose first six letters would go as a wrong code, a failure toward the
+    // door's pause. Only a paste brings one here: typing sends a code at its sixth letter.
+    const link = linkFromText(typed) ?? bareInvite(typed)
     if (link) {
       setCode('')
       input.value = ''

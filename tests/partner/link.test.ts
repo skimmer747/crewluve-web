@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CODE_ALPHABET, codeFrom, linkFromHash, linkFromText } from '../../src/partner/link'
+import { bareInvite, CODE_ALPHABET, codeFrom, linkFromHash, linkFromText } from '../../src/partner/link'
 
 describe('linkFromHash (piece 5a §4.1)', () => {
   it('reads an invite and a code', () => {
@@ -52,6 +52,20 @@ describe('linkFromText', () => {
 
   it('reads a code link in lower case', () => {
     expect(linkFromText('https://crewluve.crewlu.net/join#c=ab2c3d')).toEqual({ kind: 'code', code: 'AB2C3D' })
+  })
+})
+
+describe('bareInvite', () => {
+  it("takes an invite's bare token: 32 hex characters, in either case, with spaces around them", () => {
+    for (const text of ['0123456789abcdef0123456789abcdef', '0123456789ABCDEF0123456789ABCDEF', '  0123456789abcdef0123456789abcdef\n']) {
+      expect(bareInvite(text)).toEqual({ kind: 'invite', invite: '0123456789abcdef0123456789abcdef' })
+    }
+  })
+
+  it('takes nothing else: 31 characters, 33, or 32 with a g', () => {
+    for (const text of ['0123456789abcdef0123456789abcde', '0123456789abcdef0123456789abcdef0', '0123456789abcdef0123456789abcdeg']) {
+      expect(bareInvite(text)).toBeNull()
+    }
   })
 })
 
