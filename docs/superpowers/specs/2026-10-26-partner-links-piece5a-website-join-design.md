@@ -30,12 +30,12 @@
   - §4.3: the connected note depends on the device;
   - §5: on an iPhone or iPad, a site on the Home Screen keeps storage of its own;
   - §8: the two lines that send people to their pilot say to update CrewLu;
-  - §12: when the website goes live.
+  - §12: when the website goes live: right after 3.1.0 is submitted for review.
 - **Part of:** the partner-links design, `docs/superpowers/specs/2026-10-15-partner-links-design.md` (the umbrella): §5.2, §5.5, §6.2, §7.3 and §9 (piece 5).
 - **Contract:**
   - the partner door, `~/Dev/Duty/supabase/partner-api.md`, live since 2026-10-15;
   - the summary, schema version 1: `~/Dev/Duty/supabase/partner-status/schema.json`.
-- **Why now:** the user held CrewLu 3.1.0 (piece 2) for this, so that 3.1.0's What's New card, its App Store notes and the Partner Sharing help can say that partners on Android or a computer can connect. The website goes live right before 3.1.0 is released (§12). The release plan is `docs/superpowers/plans/2026-10-26-partner-links-piece2-release.md`.
+- **Why now:** the user held CrewLu 3.1.0 (piece 2) for this, so that 3.1.0's What's New card, its App Store notes and the Partner Sharing help can say that partners on Android or a computer can connect. The website goes live right after 3.1.0 is submitted for review (§12). The release plan is `docs/superpowers/plans/2026-10-26-partner-links-piece2-release.md`.
 
 ---
 
@@ -314,7 +314,7 @@ The subtitle, "Connecting…", the small labels, the ended line and the alert ar
 ## 12. Release
 
 1. **The website:** a push to `main`, with the user's yes, deploys it. The password sign-in stops working at that moment.
-   - **When (decided 2026-10-27):** Crewlu Cloud's logs for 2026-10-20 to 2026-10-27 showed one person besides the user still signing in with a pilot's password, from an Android phone, on four of those days. So the push waits until 3.1.0 is approved, and goes right before 3.1.0 is released. That person's pilot can then send a link the same day.
+   - **When (decided 2026-10-27):** Crewlu Cloud's logs for 2026-10-20 to 2026-10-27 showed one person besides the user still signing in with a pilot's password, from an Android phone, on four of those days. So the push waits for 3.1.0, and goes right after 3.1.0 is submitted for review, so that Apple's reviewer can open an invite link in a browser. That person is without the website from the push until their pilot has 3.1.0 and sends them a link. 3.1.0 releases automatically once approved.
 2. **CrewLu 3.1.0,** in `~/Dev/Duty`. These say the link works on any phone, tablet or computer:
    - the What's New card's first row;
    - the App Store notes;

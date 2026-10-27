@@ -4430,17 +4430,17 @@ Settled with the user on 2026-10-27:
 - **Joining:** a link still joins by itself.
 - **The note:** it depends on the device (a20ff76, spec §4.3). An iPhone or iPad is sent to the CrewLuve app, because Step 4.4 showed that a site on its Home Screen starts unconnected. Android keeps the Home Screen line, and a computer gets a bookmark.
 - **The wording:** the two lines that send people to their pilot say to update CrewLu (b5226da, spec §8). "Can't Stay Connected" stays as it is.
-- **When to push:** after 3.1.0 is approved, right before it's released (spec §12). Crewlu Cloud's logs showed someone on an Android phone still using the password sign-in.
+- **When to push:** right after the user submits 3.1.0 for review (spec §12), so Apple's reviewer can open an invite link in a browser. Not sooner: Crewlu Cloud's logs showed someone on an Android phone still using the password sign-in.
 
 - [ ] **Step 8: Push, with the user's fresh yes**
 
-This waits until 3.1.0 is approved, and goes right before 3.1.0 is released (spec §12). By then `main` may have moved: the Crewluve releases commit their notes there. If it has, bring it into this branch first, run the checks again, and rebuild.
+This goes right after the user submits 3.1.0 for review (spec §12). By then `main` may have moved: the Crewluve releases commit their notes there. If it has, bring it into this branch first, run the checks again, and rebuild.
 
-Show the user what will go:
+The site is on `partner-links-piece5a`, not on the local `main`, so the push sends the branch to `main`. Show the user what will go. The second list shows whether `main` moved, and should be empty:
 
 ```bash
 cd ~/Dev/"Crewluve Website"
-git fetch -q origin && git log --oneline origin/main..main
+git fetch -q origin && git log --oneline origin/main..partner-links-piece5a && git log --oneline partner-links-piece5a..origin/main
 ```
 
 Tell them:
@@ -4448,11 +4448,11 @@ Tell them:
 - from that moment the password sign-in stops working;
 - partners connect with their invite links instead.
 
-Wait for a clear yes, then:
+Wait for a clear yes, then push, and bring the local `main` along:
 
 ```bash
 cd ~/Dev/"Crewluve Website"
-git push origin main
+git push origin partner-links-piece5a:main && git fetch origin main:main
 ```
 
 `docs/superpowers/plans/2026-10-26-partner-links-piece2-release.md` stays untracked; don't add it.
@@ -4619,3 +4619,5 @@ Record:
 - **Step 7 passed:** removing Chrome on Mac in CrewLu brought up "Sharing with … has ended" in Chrome.
 - **Not done:** the optional checks in apps' own browsers and on Android.
 - **Found in CrewLuve, not here:** its ••• → Use on Another Device opened only after many taps on iOS 27.2. That's tracked separately.
+
+**Task 15 (2026-10-27):** Step 2 is done. The user approved CrewLu's wording for the card, the App Store notes and the Partner Sharing help, and had the beta taken out of Partner Sharing. The release plan records it. Steps 1 and 3 wait for the push, which now goes right after 3.1.0 is submitted for review. Step 8 used to push the local `main`, which doesn't have the site, so it now pushes the branch to `main`.
