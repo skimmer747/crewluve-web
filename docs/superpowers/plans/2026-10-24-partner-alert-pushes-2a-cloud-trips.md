@@ -1234,7 +1234,7 @@ With the user's yes, Claude reads it through its read-only connection:
 - `list_edge_functions` shows partner-push ACTIVE, one version on from before, with `verify_jwt` false;
 - `get_edge_function` shows the new file: `tripsMissing`, `tripAt`, and `'trips-cancelled'` in `ALERT_KINDS`.
 
-- [ ] **Step 4: The probe, and a real run**
+- [x] **Step 4: The probe, and a real run**
 
 1. The user runs `select private.partner_push_probe();` in the SQL Editor. Five seconds later, they or Claude, with a yes, read its answer: `select status_code, content from net._http_response where id = N;`. Expected: 200, with `BadDeviceToken` from both of Apple's services, as before.
 2. The next time CrewLu writes a status, Claude reads that run's answer: `select status_code, content from net._http_response order by id desc limit 1;`. Expected: 200, with `alerts` 0, since no Crewluve shows alert pushes yet.
@@ -1358,5 +1358,6 @@ Built on 2026-10-24 in `~/Dev/Duty-trip-alerts`, on `feature/trip-alerts`, inlin
   - **Fixes:** `61739550` (the binary search, with its speed test) and `afcd2549` (the rules, eight cases in, 57 in all, and the tests). 275 of 275 tests, types clean, and 15 of 15 new deliberate breaks caught.
   - **Both sides:** plan 2b's Swift, in its scratch build, took the same changes, and all 57 cases give the same alerts there (339 harness tests). Plan 2b's text is updated to match.
 - **Task 6:** partner-push version 9, ACTIVE, `verify_jwt` false, deployed on 2026-10-24 at 18:03 UTC, with the branch's file. The probe (request 66): 200, with `BadDeviceToken` from both of Apple's services. **Still to check:** the first real run, at CrewLu's next write, should answer 200 with `alerts` 0.
+  - **The real run (2026-10-24, read in plan 3's Task 0 Step 2):** the first run after version 9 went live came at 22:50:37 UTC: `partner-push: 2 sent (0 as alerts), 0 dead, 0 retried, 0 failed`, with no `claim answered` line, and request 67 answered 200 with `{"sent":2,"alerts":0,"dead":0,"retried":0,"failed":0}`, since no Crewluve took alert pushes yet. Step 4 is ticked.
 - **Task 7:** §15.3 takes decisions 1 and 2 and the user's two calls after the review, and §15.5 lists the review's limits.
 - **Task 8 (2026-10-24):** with the user's yes, `~/Dev/Duty`'s `feature/supabase-account-backend` fast-forwarded to `afcd2549` (`supabase/` only; its scheme files untouched), and `npm test` there gave 275 of 275. The worktree and `feature/trip-alerts` are removed. With its own yes, the release line was pushed: `94253777..afcd2549`.

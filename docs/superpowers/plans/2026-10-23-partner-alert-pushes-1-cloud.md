@@ -3733,7 +3733,7 @@ Or, with the user's yes, Claude runs that `select` through its read-only connect
 
 Expected: `status_code` 200 and `content` `{"probe":{"sandbox":{"status":400,"reason":"BadDeviceToken"},"production":{"status":400,"reason":"BadDeviceToken"}}}`, as in piece 3. If it isn't, piece 3's plan, Task 12 step 6, says what each answer means; `report answered 404` means the script didn't run.
 
-- [ ] **Step 5: The bursts, and the silent half**
+- [x] **Step 5: The bursts, and the silent half**
 
 Both partners' phones run Crewluve 1.2, so they get silent pushes. With the user's yes, Claude reads partner-push's logs (`function_logs`, read-only) after each of these:
 
@@ -3884,7 +3884,7 @@ Ask the user one question: merge `feature/partner-alert-pushes` into `feature/su
 
 Only once the branch is merged: `rm -rf ~/Dev/Duty-alert-pushes/supabase/tests/node_modules && git -C ~/Dev/Duty worktree remove ~/Dev/Duty-alert-pushes && git -C ~/Dev/Duty branch -d feature/partner-alert-pushes`. If it's kept apart, keep the worktree.
 
-- [ ] **Step 3: Push only with a fresh yes**
+- [x] **Step 3: Push only with a fresh yes**
 
 Ask separately before each push: `feature/supabase-account-backend` (or `feature/partner-alert-pushes`, if kept apart) in `~/Dev/Duty`, and `main` in `~/Dev/Crewluve Website`.
 
@@ -3953,3 +3953,5 @@ Filled in during the build: any place the code ends up different from the printe
 
   The older specs point to this one, as printed. Task 8 Step 5 stays open for its quick-status check.
 - **Task 10 (2026-10-24):** with the user's yes, `~/Dev/Duty`'s `feature/supabase-account-backend` fast-forwarded `7b3aeb2d..94253777` (17 commits, `supabase/` only; its scheme files untouched), and `npm test` there gave 272 of 272. The worktree and `feature/partner-alert-pushes` are removed. Pushes wait for their own yes.
+  - **Step 3, the pushes (ticked 2026-11-02):** each with its own yes, `feature/supabase-account-backend` went to GitHub at `94253777`, and website main at `7dcb7ee`.
+- **Task 8 Step 5, parts 1 and 2 (2026-10-26, in plan 3's Task 6, with no flight under way and the moved partner still on 1.2):** part 2, a quick status to the moved partner only, gave `partner-push: 1 sent (0 as alerts), 0 dead, 0 retried, 0 failed` at 14:06:47 UTC, and the moved partner's 1.2 read right after; the other partner's phone, on 1.3 by then, got nothing. Part 1, CrewLu brought to the front and its Partner Sharing screen opened with nothing changed: CrewLu's write at 14:09:24 UTC gave `partner-push: nothing new to send`, and there was no `sent` line. On the ground, the bursts are gone. Step 5 is ticked.

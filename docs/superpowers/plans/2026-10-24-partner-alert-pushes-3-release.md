@@ -608,19 +608,19 @@ Expected: the status shows **Waiting for Review**. Apple usually reviews within 
 
 **Who:** the user, with Claude's checks.
 
-- [ ] **Step 1: Claude checks the App Store**
+- [x] **Step 1: Claude checks the App Store**
 
 Claude looks up `com.ToddAnderson.Crewluv` through Apple's public lookup.
 
 Expected: version `1.3.0`, as App Store Connect writes 1.3. Just after the release, the lookup can give 1.2.0 for a few minutes.
 
-- [ ] **Step 2: The moved partner moves to alert pushes by themselves**
+- [x] **Step 2: The moved partner moves to alert pushes by themselves**
 
 Their phone updates Crewluve from the App Store by itself, if automatic updates are on. Its next launch registers with `p_alerts`, and a hidden push can make that launch. A day or two after the release, Claude runs Task 3 Step 2's query again, with a yes.
 
 Expected: both devices `push_alerts` true. If the moved partner's is still false after a few days, they open Crewluve once, after updating it in the App Store if needed.
 
-- [ ] **Step 3: Watch the first day**
+- [x] **Step 3: Watch the first day**
 
 The next day, with the user's yes, Claude reads the last day of partner-push's lines and the helper's reads, with Task 3 Step 3's two queries, and `limit 200`:
 - partner-push's lines end `0 failed`, and any `dead` is explained;
@@ -634,13 +634,13 @@ The user also checks for crash reports from 1.3, for Crewluve and its helper:
 
 **Who:** Claude.
 
-- [ ] **Step 1: The spec, and the open steps of plans 1 and 2a**
+- [x] **Step 1: The spec, and the open steps of plans 1 and 2a**
 
 1. In the spec's status line, record that Crewluve 1.3 is live, with its date. Add that from then on, plan 1's undo would leave it with no pushes (decision 10).
 2. In plan 2a, tick Task 6 Step 4, and add an Execution notes line with Task 0 Step 2's result.
 3. In plan 1, tick Task 8 Step 5, and add an Execution notes line with Task 6 Steps 4 and 5's results.
 
-- [ ] **Step 2: This plan**
+- [x] **Step 2: This plan**
 
 1. In this plan's Execution notes, record each task's result, naming no one: the memory measured, and the summary's size, among them.
 2. Commit the spec and the three plans on website main, and ask before pushing.
@@ -685,3 +685,7 @@ Filled in as the release goes: each task's result, and anything that differed. N
   - **Step 7:** nothing to put back, as Background App Refresh was already off. Clearing the quick statuses sent is left to the user.
 - **Task 7 Steps 1 to 4 (2026-10-24), done while the beta review waits:** version 1.3 has the What's New text and build 1.3 (45), the review notes, and automatic release, and the privacy answers are unchanged. All saved; Step 5, the submission, waits for Task 6.
 - **Task 7 Step 5 (2026-10-26):** after Task 6, version 1.3 went **Add for Review**, then **Submit for Review**, and showed **Waiting for Review** at about 14:12 UTC.
+- **Task 8 Step 1 (2026-10-26):** 1.3 was released the same day it was submitted. Apple's public lookup gave version `1.3.0` on the first look, released 21:57 UTC, for iOS 26.0.
+- **Task 8 Step 3 (2026-10-27):** with the user's yes, the logs from the release to 17:30 UTC the next day. partner-push ran 45 times: 7 found nothing new to send, and 38 sent 47 pushes, 10 of them alerts and 37 hidden, each line ending `0 dead, 0 retried, 0 failed`. Each of the 10 alerts had the helper's `partner_view` within a second of its send, all 200, with an agent starting `CrewluveAlerts/`: 7 on the TestFlight partner's phone, 3 of them at once at 01:49:41 UTC, and 3 on a test device that joined in sandbox that day, an Xcode build from other work. The hidden pushes went one a run to the moved partner's 1.2, whose 33 reads were all 200. The user found no crash reports from 1.3 in App Store Connect's TestFlight Crashes or in Xcode's Organizer.
+- **Task 8 Step 2 (2026-11-02):** with the user's yes, a week after the release. The moved partner's device, joined 2026-10-21, now has `push_alerts` true, so both partners' devices take alert pushes. In the last day, no Crewluve 1.2 read Crewlu Cloud, and partner-push sent no hidden pushes: 141 runs, 131 with nothing new to send and 10 that sent 22 alerts, each line ending `0 dead, 0 retried, 0 failed`. The helper read the status for 16 of the 22, each within 2 seconds of its send, all 200, all from phones on iOS 27. The other 6 most likely went to phones that couldn't show them, such as one with Crewluve's notifications turned off, as it asks for alert pushes either way, or one that was off or offline; the logs don't say which phone each alert went to. By then 102 more devices had joined, from 2026-10-28 on, all `production`, each with a token and `push_alerts` true, and builds 46 and 47 (1.3.1 and 1.3.2, from other work) were in use. Their helper is 1.3 (45)'s with only its version changed, and on the first day that helper read on an iOS 26 phone.
+- **Task 9 (2026-11-02):** the spec's status line records 1.3 live on 2026-10-26, with decision 10's undo. Plan 2a's Task 6 Step 4 is ticked, with Task 0 Step 2's result, and plan 1's Task 8 Step 5, with Task 6 Steps 4 and 5's. Plan 1's Task 10 Step 3, its pushes, done on 2026-10-24 but never ticked, is ticked too. The spec and the three plans are committed together on website main.
