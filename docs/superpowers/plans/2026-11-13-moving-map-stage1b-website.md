@@ -2683,3 +2683,61 @@ export function useTripMapPage() {
 
 - [ ] **Step 3: Ask to commit.** Suggested message: `The trip map in the README, and npm run land`
   - Remind Todd that publishing is a push to `main` (docs/DEPLOY.md), and his call.
+
+---
+
+## Changes made during execution (2026-11-13)
+
+Changes made to the code after it was written from this plan, from running it and from review. The code, not the blocks above, is the reference for these:
+
+- **Task 4:** the "stay inside the map" test counts points outside the map and asserts once, as the shading test above it does. Its few million per-point `expect`s took 10 s, past Vitest's 5 s limit. The shading test has a 30 s limit: it checks about two million places, a second alone but past 5 s while the whole suite runs.
+- **Task 6:** the date-line test also checks that the rectangle runs on past the right edge, so it can't pass by luck with a small positive `x`.
+- **Task 7:** the airborne-window test also covers an arrival before the departure.
+- **Tasks 8–9:** the `make` (and `styles`) test helpers in `tripMap.test.ts` and `tripMapDrawing.test.ts` type their legs as `Leg[]`. With only the default, TypeScript took them as flights and rejected the drive test (`npx tsc --noEmit` failed; Vitest doesn't type-check).
+- **Task 8, from review:**
+  - A night at home in the middle of a trip is that trip, under way: `tripMapFor` makes it with `isNextTrip: !snap.midTripAtHome`. The snapshot's upcoming trip is the rest of the current trip then, and as a next trip the card read "Home · next trip" with a date already past. The app does the same; it's a follow-up there.
+  - A van or bus between airports (`ground` moves) is drawn and counted as a drive, with no flight number, not as a flight. The app's legs have no such kind.
+  - New tests: `shows a night at home in the middle of a trip as that trip, under way` and `draws a van or bus between airports as a drive, never in flight`.
+- **Task 9:** `isPlaying`'s doc says to check `hasFinished`, as the app's does.
+- **Task 10, from review:**
+  - The next trip's spoken summary leaves out the colon and list when its flights only come home ("Map of the next trip, tomorrow.").
+  - On a trip with no flights, such as the commute home the map falls back to, the bar leaves out "0 mi so far". A drive under way gives the card's top chip "Driving to Louisville" and the summary "Alex is driving to Louisville.", the words the full map's pill already uses.
+  - New tests: `names a drive under way, and leaves out the counts a trip without flights lacks` and `reads a next trip that only comes home without an empty list of cities`.
+- **Task 10, from the fixes' review:** a next trip whose legs have no flights leaves out "0 mi" too.
+- **Task 11, from review:**
+  - `build-land.mjs` keeps each polygon's holes as rings too. At 1:110m the only one is the Caspian Sea, which the outer rings alone drew as land, a thousand kilometres of it beside the CGN → DXB example. The map fills its land even-odd (`.trip-map-land { fill-rule: evenodd }`), so the hole shows as water. `land.json` is 128 rings, 5,122 points, 65 KB.
+  - The script's header names the source file's URL, since the file is git-ignored.
+  - New test: `keeps the Caspian Sea as water, and Antarctica reaching both edges of the map`.
+- **Task 12, from review:** `polygonsPath` leaves out a shape, on each copy of the world, whose box misses the view. Zoomed in on one leg, the land made an 85 KB path of points far off screen. Its test now checks shapes on each side of the date line and one out of view.
+- **Task 13, in writing it:**
+  - CSS uses the site's token names: `--text-2` for `--secondary`, `--glass-fill` for `--glass`; each `backdrop-filter` has its `-webkit-` pair, which `tests/styles/styles.test.ts` requires.
+  - `PilotPages` passes `ready?.legs ?? []`: TypeScript can't see that `snap` is only set with `ready`.
+  - The card's test runs under happy-dom with `afterEach(cleanup)`, as the site's other UI tests do.
+  - `inFlight.css` keeps `.flight-map-fallback` as a row with the plane and "SDF → CGN"; the old map's rules, colours and their style tests went with it.
+- **Task 14, in writing it:**
+  - `TripMapPage` focuses its heading once, in an effect of its own. In the plan the focus shared the Escape listener's effect, keyed on `onBack`, a new function each second, so the heading took focus from the slider every second. A test re-renders with a new `onBack` and checks the slider keeps focus.
+  - The page opens scrolled to the top: the status page may have been scrolled down to the card.
+  - The replay test awaits "Pause replay": the replay starts from the real clock while the test's page time is the fixture's, so they agree only from the first animation frame.
+  - `.trip-map-page` has `min-height: 100vh` before `100dvh` (later `height`), the site's fallback pattern.
+- **Tasks 13–14, from review:**
+  - Lines are drawn on every copy of the world the view reaches (`linePath`), as land is. A round-the-world trip frames wider than one world, and markers sat on another copy than their line, hundreds of pixels away.
+  - The full map fills the screen, as spec §6 says: the page is the viewport's height, and `useSize` (which `useWidth` now wraps) measures the map's box, where the plan drew a 4:3 box from the width.
+  - The card clips to its rounded corners (`overflow: hidden`, with an inset focus ring); the in-flight bar and a lone drive's map stuck out past them.
+  - Tap targets are 44 px: the flight number (padding and a matching negative margin) and the speed picker.
+  - The replay's animation-frame loop stops when the replay reaches the trip's end (`finishesAt`, and `useFrameClock`'s `stopAt`), where it re-rendered 60 times a second until Live.
+  - The panel's headline is an `h2`, sized as body text.
+  - The map's box in the card is a `span`: a `div` can't sit inside a `button`.
+  - The page's clock always takes the map's current span, and `TripMapSvg`'s land and night paths are memoised on the view's four numbers, not on a rect remade each second.
+  - The slider moves in 15-minute steps, over whole steps, so its last one reaches the trip's end.
+  - Airport codes have a halo in the ocean's colour, and a code that would overlap one already drawn is left out, its dot kept: SDF and LEX printed as "SDLEX".
+  - The land loads only when there's a map to draw (`useLand(enabled)`), and `PilotPages`'s tests mock it.
+  - `onOpenMap` takes no argument: `useTripMapPage` finds the card's map itself, since the status page remounts when the map closes.
+  - The old map's helpers that nothing used any more went, with their tests: `flightDurationText`, `distanceText`, `progressWords`, `flightMapLabel` (`src/copy/flight.ts`) and `flightProgress` (`src/ui/inFlightFacts.ts`).
+  - New tests: the map card in place of the in-flight card and the fallback without a map (`StatusScreen`), `#map` with and without a trip and Escape back to the card (`PilotPages`), lines on every world copy (`svgPaths`), overlapping codes (`TripMapSvg`), the frame loop stopping (`useFrameClock`), `finishesAt`, and the slider and the replay moving time (`TripMapPage`).
+- **Task 15:** the README also says where `npm run land`'s git-ignored source comes from.
+- **Kept as planned, after review:** the site's subsolar point uses the NOAA position its `sunAltitude` uses, where the app uses the shorter mean-longitude formula. The night edge can differ from the app's by about 0.1° of longitude, which can't be seen at map scale.
+- **Left for later:**
+  - The card's "Landing in 50 min" rounds up, as the app's does, while the narrative's countdown above it rounds down ("landing in 49m"). Both platforms show it; one rule for both is a small follow-up.
+  - On a wide window the fixed panel sits over the map's bottom-left corner, and the camera's fit doesn't leave room for it; a route there can pass under it.
+  - The app has the same mid-trip-at-home bug the website fixed in Task 8 ("Home · next trip" with a past date).
+  - In flight, if the trip the progress card shows leaves out the flight in the air (a standalone flight more than 12 hours from the trip's own), the map shows the trip on the ground and the in-flight card shows beneath it.
