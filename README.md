@@ -7,6 +7,7 @@ The site shows what CrewLu shares with that partner, and changes nothing but its
 - Live: https://crewluve.crewlu.net
 - Demo: https://crewluve.crewlu.net/?demo=1 (add `&scene=layover`, `last-leg`, `home`, `commuting-home`, `nothing-ahead`, …)
 - Schedule: add `#schedule` to either address, or tap a card with a chevron.
+- Trip map: the card on every scene with a trip; tap it, or add `#map`, for the full map.
 - Design: docs/superpowers/specs/2026-10-08-crewluve-web-slice1-design.md
 - Joining with the invite link: docs/superpowers/specs/2026-10-26-partner-links-piece5a-website-join-design.md
 
@@ -24,8 +25,11 @@ npm run build
 ```bash
 npm run airports           # public/data/airports.json (reads ../crewlu-globe)
 npm run icons              # src/icons/iconPaths.ts
+npm run land               # public/data/land.json (Natural Earth 1:110m land, scripts/ne_110m_land.geojson)
 python3 -I scripts/make-icons.py   # public/icons/*.png (reads ../Crewluv)
 ```
+
+`npm run land` reads Natural Earth's land file, which isn't committed: download v5.1.2's `geojson/ne_110m_land.geojson` (public domain, about 140 KB) from https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_110m_land.geojson to `scripts/ne_110m_land.geojson` first.
 
 `npm run airports` expects the CrewLu Flight Globe checkout next to this repo (`../crewlu-globe`).
 To read its `airports.json` from somewhere else, set `AIRPORTS_SOURCE=/path/to/airports.json`.
