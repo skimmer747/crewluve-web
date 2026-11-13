@@ -66,7 +66,8 @@ describe('night shapes (moving map spec §7.1)', () => {
     }
     expect(checked).toBeGreaterThan(1_500_000)
     expect(wrong).toBe(0)
-  })
+    // About two million places: a second alone, and longer while the whole suite runs beside it.
+  }, 30_000)
 
   it('stay inside the map, with no edge across the date line', () => {
     // Points are counted, not asserted one by one: a few million `expect`s would take seconds.
