@@ -1,7 +1,6 @@
 import type { Ref } from 'preact'
 import { delayBannerText, spokenDelayBanner } from '../copy/flight'
 import { shortTimeText } from '../copy/format'
-import { FlightMap } from './FlightMap'
 import { Icon } from './Icon'
 import type { InFlightFacts } from './inFlightFacts'
 
@@ -27,7 +26,10 @@ export function InFlightCard({ facts, now, h24, onOpenTracking, headingRef }: In
   return (
     <section class="card glass inflight">
       <h2 ref={headingRef} class="sr-only" tabIndex={-1}>In flight</h2>
-      <FlightMap facts={facts} now={now} h24={h24} />
+      <div class="flight-map-fallback" aria-hidden="true">
+        <Icon name="Airplane" size={24} />
+        <span>{`${facts.dep.code} → ${facts.arr.code}`}</span>
+      </div>
       {offset != null && (
         <p class={offset < 0 ? 'inflight-banner early' : 'inflight-banner late'}>
           <Icon name={offset < 0 ? 'CheckCircle' : 'Warning'} size={12} />

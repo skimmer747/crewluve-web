@@ -1,0 +1,129 @@
+/* The trip map (moving map spec §5, §6, §11): the site's own drawing of the world, the trip and the night. */
+/* The card clips its children to its rounded corners: the bars and the map's square bottom corners stay inside the radius. */
+.trip-map-card { overflow: hidden; }
+
+.trip-map-card,
+.trip-map-page {
+  --trip-ocean: rgb(78%, 87%, 95%);
+  --trip-land: rgb(95%, 93%, 87%);
+  --trip-land-edge: rgb(80%, 78%, 70%);
+  --trip-night: rgb(2%, 5%, 16%);
+  --trip-route: var(--blue);
+  --trip-flown: var(--gray);
+  --trip-text: #000000;
+}
+
+@media (prefers-color-scheme: dark) {
+  .trip-map-card,
+  .trip-map-page {
+    --trip-ocean: rgb(6%, 10%, 18%);
+    --trip-land: rgb(17%, 21%, 29%);
+    --trip-land-edge: rgb(28%, 32%, 40%);
+    --trip-route: var(--cyan);
+    --trip-text: #ffffff;
+  }
+}
+
+.trip-map-open {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.trip-map-frame {
+  display: block;
+  height: 220px;
+  overflow: hidden;
+  border-radius: 20px 20px 0 0;
+}
+
+.trip-map-svg { display: block; }
+/* Inside the clipped card, so the ring isn't cut off. */
+.trip-map-open:focus-visible { outline-offset: -3px; }
+.trip-map-ocean { fill: var(--trip-ocean); }
+/* Even-odd, so a ring inside the land (the Caspian Sea) is water. */
+.trip-map-land { fill: var(--trip-land); fill-rule: evenodd; stroke: var(--trip-land-edge); stroke-width: 0.5; }
+.trip-map-night { fill: var(--trip-night); }
+.trip-map-route { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.trip-map-route.upcoming { stroke: var(--trip-route); stroke-width: 2; stroke-dasharray: 6 6; }
+.trip-map-route.flying { stroke: var(--trip-route); stroke-width: 3; }
+.trip-map-route.flown { stroke: var(--trip-flown); stroke-width: 2.5; }
+.trip-map-route.drive { stroke: var(--trip-flown); stroke-width: 3; stroke-dasharray: 0.5 6; }
+.trip-map-airport circle { fill: #ffffff; stroke: rgba(0, 0, 0, 0.4); stroke-width: 0.5; }
+.trip-map-airport text {
+  fill: var(--trip-text);
+  font-size: 11px;
+  font-weight: 600;
+  text-anchor: middle;
+  /* A halo in the ocean's colour keeps the code readable over land and night. */
+  stroke: var(--trip-ocean);
+  stroke-width: 3px;
+  paint-order: stroke;
+  stroke-linejoin: round;
+}
+.trip-map-plane { fill: var(--trip-route); stroke: #ffffff; stroke-width: 8; paint-order: stroke; }
+.trip-map-heart { fill: var(--pink); stroke: #ffffff; stroke-width: 10; paint-order: stroke; }
+.trip-map-car { fill: var(--trip-text); }
+
+.trip-map-chip {
+  position: absolute;
+  left: 10px;
+  max-width: calc(100% - 20px);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--glass-fill);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.trip-map-chip.top { top: 10px; }
+.trip-map-chip.bottom { bottom: 10px; }
+
+.trip-map-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 10px 16px;
+  list-style: none;
+  color: var(--text-2);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.trip-map-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  background: var(--trip-ocean);
+}
+.trip-map-top { display: flex; align-items: center; gap: 12px; padding: 8px 16px; }
+.trip-map-close { min-width: 44px; min-height: 44px; border: 0; background: none; color: inherit; cursor: pointer; }
+.trip-map-pill { margin: 0; padding: 6px 12px; border-radius: 999px; background: var(--glass-fill); font-size: 1rem; }
+.trip-map-full { flex: 1; min-height: 0; overflow: hidden; }
+.trip-map-panel { margin: 0 16px 16px; padding: 16px; border-radius: 24px; background: var(--glass-fill); -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px); }
+/* A heading for screen readers, at the size of the text around it. */
+.trip-map-headline { margin: 0 0 12px; font-size: 1rem; font-weight: 600; }
+.trip-timeline-row { display: flex; align-items: center; gap: 12px; }
+.trip-timeline-row + .trip-timeline-row { margin-top: 8px; justify-content: space-between; }
+.trip-timeline-play { min-width: 44px; min-height: 44px; border: 0; background: none; color: inherit; fill: currentColor; cursor: pointer; }
+.trip-timeline-slider { flex: 1; }
+.trip-timeline-live { min-height: 44px; padding: 0 14px; border-radius: 999px; }
+.trip-timeline-speed { min-height: 44px; }
+.trip-timeline-time { color: var(--text-2); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+
+@media (min-width: 900px), (orientation: landscape) and (max-height: 500px) {
+  .trip-map-panel { position: fixed; left: 16px; bottom: 16px; width: 380px; margin: 0; }
+}

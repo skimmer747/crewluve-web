@@ -10,6 +10,7 @@ import type { QuickStatus } from '../../src/partner/summary'
 import { EmptyState } from '../../src/ui/EmptyState'
 import type { FooterProps } from '../../src/ui/Footer'
 import type { ScheduleLinkName } from '../../src/ui/ScheduleLink'
+import { tripMapFor } from '../../src/map/tripMapFor'
 import { StatusScreen } from '../../src/ui/StatusScreen'
 import { testAirports } from '../fixtures/airports'
 import { sharedDaylight } from '../../src/time/sharedDaylight'
@@ -472,7 +473,30 @@ describe('StatusScreen in-flight card (slice 2C)', () => {
     expect(container.querySelector('.location')).toBeNull()
     expect(container.querySelector('.countdown')!.compareDocumentPosition(card) & FOLLOWING).toBeTruthy()
     expect(card.compareDocumentPosition(container.querySelector('.trip-card')!) & FOLLOWING).toBeTruthy()
-    expect(screen.getByRole('img', { name: /^Flight from Louisville to Rockford, / })).toBeTruthy()
+    // Without a trip map to draw it, the card shows the flight's codes (moving map spec §12).
+    expect(card.querySelector('.flight-map-fallback')!.textContent).toBe('SDF → RFD')
+  })
+
+  it('gives its place to the trip map card when the map can draw the flight, and keeps the card when it can’t', () => {
+    const now = at(100)
+    const snap = makeSnapshot(e.schedule, e.legs, now, NY)
+    const tripMap = tripMapFor(snap, e.legs, testAirports)
+    expect(tripMap?.mode.kind).toBe('inFlight')
+    const { container } = render(
+      <StatusScreen snap={snap} now={now} viewerTz={NY} homeTz={NY} h24={false} airports={testAirports} weather={null} demo={false} celebrateKey={0}
+        footer={footer(now)} tripMap={tripMap} land={null} onOpenMap={() => {}} />,
+    )
+    expect(container.querySelector('.inflight')).toBeNull()
+    expect(container.querySelector('.trip-map-card [data-trip-map-open]')).toBeTruthy()
+    expect(container.querySelector('.trip-map-card .inflight-number')!.tagName).toBe('BUTTON')
+    cleanup()
+    // With no trip map to draw, the in-flight card is back.
+    const without = render(
+      <StatusScreen snap={snap} now={now} viewerTz={NY} homeTz={NY} h24={false} airports={testAirports} weather={null} demo={false} celebrateKey={0}
+        footer={footer(now)} tripMap={null} />,
+    )
+    expect(without.container.querySelector('.inflight')).toBeTruthy()
+    expect(without.container.querySelector('.trip-map-card')).toBeNull()
   })
 
   it('isn’t there on the ground', () => {

@@ -31,6 +31,13 @@ export function clockTime(c: ReplayClock, now: number): number {
   return Math.min(c.anchor.tripTime + Math.max(now - since, 0) * REPLAY_BASE_RATE * c.speed, c.span.end)
 }
 
+/** The real time a playing clock reaches the trip's end, or null when it isn't playing. */
+export function finishesAt(c: ReplayClock): number | null {
+  const since = c.anchor?.playingSince
+  if (c.anchor == null || since == null) return null
+  return Math.ceil(since + (c.span.end - c.anchor.tripTime) / (REPLAY_BASE_RATE * c.speed))
+}
+
 /** True once a replay has run to the trip's end. `isPlaying` stays true then, so the page shows Play again. */
 export const hasFinished = (c: ReplayClock, now: number) => isPlaying(c) && clockTime(c, now) >= c.span.end
 

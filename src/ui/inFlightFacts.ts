@@ -3,7 +3,7 @@ import { trackingFlightNumber, trackingLinks, type TrackingLinks } from '../copy
 import type { AirportIndex } from '../data/airports'
 import { isMove } from '../engine/legs'
 import type { Snapshot } from '../engine/snapshot'
-import type { GeoPoint } from './flightMapGeometry'
+import type { GeoPoint } from '../map/greatCircle'
 
 /** One end of the flight: its code, its city, and its place and zone when the airport list has them. */
 export interface FlightEnd {
@@ -67,10 +67,4 @@ export function inFlightFacts(snap: Snapshot, airports: AirportIndex): InFlightF
     trackingNumber: trackingFlightNumber(leg.airline, leg.number) ?? flightNumber,
     links: trackingLinks(leg.airline, leg.number),
   }
-}
-
-/** How far along the flight is at `now`, from 0 at departure to 1 at landing; null outside the flight (slice 2C §4.6). */
-export function flightProgress(facts: InFlightFacts, now: number): number | null {
-  if (now < facts.start || now > facts.end || facts.end <= facts.start) return null
-  return Math.min(Math.max((now - facts.start) / (facts.end - facts.start), 0), 1)
 }

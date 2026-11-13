@@ -15,6 +15,9 @@ import { scheduleLegs } from '../../src/ui/scheduleFacts'
 import { testAirports } from '../fixtures/airports'
 import { setWindowSize, stubAnimationFrames } from '../fixtures/ui'
 
+// The map's land is a download these tests don't make.
+vi.mock('../../src/ui/hooks/useLand', () => ({ useLand: () => null }))
+
 const NOW = Date.UTC(2026, 9, 20, 16)
 
 beforeEach(() => {
@@ -160,6 +163,25 @@ describe('PilotPages: the status page and the Schedule page (slice 3A §3.3)', (
   const settle = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 20)))
   beforeEach(() => history.replaceState(null, '', '/'))
   afterEach(() => history.replaceState(null, '', '/'))
+
+  it('opens the full map from its address, and Escape closes it with focus back on the card’s map', async () => {
+    history.replaceState(null, '', '/#map')
+    const { container } = render(<PilotPages schedule={handle(demoRawForScene('flying', NOW))} airports={testAirports} demo onLeave={() => {}} />)
+    expect(container.querySelector('.trip-map-page')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Close map' })).toBeTruthy()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    await settle()
+    expect(container.querySelector('.trip-map-page')).toBeNull()
+    expect(location.hash).toBe('')
+    expect(document.activeElement).toBe(container.querySelector('[data-trip-map-open]'))
+  })
+
+  it('shows the status page at the map’s address when there is no trip to draw', () => {
+    history.replaceState(null, '', '/#map')
+    const { container } = render(<PilotPages schedule={handle(demoRawForScene('nothing-ahead', NOW))} airports={testAirports} demo onLeave={() => {}} />)
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe("Where's Alex?")
+    expect(container.querySelector('.trip-map-page')).toBeNull()
+  })
 
   it('opens the schedule from a card, and its back button brings the status page back', async () => {
     render(<PilotPages schedule={handle(demoRawForScene('home', NOW))} airports={testAirports} demo onLeave={() => {}} />)

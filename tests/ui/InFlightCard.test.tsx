@@ -25,12 +25,12 @@ const card = (over: Partial<InFlightFacts> = {}, h24 = false, onOpenTracking = (
 )
 
 describe('InFlightCard', () => {
-  it('is a frosted card, named for screen readers, with the map, the banner and the info bar in that order', () => {
+  it('is a frosted card, named for screen readers, with the map’s stand-in, the banner and the info bar in that order', () => {
     const { container } = render(card())
     const section = container.querySelector('section')!
     expect(section.getAttribute('class')).toBe('card glass inflight')
     expect(screen.getByRole('heading', { level: 2, name: 'In flight' }).classList.contains('sr-only')).toBe(true)
-    expect([...section.children].map((el) => el.getAttribute('class'))).toEqual(['sr-only', 'flight-map', 'inflight-banner late', 'inflight-bar'])
+    expect([...section.children].map((el) => el.getAttribute('class'))).toEqual(['sr-only', 'flight-map-fallback', 'inflight-banner late', 'inflight-bar'])
   })
 
   it('lets its heading take focus from code only, for when a popup closes by itself', () => {

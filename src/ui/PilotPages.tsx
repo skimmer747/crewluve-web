@@ -5,13 +5,16 @@ import { loadLiveWeather, tempUnitFor, type TempUnit, type WeatherLoader, type W
 import { buildLegs, type Leg } from '../engine/legs'
 import { safeSnapshot, type Snapshot } from '../engine/snapshot'
 import type { Schedule } from '../engine/types'
+import { tripMapFor } from '../map/tripMapFor'
 import type { QuickStatus } from '../partner/summary'
 import { prefers24Hour, viewerTimeZone } from '../time/zoned'
 import { EmptyState } from './EmptyState'
 import { Footer, type FooterProps } from './Footer'
+import { useLand } from './hooks/useLand'
 import type { ScheduleHandle } from './hooks/useSchedule'
 import { useNow } from './hooks/useNow'
 import { useSchedulePage } from './hooks/useSchedulePage'
+import { useTripMapPage } from './hooks/useTripMapPage'
 import { useSideBySide } from './hooks/useSideBySide'
 import { useVisibilityCount } from './hooks/useVisibilityCount'
 import { useWeather } from './hooks/useWeather'
@@ -21,6 +24,7 @@ import { scheduleLegs } from './scheduleFacts'
 import { SchedulePage } from './SchedulePage'
 import { ScheduleView } from './ScheduleView'
 import { StatusScreen } from './StatusScreen'
+import { TripMapPage } from './TripMapPage'
 import { Title } from './Title'
 
 export interface PilotPagesProps {
@@ -79,10 +83,14 @@ export function PilotPages({
   const snap = ready ? safeSnapshot(ready.s, ready.legs, now, airports.tz(ready.s.pilot.base) ?? viewerTz) : null
   // Asked for before the early return below, so the hooks run in the same order on every render.
   const weather = useWeather(weatherPlace(snap, airports, unit), loadWeather)
+  // snap is only set with ready, so the legs are always there; the fallback is for the type checker.
+  const tripMap = snap ? tripMapFor(snap, ready?.legs ?? [], airports) : null
+  const land = useLand(tripMap != null)
   // The page the address asks for, and the legs the Schedule page lists. A wide window shows both pages side by side
   // (slice 3C §3).
   const sideBySide = useSideBySide()
   const page = useSchedulePage(sideBySide)
+  const mapPage = useTripMapPage()
   const listed = useMemo(() => (ready ? scheduleLegs(ready.legs) : []), [ready])
 
   if (!snap) {
@@ -97,7 +105,12 @@ export function PilotPages({
   }
 
   const quickStatus = quickStatusAt?.(now) ?? null
-  const status = { snap, now, viewerTz, homeTz, h24, airports, weather, demo, celebrateKey, footer, notice, quickStatus }
+  const status = { snap, now, viewerTz, homeTz, h24, airports, weather, demo, celebrateKey, footer, notice, quickStatus, tripMap, land, onOpenMap: mapPage.show }
+  // A #map address with no trip to draw falls through to the status page (moving map spec §6).
+  if (mapPage.open && tripMap) {
+    return <TripMapPage map={tripMap} now={now} viewerTz={viewerTz} h24={h24} day={snap.tripProgress?.day ?? null}
+      days={snap.tripProgress?.days ?? null} land={land} onBack={mapPage.back} />
+  }
   const view = { legs: listed, pilot: snap.pilot, now, timeZone: viewerTz, h24, airports }
   // Side by side, the schedule sits beside the cards, and nothing on the status page opens it (3C §4.3). Each layout
   // has a status page of its own, so crossing the line rebuilds it, and a popup open on it closes (§5.2, §5.3).

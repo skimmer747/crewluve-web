@@ -4,6 +4,10 @@ import { copiesFor, linePath, placeAt, polygonsPath, type Viewport } from '../..
 const WORLD: Viewport = { rect: { x: 0, y: 0, width: 1, height: 1 }, width: 360, height: 360 }
 const PACIFIC: Viewport = { rect: { x: 0.85, y: 0.2, width: 0.3, height: 0.2 }, width: 300, height: 200 }
 
+/** A path's subpaths, each as its points. */
+const subpaths = (d: string) => d.split('M').filter(Boolean).map((part) =>
+  [...part.matchAll(/([\d.-]+) ([\d.-]+)/g)].map((m) => ({ x: Number(m[1]), y: Number(m[2]) })))
+
 describe('paths on screen (moving map spec §11)', () => {
   it('needs only the world copies the view reaches', () => {
     expect(copiesFor(WORLD.rect)).toEqual([0])
@@ -18,8 +22,23 @@ describe('paths on screen (moving map spec §11)', () => {
 
   it('draws a line across the date line in one piece', () => {
     const d = linePath([{ lat: 50, lng: 170 }, { lat: 50, lng: -170 }], PACIFIC)
-    const xs = [...d.matchAll(/[ML]([\d.-]+) /g)].map((m) => Number(m[1]))
-    expect(Math.abs(xs[1] - xs[0])).toBeLessThan(100)
+    // The copy of the line that's on screen: the other copy of the world is out of the view.
+    const onScreen = subpaths(d).find((points) => points.some((p) => p.x >= 0 && p.x <= 300))
+    expect(onScreen).toBeDefined()
+    expect(Math.abs(onScreen![1].x - onScreen![0].x)).toBeLessThan(100)
+  })
+
+  it('draws a line on every copy of the world a wide view shows, so each marker sits on one', () => {
+    const wide: Viewport = { rect: { x: 0.1, y: 0.2, width: 1.4, height: 0.3 }, width: 700, height: 150 }
+    const from = { lat: 38, lng: -85 }
+    const to = { lat: 50, lng: 7 }
+    const paths = subpaths(linePath([from, to], wide))
+    expect(paths.length).toBeGreaterThan(1)
+    const ends = paths.flatMap((points) => [points[0], points[points.length - 1]])
+    for (const place of [from, to]) {
+      const at = placeAt(place, wide)
+      expect(ends.some((e) => Math.hypot(e.x - at.x, e.y - at.y) <= 1)).toBe(true)
+    }
   })
 
   it('closes each shape on the copies of the world the view shows it on, and leaves out the rest', () => {

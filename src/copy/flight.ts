@@ -1,4 +1,4 @@
-import { delayText, spokenDuration } from './format'
+import { delayText } from './format'
 
 /**
  * The flight number as the pilot's Duty app writes it for the family (PartnerStatusGenerator.formatFlightNumber):
@@ -9,18 +9,6 @@ export function flightNumberText(airline: string | null, number: string | null):
   if (!number) return null
   if (airline === '5X') return `UPS${number}`
   return `${airline ?? ''}${number}`
-}
-
-/** The scheduled block time under the map: "5:00", or "45m" under an hour (FlightRouteMapView.formatDuration). */
-export function flightDurationText(ms: number): string {
-  const minutes = Math.floor(ms / 60_000)
-  const hours = Math.floor(minutes / 60)
-  return hours > 0 ? `${hours}:${String(minutes % 60).padStart(2, '0')}` : `${minutes}m`
-}
-
-/** The distance under the map: "2,706 nm", with a thousands separator, as SwiftUI prints a number in text. */
-export function distanceText(nm: number): string {
-  return `${nm.toLocaleString('en-US')} nm`
 }
 
 /**
@@ -41,44 +29,4 @@ export function delayBannerText(minutes: number): string {
  */
 export function spokenDelayBanner(minutes: number): string {
   return minutes < 0 ? `Departed ${delayText(minutes)} early` : `Delayed ${delayText(minutes)}`
-}
-
-const PROGRESS_WORDS: ReadonlyArray<[fraction: number, words: string]> = [
-  [0, 'just taking off'],
-  [1 / 4, 'about a quarter of the way'],
-  [1 / 3, 'about a third of the way'],
-  [1 / 2, 'halfway'],
-  [2 / 3, 'about two thirds of the way'],
-  [3 / 4, 'about three quarters of the way'],
-  [1, 'about to land'],
-]
-
-/** How far along the flight is, in words: the nearest of 0, ¼, ⅓, ½, ⅔, ¾ and 1 (slice 2C §4.10). */
-export function progressWords(progress: number): string {
-  let best = PROGRESS_WORDS[0]
-  for (const entry of PROGRESS_WORDS) if (Math.abs(entry[0] - progress) < Math.abs(best[0] - progress)) best = entry
-  return best[1]
-}
-
-export interface FlightMapLabelArgs {
-  from: string
-  to: string
-  /** The distance, or null when an airport is unknown. */
-  nm: number | null
-  /** The scheduled block time; left out when it isn't over zero. */
-  durationMs: number
-  /** How far along the flight is, or null when it isn't under way. */
-  progress: number | null
-}
-
-/**
- * What screen readers hear for the map, which the app doesn't have (slice 2C §4.10): "Flight from Anchorage to
- * Louisville, 2,706 nautical miles, 5 hours, about a third of the way". Parts that don't apply are left out.
- */
-export function flightMapLabel({ from, to, nm, durationMs, progress }: FlightMapLabelArgs): string {
-  const parts = [`Flight from ${from} to ${to}`]
-  if (nm != null) parts.push(`${nm.toLocaleString('en-US')} nautical ${nm === 1 ? 'mile' : 'miles'}`)
-  if (durationMs > 0) parts.push(spokenDuration(durationMs))
-  if (progress != null) parts.push(progressWords(progress))
-  return parts.join(', ')
 }

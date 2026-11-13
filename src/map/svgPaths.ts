@@ -33,16 +33,27 @@ export function placeAt(place: GeoPoint, v: Viewport): { x: number; y: number } 
   return toScreen({ x: nearMiddle(p.x, v.rect), y: p.y }, v)
 }
 
-/** A line through `points`, laid out in one piece across the date line, on the copy nearest the middle. */
+/**
+ * A line through `points`, laid out in one piece across the date line, once on every copy of the world the view reaches,
+ * as one subpath each. A view wider than the world shows each place on more than one copy, and `placeAt` puts a marker on
+ * the copy nearest the middle, so the line has to be on that copy too.
+ */
 export function linePath(points: GeoPoint[], v: Viewport): string {
   if (points.length === 0) return ''
   const laid = unwrapped(points.map(toWorld))
-  const middle = laid[Math.floor(laid.length / 2)].x
-  const shift = nearMiddle(middle, v.rect) - middle
-  return laid.map((p, i) => {
-    const s = toScreen({ x: p.x + shift, y: p.y }, v)
-    return `${i === 0 ? 'M' : 'L'}${s.x} ${s.y}`
-  }).join(' ')
+  const xs = laid.map((p) => p.x)
+  const west = Math.min(...xs)
+  const east = Math.max(...xs)
+  const { rect } = v
+  const parts: string[] = []
+  for (let k = Math.floor(rect.x - east); k <= Math.ceil(rect.x + rect.width - west); k++) {
+    if (east + k < rect.x || west + k > rect.x + rect.width) continue
+    parts.push(laid.map((p, i) => {
+      const s = toScreen({ x: p.x + k, y: p.y }, v)
+      return `${i === 0 ? 'M' : 'L'}${s.x} ${s.y}`
+    }).join(' '))
+  }
+  return parts.join(' ')
 }
 
 /**

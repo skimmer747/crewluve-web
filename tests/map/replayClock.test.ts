@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clockTime, goLive, hasFinished, isLive, isPlaying, liveClock, pause, play, scrub, setSpeed } from '../../src/map/replayClock'
+import { clockTime, finishesAt, goLive, hasFinished, isLive, isPlaying, liveClock, pause, play, scrub, setSpeed } from '../../src/map/replayClock'
 
 const SPAN = { start: 1_800_000_000_000, end: 1_800_000_000_000 + 2 * 86_400_000 }
 const NOW = 1_800_050_000_000
@@ -30,6 +30,17 @@ describe('the replay clock (moving map spec §6)', () => {
     expect(clockTime(playing, NOW + 500 * S)).toBe(SPAN.end)
     expect(hasFinished(playing, NOW + 500 * S)).toBe(true)
     expect(clockTime(play(playing, NOW + 500 * S), NOW + 500 * S)).toBe(SPAN.start)
+  })
+
+  it('knows the real time a replay reaches the end, and has none when it is not playing', () => {
+    const playing = play(liveClock(SPAN), NOW)
+    const end = finishesAt(playing)!
+    expect(hasFinished(playing, end - 1)).toBe(false)
+    expect(hasFinished(playing, end)).toBe(true)
+    // A faster replay ends sooner.
+    expect(finishesAt(setSpeed(playing, 10, NOW))!).toBeLessThan(end)
+    expect(finishesAt(liveClock(SPAN))).toBeNull()
+    expect(finishesAt(pause(playing, NOW + 5 * S))).toBeNull()
   })
 
   it('pauses where it is, and goes back to now', () => {

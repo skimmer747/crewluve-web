@@ -3,7 +3,7 @@ import { demoRaw } from '../../src/data/demo'
 import { RawBuilder } from '../../src/data/rowBuilder'
 import type { MoveLeg } from '../../src/engine/legs'
 import { makeSnapshot, type Snapshot } from '../../src/engine/snapshot'
-import { flightProgress, inFlightFacts } from '../../src/ui/inFlightFacts'
+import { inFlightFacts } from '../../src/ui/inFlightFacts'
 import { testAirports } from '../fixtures/airports'
 import { A, at, engineFor, M } from '../fixtures/engine'
 import { flight } from '../fixtures/legs'
@@ -87,20 +87,5 @@ describe('inFlightFacts', () => {
     // An airline code with more than letters and digits gets no tracking links, but the popup still opens.
     const odd = inFlightFacts({ ...air, status: { ...air.status, current: { ...leg, airline: 'U/S' } } }, testAirports)!
     expect([odd.flightNumber, odd.trackingNumber, odd.links]).toEqual(['U/S100', 'U/S100', null])
-  })
-})
-
-describe('flightProgress', () => {
-  const facts = inFlightFacts(snapAt(100), testAirports)!
-
-  it('runs from 0 at the estimated departure to 1 at landing', () => {
-    expect(flightProgress(facts, at(60))).toBe(0)
-    expect(flightProgress(facts, at(105))).toBeCloseTo(0.5, 9)
-    expect(flightProgress(facts, at(150))).toBe(1)
-  })
-
-  it('is null before departure and after landing', () => {
-    expect(flightProgress(facts, at(59))).toBeNull()
-    expect(flightProgress(facts, at(151))).toBeNull()
   })
 })

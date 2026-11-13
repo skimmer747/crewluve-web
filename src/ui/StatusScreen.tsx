@@ -6,6 +6,8 @@ import { arrivalCard, leaveCard, statusVisual } from '../copy/visuals'
 import type { AirportIndex } from '../data/airports'
 import type { Weather } from '../data/weather'
 import type { Snapshot } from '../engine/snapshot'
+import type { GeoPoint } from '../map/greatCircle'
+import type { TripMap } from '../map/tripMap'
 import type { QuickStatus } from '../partner/summary'
 import { CountdownCard } from './CountdownCard'
 import { DaysHomePill } from './DaysHomePill'
@@ -23,6 +25,7 @@ import { ViewScheduleLink, type ScheduleLinkName, type ScheduleLinkProps } from 
 import { SunPopup } from './SunPopup'
 import { Title, titleFor } from './Title'
 import { TrackingPopup } from './TrackingPopup'
+import { TripMapCard } from './TripMapCard'
 import { TripProgressCard } from './TripProgressCard'
 import { UpcomingTripCard } from './UpcomingTripCard'
 
@@ -53,6 +56,12 @@ export interface StatusScreenProps {
   notice?: string | null
   /** The pilot's quick status now, for the location card (piece 5a §7). */
   quickStatus?: QuickStatus | null
+  /** The trip map's trip, or null when there's nothing to draw (moving map spec §5). */
+  tripMap?: TripMap | null
+  /** The land the map is drawn on, or null while it loads or when it can't be had. */
+  land?: GeoPoint[][] | null
+  /** Opens the full map from the card's map. */
+  onOpenMap?: () => void
 }
 
 /** The link into the schedule named `name`, or none when the page has no way into it. */
@@ -87,6 +96,8 @@ export function StatusScreen(p: StatusScreenProps) {
   // The in-flight card while the pilot is in the air; the tracking popup closes by itself when its flight number goes,
   // at landing.
   const flying = inFlightFacts(snap, p.airports)
+  // The trip map takes the in-flight card's place whenever it can draw the flight (moving map spec §12).
+  const mapFlying = p.tripMap?.mode.kind === 'inFlight'
   const tracking = usePopupOpener(flying?.trackingNumber != null, inTheirPlace)
   const hidden = sun.open || tracking.open
   const flight = snap.nextFlight
@@ -101,6 +112,12 @@ export function StatusScreen(p: StatusScreenProps) {
       <NarrativeCard spans={spans} visual={statusVisual(snap)} ring={snap.ring} />
       {home ? <HomeCards {...p} /> : <AwayCard {...p} />}
       {p.onOpenSchedule && !cardLeadsThere && <ViewScheduleLink onOpen={p.onOpenSchedule} />}
+      {p.tripMap && (
+        <TripMapCard map={p.tripMap} now={p.now} viewerTz={p.viewerTz} h24={p.h24} name={snap.name}
+          day={snap.tripProgress?.day ?? null} days={snap.tripProgress?.days ?? null} delayMinutes={snap.delay?.minutes ?? null}
+          land={p.land ?? null} onOpenMap={p.onOpenMap ?? (() => {})}
+          onOpenTracking={flying?.trackingNumber ? tracking.show : undefined} headingRef={mapFlying ? inFlightHeading : undefined} />
+      )}
       {facts && (
         <LocationCard
           airport={airport}
@@ -114,7 +131,7 @@ export function StatusScreen(p: StatusScreenProps) {
           quickStatus={p.quickStatus ?? null}
         />
       )}
-      {flying && (
+      {flying && !mapFlying && (
         <InFlightCard facts={flying} now={p.now} h24={p.h24} headingRef={inFlightHeading} onOpenTracking={tracking.show} />
       )}
       {snap.upcomingTrip && (

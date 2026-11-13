@@ -1,25 +1,7 @@
 import type { RefObject } from 'preact'
-import { useLayoutEffect, useState } from 'preact/hooks'
+import { useSize } from './useSize'
 
-/**
- * An element's width in CSS pixels, measured as it mounts and again whenever it changes, as the app's GeometryReader
- * does (slice 2C §4.1). `fallback` stands in until then, and while the element has no width, as in a hidden page.
- * It watches the element the ref holds when the component mounts, so that element must render from the start.
- */
+/** An element's width in CSS pixels, measured as `useSize` does. `fallback` stands in until then, and while it has no width. */
 export function useWidth(element: RefObject<HTMLElement>, fallback: number): number {
-  const [width, setWidth] = useState(fallback)
-  useLayoutEffect(() => {
-    const el = element.current
-    if (!el) return
-    const measure = () => {
-      const measured = el.getBoundingClientRect().width
-      setWidth(measured > 0 ? measured : fallback)
-    }
-    measure()
-    if (typeof ResizeObserver !== 'function') return
-    const observer = new ResizeObserver(measure)
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [element, fallback])
-  return width
+  return useSize(element, { width: fallback, height: 0 }).width
 }

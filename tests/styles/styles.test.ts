@@ -381,51 +381,12 @@ describe('trips.css', () => {
 describe('inFlight.css', () => {
   const top = blocks(css('inFlight'))
   const dark = find(top, '@media (prefers-color-scheme: dark)')
-  const light = customProperties(find(top, '.flight-map')?.body)
-  const darkMap = customProperties(find(blocks(dark?.body ?? ''), '.flight-map')?.body)
   const rule = (head: string) => declarations(find(top, head)!.body)
 
-  // Slice 2C §4.3 and §4.5: FlightRouteMapView's fixed colors, as RGB fractions.
-  it.each([
-    ['--map-day-1', 'rgb(85%,92%,98%)', 'rgb(12%,18%,30%)'],
-    ['--map-day-2', 'rgb(75%,85%,95%)', 'rgb(10%,15%,26%)'],
-    ['--map-night-1', 'rgb(70%,80%,92%)', 'rgb(4%,8%,16%)'],
-    ['--map-night-2', 'rgb(65%,75%,88%)', 'rgb(2%,5%,12%)'],
-    ['--map-text', '#000000', '#ffffff'],
-    ['--map-text-2', 'rgb(40%,40%,45%)', 'var(--gray)'],
-  ])('%s is the app’s color, light and dark', (name, lightValue, darkValue) => {
-    expect(normalize(light.get(name))).toBe(normalize(lightValue))
-    expect(normalize(darkMap.get(name))).toBe(normalize(darkValue))
-  })
-
-  it('draws the route in the theme’s blue, or cyan at 80% in dark mode, so Increase Contrast reaches it', () => {
-    expect([light.get('--map-route'), light.get('--map-route-middle'), light.get('--map-route-edge')]).toEqual(['var(--blue)', '1', '0.75'])
-    expect([darkMap.get('--map-route'), darkMap.get('--map-route-middle'), darkMap.get('--map-route-edge')]).toEqual(['var(--cyan)', '0.8', '0.6'])
-  })
-
-  it('ties every stop class the map draws to its color, and draws the lines unfilled, inside a 200 px positioned box', () => {
-    for (const time of ['day', 'night']) {
-      for (const n of [1, 2]) expect(rule(`.flight-sky-${time}-${n}`)).toContainEqual(['stop-color', `var(--map-${time}-${n})`])
-    }
-    for (const part of ['edge', 'middle']) {
-      expect(rule(`.flight-route-${part}`)).toEqual(expect.arrayContaining([['stop-color', 'var(--map-route)'], ['stop-opacity', `var(--map-route-${part})`]]))
-    }
-    expect(rule('.flight-route, .flight-route-glow, .flight-arrow, .flight-arrow-glow')).toEqual(expect.arrayContaining([['fill', 'none'], ['stroke-width', '3']]))
-    const box = top.filter((b) => b.head === '.flight-map').flatMap((b) => declarations(b.body))
-    expect(box).toEqual(expect.arrayContaining([['position', 'relative'], ['height', '200px'], ['overflow', 'hidden']]))
-    expect(rule('.flight-airport')).toEqual(expect.arrayContaining([['position', 'absolute'], ['transform', 'translate(-50%, -50%)']]))
-    expect(top.filter((b) => b.head === '.inflight-bar').flatMap((b) => declarations(b.body))).toContainEqual(['background', 'var(--info-bar-fill)'])
-  })
-
-  it('glows the route through its own fade at half strength, with no stroke color over the line’s gradient', () => {
-    const glow = declarations(find(top, '.flight-route-glow')!.body)
-    expect(glow).toContainEqual(['stroke-opacity', '0.5'])
-    expect(glow.map(([prop]) => prop)).not.toContain('stroke')
-  })
-
-  it('lays the plane’s drawing exactly over the map’s, so the plane sits over the airports', () => {
-    expect(declarations(find(top, '.flight-map-art, .flight-map-plane')!.body)).toEqual(
-      expect.arrayContaining([['position', 'absolute'], ['top', '0'], ['left', '0']]),
+  // The old drawn map is gone; its stand-in keeps the day sky and the secondary text (moving map spec §12).
+  it('keeps the map’s stand-in as a centred row on the day sky, in the secondary text color', () => {
+    expect(rule('.flight-map-fallback')).toEqual(
+      expect.arrayContaining([['display', 'flex'], ['align-items', 'center'], ['justify-content', 'center'], ['color', 'var(--text-2)']]),
     )
   })
 
@@ -452,22 +413,15 @@ describe('inFlight.css', () => {
 
   it('sets every light color before the dark block, so the dark ones win in dark mode', () => {
     const darkAt = top.indexOf(dark!)
-    for (const head of ['.flight-map', '.inflight-bar']) {
+    for (const head of ['.inflight-bar']) {
       const colored = top.filter((b) => b.head === head && declarations(b.body).some(([prop]) => prop.startsWith('--')))
       expect(colored.length, head).toBeGreaterThan(0)
       for (const rule of colored) expect(top.indexOf(rule), head).toBeLessThan(darkAt)
     }
   })
 
-  // Slice 2C §4.5, §4.7, §4.8 and §5.2: which of the fixed text colors each part takes.
+  // Slice 2C §4.5, §4.7, §4.8 and §5.2: which of the info bar's text colors each part takes.
   it.each([
-    ['.flight-airport-code', 'color', 'var(--map-text)'],
-    ['.flight-airport-city', 'color', 'var(--map-text-2)'],
-    ['.flight-airport-time', 'color', 'var(--map-text)'],
-    ['.flight-distance', 'color', 'var(--map-text)'],
-    ['.flight-plane-icon', 'fill', 'var(--map-text)'],
-    ['.flight-map-fallback', 'color', 'var(--map-text-2)'],
-    ['.flight-map-fallback', 'background', 'linear-gradient(var(--map-day-1), var(--map-day-2))'],
     ['.inflight-number', 'color', 'var(--info-bar-text)'],
     ['.inflight-number', 'text-decoration-color', 'var(--info-bar-underline)'],
     ['.inflight-status', 'color', 'var(--info-bar-text-2)'],
@@ -475,16 +429,6 @@ describe('inFlight.css', () => {
     ['.inflight-code', 'color', 'var(--info-bar-text-2)'],
   ])('%s takes its %s from %s', (head, prop, value) => {
     expect(rule(head)).toContainEqual([prop, value])
-  })
-
-  it('draws the arrow in the route’s color glowing at 80%, the sun or moon glowing at 80%, and the plane’s blue halo and glow', () => {
-    expect(rule('.flight-arrow, .flight-arrow-glow')).toContainEqual(['stroke', 'var(--map-route)'])
-    expect(rule('.flight-arrow-glow')).toContainEqual(['stroke-opacity', '0.8'])
-    expect(rule('.flight-airport-icon > .icon:first-child')).toEqual(expect.arrayContaining([['filter', 'blur(2px)'], ['opacity', '0.8']]))
-    expect(rule('.flight-airport-icon.day')).toContainEqual(['color', 'var(--yellow)'])
-    expect(rule('.flight-airport-icon.night')).toContainEqual(['color', 'var(--blue)'])
-    expect(rule('.flight-plane-halo')).toEqual(expect.arrayContaining([['fill', 'var(--blue)'], ['fill-opacity', '0.3']]))
-    expect(rule('.flight-plane-glow')).toEqual(expect.arrayContaining([['fill', 'var(--blue)'], ['fill-opacity', '0.8']]))
   })
 
   it('tints each tracking link in its own color at 12%: FlightRadar24 blue, FlightAware orange', () => {
@@ -501,10 +445,6 @@ describe('inFlight.css', () => {
     expect(rule('.tracking-popup.closing .tracking-card')).toEqual(
       expect.arrayContaining([['opacity', '0'], ['transform', 'scale(0.5)'], ['transition', 'opacity 0.2s ease-out, transform 0.2s ease-out']]),
     )
-  })
-
-  it('centers the duration and distance on the map whatever its width', () => {
-    expect(rule('.flight-distance')).toEqual(expect.arrayContaining([['left', '50%'], ['transform', 'translate(-50%, -50%)']]))
   })
 
   it('gives the popup’s 22 px ✕ a bigger area to tap without moving it, as the sun popup’s', () => {
