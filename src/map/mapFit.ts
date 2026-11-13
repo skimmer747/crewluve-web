@@ -1,0 +1,57 @@
+import type { GeoPoint } from './greatCircle'
+import { toWorld } from './mercator'
+
+/**
+ * The flat-map rectangle the trip map shows (moving map spec §6, §12), as the app's MapFit. A trip across the date line
+ * is laid out in one piece, so Anchorage to Tokyo frames the North Pacific, not the whole world.
+ */
+export interface WorldRect {
+  /** In world units (`WorldPoint`). May run past 1 when the rectangle crosses the date line. */
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+/** The smallest side a rectangle may have, as a share of the world: about 60 km at the equator, for one airport or a short drive. */
+export const MIN_SIDE = 0.0015
+
+/** A rectangle that starts left of the date line runs on past the right edge instead. */
+const normalized = (r: WorldRect): WorldRect => (r.x < 0 ? { ...r, x: r.x + 1 } : r)
+
+/**
+ * The smallest rectangle holding every place the short way round the world. It's grown by `padding`, a share of its
+ * width and height on each side, and is at least `minSide` on each side. Null for no places.
+ */
+export function fitRect(places: GeoPoint[], padding = 0.2, minSide = MIN_SIDE): WorldRect | null {
+  if (places.length === 0) return null
+  const points = places.map(toWorld)
+  const xs = points.map((p) => p.x).sort((a, b) => a - b)
+  const ys = points.map((p) => p.y)
+  // The widest empty stretch of longitude is left out. When it's the one across the date line, the rectangle sits inside
+  // one world; otherwise it runs on past the map's right edge.
+  let gapAfter = xs.length - 1
+  let widest = 1 - xs[xs.length - 1] + xs[0]
+  for (let i = 0; i < xs.length - 1; i++) {
+    if (xs[i + 1] - xs[i] > widest) {
+      widest = xs[i + 1] - xs[i]
+      gapAfter = i
+    }
+  }
+  const minX = gapAfter === xs.length - 1 ? xs[0] : xs[gapAfter + 1]
+  const maxX = gapAfter === xs.length - 1 ? xs[xs.length - 1] : xs[gapAfter] + 1
+  const minY = Math.min(...ys)
+  const maxY = Math.max(...ys)
+  const width = Math.max((maxX - minX) * (1 + 2 * padding), minSide)
+  const height = Math.max((maxY - minY) * (1 + 2 * padding), minSide)
+  return normalized({ x: (minX + maxX) / 2 - width / 2, y: (minY + maxY) / 2 - height / 2, width, height })
+}
+
+/** `rect` grown about its centre to the screen's shape (`aspect` is width over height), so nothing stretches. */
+export function toAspect(rect: WorldRect, aspect: number): WorldRect {
+  const width = rect.width / rect.height < aspect ? rect.height * aspect : rect.width
+  const height = rect.width / rect.height < aspect ? rect.height : rect.width / aspect
+  const centerX = rect.x + rect.width / 2
+  const centerY = rect.y + rect.height / 2
+  return normalized({ x: centerX - width / 2, y: centerY - height / 2, width, height })
+}
