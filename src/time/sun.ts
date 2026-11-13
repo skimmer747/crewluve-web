@@ -87,6 +87,20 @@ export function sunAltitude(t: number, lat: number, lng: number): number {
   return 90 - deg(Math.acos(Math.min(1, Math.max(-1, cosZenith))))
 }
 
+/**
+ * The point on the earth with the sun straight overhead at `t`, for the trip map's night (moving map spec §7.1): its
+ * latitude (the sun's declination) in radians, and its longitude in degrees, east positive, within -180…180. It's the
+ * point where `sunAltitude`'s hour angle is zero, from the same NOAA position.
+ */
+export function subsolarPoint(t: number): { declination: number; longitude: number } {
+  const { declination, equationOfTime } = solarPosition(t)
+  const utcMinutes = (((t % DAY) + DAY) % DAY) / MINUTE
+  let longitude = 180 - (utcMinutes + equationOfTime) / 4
+  while (longitude > 180) longitude -= 360
+  while (longitude < -180) longitude += 360
+  return { declination: rad(declination), longitude }
+}
+
 /** Whether the sun is up at latitude `lat`, longitude `lng` and instant `t`: above the sunrise and sunset horizon. */
 export function isSunUp(t: number, lat: number, lng: number): boolean {
   return sunAltitude(t, lat, lng) > SUN_UP_ALTITUDE
