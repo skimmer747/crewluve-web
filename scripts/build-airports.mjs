@@ -2,7 +2,7 @@
 // for US airports.
 // Source: the Flight Globe's merged list (Crewlu's own airport tables win over OurAirports there).
 // Cities: the globe's, except where the Crewluve app's own airport table (AirportDataProvider.swift) names one
-// differently: VPS, DEL, BAH and TAO.
+// differently: VPS, DEL, BAH, TAO and RZE.
 // Countries: one spelling each, "USA" for the US (as the Crewluve app writes it) and short English names elsewhere,
 // except where the Crewluve app's own airport table (AirportDataProvider.swift) spells one differently: that wins.
 // States: iso_region from the OurAirports list the globe keeps beside its own ("US-KY" -> "KY"), except where the
@@ -166,13 +166,14 @@ function usState(iata, country) {
   return APP_STATE.get(iata) ?? /^US-([A-Z]{2})$/.exec(regions.get(iata)?.region ?? '')?.[1] ?? null
 }
 
-// The Crewluve app's airport table names these four cities differently from the globe's list. The app's names win, so
+// The Crewluve app's airport table names these five cities differently from the globe's list. The app's names win, so
 // the site reads like the app.
 const APP_CITY = new Map([
   ['VPS', 'Destin/Fort Walton Beach'],
   ['DEL', 'New Delhi'],
   ['BAH', 'Bahrain'],
   ['TAO', 'Qingdao'],
+  ['RZE', 'Rzeszów'], // OurAirports: "Jasionka", the village the field sits in
 ])
 
 const skipped = { 'bad code': 0, duplicate: 0, 'bad coordinates': 0, 'no zone': 0 }

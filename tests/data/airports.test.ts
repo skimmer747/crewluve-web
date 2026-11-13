@@ -168,5 +168,6 @@ describe('generated public/data/airports.json', () => {
     expect(idx.city('DEL')).toBe('New Delhi')
     expect(idx.city('BAH')).toBe('Bahrain')
     expect(idx.city('TAO')).toBe('Qingdao')
+    expect(idx.city('RZE')).toBe('Rzeszów')
   })
 })
