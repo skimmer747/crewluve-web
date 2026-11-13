@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "airports": "npm install --no-save geo-tz@8.1.9 && node scripts/build-airports.mjs",
-    "icons": "npm install --no-save @phosphor-icons/core@2.1.1 && node scripts/build-icons.mjs"
+    "icons": "npm install --no-save @phosphor-icons/core@2.1.1 && node scripts/build-icons.mjs",
+    "land": "node scripts/build-land.mjs"
   },
   "dependencies": {
     "preact": "10.29.8"

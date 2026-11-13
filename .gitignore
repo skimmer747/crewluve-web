@@ -6,3 +6,4 @@ coverage/
 .env
 .env.*
 .vite/
+scripts/ne_110m_land.geojson
