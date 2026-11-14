@@ -3,8 +3,8 @@ import type { Leg } from '../../src/engine/legs'
 import { pointAlong } from '../../src/map/greatCircle'
 import { scheduledFraction } from '../../src/map/flightProgress'
 import {
-  currentLeg, framingPoints, headingAt, legInMotion, legProgress, makeTripMap, nextFlight, pilotLocation, positionAt, positionAtTime,
-  timeAtFraction,
+  currentLeg, destinationsOf, framingPoints, headingAt, legInMotion, legProgress, makeTripMap, milesFlown, nextFlight, pilotLocation,
+  positionAt, positionAtTime, timeAtFraction, totalMiles,
 } from '../../src/map/tripMap'
 import { AIRPORTS, at, drive, EUROPE, flight } from './tripMapLegs'
 
@@ -94,5 +94,18 @@ describe('times and places along a leg (Stage 2 spec §4.2)', () => {
   it('places the pilot where the schedule has them', () => {
     const leg = makeTripMap(EUROPE, options)!.legs[0]
     expect(positionAtTime(leg, at(4))).toEqual(positionAt(leg, legProgress(leg, at(4))))
+  })
+})
+
+describe('a trip’s destinations and miles (Stage 2 spec §4.8)', () => {
+  const map = makeTripMap(EUROPE, { isNextTrip: false, home: 'SDF', now: at(0), airports: AIRPORTS })!
+
+  it('lists the airports its flights reach, each once, home left out', () => {
+    expect(destinationsOf(map.legs, map.home).map((a) => a.code)).toEqual(['CGN', 'DXB'])
+  })
+
+  it('counts the miles flown by a moment, and in all', () => {
+    expect(milesFlown(map.legs, at(12))).toBe(4_351)
+    expect(totalMiles(map.legs)).toBe(14_819)
   })
 })

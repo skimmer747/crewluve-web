@@ -3,7 +3,7 @@ import type { AirportIndex } from '../data/airports'
 import { isMove, type Leg } from '../engine/legs'
 import type { Iata } from '../engine/types'
 import { scheduledFraction, scheduledTime } from './flightProgress'
-import { distanceMeters, pointAlong, pointsAlong, type GeoPoint } from './greatCircle'
+import { distanceMeters, METERS_PER_MILE, pointAlong, pointsAlong, type GeoPoint } from './greatCircle'
 import { aimFractions, flatMapAngle } from './planeHeading'
 
 /** The trip the map shows (moving map spec §5.1), as the app's TripMap: its drawable legs, its mode, and home. */
@@ -137,4 +137,20 @@ export function framingPoints(map: TripMap, focus: MapLeg | null): GeoPoint[] {
   const points = shown.flatMap((l) => pointsAlong(l.origin.place, l.destination.place, 33))
   if (!focus && map.home) points.push(map.home.place)
   return points
+}
+
+/** The airports the flights among `legs` reach, in order, each once, with home left out (moving map spec §5.3). */
+export function destinationsOf(legs: MapLeg[], home: AirportMark | null): AirportMark[] {
+  const seen = new Set(home ? [home.code] : [])
+  return legs.filter((l) => l.kind === 'flight').map((l) => l.destination).filter((a) => !seen.has(a.code) && seen.add(a.code))
+}
+
+/** Whole miles flown by `t` along the flights' planned routes, with the one in the air counted in part. */
+export function milesFlown(legs: MapLeg[], t: number): number {
+  return Math.round(legs.filter((l) => l.kind === 'flight').reduce((sum, l) => sum + legDistanceMeters(l) * legProgress(l, t), 0) / METERS_PER_MILE)
+}
+
+/** Whole miles of every flight among `legs`. */
+export function totalMiles(legs: MapLeg[]): number {
+  return Math.round(legs.filter((l) => l.kind === 'flight').reduce((sum, l) => sum + legDistanceMeters(l), 0) / METERS_PER_MILE)
 }

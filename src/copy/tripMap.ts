@@ -1,6 +1,5 @@
-import { METERS_PER_MILE } from '../map/greatCircle'
 import {
-  legDistanceMeters, legInMotion, legProgress, nextFlight, pilotLocation, currentLeg, type AirportMark, type MapLeg, type TripMap,
+  destinationsOf, legInMotion, milesFlown, nextFlight, pilotLocation, currentLeg, totalMiles, type AirportMark, type MapLeg, type TripMap,
 } from '../map/tripMap'
 import { calendarDay, MONTHS, WEEKDAYS, zoneOffsetMinutes, zonedParts } from '../time/zoned'
 import { shortTimeText } from './format'
@@ -78,13 +77,10 @@ export function arrivalLocalTime(leg: MapLeg, viewerTz: string, h24: boolean): s
   return there ? `${there} in ${leg.destination.city}` : null
 }
 
-const miles = (meters: number) => Math.round(meters / METERS_PER_MILE).toLocaleString('en-US')
+const milesText = (miles: number) => miles.toLocaleString('en-US')
 
 /** The airports the trip's flights reach, in order, each once, home left out. */
-function destinations(map: TripMap): AirportMark[] {
-  const seen = new Set(map.home ? [map.home.code] : [])
-  return map.legs.filter((l) => l.kind === 'flight').map((l) => l.destination).filter((a) => !seen.has(a.code) && seen.add(a.code))
-}
+const destinations = (map: TripMap) => destinationsOf(map.legs, map.home)
 
 /** The bar's words on the ground (moving map spec §5.3); empty in flight, where the bar shows the flight. */
 export function statsItems(map: TripMap, t: number, day: number | null, days: number | null, viewerTz: string): string[] {
@@ -92,15 +88,13 @@ export function statsItems(map: TripMap, t: number, day: number | null, days: nu
   const cities = destinations(map)
   if (map.mode.kind === 'inFlight') return []
   if (map.mode.kind === 'onTrip') {
-    const flown = flights.reduce((sum, l) => sum + legDistanceMeters(l) * legProgress(l, t), 0)
     return [
       ...(day != null && days != null ? [`Day ${day} of ${days}`] : []),
       ...(cities.length > 0 ? [cities.length === 1 ? '1 city' : `${cities.length} cities`] : []),
-      ...(flights.length > 0 ? [`${miles(flown)} mi so far`] : []),
+      ...(flights.length > 0 ? [`${milesText(milesFlown(map.legs, t))} mi so far`] : []),
     ]
   }
-  const total = flights.reduce((sum, l) => sum + legDistanceMeters(l), 0)
-  const distance = flights.length > 0 ? `${miles(total)} mi` : ''
+  const distance = flights.length > 0 ? `${milesText(totalMiles(map.legs))} mi` : ''
   return [dateRangeText(map.span.start, map.span.end, viewerTz), cities.map((c) => c.code).join(' · '), distance].filter((s) => s !== '')
 }
 
