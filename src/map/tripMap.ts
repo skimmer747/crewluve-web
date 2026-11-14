@@ -2,7 +2,7 @@ import { flightNumberText } from '../copy/flight'
 import type { AirportIndex } from '../data/airports'
 import { isMove, type Leg } from '../engine/legs'
 import type { Iata } from '../engine/types'
-import { scheduledFraction } from './flightProgress'
+import { scheduledFraction, scheduledTime } from './flightProgress'
 import { distanceMeters, pointAlong, pointsAlong, type GeoPoint } from './greatCircle'
 import { aimFractions, flatMapAngle } from './planeHeading'
 
@@ -95,6 +95,15 @@ export function legProgress(leg: MapLeg, t: number): number {
 }
 
 export const positionAt = (leg: MapLeg, fraction: number) => pointAlong(leg.origin.place, leg.destination.place, fraction)
+
+/** When the schedule has the pilot `fraction` of the way along (Stage 2 spec §4.2): in the air for a flight, steadily for a drive. */
+export function timeAtFraction(leg: MapLeg, fraction: number): number | null {
+  if (leg.kind === 'flight') return scheduledTime(leg.start, leg.end, fraction)
+  return leg.start + Math.min(Math.max(fraction, 0), 1) * (leg.end - leg.start)
+}
+
+/** Where the schedule has the pilot along `leg` at `t`. */
+export const positionAtTime = (leg: MapLeg, t: number) => positionAt(leg, legProgress(leg, t))
 
 export const legDistanceMeters = (leg: MapLeg) => distanceMeters(leg.origin.place, leg.destination.place)
 

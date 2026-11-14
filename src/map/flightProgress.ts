@@ -26,3 +26,13 @@ export function scheduledFraction(departure: number, arrival: number, t: number)
   if (!window) return t >= arrival ? 1 : 0
   return Math.min(Math.max((t - window.start) / (window.end - window.start), 0), 1)
 }
+
+/**
+ * When the schedule's plane is `fraction` of the way along its route: the inverse of `scheduledFraction`, for the facts'
+ * milestones (Stage 2 spec §4.2). Null when the flight has no time in the air.
+ */
+export function scheduledTime(departure: number, arrival: number, fraction: number): number | null {
+  const window = airborneWindow(departure, arrival)
+  if (!window) return null
+  return window.start + Math.min(Math.max(fraction, 0), 1) * (window.end - window.start)
+}
