@@ -115,7 +115,7 @@
 .trip-map-panel { margin: 0 16px 16px; padding: 16px; border-radius: 24px; background: var(--glass-fill); -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px); }
 /* A heading for screen readers, at the size of the text around it. */
-.trip-map-headline { margin: 0 0 12px; font-size: 1rem; font-weight: 600; }
+.trip-map-headline { margin: 0; font-size: 1rem; font-weight: 600; }
 .trip-timeline-row { display: flex; align-items: center; gap: 12px; }
 .trip-timeline-row + .trip-timeline-row { margin-top: 8px; justify-content: space-between; }
 .trip-timeline-play { min-width: 44px; min-height: 44px; border: 0; background: none; color: inherit; fill: currentColor; cursor: pointer; }
@@ -124,8 +124,42 @@
 .trip-timeline-speed { min-height: 44px; }
 .trip-timeline-time { color: var(--text-2); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
 
+/* The facts' panel (Stage 2 spec §10): the headline and its toggle, the facts, then the timeline. Below 900 px it sits
+   under the map, and "More facts" opens its facts, which scroll inside it. */
+.trip-map-panel { display: flex; flex-direction: column; gap: 12px; }
+.trip-map-panel-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.facts-toggle {
+  flex: none;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--blue);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.chevron-toggle { min-width: 44px; padding: 0; color: inherit; }
+/* Up to show the facts, down to fold them away. */
+.chevron-toggle .chevron { transform: rotate(-90deg); }
+.trip-map-panel.open .chevron-toggle .chevron { transform: rotate(90deg); }
+.trip-facts { max-height: 45vh; max-height: 45dvh; overflow-y: auto; }
+
+/* At 900 px or wider, or on a phone on its side, the panel lies over the map's left edge. Open, it runs the full height
+   under the top bar, its facts scroll and the timeline stays at the bottom; folded, it's the headline and timeline in
+   the corner. The camera keeps the trip clear of it (TripMapPage's insets). */
 @media (min-width: 900px), (orientation: landscape) and (max-height: 500px) {
-  .trip-map-panel { position: fixed; left: 16px; bottom: 16px; width: 380px; margin: 0; }
+  .trip-map-panel {
+    position: fixed;
+    left: calc(16px + env(safe-area-inset-left));
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    width: 380px;
+    max-width: calc(100% - 32px);
+    margin: 0;
+  }
+  .trip-map-panel.open { top: calc(76px + env(safe-area-inset-top)); }
+  .trip-map-panel.open .trip-facts { flex: 1; min-height: 0; max-height: none; }
 }
 
 /* The facts (Stage 2 spec §6.3): an icon, a title and a grey second line, rows split by a hairline. */
