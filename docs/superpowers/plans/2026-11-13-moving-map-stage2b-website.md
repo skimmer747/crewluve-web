@@ -4872,3 +4872,49 @@ git -C "/Users/toddanderson/Dev/Crewluve Website" diff main -- vite.config.ts
 - [ ] **Step 7: Ask about pushing.** Ask Todd whether to push `trip-map-facts` and open a PR into `main`.
   - Only on his yes: note the push in `repo-state.md` first (ground rule 9). Then `git push -u origin trip-map-facts`, and, when he asks for it, `gh pr create --base main`.
   - Remind him that merging into `main` publishes the site (`deploy-pages.yml`), and is his call.
+
+---
+
+## Changes made during execution (2026-11-13)
+
+Changes made to the code after it was written from this plan, from 2A's committed Swift (ground rule 6), from running it, and from review. The code, not the blocks above, is the reference for these.
+
+**From 2A's committed Swift** (2A's reviews changed it after this plan was drafted from its plan):
+- **Task 9, the coast snap (Stage 2 spec §4.1, updated in Crewluv `ca7ca11`):** over water or over nothing, a state, province or country within 5 mi wins, measured to the rings' edges on a flat map around the point. `geography.ts` has `COAST_SNAP_M`, `areaIsNear` (the box check first), `distanceToEdge` and `nearestWithinSnap`; `placeAt` tries inside land, then land within 5 mi, then water. `ringContains` skips a ring of fewer than three points, as the Swift does. The Swift's new tests came across (Manhattan is New York, Miami is Florida, Bermuda, Malta), with one more for the snap's order.
+- **Tasks 11–12, the snap's effect on the stories:** the equator test's sea now starts at 0.6036, and the milestones "Out over the Test Sea" and "Crossed into Foxtrot" come at 12:03:39 and 20:01:42.
+- **Task 12, region tracking:** a state or province is kept across a stretch where only the country is known, so going back into the same state after such a gap isn't a crossing.
+- **Task 13:** `nextGroundSunEvent` carries each sample's height into the next step.
+- **Task 15, two wording rules:** the sky row counts down only under 59 minutes, so it never reads "in 60 min"; a forecast of exactly one cockpit sunset reads "a sunset from the cockpit".
+- **Task 16, the recap's rule (Stage 2 spec §8.1, updated in Crewluv `dcf189c`):** the recap shows only when the status is home, not base (a commuter at base still has the drive home ahead), and never while any trip is under way. New tests cover base and a trip under way. Two test tables keyed by demo scene gained a `recap` entry.
+- **Task 17:** `dayCount` is at least 1, as the app's is.
+- **Task 18:** a row's spoken sentence reads its parts with commas where the screen shows " · ", as the app's `FactRow.sentence` does.
+- **Task 19:** the at-home row's one-sunset forecast reads "a sunset from the cockpit", as the app's test has it.
+- **Task 20:** the cases gained a `coastSnapMiles` constant, and the test checks it. All 57 cases pass on the website.
+- **Matches checked at the final review:** the moon (Task 7), which flights get weather (Task 6) and the card and recap bar (Task 23) all match 2A's committed Swift.
+
+**From running it:**
+- **Task 5:** `useSidePanel` asks each half of its media query on its own and ORs them. happy-dom doesn't match a comma-separated query list, and a browser gives the same answer either way. The page test's `body` helper takes an `Element`.
+- **Task 6:** a fetch mock in `weather.test.ts` takes its two parameters, so `tsc` can read `mock.calls[0][1]`.
+- **Task 8:** `comparisonFor` gives no comparison for a distance that isn't a finite number (`!(count >= 1 && count <= 10)`), as the Swift's range check on a Double does.
+- **Task 15:** the test's unused `AM` constant and the source's unused `HOUR` import went (`noUnusedLocals`).
+- **Task 23:** the card test's new `describe` cleans up after each test.
+- **Task 24:** the panel's landmark is "Trip facts and timeline" once it has facts.
+
+**From review:**
+- **Batch A:**
+  - A failed landing-weather refresh keeps the forecast already shown, as the app's `LandingWeather` does, and tries again in 30 minutes.
+  - The CSS's side-panel query names `SIDE_PANEL` in `useSidePanel.ts`.
+  - Checked and left: the side panel's inset needs no safe-area term, because the page's padding moves the map's box with the panel. The one-frame refit when the panel folds is redrawn before it's painted. `factsAtMoment` costs about half a millisecond, so replay at 10× is fine.
+- **Batches B and C:**
+  - A recap's map keeps only the legs that have happened. A drive or jumpseat logged in the 12 hours after the trip had kept the recap from reading as over: the full map showed layover rows while the card said "Home from …".
+  - The sun-event cache starts again past 200 entries.
+  - `sun.ts` no longer calls the app's sun formula wrong. `parseGeography` says it is a little stricter than the app's decoder.
+
+## Left for later
+
+- **Stories on the main thread:** each flight's story is worked out once, when the geography arrives: about 85 ms for the Europe test trip on a Mac, and up to 350 ms on a cold start. It's a short pause once per page load in flight. Idle time or a worker would remove it if it shows on phones.
+- **The recap's day count:** it follows the site's own trip cards. CrewLu's `days` is used when above 0, else the calendar days in the base's zone. The app uses `max(1, tripTotalDays)`, so an overnight trip under 24 hours could read "2 days" here and "a day" in the app.
+- **A paused replay across a mode change:** if the map changes from a recap to the next trip while the full map is open and paused, the paused moment can sit outside the new trip's span until Live or a scrub.
+- **The toggles' labels** change ("Hide facts" / "Show facts", "More facts" / "Fewer facts") alongside `aria-expanded`, as the app's do and the spec asks.
+- **Closed here:** Stage 1B's note that the wide panel covers part of the map and the camera doesn't allow for it. The camera now keeps the trip clear of the panel (Task 3, `fitClear`).
+- **Still open from Stage 1B:** the countdown rounding ("Landing in 50 min" under "49m"); the rare in-flight fallback under an on-the-ground map.

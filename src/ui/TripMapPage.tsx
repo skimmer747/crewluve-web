@@ -89,7 +89,7 @@ export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, 
         <TripMapSvg map={map} t={t} width={width} height={height} focus={focus} land={land} nightStep={nightStep} insets={insets} />
       </div>
       <section ref={panel} class={`trip-map-panel ${side ? 'side' : 'bottom'}${showsFacts ? ' open' : ''}`}
-        aria-label={facts ? 'Trip facts' : 'Timeline'}>
+        aria-label={facts ? 'Trip facts and timeline' : 'Timeline'}>
         <div class="trip-map-panel-top">
           <h2 class="trip-map-headline">{facts ? facts.headline : panelHeadline(map, t, viewerTz, h24)}</h2>
           {facts && side && (

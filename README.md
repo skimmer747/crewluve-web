@@ -5,9 +5,9 @@ A partner connects with the invite link their pilot sends from CrewLu, or with a
 The site shows what CrewLu shares with that partner, and changes nothing but its own connection (joining and Disconnect).
 
 - Live: https://crewluve.crewlu.net
-- Demo: https://crewluve.crewlu.net/?demo=1 (add `&scene=layover`, `last-leg`, `home`, `commuting-home`, `nothing-ahead`, …)
+- Demo: https://crewluve.crewlu.net/?demo=1 (add `&scene=layover`, `last-leg`, `home`, `commuting-home`, `nothing-ahead`, `recap`, …)
 - Schedule: add `#schedule` to either address, or tap a card with a chevron.
-- Trip map: the card on every scene with a trip; tap it, or add `#map`, for the full map.
+- Trip map: the card on every scene with a trip; tap it, or add `#map`, for the full map with the trip's facts. `recap` shows the recap card the evening after a trip.
 - Design: docs/superpowers/specs/2026-10-08-crewluve-web-slice1-design.md
 - Joining with the invite link: docs/superpowers/specs/2026-10-26-partner-links-piece5a-website-join-design.md
 
@@ -30,6 +30,8 @@ python3 -I scripts/make-icons.py   # public/icons/*.png (reads ../Crewluv)
 ```
 
 `npm run land` reads Natural Earth's land file, which isn't committed: download v5.1.2's `geojson/ne_110m_land.geojson` (public domain, about 140 KB) from https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_110m_land.geojson to `scripts/ne_110m_land.geojson` first.
+
+`public/data/geography.json` and `public/data/comparisons.json` are copies of the app's, in Crewluv's `Crewluv/Resources/TripMap/`, and `tests/fixtures/trip-map/facts-cases.json` is a copy of its `CrewluvTests/Fixtures/TripMap/facts-cases.json`. The app makes `geography.json` from Natural Earth (public domain) with `node scripts/build-geography.mjs`. Change each pair together.
 
 `npm run airports` expects the CrewLu Flight Globe checkout next to this repo (`../crewlu-globe`).
 To read its `airports.json` from somewhere else, set `AIRPORTS_SOURCE=/path/to/airports.json`.
