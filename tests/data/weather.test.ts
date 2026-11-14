@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fetchWeather, loadLiveWeather, parseWeather, tempUnitFor, WEATHER_TIMEOUT_MS, weatherUrl } from '../../src/data/weather'
+import {
+  fetchLandingForecast, fetchWeather, landingForecastUrl, landingHour, loadLiveWeather, parseLandingForecast, parseWeather, tempUnitFor,
+  WEATHER_TIMEOUT_MS, weatherUrl,
+} from '../../src/data/weather'
 
 afterEach(() => {
   vi.useRealTimers()
@@ -161,5 +164,36 @@ describe('tempUnitFor', () => {
   it('falls back to Celsius for a language setting it cannot read', () => {
     expect(tempUnitFor('')).toBe('celsius')
     expect(tempUnitFor('not a locale!')).toBe('celsius')
+  })
+})
+
+describe('the landing hour’s forecast (Stage 2 spec §7.1)', () => {
+  const landing = Date.UTC(2026, 10, 14, 2, 30)
+
+  it('asks for the hour holding the landing, in GMT', () => {
+    expect(landingHour(landing)).toBe('2026-11-14T02:00')
+    expect(landingForecastUrl(50.8659, 7.1427, 'fahrenheit', landing)).toBe(
+      'https://api.open-meteo.com/v1/forecast?latitude=50.87&longitude=7.14&hourly=temperature_2m,weather_code' +
+        '&temperature_unit=fahrenheit&timezone=GMT&start_hour=2026-11-14T02:00&end_hour=2026-11-14T02:00',
+    )
+  })
+
+  it('reads the hour’s temperature and sky', () => {
+    const body = { hourly: { time: ['2026-11-14T02:00'], temperature_2m: [47.6], weather_code: [61] } }
+    expect(parseLandingForecast(body, 'fahrenheit')).toEqual({ temperature: 47.6, unit: 'fahrenheit', code: 61 })
+  })
+
+  it('gives null for anything else', () => {
+    expect(parseLandingForecast({ hourly: { temperature_2m: [], weather_code: [] } }, 'celsius')).toBeNull()
+    expect(parseLandingForecast({ hourly: { temperature_2m: [9], weather_code: [42] } }, 'celsius')).toBeNull()
+    expect(parseLandingForecast(null, 'celsius')).toBeNull()
+  })
+
+  it('sends a plain GET with no cookies or referrer, and gives null on a failure', async () => {
+    const ok = vi.fn(async (_url: string, _init?: RequestInit) => new Response(JSON.stringify({ hourly: { temperature_2m: [9], weather_code: [3] } })))
+    expect(await fetchLandingForecast(50.87, 7.14, 'celsius', landing, ok as unknown as typeof fetch)).toEqual({ temperature: 9, unit: 'celsius', code: 3 })
+    expect(ok.mock.calls[0][1]).toMatchObject({ cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer' })
+    const down = vi.fn(async () => new Response('', { status: 503 }))
+    expect(await fetchLandingForecast(50.87, 7.14, 'celsius', landing, down as unknown as typeof fetch)).toBeNull()
   })
 })
