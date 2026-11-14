@@ -1449,3 +1449,26 @@ Suggested commit: `The README's trip map: what the pilot is doing, Quick layover
   - The test that said the report leg is left out now expects it as `base`. A new test has the commuter at base, and a turn without the report time.
   - In the app, CrewLu's own legs name this stretch, so the two agree on real trips.
 - **The shared cases' ground legs don't move with a delay in the test's `caseLeg`,** as its comment and the cases' `about` say. No ground leg in the cases has a delay, so no result changed (from the batch review).
+
+### Batch B (Tasks 5–6)
+
+- **The marker stands at `drawing.pilot.place.place`** (Task 5). The plan's `drawing.pilot.place` is an `AirportMark`, and `placeAt` takes its point.
+- **Two existing page tests changed, as the slider now measures replay ms** (Task 6):
+  - The recap opens at value 0.
+  - The short-drive test now reads the trip time from the line under the bar ("Fri 7:1x AM · Driving to Lexington"). Replay time passes alike at either pace, so checking the slider's value alone no longer proves the drive was slowed.
+- **From the batch review:**
+  - **The bar's blocks are worked out once per trip and pace,** not each frame (`useMemo` in `TripTimeline`). Each layer keeps its block list (`TripTimelineBlocks`), so during a replay only the played layer's clip changes. On a 30-leg trip the blocks cost about 3.5 ms each time on a Mac, which a phone would have paid every frame.
+  - **A key held with Alt, Ctrl, Meta or Shift** is left to the browser (Alt+Left is Back).
+  - **The played labels stay white, as in the app,** with a soft shadow so they read on orange, teal and green. The marker's white icon is the design's, unchanged.
+  - **The switch has a hairline when off,** so it shows on a light panel. **High contrast modes** outline the switch and the thumbs. **A browser without `color-mix`** shows the part ahead in full color.
+  - **New tests:**
+    - Page Down;
+    - a key with a modifier;
+    - switching Quick layovers off during a replay, which keeps the moment and slows to a day in 48 s;
+    - storage that throws, which still reads on and still switches.
+    - One test's title was corrected: an arrow key moves four hours of a quick layover, not eight.
+
+### Left for later
+
+- **On the trip map card, the bottom chip ("Next: Louisville, tomorrow 2:58 AM") covers most of the pilot's marker** on a layover in Miami. It covered the heart the same way before this work, so it comes from the card's framing, which the design leaves alone.
+- **On the full map, the marker sits over its airport's code** (MIA), as the heart did.
