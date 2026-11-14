@@ -442,6 +442,7 @@ describe('the location card in each demo scene', () => {
     reserve: 'Louisville',
     training: 'Louisville',
     'nothing-ahead': 'Lexington',
+    recap: 'Lexington',
   }
 
   it.each(Object.keys(DEMO_SCENES) as DemoScene[])('%s', (scene) => {

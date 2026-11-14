@@ -3,7 +3,7 @@ import type { RawSchedule } from './rows'
 
 export type DemoScene =
   | 'home' | 'driving-to-work' | 'base' | 'flying' | 'turn' | 'layover' | 'delayed'
-  | 'last-leg' | 'driving-home' | 'commuting-home' | 'reserve' | 'training' | 'nothing-ahead'
+  | 'last-leg' | 'driving-home' | 'commuting-home' | 'reserve' | 'training' | 'nothing-ahead' | 'recap'
 
 export type DemoVariant = 'driver' | 'jumpseater'
 
@@ -23,6 +23,8 @@ export const DEMO_SCENES: Record<DemoScene, { variant: DemoVariant; offset: numb
   training: { variant: 'driver', offset: 5900 },
   // Home after the last trip, with nothing ahead: the status page shows View Schedule (slice 3A §3.2).
   'nothing-ahead': { variant: 'driver', offset: 14400 },
+  // Home the evening after the main trip, which lands at 1900 and is recapped for a day (Stage 2 spec §8.1).
+  recap: { variant: 'driver', offset: 2400 },
 }
 
 export const DEFAULT_SCENE: DemoScene = 'flying'
