@@ -1,13 +1,15 @@
-import { useEffect, useRef, useState } from 'preact/hooks'
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import { panelHeadline, topPill } from '../copy/tripMap'
 import type { FactsAtMoment } from '../facts/factRow'
 import type { GeoPoint } from '../map/greatCircle'
 import { NO_INSETS, type Insets } from '../map/mapFit'
-import { clockTime, finishesAt, isPlaying, liveClock, scrub } from '../map/replayClock'
+import { clockTime, finishesAt, isPlaying, liveClock, scrub, setQuickLayovers } from '../map/replayClock'
+import { tripWaits } from '../map/tripActivity'
 import { currentLeg, legInMotion, type TripMap } from '../map/tripMap'
 import { Chevron } from './Chevron'
 import { FactsBody } from './FactsBody'
 import { useFrameClock } from './hooks/useFrameClock'
+import { useQuickLayovers } from './hooks/useQuickLayovers'
 import { useSidePanel } from './hooks/useSidePanel'
 import { useSize } from './hooks/useSize'
 import { Icon } from './Icon'
@@ -38,9 +40,16 @@ const PANEL_MARGIN = 16
 export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, factsAt }: TripMapPageProps) {
   // A recap opens paused at its trip's start, ready to play; Live jumps to now, after the trip (Stage 2 spec §6.5).
   const [kept, setClock] = useState(() => (map.mode.kind === 'recap' ? scrub(liveClock(map.span), map.span.start) : liveClock(map.span)))
-  // The span and legs always follow the map, so the slider's range and the replay's pace are right if the trip changes
-  // while the page is open.
-  const clock = { ...kept, span: map.span, legs: map.legs }
+  const [quickLayovers, rememberQuickLayovers] = useQuickLayovers()
+  const waits = useMemo(() => tripWaits(map), [map])
+  // The span, legs and waits always follow the map, so the slider's range and the replay's pace are right if the trip
+  // changes while the page is open. Quick layovers is this browser's choice (activity markers design §3.1).
+  const clock = { ...kept, span: map.span, legs: map.legs, waits, quickLayovers }
+  // Switching keeps the moment shown, and a replay carries on from it at the new pace.
+  const onQuickLayovers = (on: boolean) => {
+    setClock(setQuickLayovers(clock, on, Date.now()))
+    rememberQuickLayovers(on)
+  }
   const frameNow = useFrameClock(isPlaying(clock), now, finishesAt(clock) ?? Infinity)
   const t = clockTime(clock, frameNow)
   const box = useRef<HTMLDivElement>(null)
@@ -111,7 +120,7 @@ export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, 
             <FactsBody rows={facts.rows} tripSoFar={facts.tripSoFar} />
           </div>
         )}
-        <TripTimeline clock={clock} onChange={setClock} now={frameNow} viewerTz={viewerTz} h24={h24} />
+        <TripTimeline map={map} clock={clock} onChange={setClock} onQuickLayovers={onQuickLayovers} now={frameNow} viewerTz={viewerTz} h24={h24} />
       </section>
     </main>
   )

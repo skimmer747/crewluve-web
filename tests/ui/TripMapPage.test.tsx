@@ -9,6 +9,7 @@ import { AIRPORTS, at, drive, EUROPE, flight } from '../map/tripMapLegs'
 
 afterEach(() => {
   cleanup()
+  localStorage.clear()
   setWindowSize(1024, 768)
 })
 
@@ -39,13 +40,16 @@ describe('the full map (moving map spec §6)', () => {
     expect(screen.getByRole('button', { name: 'Replay the trip' })).toBeTruthy()
   })
 
-  it('has a slider for the trip time and a speed choice', () => {
+  it('has a slider for the trip time in replay time, a speed choice, and Quick layovers, on', () => {
     page()
     const slider = screen.getByRole('slider', { name: 'Trip time' }) as HTMLInputElement
-    expect(Number(slider.min)).toBeLessThan(Number(slider.max))
-    expect(Number(slider.step)).toBe(15 * 60_000)
-    expect(slider.getAttribute('aria-valuetext')).toBeTruthy()
+    expect(Number(slider.min)).toBe(0)
+    // The Europe trip with Quick layovers: 62 s at 1x.
+    expect(Number(slider.max)).toBe(62_000)
+    expect(slider.step).toBe('any')
+    expect(slider.getAttribute('aria-valuetext')).toMatch(/^Friday 7:00\sPM, layover in Cologne$/)
     expect(screen.getByRole('combobox', { name: 'Replay speed' })).toBeTruthy()
+    expect((screen.getByRole('switch', { name: 'Quick layovers' }) as HTMLInputElement).checked).toBe(true)
   })
 
   it('moves the time as the replay plays, and the panel’s headline is a heading', async () => {
@@ -84,10 +88,10 @@ describe('the full map (moving map spec §6)', () => {
       act(() => {
         vi.advanceTimersByTime(1500)
       })
-      // About halfway through the drive after 1.5 s. At a day in 48 s it would be some 45 minutes in, past the drive.
-      const into = Number((screen.getByRole('slider', { name: 'Trip time' }) as HTMLInputElement).value) - at(0)
-      expect(into).toBeGreaterThan(10 * 60_000)
-      expect(into).toBeLessThan(20 * 60_000)
+      // About halfway through the 3 s drive after 1.5 s: some 15 minutes in, at 7:15 AM. At a day in 48 s it would be
+      // 45 minutes in, past the drive. (The slider measures replay time, which passes alike at either pace, so the trip
+      // time is read from the line under the bar.)
+      expect(document.querySelector('.trip-timeline-time')!.textContent).toMatch(/^Fri 7:1\d\sAM · Driving to Lexington$/)
     } finally {
       vi.useRealTimers()
     }
@@ -112,6 +116,96 @@ describe('the full map (moving map spec §6)', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it('says when and what under the bar', () => {
+    page()
+    expect(document.querySelector('.trip-timeline-time')!.textContent).toMatch(/^Fri 7:00\sPM · Layover in Cologne$/)
+  })
+
+  it('colors the bar by what the pilot is doing, with each layover’s length', () => {
+    page()
+    const blocks = [...document.querySelectorAll('.trip-timeline-layer.ahead .trip-timeline-block')]
+    expect(blocks.map((b) => b.getAttribute('class'))).toEqual([
+      'trip-timeline-block activity-flying', 'trip-timeline-block activity-layover', 'trip-timeline-block activity-flying',
+      'trip-timeline-block activity-layover', 'trip-timeline-block activity-flying',
+    ])
+    expect(blocks.map((b) => b.textContent)).toEqual(['', '24h', '', '20h', ''])
+  })
+
+  it('moves half a second of replay with an arrow key: four hours of a quick layover', () => {
+    page()
+    fireEvent.keyDown(screen.getByRole('slider', { name: 'Trip time' }), { key: 'ArrowRight' })
+    expect(document.querySelector('.trip-timeline-time')!.textContent).toMatch(/^Fri 11:00\sPM · Layover in Cologne$/)
+  })
+
+  it('moves a tenth of the replay with Page Down, and leaves a key with a modifier to the browser', () => {
+    page()
+    const slider = screen.getByRole('slider', { name: 'Trip time' })
+    const line = () => document.querySelector('.trip-timeline-time')!.textContent
+    fireEvent.keyDown(slider, { key: 'ArrowRight', altKey: true })
+    expect(line()).toMatch(/^Fri 7:00\sPM · Layover in Cologne$/)
+    // 16.5 s into the 62 s replay, less 6.2 s: 10.3 s into the first flight, at a day in 48 s 5 h 9 min after 7:00 AM.
+    fireEvent.keyDown(slider, { key: 'PageDown' })
+    expect(line()).toMatch(/^Fri 12:09\sPM · Flying to Cologne$/)
+  })
+
+  it('keeps the moment when Quick layovers is switched off during a replay, and carries on at the slower pace', () => {
+    vi.useFakeTimers({ toFake: ['Date', 'requestAnimationFrame', 'cancelAnimationFrame'] })
+    try {
+      vi.setSystemTime(at(100))
+      page()
+      fireEvent.click(screen.getByRole('button', { name: 'Replay the trip' }))
+      const line = () => document.querySelector('.trip-timeline-time')!.textContent
+      // 17.5 s in with Quick layovers: 16 s for the flight, then half of the day in Cologne, which plays in 3 s.
+      act(() => {
+        vi.advanceTimersByTime(17_500)
+      })
+      expect(line()).toMatch(/^Sat [23]:\d\d\sAM · Layover in Cologne$/)
+      fireEvent.click(screen.getByRole('switch', { name: 'Quick layovers' }))
+      // A second on at a day in 48 s is half an hour, from 3:00 AM. A quick second would be 8 hours.
+      act(() => {
+        vi.advanceTimersByTime(1000)
+      })
+      expect(line()).toMatch(/^Sat 3:[23]\d\sAM · Layover in Cologne$/)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('reads Quick layovers as on, and still switches it, when this browser’s storage fails', () => {
+    const fail = () => {
+      throw new Error('Storage is off')
+    }
+    const read = vi.spyOn(localStorage, 'getItem').mockImplementation(fail)
+    const write = vi.spyOn(localStorage, 'setItem').mockImplementation(fail)
+    try {
+      page()
+      const quick = screen.getByRole('switch', { name: 'Quick layovers' }) as HTMLInputElement
+      expect(quick.checked).toBe(true)
+      fireEvent.click(quick)
+      expect(quick.checked).toBe(false)
+    } finally {
+      read.mockRestore()
+      write.mockRestore()
+    }
+  })
+
+  it('keeps the moment when Quick layovers is switched off, and the bar then measures the slower replay', () => {
+    page()
+    const line = document.querySelector('.trip-timeline-time')!.textContent
+    fireEvent.click(screen.getByRole('switch', { name: 'Quick layovers' }))
+    expect(document.querySelector('.trip-timeline-time')!.textContent).toBe(line)
+    expect(Number((screen.getByRole('slider', { name: 'Trip time' }) as HTMLInputElement).max)).toBe(144_000)
+  })
+
+  it('remembers Quick layovers turned off for the next map this browser opens', () => {
+    page()
+    fireEvent.click(screen.getByRole('switch', { name: 'Quick layovers' }))
+    expect(localStorage.getItem('crewluve.tripMap.quickLayovers')).toBe('off')
+    cleanup()
+    page()
+    expect((screen.getByRole('switch', { name: 'Quick layovers' }) as HTMLInputElement).checked).toBe(false)
   })
 })
 
@@ -165,7 +259,7 @@ describe('opening a recap (Stage 2 spec §6.5)', () => {
   it('opens paused at the trip’s start, with Live to jump to now', () => {
     const map = makeTripMap(EUROPE, { isNextTrip: false, isRecap: true, home: 'SDF', now: at(80), airports: AIRPORTS })!
     render(<TripMapPage map={map} now={at(80)} viewerTz="America/New_York" h24={false} day={null} days={null} land={null} onBack={() => {}} />)
-    expect(Number((screen.getByRole('slider', { name: 'Trip time' }) as HTMLInputElement).value)).toBe(map.span.start)
+    expect(Number((screen.getByRole('slider', { name: 'Trip time' }) as HTMLInputElement).value)).toBe(0)
     fireEvent.click(screen.getByRole('button', { name: 'Live' }))
     expect(screen.getByRole('heading', { level: 1, name: 'Trip recap' })).toBeTruthy()
   })
