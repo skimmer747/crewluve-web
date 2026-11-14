@@ -85,7 +85,11 @@ function parseCity(value: unknown): City | null {
   return { name: c.name, lat: c.lat, lon: c.lon }
 }
 
-/** geography.json's areas and cities. Anything it can't read is left out rather than looked up wrong. */
+/**
+ * geography.json's areas and cities. Anything it can't read is left out rather than looked up wrong, a little stricter
+ * than the app, which decodes odd-length rings and stops at an unknown kind; the shipped file is the app's own, so the
+ * two never meet such an area.
+ */
 export function parseGeography(json: unknown): Geography {
   const file = record(json)
   const areas = Array.isArray(file?.areas) ? file.areas.map(parseArea).filter((a): a is Area => a != null) : []

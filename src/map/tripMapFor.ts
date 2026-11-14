@@ -31,7 +31,12 @@ export function tripMapFor(snap: Snapshot, legs: Leg[], airports: AirportIndex):
   const options = (isNextTrip: boolean) => ({ isNextTrip, home: snap.pilot.effHome, now: snap.t, airports })
   const kind = snap.status.kind
   if (kind === 'home' || kind === 'base') {
-    if (snap.recap) return makeTripMap(tripLegs(legs, snap.recap.tripId), { ...options(false), isRecap: true, days: snap.recap.days })
+    // A recap is the trip as it happened: a drive or jumpseat logged for later, within 12 hours of it, stays off, so the
+    // recap reads as over (Stage 2 spec §8.2).
+    if (snap.recap) {
+      const happened = tripLegs(legs, snap.recap.tripId).filter((l) => l.end <= snap.t)
+      return makeTripMap(happened, { ...options(false), isRecap: true, days: snap.recap.days })
+    }
     // A night at home in the middle of a trip is still that trip, under way: its upcoming trip is the rest of it.
     const upcoming = snap.upcomingTrip
     return upcoming ? makeTripMap(tripLegs(legs, upcoming.tripId), { ...options(!snap.midTripAtHome), days: upcoming.days }) : null

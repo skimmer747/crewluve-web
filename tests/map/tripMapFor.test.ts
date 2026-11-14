@@ -67,6 +67,13 @@ describe('which legs the trip map shows (moving map spec §5.1, §12)', () => {
     expect(map.days).toBe(4)
   })
 
+  it('leaves out of the recap a drive after the trip that hasn’t happened yet, so the recap reads as over (Stage 2 spec §8.2)', () => {
+    const later = [...LEGS, drive('d9', 'SDF', 'LEX', 80, 1)]
+    const map = tripMapFor(snap('home', at(75), { recap: { tripId: 'T1', days: 4 } }), later, AIRPORTS)!
+    expect(map.legs.map((l) => l.id)).toEqual(['d0', 'f1', 'f2', 'f3'])
+    expect(map.span.end).toBeLessThanOrEqual(at(75))
+  })
+
   it('carries the next trip’s and the trip under way’s days', () => {
     const upcomingTrip = { tripId: 'T2', departs: at(200), days: 1, route: ['SDF', 'ANC'], delayMinutes: null }
     expect(tripMapFor(snap('home', at(150), { upcomingTrip }), LEGS, AIRPORTS)!.days).toBe(1)

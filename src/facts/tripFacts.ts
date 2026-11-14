@@ -58,6 +58,8 @@ export interface TripFacts {
 const stories = new WeakMap<Geography, Map<string, LegStory>>()
 /** Each flight's sun events, by its route and its delay-moved times: a new delay works them out again (§3.2). */
 const sunEventsByRoute = new Map<string, SunEvent[]>()
+/** More than this many kept means a page open across many delays and trips: it starts again rather than grow. */
+const SUN_EVENTS_KEPT = 200
 
 const pointKey = (p: GeoPoint) => `${p.lat},${p.lng}`
 
@@ -73,7 +75,10 @@ function storyOf(leg: MapLeg, geography: Geography, home: AirportMark | null): L
 function sunEventsOf(leg: MapLeg): SunEvent[] {
   const key = [pointKey(leg.origin.place), pointKey(leg.destination.place), leg.start, leg.end].join('|')
   let events = sunEventsByRoute.get(key)
-  if (!events) sunEventsByRoute.set(key, (events = sunEvents(leg)))
+  if (!events) {
+    if (sunEventsByRoute.size >= SUN_EVENTS_KEPT) sunEventsByRoute.clear()
+    sunEventsByRoute.set(key, (events = sunEvents(leg)))
+  }
   return events
 }
 

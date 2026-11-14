@@ -73,8 +73,9 @@ export function isDaytime(t: number, sun: SunTimes): boolean {
 
 /**
  * The sun's altitude above the horizon in degrees, at latitude `lat`, longitude `lng` (east positive) and instant `t`,
- * from the same NOAA position as sunrise and sunset (slice 2C §4.3). The in-flight map uses it for day and night. The
- * app's map has its own formula, wrong by up to two hours, which the site doesn't copy (slice 2C §10 item 8).
+ * from the same NOAA position as sunrise and sunset (slice 2C §4.3). The trip map uses it for its night and the facts for
+ * the sky. The app uses another formula (its SolarPosition); the two agree to within seconds on the shared cases, where
+ * the app's old in-flight map was wrong by up to two hours (slice 2C §10 item 8, moving map Stage 2 spec §12.1).
  */
 export function sunAltitude(t: number, lat: number, lng: number): number {
   const { declination, equationOfTime } = solarPosition(t)
