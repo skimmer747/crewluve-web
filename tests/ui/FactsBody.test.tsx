@@ -23,6 +23,10 @@ describe('a fact row (Stage 2 spec §5, §13)', () => {
   it('is one sentence for screen readers', () => {
     expect(rowSentence(below)).toBe('Over Bravo, near Testville. Passes 35 mi from home at 8:21 AM')
     expect(rowSentence(factRow('sky', 'Moon', 'Full moon, up'))).toBe('Full moon, up')
+    // Commas where the screen shows " · ", as the app's FactRow.sentence reads it.
+    expect(rowSentence(factRow('headed', 'Sun', 'Headed to Cologne', ['6 hours ahead of you', 'Lands at 9:22 AM']))).toBe(
+      'Headed to Cologne. 6 hours ahead of you, Lands at 9:22 AM',
+    )
   })
 })
 

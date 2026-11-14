@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { parseComparisons, type Comparison } from '../../src/facts/comparisons'
 import { makeGeography, parseGeography, type Area, type AreaKind, type Geography } from '../../src/facts/geography'
-import type { AirportMark, MapLeg } from '../../src/map/tripMap'
+import type { AirportMark, MapLeg, TripMap } from '../../src/map/tripMap'
 
 /**
  * Made-up places along the equator, where a fraction of the way is a fraction of the longitude, and flights across them
@@ -51,3 +51,8 @@ export const appGeography = (): Geography => (geography ??= parseGeography(readJ
 
 /** The site's copy of the app's comparisons.json. */
 export const appComparisons = (): Comparison[] => parseComparisons(readJson('public/data/comparisons.json'))
+
+/** A trip map of one flight, in the air. */
+export function flightMap(leg: MapLeg, home: AirportMark | null): TripMap {
+  return { mode: { kind: 'inFlight', legId: leg.id }, legs: [leg], home, span: { start: leg.start, end: leg.end }, days: null }
+}

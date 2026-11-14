@@ -26,8 +26,8 @@ export function factRow(kind: FactRowKind, icon: IconName, title: string, detail
   return { kind, icon, title, detail: parts.length > 0 ? parts.join(' · ') : null, hasWeather }
 }
 
-/** The row as screen readers hear it: one sentence (§13). */
-export const rowSentence = (row: FactRow) => (row.detail ? `${row.title}. ${row.detail}` : row.title)
+/** The row as screen readers hear it: one sentence, with commas where the screen shows " · " (§13). */
+export const rowSentence = (row: FactRow) => (row.detail ? `${row.title}. ${row.detail.split(' · ').join(', ')}` : row.title)
 
 /** The facts dragged all the way up (§5.2, §5.5): each started flight's milestones, newest flight first, then the totals. */
 export interface TripSoFar {
