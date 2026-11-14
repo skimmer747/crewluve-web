@@ -12,7 +12,7 @@ const CHECK_MS = 60_000
 /**
  * Landing-hour forecasts by leg id for the flights `flightsToForecast` picks, while `map` is given: the full map is open
  * (Stage 2 spec §7.2). They're kept by airport and hour for 30 minutes, and checked once a minute while the page is
- * visible. A failure is kept as none, so it's tried again only 30 minutes later, never in a rapid loop. `load` never
+ * visible. A failure is kept too, so it's tried again only 30 minutes later, never in a rapid loop. `load` never
  * changes, so it's left out of the effect's dependencies, as `useWeather` does.
  */
 export function useLandingWeather(map: TripMap | null, now: number, unit: TempUnit, load: LandingLoader): Record<string, LandingForecast> {
@@ -46,7 +46,8 @@ export function useLandingWeather(map: TripMap | null, now: number, unit: TempUn
           .catch(() => null)
           .then((forecast) => {
             pending.current.delete(key)
-            kept.current.set(key, { forecast, at: Date.now() })
+            // A failed refresh keeps the forecast already shown, as the app's LandingWeather does, and tries again in 30 minutes.
+            kept.current.set(key, { forecast: forecast ?? kept.current.get(key)?.forecast ?? null, at: Date.now() })
             if (mounted.current) setVersion((v) => v + 1)
           })
       }

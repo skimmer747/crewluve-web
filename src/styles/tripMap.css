@@ -148,7 +148,8 @@
 
 /* At 900 px or wider, or on a phone on its side, the panel lies over the map's left edge. Open, it runs the full height
    under the top bar, its facts scroll and the timeline stays at the bottom; folded, it's the headline and timeline in
-   the corner. The camera keeps the trip clear of it (TripMapPage's insets). */
+   the corner. The camera keeps the trip clear of it (TripMapPage's insets). This query is SIDE_PANEL in
+   src/ui/hooks/useSidePanel.ts: change both together. */
 @media (min-width: 900px), (orientation: landscape) and (max-height: 500px) {
   .trip-map-panel {
     position: fixed;
