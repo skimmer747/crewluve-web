@@ -1,7 +1,8 @@
 import {
-  destinationsOf, legInMotion, milesFlown, nextFlight, pilotLocation, currentLeg, totalMiles, type AirportMark, type MapLeg, type TripMap,
+  dayCount, destinationsOf, legInMotion, milesFlown, nextFlight, pilotLocation, currentLeg, totalMiles, type AirportMark, type MapLeg, type TripMap,
 } from '../map/tripMap'
 import { calendarDay, MONTHS, WEEKDAYS, zoneOffsetMinutes, zonedParts } from '../time/zoned'
+import { recapChip } from './factsTrip'
 import { shortTimeText } from './format'
 
 /**
@@ -86,7 +87,8 @@ const destinations = (map: TripMap) => destinationsOf(map.legs, map.home)
 export function statsItems(map: TripMap, t: number, day: number | null, days: number | null, viewerTz: string): string[] {
   const flights = map.legs.filter((l) => l.kind === 'flight')
   const cities = destinations(map)
-  if (map.mode.kind === 'inFlight') return []
+  // In flight the bar shows the flight; on the recap, the recap bar takes its place (Stage 2 spec §6.5).
+  if (map.mode.kind === 'inFlight' || map.mode.kind === 'recap') return []
   if (map.mode.kind === 'onTrip') {
     return [
       ...(day != null && days != null ? [`Day ${day} of ${days}`] : []),
@@ -106,6 +108,7 @@ function driveUnderWay(map: TripMap, t: number): MapLeg | null {
 
 /** The chips on the card's map (moving map spec §5.1, §5.2). */
 export function cardChips(map: TripMap, t: number, viewerTz: string, h24: boolean): { top: string | null; bottom: string | null } {
+  if (map.mode.kind === 'recap') return { top: recapChip(dayCount(map, viewerTz)), bottom: 'Replay the trip' }
   if (map.mode.kind === 'inFlight') {
     const leg = currentLeg(map)
     return { top: null, bottom: leg ? landingCountdown(leg, t) : null }
@@ -120,6 +123,7 @@ export function cardChips(map: TripMap, t: number, viewerTz: string, h24: boolea
 
 /** The full map's pill: "UPS207 · In flight", "Driving to Louisville", "Day 2 of 4" or "Next trip". */
 export function topPill(map: TripMap, t: number, day: number | null, days: number | null): string {
+  if (map.mode.kind === 'recap' && t >= map.span.end) return 'Trip recap'
   const leg = legInMotion(map, t)
   if (leg) return leg.kind === 'flight' ? [leg.flightNumber, 'In flight'].filter(Boolean).join(' · ') : `Driving to ${leg.destination.city}`
   if (map.mode.kind === 'nextTrip' && t < map.span.start) return 'Next trip'
@@ -141,6 +145,10 @@ export const timelineTime = (ms: number, viewerTz: string, h24: boolean) => `${s
 /** The card as one sentence for screen readers (moving map spec §14), ending with what it opens. */
 export function tripMapSummary(map: TripMap, t: number, name: string, viewerTz: string, h24: boolean): string {
   const opens = 'Opens the full map.'
+  if (map.mode.kind === 'recap') {
+    const chip = recapChip(dayCount(map, viewerTz))
+    return `Trip recap: ${chip.charAt(0).toLowerCase()}${chip.slice(1)}. Opens the map to replay the trip.`
+  }
   if (map.mode.kind === 'inFlight') {
     const leg = currentLeg(map)
     if (!leg) return `Trip map. ${opens}`

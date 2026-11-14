@@ -3,7 +3,7 @@ import { panelHeadline, topPill } from '../copy/tripMap'
 import type { FactsAtMoment } from '../facts/factRow'
 import type { GeoPoint } from '../map/greatCircle'
 import { NO_INSETS, type Insets } from '../map/mapFit'
-import { clockTime, finishesAt, isPlaying, liveClock, REPLAY_BASE_RATE } from '../map/replayClock'
+import { clockTime, finishesAt, isPlaying, liveClock, REPLAY_BASE_RATE, scrub } from '../map/replayClock'
 import { currentLeg, legInMotion, type TripMap } from '../map/tripMap'
 import { Chevron } from './Chevron'
 import { FactsBody } from './FactsBody'
@@ -36,7 +36,8 @@ const PANEL_MARGIN = 16
  * and Escape all close it. It doesn't pan or zoom.
  */
 export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, factsAt }: TripMapPageProps) {
-  const [kept, setClock] = useState(() => liveClock(map.span))
+  // A recap opens paused at its trip's start, ready to play; Live jumps to now, after the trip (Stage 2 spec §6.5).
+  const [kept, setClock] = useState(() => (map.mode.kind === 'recap' ? scrub(liveClock(map.span), map.span.start) : liveClock(map.span)))
   // The span always follows the map, so the slider's range is right if the trip changes while the page is open.
   const clock = { ...kept, span: map.span }
   const frameNow = useFrameClock(isPlaying(clock), now, finishesAt(clock) ?? Infinity)

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   cardChips, dateRangeText, dayPhrase, landingCountdown, landingLine, landsAt, arrivalLocalTime, nextDepartureChip,
-  nextTripChip, placeChip, statsItems, timelineTime, tripMapSummary,
+  nextTripChip, placeChip, statsItems, timelineTime, topPill, tripMapSummary,
 } from '../../src/copy/tripMap'
 import { airportMark, makeTripMap, type MapLeg } from '../../src/map/tripMap'
 import { AIRPORTS, at, drive, EUROPE, flight } from '../map/tripMapLegs'
@@ -99,5 +99,25 @@ describe('the trip map words (moving map spec §5, §6, §14)', () => {
   it('reads a next trip that only comes home without an empty list of cities', () => {
     const homeward = makeTripMap([flight('f9', 'CGN', 'SDF', 30, 9)], { isNextTrip: true, home: 'SDF', now: at(0), airports: AIRPORTS })!
     expect(tripMapSummary(homeward, at(0), 'Alex', NY, false)).toBe('Map of the next trip, tomorrow. Opens the full map.')
+  })
+})
+
+describe('the recap in words (Stage 2 spec §6.5)', () => {
+  const recap = makeTripMap(EUROPE, { isNextTrip: false, isRecap: true, home: 'SDF', now: at(0), airports: AIRPORTS })!
+
+  it('reads "Home from 4 days away" and "Replay the trip" on the card', () => {
+    expect(cardChips(recap, at(73), NY, false)).toEqual({ top: 'Home from 4 days away', bottom: 'Replay the trip' })
+  })
+
+  it('calls the full map the trip recap once the trip is over', () => {
+    expect(topPill(recap, at(72), null, null)).toBe('Trip recap')
+  })
+
+  it('has no stats bar: the recap bar takes its place', () => {
+    expect(statsItems(recap, at(73), null, null, NY)).toEqual([])
+  })
+
+  it('says what tapping it does', () => {
+    expect(tripMapSummary(recap, at(73), 'Alex', NY, false)).toBe('Trip recap: home from 4 days away. Opens the map to replay the trip.')
   })
 })

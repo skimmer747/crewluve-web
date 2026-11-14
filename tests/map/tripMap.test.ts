@@ -3,7 +3,7 @@ import type { Leg } from '../../src/engine/legs'
 import { pointAlong } from '../../src/map/greatCircle'
 import { scheduledFraction } from '../../src/map/flightProgress'
 import {
-  currentLeg, destinationsOf, framingPoints, headingAt, legInMotion, legProgress, makeTripMap, milesFlown, nextFlight, pilotLocation,
+  currentLeg, dayCount, destinationsOf, framingPoints, headingAt, legInMotion, legProgress, makeTripMap, milesFlown, nextFlight, pilotLocation,
   positionAt, positionAtTime, timeAtFraction, totalMiles,
 } from '../../src/map/tripMap'
 import { AIRPORTS, at, drive, EUROPE, flight } from './tripMapLegs'
@@ -107,5 +107,23 @@ describe('a trip’s destinations and miles (Stage 2 spec §4.8)', () => {
   it('counts the miles flown by a moment, and in all', () => {
     expect(milesFlown(map.legs, at(12))).toBe(4_351)
     expect(totalMiles(map.legs)).toBe(14_819)
+  })
+})
+
+describe('the recap mode (Stage 2 spec §8.2)', () => {
+  const recap = makeTripMap(EUROPE, { isNextTrip: false, isRecap: true, home: 'SDF', now: at(0), airports: AIRPORTS })!
+
+  it('is a recap whatever the moment', () => {
+    expect(recap.mode).toEqual({ kind: 'recap' })
+  })
+
+  it('puts the pilot at home after the trip', () => {
+    expect(pilotLocation(recap, at(80))?.code).toBe('SDF')
+  })
+
+  it('counts CrewLu’s days, else the calendar days the trip spans', () => {
+    // Friday 7 AM to Monday 7 AM in Louisville.
+    expect(dayCount(recap, 'America/New_York')).toBe(4)
+    expect(dayCount(makeTripMap(EUROPE, { isNextTrip: false, isRecap: true, days: 5, home: 'SDF', now: at(0), airports: AIRPORTS })!, 'America/New_York')).toBe(5)
   })
 })

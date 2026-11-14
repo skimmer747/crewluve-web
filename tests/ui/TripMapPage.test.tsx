@@ -117,3 +117,13 @@ describe('the facts’ panel (Stage 2 spec §10)', () => {
     expect(container.querySelector('h2.trip-map-headline')!.textContent).toContain('Cologne')
   })
 })
+
+describe('opening a recap (Stage 2 spec §6.5)', () => {
+  it('opens paused at the trip’s start, with Live to jump to now', () => {
+    const map = makeTripMap(EUROPE, { isNextTrip: false, isRecap: true, home: 'SDF', now: at(80), airports: AIRPORTS })!
+    render(<TripMapPage map={map} now={at(80)} viewerTz="America/New_York" h24={false} day={null} days={null} land={null} onBack={() => {}} />)
+    expect(Number((screen.getByRole('slider', { name: 'Trip time' }) as HTMLInputElement).value)).toBe(map.span.start)
+    fireEvent.click(screen.getByRole('button', { name: 'Live' }))
+    expect(screen.getByRole('heading', { level: 1, name: 'Trip recap' })).toBeTruthy()
+  })
+})

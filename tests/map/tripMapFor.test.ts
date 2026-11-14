@@ -58,4 +58,19 @@ describe('which legs the trip map shows (moving map spec §5.1, §12)', () => {
     expect(map.mode).toEqual({ kind: 'onTrip' })
     expect(map.legs.map((l) => l.id)).toEqual(['h1', 'h2', 'h3'])
   })
+
+  it('shows the recap at home for a day after a trip, with its days (Stage 2 spec §8.1)', () => {
+    const upcomingTrip = { tripId: 'T2', departs: at(200), days: 1, route: ['SDF', 'ANC'], delayMinutes: null }
+    const map = tripMapFor(snap('home', at(75), { upcomingTrip, recap: { tripId: 'T1', days: 4 } }), LEGS, AIRPORTS)!
+    expect(map.mode).toEqual({ kind: 'recap' })
+    expect(map.legs.map((l) => l.id)).toEqual(['d0', 'f1', 'f2', 'f3'])
+    expect(map.days).toBe(4)
+  })
+
+  it('carries the next trip’s and the trip under way’s days', () => {
+    const upcomingTrip = { tripId: 'T2', departs: at(200), days: 1, route: ['SDF', 'ANC'], delayMinutes: null }
+    expect(tripMapFor(snap('home', at(150), { upcomingTrip }), LEGS, AIRPORTS)!.days).toBe(1)
+    const tripProgress = { tripId: 'T1', day: 1, days: 4, upcoming: ['DXB', 'SDF'] }
+    expect(tripMapFor(snap('layover', at(12), { tripProgress }), LEGS, AIRPORTS)!.days).toBe(4)
+  })
 })
