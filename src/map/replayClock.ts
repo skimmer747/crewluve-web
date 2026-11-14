@@ -72,9 +72,6 @@ function tripAt(pieces: Piece[], real: number, end: number): number {
   return end
 }
 
-/** Room for float rounding, in real ms: `finishesAt` rounds up, so at that time the replay must read the end. */
-const SLACK = 1e-6
-
 /** The trip time to show at the real time `now`. */
 export function clockTime(c: ReplayClock, now: number): number {
   if (!c.anchor) return now
@@ -82,7 +79,7 @@ export function clockTime(c: ReplayClock, now: number): number {
   if (since == null) return c.anchor.tripTime
   const pieces = pace(c)
   const real = realAt(pieces, c.anchor.tripTime) + Math.max(now - since, 0) * c.speed
-  return real >= realAt(pieces, c.span.end) - SLACK ? c.span.end : tripAt(pieces, real, c.span.end)
+  return real >= realAt(pieces, c.span.end) ? c.span.end : tripAt(pieces, real, c.span.end)
 }
 
 /** The real time a playing clock reaches the trip's end, or null when it isn't playing. */
@@ -90,7 +87,12 @@ export function finishesAt(c: ReplayClock): number | null {
   const since = c.anchor?.playingSince
   if (c.anchor == null || since == null) return null
   const pieces = pace(c)
-  return Math.ceil(since + (realAt(pieces, c.span.end) - realAt(pieces, c.anchor.tripTime)) / c.speed)
+  let at = Math.ceil(since + (realAt(pieces, c.span.end) - realAt(pieces, c.anchor.tripTime)) / c.speed)
+  // Near today's epoch a double is only good to about 0.0002 ms, so the round-up can land a hair short of the end.
+  // The page's frames stop at this time, and the replay must read as finished there: step on a millisecond until it
+  // does. That takes one step at most; the cap only guards against a malformed clock.
+  for (let step = 0; step < 4 && clockTime(c, at) < c.span.end; step++) at++
+  return at
 }
 
 /** True once a replay has run to the trip's end. `isPlaying` stays true then, so the page shows Play again. */

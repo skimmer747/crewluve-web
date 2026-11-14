@@ -43,6 +43,18 @@ describe('the replay clock (moving map spec §6)', () => {
     expect(finishesAt(pause(playing, NOW + 5 * S))).toBeNull()
   })
 
+  it('reads the end at the time it says it finishes, whatever the rounding', () => {
+    // At 5x from here, a plain round-up lands a fraction of a millisecond short of the end, and the replay never finishes.
+    const c = setSpeed(play(scrub(liveClock(SPAN), SPAN.start + 34_217_999), NOW), 5, NOW)
+    expect(hasFinished(c, finishesAt(c)!)).toBe(true)
+    for (const speed of [1, 2, 5, 10] as const) {
+      for (let k = 1; k < 5_000; k++) {
+        const from = setSpeed(play(scrub(liveClock(SPAN), SPAN.start + k * 7_919), NOW), speed, NOW)
+        expect(hasFinished(from, finishesAt(from)!)).toBe(true)
+      }
+    }
+  })
+
   it('pauses where it is, and goes back to now', () => {
     const paused = pause(play(liveClock(SPAN), NOW), NOW + 5 * S)
     expect(clockTime(paused, NOW + 60 * S)).toBe(SPAN.start + 5 * 1800 * S)

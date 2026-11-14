@@ -364,3 +364,10 @@ git commit -m "The full map's replay paced by the trip's legs, so a short drive 
 - [ ] **Step 1:** A superpowers:code-reviewer (`model: "sonnet"`) over the two commits, against the spec.
 - [ ] **Step 2:** On localhost:5180, play a replay with a drive at 1x and 2x. The demo's pilot drives from Lexington to Louisville: try `?demo=1&scene=driving-to-work#map` and `?demo=1&scene=recap` (its drive home), and check the drive is on each map before timing it. Check that a drive takes about 3 s at 1x, and that the long flights and layovers play as before.
 - [ ] **Step 3:** Ask Todd where the app's half goes (spec §5): a session in the Crewluv repo.
+
+## Changes made during execution (2026-11-14)
+
+- **From review:** `finishesAt` now checks its own answer. Near today's epoch a double is good to only about 0.0002 ms, so `Math.ceil` could land a hair short of the end. At that time the page's frames stopped, and the replay showed Pause forever, about once in 30,000 plays. The old clock had the same flaw. `finishesAt` now steps on a millisecond until `clockTime` reads the end, at most once. The plan's 1e-6 ms `SLACK` is gone. A test pins a failing case (5x from 34,217,999 ms into a two-day trip) and sweeps 20,000 more.
+- **Left as is, from review:**
+  - the night's step during a slowed leg: it snaps about 3 times a second, not 10;
+  - the pace being rebuilt on every call, which costs microseconds a frame.
