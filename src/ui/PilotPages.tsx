@@ -123,7 +123,7 @@ export function PilotPages({
   }
 
   const quickStatus = quickStatusAt?.(now) ?? null
-  const status = { snap, now, viewerTz, homeTz, h24, airports, weather, demo, celebrateKey, footer, notice, quickStatus, tripMap, land, onOpenMap: mapPage.show }
+  const status = { snap, now, viewerTz, homeTz, h24, airports, weather, demo, celebrateKey, footer, notice, quickStatus, tripMap, land, facts, onOpenMap: mapPage.show }
   // A #map address with no trip to draw falls through to the status page (moving map spec §6).
   if (mapPage.open && tripMap) {
     return <TripMapPage map={tripMap} now={now} viewerTz={viewerTz} h24={h24} day={snap.tripProgress?.day ?? null}

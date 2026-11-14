@@ -178,3 +178,13 @@
 .trip-so-far p { margin: 0; color: var(--text-2); font-size: 0.9rem; }
 .facts-footer { color: var(--text-2); font-size: 0.8rem; }
 .facts-footer p { margin: 0; }
+
+/* The recap card (Stage 2 spec §6.5): the play mark on its chip, and a bar of up to four numbers and the longest flight
+   that wraps on narrow screens and at large text sizes. */
+.trip-map-chip-play { margin-right: 4px; fill: currentColor; vertical-align: -1px; }
+.trip-recap-bar { padding: 10px 16px 12px; }
+.trip-recap-tiles { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 12px; margin: 0; padding: 0; list-style: none; }
+.trip-recap-tiles li { display: flex; flex-direction: column; }
+.trip-recap-value { font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.trip-recap-label { color: var(--text-2); font-size: 0.8rem; }
+.trip-recap-longest { margin: 8px 0 0; color: var(--text-2); font-size: 0.85rem; }

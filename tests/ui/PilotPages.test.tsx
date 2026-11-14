@@ -193,6 +193,14 @@ describe('PilotPages: the status page and the Schedule page (slice 3A §3.3)', (
     expect(loadLanding).not.toHaveBeenCalled()
   })
 
+  it('shows the recap card the evening after a trip, and opens its replay paused at the start (Stage 2 spec §6.5)', () => {
+    const { container } = render(<PilotPages schedule={handle(demoRawForScene('recap', NOW))} airports={testAirports} demo onLeave={() => {}} />)
+    expect(container.querySelector('.trip-map-chip.top')!.textContent).toBe('Home from 2 days away')
+    fireEvent.click(container.querySelector<HTMLButtonElement>('[data-trip-map-open]')!)
+    expect(container.querySelector('.trip-map-page')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Live' })).toBeTruthy()
+  })
+
   it('shows the status page at the map’s address when there is no trip to draw', () => {
     history.replaceState(null, '', '/#map')
     const { container } = render(<PilotPages schedule={handle(demoRawForScene('nothing-ahead', NOW))} airports={testAirports} demo onLeave={() => {}} />)
