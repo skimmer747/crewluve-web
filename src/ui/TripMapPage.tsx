@@ -38,8 +38,9 @@ const PANEL_MARGIN = 16
 export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, factsAt }: TripMapPageProps) {
   // A recap opens paused at its trip's start, ready to play; Live jumps to now, after the trip (Stage 2 spec §6.5).
   const [kept, setClock] = useState(() => (map.mode.kind === 'recap' ? scrub(liveClock(map.span), map.span.start) : liveClock(map.span)))
-  // The span always follows the map, so the slider's range is right if the trip changes while the page is open.
-  const clock = { ...kept, span: map.span }
+  // The span and legs always follow the map, so the slider's range and the replay's pace are right if the trip changes
+  // while the page is open.
+  const clock = { ...kept, span: map.span, legs: map.legs }
   const frameNow = useFrameClock(isPlaying(clock), now, finishesAt(clock) ?? Infinity)
   const t = clockTime(clock, frameNow)
   const box = useRef<HTMLDivElement>(null)

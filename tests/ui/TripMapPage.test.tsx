@@ -1,11 +1,11 @@
 // @vitest-environment happy-dom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { factRow, type FactsAtMoment } from '../../src/facts/factRow'
 import { makeTripMap } from '../../src/map/tripMap'
 import { TripMapPage } from '../../src/ui/TripMapPage'
 import { setWindowSize } from '../fixtures/ui'
-import { AIRPORTS, at, EUROPE } from '../map/tripMapLegs'
+import { AIRPORTS, at, drive, EUROPE, flight } from '../map/tripMapLegs'
 
 afterEach(() => {
   cleanup()
@@ -69,6 +69,28 @@ describe('the full map (moving map spec §6)', () => {
     slider.focus()
     rerender(view(vi.fn()))
     expect(document.activeElement).toBe(slider)
+  })
+
+  it('slows a short drive so it takes 3 seconds at 1x (replay design, 2026-11-13)', () => {
+    vi.useFakeTimers({ toFake: ['Date', 'requestAnimationFrame', 'cancelAnimationFrame'] })
+    try {
+      vi.setSystemTime(at(100))
+      // A 30-minute drive to work, then the flight.
+      const map = makeTripMap([drive('d1', 'SDF', 'LEX', 0, 0.5), flight('f1', 'LEX', 'CGN', 1, 8)], {
+        isNextTrip: true, home: 'SDF', now: at(-2), airports: AIRPORTS,
+      })!
+      render(<TripMapPage map={map} now={at(-2)} viewerTz="America/New_York" h24={false} day={null} days={null} land={null} onBack={() => {}} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Replay the trip' }))
+      act(() => {
+        vi.advanceTimersByTime(1500)
+      })
+      // About halfway through the drive after 1.5 s. At a day in 48 s it would be some 45 minutes in, past the drive.
+      const into = Number((screen.getByRole('slider', { name: 'Trip time' }) as HTMLInputElement).value) - at(0)
+      expect(into).toBeGreaterThan(10 * 60_000)
+      expect(into).toBeLessThan(20 * 60_000)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
 
