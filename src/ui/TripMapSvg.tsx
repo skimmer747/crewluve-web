@@ -1,7 +1,7 @@
 import { useMemo } from 'preact/hooks'
 import { ICON_PATHS, type IconName } from '../icons/iconPaths'
 import { pointsAlong, type GeoPoint } from '../map/greatCircle'
-import { fitRect, toAspect } from '../map/mapFit'
+import { fitClear, fitRect, NO_INSETS, type Insets } from '../map/mapFit'
 import { LAYER_ALPHA, nightLayers } from '../map/nightShade'
 import { linePath, placeAt, polygonsPath, type Viewport } from '../map/svgPaths'
 import { framingPoints, type MapLeg, type TripMap } from '../map/tripMap'
@@ -18,6 +18,8 @@ export interface TripMapSvgProps {
   land: GeoPoint[][] | null
   /** How often the night is redrawn, in ms of trip time (`nightTime`). */
   nightStep: number
+  /** Room to keep clear for a panel over the map (Stage 2 spec §10). */
+  insets?: Insets
 }
 
 /** A Phosphor icon (256 units, pointing up) centred on `at`, `size` px wide, turned `degrees` clockwise. */
@@ -46,8 +48,12 @@ function withLabels(airports: { code: string; at: { x: number; y: number } }[]) 
  * The trip map (moving map spec §7.1, §11): ocean, land, night, routes, airports, cars, the heart and the plane, drawn by
  * the site in SVG. The card and the full map describe it in words, so to screen readers it's hidden.
  */
-export function TripMapSvg({ map, t, width, height, focus, land, nightStep }: TripMapSvgProps) {
-  const rect = useMemo(() => toAspect(fitRect(framingPoints(map, focus)) ?? { x: 0, y: 0, width: 1, height: 1 }, width / height), [map, focus, width, height])
+export function TripMapSvg({ map, t, width, height, focus, land, nightStep, insets = NO_INSETS }: TripMapSvgProps) {
+  const { top, right, bottom, left } = insets
+  const rect = useMemo(
+    () => fitClear(fitRect(framingPoints(map, focus)) ?? { x: 0, y: 0, width: 1, height: 1 }, width, height, { top, right, bottom, left }),
+    [map, focus, width, height, top, right, bottom, left],
+  )
   const view: Viewport = { rect, width, height }
   // Keyed on the rect's numbers: the map is a new object every second, and so is the rect fitted to it.
   const { x, y, width: rectWidth, height: rectHeight } = rect

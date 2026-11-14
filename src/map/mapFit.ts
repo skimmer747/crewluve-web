@@ -55,3 +55,34 @@ export function toAspect(rect: WorldRect, aspect: number): WorldRect {
   const centerY = rect.y + rect.height / 2
   return normalized({ x: centerX - width / 2, y: centerY - height / 2, width, height })
 }
+
+/** Room the view keeps clear for a panel over the map, in px from each edge (Stage 2 spec §10). */
+export interface Insets {
+  top: number
+  right: number
+  bottom: number
+  left: number
+}
+
+export const NO_INSETS: Insets = { top: 0, right: 0, bottom: 0, left: 0 }
+
+/** With less clear map than this either way, the insets are ignored and the trip fills the whole view. */
+export const MIN_CLEAR_PX = 120
+
+/**
+ * The rectangle a `width` × `height` view shows so that `rect`, grown to the clear part's shape, fills the part the
+ * insets leave clear: a panel over the map then hides no route (Stage 2 spec §10). Without room for that, `toAspect`.
+ */
+export function fitClear(rect: WorldRect, width: number, height: number, insets: Insets = NO_INSETS): WorldRect {
+  const clearWidth = width - insets.left - insets.right
+  const clearHeight = height - insets.top - insets.bottom
+  if (clearWidth < MIN_CLEAR_PX || clearHeight < MIN_CLEAR_PX) return toAspect(rect, width / height)
+  const clear = toAspect(rect, clearWidth / clearHeight)
+  const perPixel = clear.width / clearWidth
+  return normalized({
+    x: clear.x - insets.left * perPixel,
+    y: clear.y - insets.top * perPixel,
+    width: width * perPixel,
+    height: height * perPixel,
+  })
+}
