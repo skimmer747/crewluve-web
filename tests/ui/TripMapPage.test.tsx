@@ -92,6 +92,27 @@ describe('the full map (moving map spec §6)', () => {
       vi.useRealTimers()
     }
   })
+
+  it('moves the night with every frame of a replay, so its edge glides rather than jumps', () => {
+    vi.useFakeTimers({ toFake: ['Date', 'requestAnimationFrame', 'cancelAnimationFrame'] })
+    try {
+      vi.setSystemTime(at(100))
+      page()
+      fireEvent.click(screen.getByRole('button', { name: 'Replay the trip' }))
+      const night = () => document.querySelector('.trip-map-night')!.getAttribute('d')
+      act(() => {
+        vi.advanceTimersByTime(32)
+      })
+      const before = night()
+      // Two frames on, a minute of the trip has passed: less than the 3-minute step that made the night jump.
+      act(() => {
+        vi.advanceTimersByTime(32)
+      })
+      expect(night()).not.toBe(before)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })
 
 describe('the facts’ panel (Stage 2 spec §10)', () => {

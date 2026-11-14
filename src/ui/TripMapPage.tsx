@@ -3,7 +3,7 @@ import { panelHeadline, topPill } from '../copy/tripMap'
 import type { FactsAtMoment } from '../facts/factRow'
 import type { GeoPoint } from '../map/greatCircle'
 import { NO_INSETS, type Insets } from '../map/mapFit'
-import { clockTime, finishesAt, isPlaying, liveClock, REPLAY_BASE_RATE, scrub } from '../map/replayClock'
+import { clockTime, finishesAt, isPlaying, liveClock, scrub } from '../map/replayClock'
 import { currentLeg, legInMotion, type TripMap } from '../map/tripMap'
 import { Chevron } from './Chevron'
 import { FactsBody } from './FactsBody'
@@ -75,8 +75,10 @@ export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, 
     : showsFacts ? { ...NO_INSETS, left: panelSize.width + 2 * PANEL_MARGIN }
     : { ...NO_INSETS, bottom: panelSize.height + 2 * PANEL_MARGIN }
 
-  // Night moves about a degree every four minutes: live it's redrawn each minute; in replay about ten times a second.
-  const nightStep = isPlaying(clock) ? (REPLAY_BASE_RATE / 10) * clock.speed * 1000 : 60_000
+  // Night moves about a degree every four minutes. Live it's redrawn each minute. In replay it's drawn at the very time
+  // shown, every frame, as the planes are: a 3-minute step made its edge jump about 11 px on a trip, and over half the
+  // screen zoomed in on a drive. Drawing it costs about 2 ms.
+  const nightStep = isPlaying(clock) ? 0 : 60_000
   return (
     <main class="trip-map-page">
       <header class="trip-map-top">
