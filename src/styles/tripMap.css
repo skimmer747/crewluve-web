@@ -69,7 +69,15 @@
   stroke-linejoin: round;
 }
 .trip-map-plane { fill: var(--trip-route); stroke: #ffffff; stroke-width: 8; paint-order: stroke; }
-.trip-map-heart { fill: var(--pink); stroke: #ffffff; stroke-width: 10; paint-order: stroke; }
+/* What the pilot is doing (activity markers design §2.1, §4.1): one color a kind, for the marker and the timeline. */
+.activity-flying { --activity: var(--blue); }
+.activity-driving { --activity: var(--gray); }
+.activity-layover { --activity: var(--indigo); }
+.activity-turn { --activity: var(--orange); }
+.activity-base { --activity: var(--teal); }
+.activity-home { --activity: var(--green); }
+.trip-map-pilot circle { fill: var(--activity); stroke: #ffffff; stroke-width: 1.5; }
+.trip-map-pilot-icon { fill: #ffffff; }
 .trip-map-car { fill: var(--trip-text); }
 
 .trip-map-chip {

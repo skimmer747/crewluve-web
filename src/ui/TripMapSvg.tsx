@@ -4,6 +4,7 @@ import { pointsAlong, type GeoPoint } from '../map/greatCircle'
 import { fitClear, fitRect, NO_INSETS, type Insets } from '../map/mapFit'
 import { LAYER_ALPHA, nightLayers } from '../map/nightShade'
 import { linePath, placeAt, polygonsPath, type Viewport } from '../map/svgPaths'
+import type { GroundKind } from '../map/tripActivity'
 import { framingPoints, type MapLeg, type TripMap } from '../map/tripMap'
 import { nightTime, tripMapDrawing } from '../map/tripMapDrawing'
 
@@ -44,9 +45,22 @@ function withLabels(airports: { code: string; at: { x: number; y: number } }[]) 
   })
 }
 
+/** Each ground marker's icon (activity markers design §2.1): Phosphor's match for the app's SF Symbol. */
+export const PILOT_ICONS: Record<GroundKind, IconName> = { layover: 'Bed', turn: 'Hourglass', base: 'Briefcase', home: 'House' }
+
+/** The pilot's marker: a white icon on the color of what they're doing, in a white ring, the size of the old heart. */
+function PilotMarker({ kind, at }: { kind: GroundKind; at: { x: number; y: number } }) {
+  return (
+    <g class={`trip-map-pilot activity-${kind}`}>
+      <circle cx={at.x} cy={at.y} r={12} />
+      <Mark name={PILOT_ICONS[kind]} at={at} size={13} class="trip-map-pilot-icon" />
+    </g>
+  )
+}
+
 /**
- * The trip map (moving map spec §7.1, §11): ocean, land, night, routes, airports, cars, the heart and the plane, drawn by
- * the site in SVG. The card and the full map describe it in words, so to screen readers it's hidden.
+ * The trip map (moving map spec §7.1, §11): ocean, land, night, routes, airports, cars, the pilot's marker and the plane,
+ * drawn by the site in SVG. The card and the full map describe it in words, so to screen readers it's hidden.
  */
 export function TripMapSvg({ map, t, width, height, focus, land, nightStep, insets = NO_INSETS }: TripMapSvgProps) {
   const { top, right, bottom, left } = insets
@@ -77,7 +91,7 @@ export function TripMapSvg({ map, t, width, height, focus, land, nightStep, inse
         </g>
       ))}
       {drawing.cars.map((c) => <Mark key={c.id} name="Car" at={placeAt(c.place, view)} size={16} class="trip-map-car" />)}
-      {drawing.pin && <Mark name="Heart" at={placeAt(drawing.pin.place, view)} size={22} class="trip-map-heart" />}
+      {drawing.pilot && <PilotMarker kind={drawing.pilot.kind} at={placeAt(drawing.pilot.place.place, view)} />}
       {drawing.plane && (
         // The site's plane icon points up, so it turns a quarter more than the screen angle.
         <Mark name="Airplane" at={placeAt(drawing.plane.place, view)} size={22} degrees={(drawing.plane.angle * 180) / Math.PI + 90} class="trip-map-plane" />

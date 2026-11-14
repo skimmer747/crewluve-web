@@ -1,5 +1,6 @@
 import type { GeoPoint } from './greatCircle'
-import { headingAt, isMoving, legProgress, pilotLocation, positionAt, type AirportMark, type TripMap } from './tripMap'
+import { activityAt, isGroundKind, type GroundActivity } from './tripActivity'
+import { headingAt, isMoving, legProgress, positionAt, type AirportMark, type TripMap } from './tripMap'
 
 /** Everything the trip map draws at one instant (moving map spec §7.1, §7.2), worked out here so the SVG only renders it. */
 
@@ -21,8 +22,8 @@ export interface TripMapDrawing {
   cars: { id: string; place: GeoPoint }[]
   /** The schedule's plane: where, and its angle in radians (0 east, clockwise). */
   plane: { place: GeoPoint; angle: number } | null
-  /** The heart: where the pilot is when nothing is moving. */
-  pin: AirportMark | null
+  /** The pilot's marker: what they're doing and where, while nothing moves (activity markers design §2). */
+  pilot: GroundActivity | null
 }
 
 export function tripMapDrawing(map: TripMap, t: number): TripMapDrawing {
@@ -49,7 +50,9 @@ export function tripMapDrawing(map: TripMap, t: number): TripMapDrawing {
   }
   const seen = new Set<string>()
   const airports = map.legs.flatMap((l) => [l.origin, l.destination]).filter((a) => !seen.has(a.code) && seen.add(a.code))
-  return { segments, airports, cars, plane, pin: pilotLocation(map, t) }
+  const activity = activityAt(map, t)
+  const pilot = activity && isGroundKind(activity.kind) ? { kind: activity.kind, place: activity.place } : null
+  return { segments, airports, cars, plane, pilot }
 }
 
 /** `t` held back to a whole number of `step` ms, so the night is redrawn only once it has moved enough to see. */

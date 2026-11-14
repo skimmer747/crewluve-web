@@ -14,14 +14,14 @@ describe('what the trip map draws (moving map spec §7.1, §7.2)', () => {
     const drawing = tripMapDrawing(map, at(4))
     const leg = currentLeg(map)!
     expect(drawing.plane!.place.lat).toBeCloseTo(positionAt(leg, legProgress(leg, at(4))).lat, 9)
-    expect(drawing.pin).toBeNull()
+    expect(drawing.pilot).toBeNull()
   })
 
-  it('greys the flown leg and pins Cologne on the layover', () => {
+  it('greys the flown leg and marks the pilot on the layover in Cologne', () => {
     expect(styles(at(12))).toEqual({ 'f1-flown': 'flown', 'f2-upcoming': 'upcoming', 'f3-upcoming': 'upcoming' })
     const drawing = tripMapDrawing(make(), at(12))
     expect(drawing.plane).toBeNull()
-    expect(drawing.pin?.code).toBe('CGN')
+    expect(drawing.pilot).toMatchObject({ kind: 'layover', place: { code: 'CGN' } })
   })
 
   it('keeps the plane at the gate, with the whole leg ahead, while it taxis out', () => {

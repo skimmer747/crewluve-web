@@ -2,7 +2,7 @@
 import { cleanup, render } from '@testing-library/preact'
 import { afterEach, describe, expect, it } from 'vitest'
 import { makeTripMap } from '../../src/map/tripMap'
-import { TripMapSvg } from '../../src/ui/TripMapSvg'
+import { PILOT_ICONS, TripMapSvg } from '../../src/ui/TripMapSvg'
 import { AIRPORTS, at, drive, EUROPE } from '../map/tripMapLegs'
 
 afterEach(cleanup)
@@ -37,5 +37,28 @@ describe('the trip map drawing (moving map spec §7.1)', () => {
     }
     expect(Math.min(...xs())).toBeLessThan(400)
     expect(Math.min(...xs({ top: 0, right: 0, bottom: 0, left: 400 }))).toBeGreaterThanOrEqual(400)
+  })
+})
+
+describe("the pilot's marker (activity markers design §2)", () => {
+  const draw = (t: number, isNextTrip = false) => {
+    const map = makeTripMap(EUROPE, { isNextTrip, home: 'SDF', now: t, airports: AIRPORTS })!
+    return render(<TripMapSvg map={map} t={t} width={390} height={220} focus={null} land={null} nightStep={60_000} />).container
+  }
+
+  it('shows what the pilot is doing on the ground in its color: a layover in Cologne, home before a next trip', () => {
+    expect(draw(at(12)).querySelector('.trip-map-pilot')?.getAttribute('class')).toBe('trip-map-pilot activity-layover')
+    cleanup()
+    expect(draw(at(-2), true).querySelector('.trip-map-pilot')?.getAttribute('class')).toBe('trip-map-pilot activity-home')
+  })
+
+  it('gives way to the plane in the air', () => {
+    const svg = draw(at(4))
+    expect(svg.querySelector('.trip-map-pilot')).toBeNull()
+    expect(svg.querySelector('.trip-map-plane')).not.toBeNull()
+  })
+
+  it("draws the design's symbols: a bed, an hourglass, a briefcase and a house", () => {
+    expect(PILOT_ICONS).toEqual({ layover: 'Bed', turn: 'Hourglass', base: 'Briefcase', home: 'House' })
   })
 })
