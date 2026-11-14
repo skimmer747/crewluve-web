@@ -49,3 +49,70 @@ describe('the replay clock (moving map spec §6)', () => {
     expect(isLive(goLive(paused))).toBe(true)
   })
 })
+
+describe('short legs take at least 3 seconds at 1x (replay design, 2026-11-13)', () => {
+  const MIN = 60_000
+  const T0 = 1_800_000_000_000
+  // A 25-minute drive, a 30-minute gap, a 50-minute hop, an hour's gap and an 8-hour flight. At 1x: 3 s, 1 s, 3 s, 2 s, 16 s.
+  const LEGS = [
+    { start: T0, end: T0 + 25 * MIN },
+    { start: T0 + 55 * MIN, end: T0 + 105 * MIN },
+    { start: T0 + 165 * MIN, end: T0 + 645 * MIN },
+  ]
+  const TRIP = { start: T0, end: T0 + 645 * MIN }
+  const playing = () => play(liveClock(TRIP, LEGS), NOW)
+
+  it('slows a 25-minute drive to 3 s at 1x, and half that at 2x', () => {
+    expect(clockTime(playing(), NOW + 1.5 * S)).toBe(T0 + 12.5 * MIN)
+    expect(clockTime(playing(), NOW + 3 * S)).toBe(T0 + 25 * MIN)
+    expect(clockTime(setSpeed(playing(), 2, NOW), NOW + 1.5 * S)).toBe(T0 + 25 * MIN)
+  })
+
+  it('slows a 50-minute flight to 3 s too, and plays the gaps between legs at a day in 48 s', () => {
+    expect(clockTime(playing(), NOW + 4 * S)).toBe(T0 + 55 * MIN)
+    expect(clockTime(playing(), NOW + 7 * S)).toBe(T0 + 105 * MIN)
+    expect(clockTime(playing(), NOW + 9 * S)).toBe(T0 + 165 * MIN)
+  })
+
+  it('plays a leg of 90 minutes or more as before', () => {
+    expect(clockTime(playing(), NOW + 17 * S)).toBe(T0 + 405 * MIN)
+    expect(clockTime(playing(), NOW + 25 * S)).toBe(TRIP.end)
+  })
+
+  it('knows when the slowed replay reaches the end, at any speed', () => {
+    const end = finishesAt(playing())!
+    expect(end).toBe(NOW + 25 * S)
+    expect(hasFinished(playing(), end - 1)).toBe(false)
+    expect(hasFinished(playing(), end)).toBe(true)
+    expect(finishesAt(setSpeed(playing(), 2, NOW))).toBe(NOW + 12.5 * S)
+  })
+
+  it('keeps the moment when paused or sped up in the middle of a slowed leg', () => {
+    expect(clockTime(pause(playing(), NOW + 1.5 * S), NOW + 60 * S)).toBe(T0 + 12.5 * MIN)
+    const faster = setSpeed(playing(), 5, NOW + 1.5 * S)
+    expect(clockTime(faster, NOW + 1.5 * S)).toBe(T0 + 12.5 * MIN)
+    expect(clockTime(faster, NOW + 1.8 * S)).toBe(T0 + 25 * MIN)
+  })
+
+  it('takes only the rest of the 3 s when played from partway through a slowed leg', () => {
+    const fromMiddle = play(scrub(liveClock(TRIP, LEGS), T0 + 12.5 * MIN), NOW)
+    expect(clockTime(fromMiddle, NOW + 1.5 * S)).toBe(T0 + 25 * MIN)
+  })
+
+  it('takes the slower rate while two overlapping legs move', () => {
+    // An hour's leg (3 s would be 1200x) with a 15-minute one inside it (300x): 1.5 s, then 3 s, then 0.75 s.
+    const overlapping = play(liveClock({ start: T0, end: T0 + 60 * MIN }, [
+      { start: T0, end: T0 + 60 * MIN },
+      { start: T0 + 30 * MIN, end: T0 + 45 * MIN },
+    ]), NOW)
+    expect(clockTime(overlapping, NOW + 1.5 * S)).toBe(T0 + 30 * MIN)
+    expect(clockTime(overlapping, NOW + 4.5 * S)).toBe(T0 + 45 * MIN)
+    expect(finishesAt(overlapping)).toBe(NOW + 5.25 * S)
+  })
+
+  it('gives a leg with no length no time', () => {
+    const withEmpty = play(liveClock(TRIP, [...LEGS, { start: T0 + 40 * MIN, end: T0 + 40 * MIN }]), NOW)
+    expect(clockTime(withEmpty, NOW + 4 * S)).toBe(T0 + 55 * MIN)
+    expect(finishesAt(withEmpty)).toBe(NOW + 25 * S)
+  })
+})
