@@ -2,7 +2,7 @@ import type { AirportIndex } from '../data/airports'
 import { isMove, type Leg } from '../engine/legs'
 import type { Snapshot } from '../engine/snapshot'
 import { HOUR } from '../time/zoned'
-import { makeTripMap, type TripMap } from './tripMap'
+import { isGroundLeg, makeTripMap, type TripMap } from './tripMap'
 
 /**
  * Which trip the status page's map shows (moving map spec §5.1, §12), as the app's TripMap+Status, on the site's own
@@ -16,14 +16,18 @@ import { makeTripMap, type TripMap } from './tripMap'
 /** Commutes count as part of a trip when they fall within this long of its flights. */
 const COMMUTE_WINDOW = 12 * HOUR
 
-/** A trip's own flights and jumpseats, and the drives and standalone jumpseats within 12 hours of them. */
+/**
+ * A trip's own flights and jumpseats, the drives and standalone jumpseats within 12 hours of them, and its layovers,
+ * turns, stays at base or home and report time, which name the waits between them (activity markers design §2.2).
+ */
 export function tripLegs(legs: Leg[], tripId: string): Leg[] {
   const own = legs.filter((l) => isMove(l) && l.tripId === tripId)
   if (own.length === 0) return []
   const first = Math.min(...own.map((l) => l.start)) - COMMUTE_WINDOW
   const last = Math.max(...own.map((l) => l.end)) + COMMUTE_WINDOW
   const commutes = legs.filter((l) => (l.kind === 'drive' || (isMove(l) && l.tripId == null)) && l.start >= first && l.end <= last)
-  return [...own, ...commutes].sort((a, b) => a.start - b.start)
+  const ground = legs.filter((l) => isGroundLeg(l) && l.tripId === tripId)
+  return [...own, ...commutes, ...ground].sort((a, b) => a.start - b.start)
 }
 
 /** The status page's trip map, or null when there's nothing to draw. */

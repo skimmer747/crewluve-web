@@ -140,7 +140,7 @@ describe('the shared facts cases (Stage 2 spec §12.1)', () => {
       id: l.id, kind: 'flight', origin: airport(l.from, l.fromZone), destination: airport(l.to, l.toZone),
       start: Date.parse(l.departure), end: Date.parse(l.arrival), flightNumber: null,
     }))
-    const map: TripMap = { mode: { kind: 'onTrip' }, legs, home: airport(c.home, null), span: { start: legs[0].start, end: legs[legs.length - 1].end }, days: null }
+    const map: TripMap = { mode: { kind: 'onTrip' }, legs, groundStops: [], home: airport(c.home, null), span: { start: legs[0].start, end: legs[legs.length - 1].end }, days: null }
     const events = Object.fromEntries(legs.map((leg) => [leg.id, sunEvents(leg)]))
     expect(wholeTotals(map, events)).toEqual({ cities: c.cities, miles: c.miles, timeZones: c.timeZones, cockpitSunsets: c.cockpitSunsets })
   })

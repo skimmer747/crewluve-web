@@ -1,11 +1,12 @@
 import { flightNumberText } from '../copy/flight'
 import type { AirportIndex } from '../data/airports'
-import { isMove, type Leg } from '../engine/legs'
+import { isMove, type Leg, type PlaceLeg } from '../engine/legs'
 import type { Iata } from '../engine/types'
 import { scheduledFraction, scheduledTime } from './flightProgress'
 import { distanceMeters, METERS_PER_MILE, pointAlong, pointsAlong, type GeoPoint } from './greatCircle'
 import { calendarDay } from '../time/zoned'
 import { aimFractions, flatMapAngle } from './planeHeading'
+import type { GroundKind } from './tripActivity'
 
 /** The trip the map shows (moving map spec §5.1), as the app's TripMap: its drawable legs, its mode, and home. */
 
@@ -30,12 +31,31 @@ export interface MapLeg {
   flightNumber: string | null
 }
 
+/** One of the trip's ground legs, kept to name the waits between its moving legs (activity markers design §2.2). Never drawn. */
+export interface GroundStop {
+  kind: GroundKind
+  start: number
+  end: number
+}
+
+/** The legs that name a wait: a layover, a turn, a stay at base or home, and the report time before a trip's first flight. */
+export const isGroundLeg = (leg: Leg): leg is PlaceLeg =>
+  leg.kind === 'report' || leg.kind === 'layover' || leg.kind === 'turn' || leg.kind === 'base' || leg.kind === 'home'
+
+/**
+ * The kind a ground leg gives a wait. The report time is at work, as the status says, so a commuter's wait between the
+ * drive in and the first flight reads "At base".
+ */
+const stopKind = (leg: PlaceLeg): GroundKind => (leg.kind === 'report' ? 'base' : leg.kind)
+
 export type TripMapMode = { kind: 'inFlight'; legId: string } | { kind: 'onTrip' } | { kind: 'nextTrip' } | { kind: 'recap' }
 
 export interface TripMap {
   mode: TripMapMode
   /** Never empty, earliest first. */
   legs: MapLeg[]
+  /** The trip's layovers, turns and stays at base or home, earliest first: they name the waits. */
+  groundStops: GroundStop[]
   home: AirportMark | null
   /** From the earliest departure to the last arrival: the full-screen map's timeline. */
   span: { start: number; end: number }
@@ -88,7 +108,8 @@ export function makeTripMap(legs: Leg[], { isNextTrip, isRecap = false, days = n
   const end = Math.max(start, ...mapped.map((l) => l.end))
   const flying = mapped.find((l) => l.kind === 'flight' && isMoving(l, now))
   const mode: TripMapMode = isRecap ? { kind: 'recap' } : isNextTrip ? { kind: 'nextTrip' } : flying ? { kind: 'inFlight', legId: flying.id } : { kind: 'onTrip' }
-  return { mode, legs: mapped, home: home ? airportMark(home, airports) : null, span: { start, end }, days }
+  const groundStops = legs.filter(isGroundLeg).map((l) => ({ kind: stopKind(l), start: l.start, end: l.end })).sort((a, b) => a.start - b.start)
+  return { mode, legs: mapped, groundStops, home: home ? airportMark(home, airports) : null, span: { start, end }, days }
 }
 
 /** True from leaving the gate (or the driveway) until reaching the other end. */

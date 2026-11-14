@@ -2,6 +2,7 @@ import {
   dayCount, destinationsOf, legInMotion, milesFlown, nextFlight, pilotLocation, currentLeg, totalMiles, type AirportMark, type MapLeg, type TripMap,
 } from '../map/tripMap'
 import { calendarDay, MONTHS, WEEKDAYS, zoneOffsetMinutes, zonedParts } from '../time/zoned'
+import type { TripActivity } from '../map/tripActivity'
 import { recapChip } from './factsTrip'
 import { shortTimeText } from './format'
 
@@ -141,6 +142,32 @@ export function panelHeadline(map: TripMap, t: number, viewerTz: string, h24: bo
 
 /** "Fri 9:14 PM", under the timeline and as the slider's spoken value. */
 export const timelineTime = (ms: number, viewerTz: string, h24: boolean) => `${shortWeekday(ms, viewerTz)} ${shortTimeText(ms, viewerTz, h24)}`
+
+/** The words under the timeline (activity markers design §4.2): "Flying to San Francisco", "Layover in Denver", "Home". */
+export function activityWords({ kind, place }: TripActivity): string {
+  switch (kind) {
+    case 'flying': return `Flying to ${place.city}`
+    case 'driving': return `Driving to ${place.city}`
+    case 'layover': return `Layover in ${place.city}`
+    case 'turn': return `Turn in ${place.city}`
+    case 'base': return `At base in ${place.city}`
+    case 'home': return 'Home'
+  }
+}
+
+/** "Sat 1:40 PM · Layover in Denver": the line under the timeline, when and what (activity markers design §4.2). */
+export function timelineLine(ms: number, activity: TripActivity | null, viewerTz: string, h24: boolean): string {
+  const time = timelineTime(ms, viewerTz, h24)
+  return activity ? `${time} · ${activityWords(activity)}` : time
+}
+
+/** "Saturday 1:40 PM, layover in Denver": the timeline's value for screen readers (activity markers design §4.3). */
+export function timelineSpokenValue(ms: number, activity: TripActivity | null, viewerTz: string, h24: boolean): string {
+  const time = `${WEEKDAYS[zonedParts(ms, viewerTz).weekday]} ${shortTimeText(ms, viewerTz, h24)}`
+  if (!activity) return time
+  const words = activityWords(activity)
+  return `${time}, ${words.charAt(0).toLowerCase()}${words.slice(1)}`
+}
 
 /** The card as one sentence for screen readers (moving map spec §14), ending with what it opens. */
 export function tripMapSummary(map: TripMap, t: number, name: string, viewerTz: string, h24: boolean): string {
