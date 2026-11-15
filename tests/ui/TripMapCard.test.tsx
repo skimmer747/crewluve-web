@@ -1,9 +1,12 @@
 // @vitest-environment happy-dom
-import { cleanup, fireEvent, render, screen } from '@testing-library/preact'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { makeTripFacts } from '../../src/facts/tripFacts'
+import type { MapKitApi } from '../../src/map/mapkitApi'
 import { makeTripMap, type TripMap } from '../../src/map/tripMap'
+import { resetAppleMapKit, startAppleMapKit } from '../../src/ui/hooks/useAppleMapKit'
 import { TripMapCard } from '../../src/ui/TripMapCard'
+import { fakeMapKit } from '../fixtures/fakeMapKit'
 import { AIRPORTS, at, EUROPE } from '../map/tripMapLegs'
 
 const NY = 'America/New_York'
@@ -44,6 +47,28 @@ describe('the trip map card (moving map spec §5)', () => {
   it('shows the delay banner in the air', () => {
     card(at(4), { delayMinutes: 45 })
     expect(document.querySelector('.inflight-banner.late')).toBeTruthy()
+  })
+})
+
+describe('the card on Apple’s map (Apple Maps spec §4.2)', () => {
+  // The cards rendered above already tried MapKit, which tests refuse: start this block afresh.
+  beforeEach(() => resetAppleMapKit())
+  afterEach(() => {
+    cleanup()
+    resetAppleMapKit()
+    localStorage.clear()
+  })
+
+  it('shows Apple’s map in the kept style, still, and opens the full map when tapped', async () => {
+    localStorage.setItem('crewluve.mapStyle.v1', 'satellite')
+    const kit = fakeMapKit()
+    startAppleMapKit(async () => kit as unknown as MapKitApi)
+    const { onOpenMap } = card(at(12))
+    await waitFor(() => expect(kit.maps).toHaveLength(1))
+    expect(kit.maps[0].mapType).toBe('satellite')
+    expect(kit.maps[0].options).toMatchObject({ isScrollEnabled: false, isZoomEnabled: false, showsZoomControl: false })
+    fireEvent.click(screen.getByRole('button', { name: /^Trip map\. Alex is in Cologne\./ }))
+    expect(onOpenMap).toHaveBeenCalled()
   })
 })
 

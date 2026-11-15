@@ -5,9 +5,10 @@ import { delayBannerText, spokenDelayBanner } from '../copy/flight'
 import { arrivalLocalTime, cardChips, landsAt, statsItems, tripMapSummary } from '../copy/tripMap'
 import type { GeoPoint } from '../map/greatCircle'
 import { currentLeg, type MapLeg, type TripMap } from '../map/tripMap'
+import { AppleTripMap } from './AppleTripMap'
+import { useMapStyle } from './hooks/useMapStyle'
 import { useWidth } from './hooks/useWidth'
 import { Icon } from './Icon'
-import { TripMapSvg } from './TripMapSvg'
 import { TripRecapBar } from './TripRecapBar'
 
 export interface TripMapCardProps {
@@ -41,6 +42,7 @@ const MAP_HEIGHT = 220
 export function TripMapCard(p: TripMapCardProps) {
   const box = useRef<HTMLSpanElement>(null)
   const width = useWidth(box, 343)
+  const [mapStyle] = useMapStyle()
   const leg = currentLeg(p.map)
   const isRecap = p.map.mode.kind === 'recap'
   const chips = cardChips(p.map, p.now, p.viewerTz, p.h24)
@@ -52,7 +54,7 @@ export function TripMapCard(p: TripMapCardProps) {
       <h2 ref={p.headingRef} class="sr-only" tabIndex={-1}>{leg ? 'In flight' : isRecap ? 'Trip recap' : 'Trip map'}</h2>
       <button type="button" class="trip-map-open" data-trip-map-open aria-label={summary} onClick={() => p.onOpenMap()}>
         <span ref={box} class="trip-map-frame">
-          <TripMapSvg map={p.map} t={p.now} width={width} height={MAP_HEIGHT} focus={leg} land={p.land} nightStep={60_000} />
+          <AppleTripMap map={p.map} t={p.now} width={width} height={MAP_HEIGHT} focus={leg} land={p.land} nightStep={60_000} mapStyle={mapStyle} interactive={false} />
         </span>
         {chips.top && <span class="trip-map-chip top" aria-hidden="true">{chips.top}</span>}
         {bottom && (
