@@ -5,7 +5,7 @@ import type { Plugin, PluginOption } from 'vite'
 import { describe, expect, it } from 'vitest'
 import { SUPABASE_URL } from '../src/cloud'
 import { DOOR_RPCS, doorFetch } from '../src/partner/doorGuard'
-import config from '../vite.config'
+import config, { noDevTokenPlugin } from '../vite.config'
 
 /** Vite's plugin list can nest arrays (preact() returns several plugins), so search it recursively. */
 function findPlugin(options: PluginOption[], name: string): Plugin | undefined {
@@ -93,5 +93,27 @@ describe('the /join page (piece 5a §4.1)', () => {
 
   it('fails the build when it is given no output folder, rather than copying in whatever folder the shell is in', () => {
     expect(() => writeBundle({})).toThrow('crewluve-join-page: no output folder')
+  })
+})
+
+describe('the local MapKit token never in a build (Apple Maps spec §3)', () => {
+  it('fails a build that would carry the local MapKit token, and passes one that doesn’t', () => {
+    const plugin = noDevTokenPlugin('eyJlocal.token.here') as unknown as { name: string; apply: string; generateBundle: (o: unknown, b: unknown) => void }
+    expect([plugin.name, plugin.apply]).toEqual(['crewluve-no-dev-token', 'build'])
+    const context = {
+      error: (message: string) => {
+        throw new Error(message)
+      },
+    }
+    const bundle = (code: string) => ({ 'assets/index.js': { type: 'chunk', fileName: 'assets/index.js', code } })
+    expect(() => plugin.generateBundle.call(context, {}, bundle('const t = "eyJlocal.token.here"'))).toThrow('carries the local MapKit token')
+    expect(() => plugin.generateBundle.call(context, {}, bundle('const t = "site"'))).not.toThrow()
+    // With no local token there's nothing to look for.
+    const none = noDevTokenPlugin('') as unknown as typeof plugin
+    expect(() => none.generateBundle.call(context, {}, bundle('anything'))).not.toThrow()
+  })
+
+  it('runs the check in the real build', () => {
+    expect((config.plugins as { name?: string }[]).some((p) => p?.name === 'crewluve-no-dev-token')).toBe(true)
   })
 })

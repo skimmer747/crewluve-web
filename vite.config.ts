@@ -1,6 +1,6 @@
 import { copyFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
 import preact from '@preact/preset-vite'
 import { SUPABASE_URL } from './src/cloud'
 import { OPEN_METEO_URL } from './src/data/weather'
@@ -29,9 +29,29 @@ const CSP = [
   "form-action 'self'",
 ].join('; ')
 
+/**
+ * The local MapKit token (.env.local, VITE_MAPKIT_DEV_TOKEN) works on any site for 7 days (Apple Maps spec §3). The code
+ * reads it only on the dev server, and this fails any build that carries it anyway, even one made on a Mac with
+ * .env.local.
+ */
+export function noDevTokenPlugin(token: string): Plugin {
+  return {
+    name: 'crewluve-no-dev-token',
+    apply: 'build',
+    generateBundle(_options, bundle) {
+      if (!token) return
+      for (const file of Object.values(bundle)) {
+        const text = file.type === 'chunk' ? file.code : typeof file.source === 'string' ? file.source : Buffer.from(file.source).toString('utf8')
+        if (text.includes(token)) this.error(`${file.fileName} carries the local MapKit token from .env.local`)
+      }
+    },
+  }
+}
+
 export default defineConfig({
   plugins: [
     preact(),
+    noDevTokenPlugin(loadEnv('development', process.cwd(), 'VITE_').VITE_MAPKIT_DEV_TOKEN ?? ''),
     {
       name: 'crewluve-csp',
       apply: 'build',
