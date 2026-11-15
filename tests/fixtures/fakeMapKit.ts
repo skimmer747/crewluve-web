@@ -9,6 +9,13 @@ class Coordinate {
 }
 class MapRect {
   constructor(public x: number, public y: number, public width: number, public height: number) {}
+  /** MapKit's own names for the rectangle's corner and size. */
+  get origin() {
+    return { x: this.x, y: this.y }
+  }
+  get size() {
+    return { width: this.width, height: this.height }
+  }
 }
 class Padding {
   constructor(public top: number, public right: number, public bottom: number, public left: number) {}
@@ -48,6 +55,11 @@ export interface FakeMap {
   mapType: string
   colorScheme: string
   padding: Padding | null
+  /**
+   * What the map shows inside its padding, as MapKit JS 6 reports it (measured on the real map): the last rectangle it
+   * was asked for, until a test sets another, as MapKit would at its zoom limit, before it fires `region-change-end`.
+   */
+  visibleMapRect: MapRect | null
   fire(type: string): void
 }
 
@@ -62,6 +74,7 @@ export function fakeMapKit() {
     mapType: string
     colorScheme: string
     padding: Padding | null = null
+    visibleMapRect: MapRect | null = null
     private events = new Map<string, (() => void)[]>()
     constructor(public parent: HTMLElement, public options: Record<string, unknown> = {}) {
       this.mapType = String(options.mapType ?? 'standard')
@@ -82,6 +95,7 @@ export function fakeMapKit() {
     }
     setVisibleMapRectAnimated(rect: MapRect, animated: boolean) {
       this.rects.push({ rect, animated })
+      this.visibleMapRect = rect
     }
     addEventListener(type: string, listener: () => void) {
       this.events.set(type, [...(this.events.get(type) ?? []), listener])

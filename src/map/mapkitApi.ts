@@ -32,10 +32,26 @@ export interface MkAnnotation {
   displayPriority: number
 }
 
+/** A rectangle of the flat map, in MapKit's world units (0 to 1 across the world): what the map shows. */
+export interface MkMapRect {
+  origin: { x: number; y: number }
+  size: { width: number; height: number }
+}
+
+/** Room kept clear at each edge of the map, in px: MapKit fits what it's asked to show inside the rest. */
+export interface MkPadding {
+  top: number
+  right: number
+  bottom: number
+  left: number
+}
+
 export interface MkMap {
   mapType: string
   colorScheme: string
-  padding: unknown
+  padding: MkPadding
+  /** What the map shows inside its padding: not the whole view, which runs on under the padding. */
+  readonly visibleMapRect: MkMapRect
   addOverlay(overlay: MkPolyline | MkPolygon): void
   removeOverlay(overlay: MkPolyline | MkPolygon): void
   addAnnotation(annotation: MkAnnotation): void
@@ -49,7 +65,7 @@ export interface MapKitApi {
   Map: new (parent: HTMLElement, options: Record<string, unknown>) => MkMap
   Coordinate: new (latitude: number, longitude: number) => MkCoordinate
   MapRect: new (x: number, y: number, width: number, height: number) => unknown
-  Padding: new (top: number, right: number, bottom: number, left: number) => unknown
+  Padding: new (top: number, right: number, bottom: number, left: number) => MkPadding
   Style: new (options: MkStyle) => MkStyle
   PolylineOverlay: new (points: MkCoordinate[], options: { style: MkStyle }) => MkPolyline
   PolygonOverlay: new (points: MkCoordinate[][], options: { style: MkStyle }) => MkPolygon

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'preact/hooks'
-import { appleCamera, appleMapPlan, offDateLine, type PlannedMark } from '../map/appleMapPlan'
+import { appleCamera, appleMapPlan, offDateLine, slideIntoView, type PlannedMark } from '../map/appleMapPlan'
 import type { AppleMapStyle } from '../map/appleMapStyle'
 import type { GeoPoint } from '../map/greatCircle'
-import { NO_INSETS } from '../map/mapFit'
+import { NO_INSETS, type Insets } from '../map/mapFit'
 import type { MapKitApi, MkAnnotation, MkMap, MkPolygon, MkPolyline } from '../map/mapkitApi'
 import { LAYER_ALPHA, nightLayers, SUN_DEPTHS } from '../map/nightShade'
 import { framingPoints } from '../map/tripMap'
@@ -48,9 +48,44 @@ interface Live {
   nightAt: number
   marks: Map<string, { annotation: MkAnnotation; turn: (degrees: number) => void; priority: PlannedMark['priority'] }>
   framed: string
+  /**
+   * The latest framing, whether it was animated, until it has slid once to show the pilot's marker: each time MapKit
+   * settles, its view is checked for the marker.
+   */
+  settling: { animated: boolean } | null
   moved: boolean
   /** The Recenter count the camera last framed for. */
   recenterSeen: number
+}
+
+/** What the check after a framing needs, as of the latest render. */
+interface Latest {
+  pilot: GeoPoint | null
+  width: number
+  height: number
+  insets: Insets
+}
+
+/**
+ * MapKit won't zoom out past its own limit: on a wide trip in a small view, the card's above all, it settles closer in
+ * than it was asked, on the middle of the trip, sometimes only in a second change after reporting the view it was asked
+ * for, and the pilot's marker near the trip's edge can fall outside. So each time MapKit settles after a framing, while
+ * the view is still the camera's, it slides the shortest way that shows the marker (the app's TripMapSlide), once:
+ * should MapKit not settle where it's asked, the camera never chases it.
+ */
+function slideToPilot(mapkit: MapKitApi, state: Live, now: Latest | undefined) {
+  const settling = state.settling
+  if (!settling || state.moved || !now?.pilot) return
+  const m = state.map
+  const { origin, size } = m.visibleMapRect
+  const { top, right, bottom, left } = m.padding
+  const shown = { rect: { x: origin.x, y: origin.y, width: size.width, height: size.height }, padding: { top, right, bottom, left } }
+  const slide = slideIntoView(shown, now.pilot, now.width, now.height, now.insets)
+  if (!slide) return
+  state.settling = null
+  const { rect, padding } = slide
+  m.padding = new mapkit.Padding(padding.top, padding.right, padding.bottom, padding.left)
+  m.setVisibleMapRectAnimated(new mapkit.MapRect(rect.x, rect.y, rect.width, rect.height), settling.animated)
 }
 
 function AppleMapView({ mapkit, map, t, width, height, focus, nightStep, insets = NO_INSETS, mapStyle, interactive, recenter = 0, onUserMove }: AppleTripMapProps & { mapkit: MapKitApi }) {
@@ -58,6 +93,7 @@ function AppleMapView({ mapkit, map, t, width, height, focus, nightStep, insets 
   const live = useRef<Live | null>(null)
   const userMove = useRef(onUserMove)
   userMove.current = onUserMove
+  const latest = useRef<Latest>()
   // Bumped when the system turns light or dark, to draw the lines again in the new colours.
   const [, repaint] = useState(0)
   const types: Record<AppleMapStyle, string> = { hybrid: mapkit.MapType.Hybrid, standard: mapkit.MapType.Standard, satellite: mapkit.MapType.Satellite }
@@ -85,7 +121,7 @@ function AppleMapView({ mapkit, map, t, width, height, focus, nightStep, insets 
       m.addOverlay(layer)
       return layer
     })
-    const state: Live = { map: m, lines: new Map(), night, nightAt: NaN, marks: new Map(), framed: '', moved: false, recenterSeen: recenter }
+    const state: Live = { map: m, lines: new Map(), night, nightAt: NaN, marks: new Map(), framed: '', settling: null, moved: false, recenterSeen: recenter }
     const moved = () => {
       if (state.moved) return
       state.moved = true
@@ -93,6 +129,7 @@ function AppleMapView({ mapkit, map, t, width, height, focus, nightStep, insets 
     }
     m.addEventListener('scroll-start', moved)
     m.addEventListener('zoom-start', moved)
+    m.addEventListener('region-change-end', () => slideToPilot(mapkit, state, latest.current))
     // The system turned light or dark while the map is open: Apple's tiles follow, the night takes its new colour, and
     // every line is drawn again in its own (the marks are styled by the page's CSS, which follows by itself).
     const onScheme = () => {
@@ -190,7 +227,9 @@ function AppleMapView({ mapkit, map, t, width, height, focus, nightStep, insets 
 
   // The camera: the view the SVG map takes (the leg or the whole trip, clear of the panel or the chips, with the pilot's
   // marker in view), until the person moves the map (§5).
-  const { rect, padding } = appleCamera(framingPoints(map, focus), drawing.pilot?.place.place ?? null, width, height, insets)
+  const pilot = drawing.pilot?.place.place ?? null
+  latest.current = { pilot, width, height, insets }
+  const { rect, padding } = appleCamera(framingPoints(map, focus), pilot, width, height, insets)
   const frame = `${rect.x},${rect.y},${rect.width},${rect.height}|${padding.top},${padding.right},${padding.bottom},${padding.left}|${recenter}`
   useEffect(() => {
     const state = live.current
@@ -203,8 +242,10 @@ function AppleMapView({ mapkit, map, t, width, height, focus, nightStep, insets 
     if (state.moved || state.framed === frame) return
     state.map.padding = new mapkit.Padding(padding.top, padding.right, padding.bottom, padding.left)
     const still = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
-    state.map.setVisibleMapRectAnimated(new mapkit.MapRect(rect.x, rect.y, rect.width, rect.height), state.framed !== '' && !still)
+    const animated = state.framed !== '' && !still
     state.framed = frame
+    state.settling = { animated }
+    state.map.setVisibleMapRectAnimated(new mapkit.MapRect(rect.x, rect.y, rect.width, rect.height), animated)
   }, [frame])
 
   // The card's map is a picture inside the card's button: it's kept from screen readers and out of the Tab order, so

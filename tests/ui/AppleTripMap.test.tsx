@@ -2,13 +2,14 @@
 import { act, cleanup, render, waitFor } from '@testing-library/preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { appleCamera } from '../../src/map/appleMapPlan'
-import { NO_INSETS } from '../../src/map/mapFit'
+import { NO_INSETS, type Insets, type WorldRect } from '../../src/map/mapFit'
 import type { MapKitApi } from '../../src/map/mapkitApi'
+import { placeAt } from '../../src/map/svgPaths'
 import { framingPoints, makeTripMap } from '../../src/map/tripMap'
 import { AppleTripMap } from '../../src/ui/AppleTripMap'
 import { resetAppleMapKit, startAppleMapKit } from '../../src/ui/hooks/useAppleMapKit'
 import { fakeMapKit } from '../fixtures/fakeMapKit'
-import { AIRPORTS, at, EUROPE } from '../map/tripMapLegs'
+import { AIRPORTS, at, EUROPE, flight } from '../map/tripMapLegs'
 
 afterEach(() => {
   cleanup()
@@ -199,5 +200,111 @@ describe('Apple’s map (Apple Maps spec §4, §5, §8)', () => {
     view.rerender(<AppleTripMap {...props} interactive={false} mapStyle="satellite" />)
     expect(kit.maps[0].mapType).toBe('satellite')
     expect(kit.maps).toHaveLength(1)
+  })
+})
+
+describe('keeping the pilot’s marker in view when MapKit stops zooming out short of the trip (the app’s TripMapSlide)', () => {
+  // The demo's Anchorage trip, over: the pilot is home in Louisville, at its eastern end. On the card, under its top chip.
+  const pacific = makeTripMap([flight('a1', 'SDF', 'ANC', 0, 6), flight('a2', 'ANC', 'SDF', 30, 6)], {
+    isNextTrip: false, home: 'SDF', now: at(40), airports: AIRPORTS,
+  })!
+  const home = pacific.legs[0].origin.place
+  const insets: Insets = { top: 37, right: 0, bottom: 0, left: 0 }
+  const card = { ...props, map: pacific, t: at(40), width: 343, height: 220, focus: null, insets, interactive: false }
+
+  /** The whole card MapKit shows for a rectangle inside its padding: the rectangle, grown by the padding. */
+  const wholeView = (rect: WorldRect, padding: Insets): WorldRect => {
+    const perPixel = rect.width / (343 - padding.left - padding.right)
+    return { x: rect.x - padding.left * perPixel, y: rect.y - padding.top * perPixel, width: 343 * perPixel, height: 220 * perPixel }
+  }
+  /** MapKit at its limit: the middle of what it was asked for, 60% as wide and as high. */
+  const atLimit = (r: WorldRect): WorldRect => ({ x: r.x + r.width * 0.2, y: r.y + r.height * 0.2, width: r.width * 0.6, height: r.height * 0.6 })
+
+  /** MapKit settles on `shown`, its visible rectangle inside the padding, and says so. */
+  function settled(kit: Awaited<ReturnType<typeof ready>>, shown: WorldRect) {
+    const m = kit.maps[0]
+    m.visibleMapRect = new kit.MapRect(shown.x, shown.y, shown.width, shown.height)
+    act(() => m.fire('region-change-end'))
+  }
+
+  it('slides the view to show the marker below the chip once MapKit, after taking the view it was asked for, moves in to its limit', async () => {
+    const kit = await ready()
+    render(<AppleTripMap {...card} />)
+    await waitFor(() => expect(kit.maps).toHaveLength(1))
+    const m = kit.maps[0]
+    const asked = m.rects[0].rect
+    // At MapKit's limit, Louisville, at the trip's edge, would be off the card.
+    const off = placeAt(home, { rect: wholeView(atLimit(asked), insets), width: 343, height: 220 })
+    expect(off.x > 343 - 20 || off.y > 220 - 20).toBe(true)
+    // MapKit first reports the view it was asked for, then moves in to its limit in a change of its own.
+    settled(kit, asked)
+    expect(m.rects).toHaveLength(1)
+    settled(kit, atLimit(asked))
+    expect(m.rects).toHaveLength(2)
+    expect(m.rects[1].animated).toBe(false)
+    const at = placeAt(home, { rect: wholeView(m.rects[1].rect, m.padding!), width: 343, height: 220 })
+    expect(at.x).toBeGreaterThanOrEqual(20)
+    expect(at.x).toBeLessThanOrEqual(343 - 20)
+    expect(at.y).toBeGreaterThanOrEqual(37 + 20)
+    expect(at.y).toBeLessThanOrEqual(220 - 20)
+    // MapKit settles on the slid view: nothing more to do.
+    settled(kit, m.rects[1].rect)
+    expect(m.rects).toHaveLength(2)
+    // One slide a framing: should MapKit settle elsewhere again, the camera doesn't chase it.
+    settled(kit, atLimit(asked))
+    expect(m.rects).toHaveLength(2)
+  })
+
+  it('slides with an animation after an animated framing, as when Recenter frames the full map again', async () => {
+    const kit = await ready()
+    const view = render(<AppleTripMap {...card} interactive recenter={0} />)
+    await waitFor(() => expect(kit.maps).toHaveLength(1))
+    const m = kit.maps[0]
+    act(() => m.fire('scroll-start'))
+    view.rerender(<AppleTripMap {...card} interactive recenter={1} />)
+    expect(m.rects.map((r) => r.animated)).toEqual([false, true])
+    settled(kit, atLimit(m.rects[1].rect))
+    expect(m.rects.map((r) => r.animated)).toEqual([false, true, true])
+  })
+
+  it('reads the padding MapKit has: none, when the chips leave too thin a band to frame in', async () => {
+    const kit = await ready()
+    const thin = { top: 90, right: 0, bottom: 90, left: 0 }
+    render(<AppleTripMap {...card} insets={thin} />)
+    await waitFor(() => expect(kit.maps).toHaveLength(1))
+    const m = kit.maps[0]
+    expect(m.padding).toMatchObject(NO_INSETS)
+    settled(kit, atLimit(m.rects[0].rect))
+    expect(m.rects).toHaveLength(2)
+    const y = placeAt(home, { rect: wholeView(m.rects[1].rect, NO_INSETS), width: 343, height: 220 }).y
+    expect(y).toBeGreaterThanOrEqual(90)
+    expect(y).toBeLessThanOrEqual(130)
+  })
+
+  it('leaves the view alone in flight, with no marker on the ground to keep in view', async () => {
+    const kit = await ready()
+    render(<AppleTripMap {...card} t={at(3)} />)
+    await waitFor(() => expect(kit.maps).toHaveLength(1))
+    expect(kit.maps[0].annotations.some((a) => a.element.classList.contains('plane'))).toBe(true)
+    settled(kit, atLimit(kit.maps[0].rects[0].rect))
+    expect(kit.maps[0].rects).toHaveLength(1)
+  })
+
+  it('leaves the view alone when MapKit shows what it was asked for', async () => {
+    const kit = await ready()
+    render(<AppleTripMap {...card} />)
+    await waitFor(() => expect(kit.maps).toHaveLength(1))
+    settled(kit, kit.maps[0].rects[0].rect)
+    expect(kit.maps[0].rects).toHaveLength(1)
+  })
+
+  it('leaves the view to the person once they move the map', async () => {
+    const kit = await ready()
+    render(<AppleTripMap {...card} interactive />)
+    await waitFor(() => expect(kit.maps).toHaveLength(1))
+    const m = kit.maps[0]
+    act(() => m.fire('scroll-start'))
+    settled(kit, atLimit(m.rects[0].rect))
+    expect(m.rects).toHaveLength(1)
   })
 })
