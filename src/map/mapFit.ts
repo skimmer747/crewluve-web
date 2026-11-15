@@ -86,3 +86,25 @@ export function fitClear(rect: WorldRect, width: number, height: number, insets:
     height: height * perPixel,
   })
 }
+
+/** The room, in px, kept round the pilot's marker when the view slides to show it (the app's card framing design §4.2). */
+export const SLIDE_MARGIN = 8
+
+/**
+ * The view `rect` slid the shortest way, along each axis on its own, that shows a marker of `radius` px at `at`, where
+ * `rect` puts it, with `SLIDE_MARGIN` round it, inside the part of the view `insets` leave clear: between the card's
+ * chips, or beside the full map's panel. The camera frames the trip there first when there's room; this keeps the
+ * marker in view when there isn't. It never zooms, and a marker larger than the clear part is centred in it.
+ */
+export function slideToShow(
+  rect: WorldRect, width: number, height: number, at: { x: number; y: number }, radius: number, insets: Insets = NO_INSETS,
+): WorldRect {
+  const r = radius + SLIDE_MARGIN
+  const along = (p: number, low: number, high: number) =>
+    high - low < 2 * r ? (low + high) / 2 - p : Math.max(low + r - p, Math.min(0, high - r - p))
+  const dx = along(at.x, insets.left, width - insets.right)
+  const dy = along(at.y, insets.top, height - insets.bottom)
+  if (dx === 0 && dy === 0) return rect
+  const perPixel = rect.width / width
+  return normalized({ ...rect, x: rect.x - dx * perPixel, y: rect.y - dy * perPixel })
+}

@@ -113,4 +113,26 @@ describe('the card’s chips and its camera', () => {
     expect(marker()).toBeGreaterThanOrEqual(40)
     expect(marker()).toBeLessThanOrEqual(220 - 40)
   })
+
+  it('slides the map to show the marker when the chips are too tall to leave a band, as at large text sizes', () => {
+    const airports = buildAirportIndex([
+      ['SDF', 'Louisville', 'US', 38.1744, -85.736, 'America/New_York', 'KY'],
+      ['MIA', 'Miami', 'US', 25.7959, -80.287, 'America/New_York', 'FL'],
+    ])
+    const map = makeTripMap([flight('f1', 'SDF', 'MIA', 0, 2.5), flight('f2', 'MIA', 'SDF', 24, 2.5)], {
+      isNextTrip: false, home: 'SDF', now: at(10), airports,
+    })!
+    // Chips 60 px tall cover 74 px from each edge, leaving 72 px between them: too little to frame the trip in, so it
+    // fills the map, and then the view slides the marker into that band.
+    const measured = HTMLElement.prototype.getBoundingClientRect
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      return this.classList.contains('trip-map-chip') ? DOMRect.fromRect({ width: 200, height: 60 }) : measured.call(this)
+    })
+    render(<TripMapCard map={map} now={at(10)} viewerTz={NY} h24={false} name="Alex" day={1} days={2} delayMinutes={null} land={null}
+      onOpenMap={() => {}} />)
+    // The marker, with its 12 px radius and 8 px margin, lies in the band: its centre from 94 to 126 px down.
+    const y = Number(document.querySelector('.trip-map-pilot circle')!.getAttribute('cy'))
+    expect(y).toBeGreaterThanOrEqual(74 + 20)
+    expect(y).toBeLessThanOrEqual(220 - 74 - 20)
+  })
 })

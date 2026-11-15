@@ -1,7 +1,7 @@
 import { useMemo } from 'preact/hooks'
 import { ICON_PATHS, type IconName } from '../icons/iconPaths'
 import { pointsAlong, type GeoPoint } from '../map/greatCircle'
-import { fitClear, fitRect, NO_INSETS, type Insets } from '../map/mapFit'
+import { fitClear, fitRect, NO_INSETS, slideToShow, type Insets } from '../map/mapFit'
 import { LAYER_ALPHA, nightLayers } from '../map/nightShade'
 import { linePath, placeAt, polygonsPath, type Viewport } from '../map/svgPaths'
 import type { GroundKind } from '../map/tripActivity'
@@ -19,9 +19,15 @@ export interface TripMapSvgProps {
   land: GeoPoint[][] | null
   /** How often the night is redrawn, in ms of trip time (`nightTime`). */
   nightStep: number
-  /** Room to keep clear for a panel over the map (Stage 2 spec §10). */
+  /**
+   * Room to keep clear for what lies over the map: the full map's panel (Stage 2 spec §10), or the card's chips. The
+   * trip is framed in the rest when there's room, and the pilot's marker is always kept there (`slideToShow`).
+   */
   insets?: Insets
 }
+
+/** The pilot's marker's radius, in px. */
+const PILOT_RADIUS = 12
 
 /** A Phosphor icon (256 units, pointing up) centred on `at`, `size` px wide, turned `degrees` clockwise. */
 function Mark({ name, at, size, degrees = 0, class: cls }: { name: IconName; at: { x: number; y: number }; size: number; degrees?: number; class: string }) {
@@ -52,7 +58,7 @@ export const PILOT_ICONS: Record<GroundKind, IconName> = { layover: 'Bed', turn:
 function PilotMarker({ kind, at }: { kind: GroundKind; at: { x: number; y: number } }) {
   return (
     <g class={`trip-map-pilot activity-${kind}`}>
-      <circle cx={at.x} cy={at.y} r={12} />
+      <circle cx={at.x} cy={at.y} r={PILOT_RADIUS} />
       <Mark name={PILOT_ICONS[kind]} at={at} size={13} class="trip-map-pilot-icon" />
     </g>
   )
@@ -64,17 +70,21 @@ function PilotMarker({ kind, at }: { kind: GroundKind; at: { x: number; y: numbe
  */
 export function TripMapSvg({ map, t, width, height, focus, land, nightStep, insets = NO_INSETS }: TripMapSvgProps) {
   const { top, right, bottom, left } = insets
-  const rect = useMemo(
+  const framed = useMemo(
     () => fitClear(fitRect(framingPoints(map, focus)) ?? { x: 0, y: 0, width: 1, height: 1 }, width, height, { top, right, bottom, left }),
     [map, focus, width, height, top, right, bottom, left],
   )
+  const drawing = tripMapDrawing(map, t)
+  // The trip is framed in the clear part when there's room. Then, if the pilot's marker still lies outside it (the
+  // card's chips at large text sizes), the view slides the shortest way that shows it (the app's card framing §4.2).
+  const pilot = drawing.pilot ? placeAt(drawing.pilot.place.place, { rect: framed, width, height }) : null
+  const rect = pilot ? slideToShow(framed, width, height, pilot, PILOT_RADIUS, { top, right, bottom, left }) : framed
   const view: Viewport = { rect, width, height }
   // Keyed on the rect's numbers: the map is a new object every second, and so is the rect fitted to it.
   const { x, y, width: rectWidth, height: rectHeight } = rect
   const landPath = useMemo(() => (land ? polygonsPath(land, view) : ''), [land, x, y, rectWidth, rectHeight, width, height])
   const night = nightTime(t, nightStep)
   const nightPaths = useMemo(() => nightLayers(night).map((shapes) => polygonsPath(shapes, view)), [night, x, y, rectWidth, rectHeight, width, height])
-  const drawing = tripMapDrawing(map, t)
   const airportMarks = withLabels(drawing.airports.map((a) => ({ code: a.code, at: placeAt(a.place, view) })))
   return (
     <svg class="trip-map-svg" width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden="true">
