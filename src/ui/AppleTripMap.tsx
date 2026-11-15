@@ -143,7 +143,7 @@ function AppleMapView({ mapkit, map, t, focus, nightStep, insets = NO_INSETS, ma
         const { element, turn } = markElement(mark.kind, mark.label)
         const annotation = new mapkit.Annotation(C(mark.place), () => element, {
           displayPriority: PRIORITY[mark.priority],
-          collisionMode: mapkit.Annotation.CollisionMode.Circle,
+          collisionMode: mapkit.AnnotationCollisionMode.Circle,
         })
         state.map.addAnnotation(annotation)
         kept = { annotation, turn }

@@ -102,7 +102,9 @@ export function fakeMapKit() {
     Style,
     PolylineOverlay,
     PolygonOverlay,
-    Annotation: Object.assign(Annotation, { CollisionMode: { Circle: 'circle' } }),
+    Annotation,
+    // MapKit JS 6 moved this from `Annotation.CollisionMode`, which now logs a deprecation warning.
+    AnnotationCollisionMode: { Circle: 'circle', Rectangle: 'rectangle', None: 'none' },
     MapType: { Hybrid: 'hybrid', Standard: 'standard', Satellite: 'satellite' },
     ColorScheme: { Light: 'light', Dark: 'dark' },
     FeatureVisibility: { Hidden: 'hidden', Visible: 'visible', Adaptive: 'adaptive' },
