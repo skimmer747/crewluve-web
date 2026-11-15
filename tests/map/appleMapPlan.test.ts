@@ -97,4 +97,20 @@ describe('the camera on Apple’s map (Apple Maps spec §5; the app’s card fra
     const unslid = placeAt(pilot, { rect: appleCamera(places, null, 343, 220, insets).rect, width: 343, height: 220 }).y
     expect(unslid < 90 || unslid > 130).toBe(true)
   })
+
+  it('keeps a trip across the date line beside the panel too: Anchorage to Tokyo, the short way', () => {
+    const pacific = makeTripMap([flight('p1', 'ANC', 'NRT', 0, 7)], { isNextTrip: false, home: 'ANC', now: at(1), airports: AIRPORTS })!
+    const ends = [pacific.legs[0].origin.place, pacific.legs[0].destination.place]
+    const insets = { top: 0, right: 0, bottom: 0, left: 400 }
+    const camera = appleCamera(ends, null, 1000, 500, insets)
+    // The North Pacific, the short way round: 70° and its margins, where the long way would be over three quarters of the world.
+    expect(camera.rect.width).toBeLessThan(0.5)
+    const perPixel = camera.rect.width / 600
+    const view = { x: camera.rect.x - 400 * perPixel, y: camera.rect.y, width: 1000 * perPixel, height: 500 * perPixel }
+    for (const place of ends) {
+      const x = placeAt(place, { rect: view, width: 1000, height: 500 }).x
+      expect(x).toBeGreaterThanOrEqual(400)
+      expect(x).toBeLessThanOrEqual(1000)
+    }
+  })
 })

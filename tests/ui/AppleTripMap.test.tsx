@@ -69,6 +69,29 @@ describe('Apple’s map (Apple Maps spec §4, §5, §8)', () => {
     expect(leg).toHaveLength(2)
   })
 
+  it('gives MapKit the panel as its padding, so the trip and Apple’s logo keep clear of it', async () => {
+    const kit = await ready()
+    const insets = { top: 0, right: 0, bottom: 0, left: 150 }
+    render(<AppleTripMap {...props} insets={insets} />)
+    await waitFor(() => expect(kit.maps).toHaveLength(1))
+    expect(kit.maps[0].padding).toMatchObject(insets)
+    expect(kit.maps[0].rects[0].rect).toMatchObject(appleCamera(framingPoints(map, map.legs[0]), null, 390, 520, insets).rect)
+  })
+
+  it('swaps the pilot’s marker when what they’re doing changes, leaving one marker', async () => {
+    const kit = await ready()
+    const view = render(<AppleTripMap {...props} t={at(12)} focus={null} />)
+    await waitFor(() => expect(kit.maps).toHaveLength(1))
+    const pilots = () => kit.maps[0].annotations.map((a) => a.element.className).filter((c) => c.includes('pilot'))
+    expect(pilots()).toEqual(['apple-mark pilot activity-layover'])
+    // In the air on the next leg there's no pilot's marker, and after the last leg, at home, there's the house.
+    view.rerender(<AppleTripMap {...props} t={at(34)} focus={null} />)
+    expect(pilots()).toEqual([])
+    view.rerender(<AppleTripMap {...props} t={at(39)} focus={null} />)
+    expect(pilots()).toHaveLength(1)
+    expect(pilots()[0]).not.toBe('apple-mark pilot activity-plane')
+  })
+
   it('shows what the pilot is doing on the ground, where the heart was: a bed on a layover', async () => {
     const kit = await ready()
     render(<AppleTripMap {...props} t={at(12)} focus={null} />)

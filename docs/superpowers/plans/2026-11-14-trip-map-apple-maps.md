@@ -1524,4 +1524,8 @@ git commit -m "The security policy lets in Apple's map: its CDN, WebAssembly, wo
   - **The camera** is `appleCamera`: the view the SVG map takes, with the clear part's rectangle and the insets as MapKit's padding. The card uses the other branch's measured `chipInsets` in place of this plan's fixed 40 px.
   - **Airport dots** sit exactly on their place: the element is moved down by all but half its dot.
   - **Checked in the browser** on localhost:5182: a layover in Miami shows the bed marker with MIA beneath it, the colored timeline and Quick layovers, and the card frames the trip between its chips with Apple's logo clear.
+- **The Sonnet review of the port** found no critical or important issues, and called it ready. From it:
+  - **Tests added:** the camera for a trip across the date line beside a panel, the panel reaching MapKit as its padding, and the pilot's marker swapping as the activity changes.
+  - **Checked by eye:** on the whole-trip view Louisville keeps its dot and code, Lexington's gives way beside it, and the house marker sits on top.
+  - **Left as is:** `PILOT_ICONS` stays in `TripMapSvg.tsx`, where the other branch put it.
 
