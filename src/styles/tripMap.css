@@ -188,3 +188,22 @@
 .trip-recap-value { font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .trip-recap-label { color: var(--text-2); font-size: 0.8rem; }
 .trip-recap-longest { margin: 8px 0 0; color: var(--text-2); font-size: 0.85rem; }
+
+/* Apple's map (Apple Maps spec §4, §8): fills its frame; the card's lets taps through to the card's button. */
+.apple-trip-map { width: 100%; height: 100%; }
+.trip-map-frame .apple-trip-map { height: 220px; }
+.apple-trip-map.still { pointer-events: none; }
+/* Marks on Apple's map, as on the SVG map: centred on their place. */
+.apple-mark { display: flex; flex-direction: column; align-items: center; transform: translateY(50%); }
+.apple-mark svg { display: block; }
+.apple-mark.plane svg { fill: var(--trip-route); stroke: #ffffff; stroke-width: 8; paint-order: stroke; }
+.apple-mark.heart svg { fill: var(--pink); stroke: #ffffff; stroke-width: 10; paint-order: stroke; }
+.apple-mark.car svg { fill: var(--trip-text); }
+.apple-mark-dot { width: 7px; height: 7px; border: 0.5px solid rgba(0, 0, 0, 0.4); border-radius: 50%; background: #ffffff; }
+.apple-mark-code {
+  margin-top: 3px;
+  color: var(--trip-text);
+  font-size: 11px;
+  font-weight: 600;
+  text-shadow: 0 0 3px var(--trip-ocean), 0 0 3px var(--trip-ocean);
+}
