@@ -1,17 +1,21 @@
 import { useEffect, useRef, useState } from 'preact/hooks'
-import { panelHeadline, topPill } from '../copy/tripMap'
+import { MAP_STYLE_NAMES, panelHeadline, topPill } from '../copy/tripMap'
 import type { FactsAtMoment } from '../facts/factRow'
+import type { IconName } from '../icons/iconPaths'
+import { nextMapStyle, type AppleMapStyle } from '../map/appleMapStyle'
 import type { GeoPoint } from '../map/greatCircle'
 import { NO_INSETS, type Insets } from '../map/mapFit'
 import { clockTime, finishesAt, isPlaying, liveClock, scrub } from '../map/replayClock'
 import { currentLeg, legInMotion, type TripMap } from '../map/tripMap'
+import { AppleTripMap } from './AppleTripMap'
 import { Chevron } from './Chevron'
 import { FactsBody } from './FactsBody'
+import { useAppleMapKit } from './hooks/useAppleMapKit'
 import { useFrameClock } from './hooks/useFrameClock'
+import { useMapStyle } from './hooks/useMapStyle'
 import { useSidePanel } from './hooks/useSidePanel'
 import { useSize } from './hooks/useSize'
 import { Icon } from './Icon'
-import { TripMapSvg } from './TripMapSvg'
 import { TripTimeline } from './TripTimeline'
 
 export interface TripMapPageProps {
@@ -29,6 +33,9 @@ export interface TripMapPageProps {
 
 /** The side panel's gap from the screen's edge, and from the clear part of the map (Stage 2 spec §10). */
 const PANEL_MARGIN = 16
+
+/** The style button's icon for each style (Apple Maps spec §4.1). */
+const STYLE_ICONS: Record<AppleMapStyle, IconName> = { hybrid: 'GlobeHemisphereWest', standard: 'MapPinArea', satellite: 'GlobeHemisphereEast' }
 
 /**
  * The full map at #map (moving map spec §6, §11; Stage 2 spec §10): the trip, filling the screen, framed on the leg in
@@ -50,6 +57,11 @@ export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, 
   const heading = useRef<HTMLHeadingElement>(null)
   const focus = legInMotion(map, t) ?? (t === now ? currentLeg(map) : null)
   const side = useSidePanel()
+  const apple = useAppleMapKit().status === 'ready'
+  const [mapStyle, setMapStyle] = useMapStyle()
+  // Once the person pans or zooms, the camera stops framing and Recenter appears (Apple Maps spec §5).
+  const [moved, setMoved] = useState(false)
+  const [recenter, setRecenter] = useState(0)
   // The side panel opens with its facts showing; the bottom panel opens small, with "More facts" (§10).
   const [open, setOpen] = useState(side)
   useEffect(() => setOpen(side), [side])
@@ -86,9 +98,21 @@ export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, 
           <Icon name="XCircle" size={28} />
         </button>
         <h1 ref={heading} class="trip-map-pill" tabIndex={-1}>{topPill(map, t, day, days)}</h1>
+        {apple && moved && (
+          <button type="button" class="trip-map-round" aria-label="Recenter map" onClick={() => { setMoved(false); setRecenter((n) => n + 1) }}>
+            <Icon name="GpsFix" size={20} />
+          </button>
+        )}
+        {apple && (
+          <button type="button" class="trip-map-style" aria-label={`Map style: ${MAP_STYLE_NAMES[mapStyle]}`} onClick={() => setMapStyle(nextMapStyle(mapStyle))}>
+            <Icon name={STYLE_ICONS[mapStyle]} size={18} />
+            <span aria-hidden="true">{MAP_STYLE_NAMES[mapStyle]}</span>
+          </button>
+        )}
       </header>
       <div ref={box} class="trip-map-full">
-        <TripMapSvg map={map} t={t} width={width} height={height} focus={focus} land={land} nightStep={nightStep} insets={insets} />
+        <AppleTripMap map={map} t={t} width={width} height={height} focus={focus} land={land} nightStep={nightStep} insets={insets}
+          mapStyle={mapStyle} interactive recenter={recenter} onUserMove={() => setMoved(true)} />
       </div>
       <section ref={panel} class={`trip-map-panel ${side ? 'side' : 'bottom'}${showsFacts ? ' open' : ''}`}
         aria-label={facts ? 'Trip facts and timeline' : 'Timeline'}>

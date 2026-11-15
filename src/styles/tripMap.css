@@ -111,6 +111,33 @@
 .trip-map-top { display: flex; align-items: center; gap: 12px; padding: 8px 16px; }
 .trip-map-close { min-width: 44px; min-height: 44px; border: 0; background: none; color: inherit; cursor: pointer; }
 .trip-map-pill { margin: 0; padding: 6px 12px; border-radius: 999px; background: var(--glass-fill); font-size: 1rem; }
+/* The style button and Recenter (Apple Maps spec §4.1): at the top bar's right, like the app's. */
+.trip-map-style {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin-left: auto;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--glass-fill);
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.trip-map-round {
+  min-width: 44px;
+  min-height: 44px;
+  margin-left: auto;
+  border: 0;
+  border-radius: 999px;
+  background: var(--glass-fill);
+  color: inherit;
+  cursor: pointer;
+}
+.trip-map-round + .trip-map-style { margin-left: 0; }
 .trip-map-full { flex: 1; min-height: 0; overflow: hidden; }
 .trip-map-panel { margin: 0 16px 16px; padding: 16px; border-radius: 24px; background: var(--glass-fill); -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px); }

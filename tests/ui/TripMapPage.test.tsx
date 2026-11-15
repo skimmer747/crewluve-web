@@ -2,14 +2,19 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { factRow, type FactsAtMoment } from '../../src/facts/factRow'
+import type { MapKitApi } from '../../src/map/mapkitApi'
 import { makeTripMap } from '../../src/map/tripMap'
+import { resetAppleMapKit, startAppleMapKit } from '../../src/ui/hooks/useAppleMapKit'
 import { TripMapPage } from '../../src/ui/TripMapPage'
+import { fakeMapKit } from '../fixtures/fakeMapKit'
 import { setWindowSize } from '../fixtures/ui'
 import { AIRPORTS, at, drive, EUROPE, flight } from '../map/tripMapLegs'
 
 afterEach(() => {
   cleanup()
   setWindowSize(1024, 768)
+  resetAppleMapKit()
+  localStorage.clear()
 })
 
 const page = (now = at(12)) => {
@@ -112,6 +117,30 @@ describe('the full map (moving map spec §6)', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+})
+
+describe('the full map on Apple’s map (Apple Maps spec §4.1)', () => {
+  it('keeps the SVG map and no style button when MapKit can’t load', async () => {
+    page()
+    await waitFor(() => expect(document.querySelector('svg.trip-map-svg')).toBeTruthy())
+    expect(screen.queryByRole('button', { name: /^Map style/ })).toBeNull()
+  })
+
+  it('cycles Hybrid, Map and Satellite, keeps the choice, and shows Recenter once the map is moved', async () => {
+    const kit = fakeMapKit()
+    startAppleMapKit(async () => kit as unknown as MapKitApi)
+    page()
+    const style = await screen.findByRole('button', { name: 'Map style: Hybrid' })
+    fireEvent.click(style)
+    expect(screen.getByRole('button', { name: 'Map style: Map' })).toBeTruthy()
+    expect(kit.maps[0].mapType).toBe('standard')
+    expect(localStorage.getItem('crewluve.mapStyle.v1')).toBe('standard')
+    expect(screen.queryByRole('button', { name: 'Recenter map' })).toBeNull()
+    act(() => kit.maps[0].fire('zoom-start'))
+    fireEvent.click(screen.getByRole('button', { name: 'Recenter map' }))
+    expect(screen.queryByRole('button', { name: 'Recenter map' })).toBeNull()
+    expect(kit.maps[0].rects.length).toBeGreaterThanOrEqual(2)
   })
 })
 
