@@ -44,3 +44,13 @@ describe('the next trip’s chip (the app’s base waits design §3)', () => {
     expect(panelHeadline(map, at(0), 'America/New_York', false)).toMatch(/^At base · next trip /)
   })
 })
+
+describe('the next trip’s chip agrees with the marker (base waits design §3)', () => {
+  it('says home for a pilot based at home, though the status says base', () => {
+    const map = makeTripMap([flight('f1', 'SDF', 'CGN', 48, 8)], {
+      isNextTrip: true, home: 'SDF', base: 'SDF', isWaitingAtBase: true, now: at(0), airports: AIRPORTS,
+    })!
+    expect(cardChips(map, at(0), 'America/New_York', false).top).toMatch(/^Home · next trip /)
+    expect(panelHeadline(map, at(0), 'America/New_York', false)).toMatch(/^Home · next trip /)
+  })
+})

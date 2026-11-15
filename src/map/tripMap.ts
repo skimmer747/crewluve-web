@@ -118,9 +118,12 @@ export function makeTripMap(
   const groundStops = legs.filter(isGroundLeg).map((l) => ({ kind: l.kind, start: l.start, end: l.end })).sort((a, b) => a.start - b.start)
   // Base as the legs name it, with its city and time zone: a wait or a marker there is at one of their airports.
   const baseMark = base ? mapped.flatMap((l) => [l.origin, l.destination]).find((a) => a.code === base) ?? null : null
+  // Waiting at base counts only away from home: a pilot based at home waits at home, so the marker and the chip agree.
+  const waitsAt = baseMark ?? mapped[0].origin
   return {
     mode, legs: mapped, groundStops, home: home ? airportMark(home, airports) : null, base: baseMark,
-    isWaitingAtBase: mode.kind === 'nextTrip' && isWaitingAtBase, span: { start, end }, days,
+    isWaitingAtBase: mode.kind === 'nextTrip' && isWaitingAtBase && waitsAt.code !== home,
+    span: { start, end }, days,
   }
 }
 

@@ -105,6 +105,14 @@ describe('the waits and what the pilot is doing (activity markers design §2.2)'
     expect(makeTripMap(legs, options({ home: 'LEX', base: 'SDF', isWaitingAtBase: true, now: at(5) }))!.isWaitingAtBase).toBe(false)
   })
 
+  it('counts waiting at base only away from home: a pilot based at home waits at home', () => {
+    // No home airport of their own, so home is base: the status says base, but the marker is the house.
+    const legs = [flight('f1', 'SDF', 'CGN', 4, 8)]
+    const based = makeTripMap(legs, options({ isNextTrip: true, home: 'SDF', base: 'SDF', isWaitingAtBase: true, now: at(-5) }))!
+    expect(based.isWaitingAtBase).toBe(false)
+    expect(activityAt(based, at(-5))).toMatchObject({ kind: 'home', place: { code: 'SDF' } })
+  })
+
   it("finds the Europe trip's two waits, layovers since each is 8 hours or more", () => {
     expect(tripWaits(europe())).toEqual([{ start: at(8), end: at(32), kind: 'layover' }, { start: at(38), end: at(58), kind: 'layover' }])
   })
