@@ -39,19 +39,24 @@ describe('production CSP plugin', () => {
     expect(() => injectCsp('<head></head>')).toThrow('index.html lost its <!--csp--> placeholder')
   })
 
-  it('allows no inline styles or scripts', () => {
-    const csp = injectCsp('<!--csp-->')
-    expect(csp).toContain("style-src 'self';")
-    expect(csp).not.toContain("'unsafe-inline'")
+  it('allows no inline scripts, and inline styles only because Apple’s map needs them (Apple Maps spec §6)', () => {
+    expect(directive('script-src')).toBe("script-src 'self' https://cdn.apple-mapkit.com 'wasm-unsafe-eval'")
+    expect(directive('style-src')).toBe("style-src 'self' 'unsafe-inline'")
+  })
+
+  it('lets Apple’s map load its images, workers and frame, and nothing else new (Apple Maps spec §6)', () => {
+    expect(directive('img-src')).toBe("img-src 'self' data: blob: https://*.apple-mapkit.com")
+    expect(directive('worker-src')).toBe('worker-src https://*.apple-mapkit.com blob:')
+    expect(directive('frame-src')).toBe('frame-src https://*.apple-mapkit.com')
   })
 
   /** One directive of the policy, with its name: connect-src 'self' ... */
   const directive = (name: string) => injectCsp('<!--csp-->').split('; ').find((d) => d.startsWith(`${name} `))
 
-  it('lets the page call the four partner RPCs and Open-Meteo for the weather, and nothing else', () => {
+  it('lets the page call the four partner RPCs, Open-Meteo for the weather and Apple’s map, and nothing else', () => {
     const rpcs = ['partner_join', 'partner_handoff_redeem', 'partner_view', 'partner_leave'].map((name) => `${SUPABASE_URL}/rest/v1/rpc/${name}`)
     const connect = directive('connect-src')
-    expect(connect).toBe(`connect-src 'self' ${rpcs.join(' ')} https://api.open-meteo.com`)
+    expect(connect).toBe(`connect-src 'self' ${rpcs.join(' ')} https://api.open-meteo.com https://*.apple-mapkit.com blob:`)
     // Not the project's own address, which would let the page reach its tables, Auth, functions and storage.
     expect(connect!.split(' ')).not.toContain(SUPABASE_URL)
   })

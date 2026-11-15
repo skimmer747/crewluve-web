@@ -11,19 +11,26 @@ const RPC_ADDRESSES = DOOR_RPCS.map((n) => `${SUPABASE_URL}/rest/v1/rpc/${n}`)
 
 // Production Content-Security-Policy (spec §9). Injected only into the built HTML, because the
 // Vite dev server needs inline scripts and a websocket for hot reload. connect-src lists the four partner RPC
-// addresses, not the Crewlu Cloud project, and, for the location card's weather, Open-Meteo (slice 2B1 §7). So the
+// addresses, not the Crewlu Cloud project; for the location card's weather, Open-Meteo (slice 2B1 §7); and Apple's map
+// servers (Apple Maps spec §6). So the
 // browser itself reaches only those four addresses on Crewlu Cloud, even from code that slipped past the source rules
 // (tests/fixtures/sourceScan.ts). It checks the address, not the method or the query: a GET with a device key in the
 // query, to one of the four, passes the CSP, and only the source rules' address rule stops that. The CSP relies on
 // Level 2's matching of paths, and on the door refusing redirects: once a request has been redirected, the browser no
 // longer checks the path.
+// Apple's map (Apple Maps spec §6): MapKit JS comes from Apple's CDN, runs WebAssembly, uses workers and blob: URLs,
+// loads images from and talks to Apple's map servers, and needs inline styles. Scripts still can't be inline, and Crewlu
+// Cloud is still reachable only at the four partner addresses.
+const APPLE_MAPS = 'https://*.apple-mapkit.com'
 const CSP = [
   "default-src 'self'",
-  "script-src 'self'",
-  "style-src 'self'",
-  "img-src 'self' data:",
+  "script-src 'self' https://cdn.apple-mapkit.com 'wasm-unsafe-eval'",
+  "style-src 'self' 'unsafe-inline'",
+  `img-src 'self' data: blob: ${APPLE_MAPS}`,
   "font-src 'self'",
-  `connect-src 'self' ${RPC_ADDRESSES.join(' ')} ${OPEN_METEO_URL}`,
+  `connect-src 'self' ${RPC_ADDRESSES.join(' ')} ${OPEN_METEO_URL} ${APPLE_MAPS} blob:`,
+  `worker-src ${APPLE_MAPS} blob:`,
+  `frame-src ${APPLE_MAPS}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
