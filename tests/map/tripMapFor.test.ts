@@ -32,6 +32,15 @@ describe('which legs the trip map shows (moving map spec §5.1, §12)', () => {
     expect(map.legs.map((l) => l.id)).toEqual(['g1'])
   })
 
+  it('shows the next trip from base while the status says base, with the pilot’s base (base waits design §3)', () => {
+    const upcomingTrip = { tripId: 'T2', departs: at(200), days: 1, route: ['SDF', 'ANC'], delayMinutes: null }
+    const pilot = { firstName: 'Alex', base: 'SDF', home: 'LEX', effHome: 'LEX' }
+    const atBase = tripMapFor(snap('base', at(150), { upcomingTrip, pilot }), LEGS, AIRPORTS)!
+    expect(atBase.isWaitingAtBase).toBe(true)
+    expect(atBase.base?.code).toBe('SDF')
+    expect(tripMapFor(snap('home', at(150), { upcomingTrip, pilot }), LEGS, AIRPORTS)!.isWaitingAtBase).toBe(false)
+  })
+
   it('shows nothing at home with no trip ahead', () => {
     expect(tripMapFor(snap('home', at(150)), LEGS, AIRPORTS)).toBeNull()
   })

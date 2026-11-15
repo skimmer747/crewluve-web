@@ -42,10 +42,10 @@ export function tripWaits(map: TripMap): TripWait[] {
   let movingUntil = map.span.start
   for (const leg of [...map.legs].sort((a, b) => a.start - b.start)) {
     if (leg.end <= leg.start) continue
-    if (leg.start > movingUntil) waits.push(namedWait(map.groundStops, movingUntil, leg.start))
+    if (leg.start > movingUntil) waits.push(namedWait(map, movingUntil, leg.start))
     movingUntil = Math.max(movingUntil, leg.end)
   }
-  if (map.span.end > movingUntil) waits.push(namedWait(map.groundStops, movingUntil, map.span.end))
+  if (map.span.end > movingUntil) waits.push(namedWait(map, movingUntil, map.span.end))
   return waits
 }
 
@@ -58,27 +58,43 @@ export function activityAt(map: TripMap, t: number): TripActivity | null {
 }
 
 /**
- * Before the first departure, home for a next trip, else home or base by where the trip starts. From the last arrival
- * on, home for a recap, else home or base by where it ends. In between, the wait's kind.
+ * Before the first departure, home for a next trip, or base while the pilot waits there, else home or base by where
+ * the trip starts. From the last arrival on, home for a recap, else home or base by where it ends. In between, the
+ * wait's kind.
  */
 function groundKind(map: TripMap, t: number, place: AirportMark): GroundKind {
   const isHomeAirport = place.code === map.home?.code
-  if (t < map.span.start) return map.mode.kind === 'nextTrip' || isHomeAirport ? 'home' : 'base'
+  if (t < map.span.start && map.mode.kind === 'nextTrip') return map.isWaitingAtBase && !isHomeAirport ? 'base' : 'home'
+  if (t < map.span.start) return isHomeAirport ? 'home' : 'base'
   if (t >= map.span.end) return map.mode.kind === 'recap' || isHomeAirport ? 'home' : 'base'
   // Inside the span with nothing moving, one of the waits holds `t`.
   return tripWaits(map).find((w) => w.start <= t && t < w.end)?.kind ?? 'turn'
 }
 
-/** The wait from `start` to `end`, named by the ground stop overlapping it most, the earlier on a tie; with none, by its length. */
-function namedWait(stops: readonly GroundStop[], start: number, end: number): TripWait {
+/**
+ * The wait from `start` to `end`, named by the ground stop overlapping it most, the earlier on a tie; with none, by
+ * where it is, then by its length (the app's base waits design §2).
+ */
+function namedWait(map: TripMap, start: number, end: number): TripWait {
   let best: GroundStop | null = null
   let most = 0
-  for (const stop of stops) {
+  for (const stop of map.groundStops) {
     const overlap = Math.min(stop.end, end) - Math.max(stop.start, start)
     if (overlap <= 0) continue
     if (best && (overlap < most || (overlap === most && stop.start >= best.start))) continue
     best = stop
     most = overlap
   }
-  return { start, end, kind: best?.kind ?? (end - start >= SHORTEST_LAYOVER ? 'layover' : 'turn') }
+  return { start, end, kind: best?.kind ?? unnamedKind(map, start, end) }
+}
+
+/**
+ * A wait no ground leg names: home at the home airport, base at the base airport, else a layover from 8 hours and a
+ * turn under. It's where the pilot's marker stands as the wait starts. Home comes first, for a pilot based at home.
+ */
+function unnamedKind(map: TripMap, start: number, end: number): GroundKind {
+  const code = pilotLocation(map, start)?.code
+  if (code != null && code === map.home?.code) return 'home'
+  if (code != null && code === map.base?.code) return 'base'
+  return end - start >= SHORTEST_LAYOVER ? 'layover' : 'turn'
 }

@@ -38,15 +38,12 @@ export interface GroundStop {
   end: number
 }
 
-/** The legs that name a wait: a layover, a turn, a stay at base or home, and the report time before a trip's first flight. */
-export const isGroundLeg = (leg: Leg): leg is PlaceLeg =>
-  leg.kind === 'report' || leg.kind === 'layover' || leg.kind === 'turn' || leg.kind === 'base' || leg.kind === 'home'
-
 /**
- * The kind a ground leg gives a wait. The report time is at work, as the status says, so a commuter's wait between the
- * drive in and the first flight reads "At base".
+ * A layover, a turn, or a stay at base or home: the legs that name a wait. The site's report leg isn't one: a wait no
+ * leg names is named by where it is (`tripWaits`), which puts the commuter waiting at base before a trip at base.
  */
-const stopKind = (leg: PlaceLeg): GroundKind => (leg.kind === 'report' ? 'base' : leg.kind)
+export const isGroundLeg = (leg: Leg): leg is PlaceLeg & { kind: GroundKind } =>
+  leg.kind === 'layover' || leg.kind === 'turn' || leg.kind === 'base' || leg.kind === 'home'
 
 export type TripMapMode = { kind: 'inFlight'; legId: string } | { kind: 'onTrip' } | { kind: 'nextTrip' } | { kind: 'recap' }
 
@@ -57,6 +54,10 @@ export interface TripMap {
   /** The trip's layovers, turns and stays at base or home, earliest first: they name the waits. */
   groundStops: GroundStop[]
   home: AirportMark | null
+  /** The pilot's base, as the trip's legs name it, or null when none does (the app's base waits design §2, §3). */
+  base: AirportMark | null
+  /** With this trip ahead, the pilot waits at base rather than at home, as the status says (base waits design §3). */
+  isWaitingAtBase: boolean
   /** From the earliest departure to the last arrival: the full-screen map's timeline. */
   span: { start: number; end: number }
   /** CrewLu's count of the trip's days, when known: the recap's, the next trip's or the trip under way's (Stage 2 spec §8.1). */
@@ -96,20 +97,31 @@ export interface TripMapOptions {
   /** CrewLu's count of the trip's days. */
   days?: number | null
   home: Iata | null
+  /** The pilot's base, which names a wait there that no ground leg does (base waits design §2). */
+  base?: Iata | null
+  /** With a trip ahead, the status says the pilot is at base, not home (base waits design §3). */
+  isWaitingAtBase?: boolean
   now: number
   airports: AirportIndex
 }
 
 /** The map of one trip's legs, or null when none can be drawn (moving map spec §12). */
-export function makeTripMap(legs: Leg[], { isNextTrip, isRecap = false, days = null, home, now, airports }: TripMapOptions): TripMap | null {
+export function makeTripMap(
+  legs: Leg[], { isNextTrip, isRecap = false, days = null, home, base = null, isWaitingAtBase = false, now, airports }: TripMapOptions,
+): TripMap | null {
   const mapped = [...legs].sort((a, b) => a.start - b.start).map((l) => mapLeg(l, airports)).filter((l): l is MapLeg => l != null)
   if (mapped.length === 0) return null
   const start = Math.min(...mapped.map((l) => l.start))
   const end = Math.max(start, ...mapped.map((l) => l.end))
   const flying = mapped.find((l) => l.kind === 'flight' && isMoving(l, now))
   const mode: TripMapMode = isRecap ? { kind: 'recap' } : isNextTrip ? { kind: 'nextTrip' } : flying ? { kind: 'inFlight', legId: flying.id } : { kind: 'onTrip' }
-  const groundStops = legs.filter(isGroundLeg).map((l) => ({ kind: stopKind(l), start: l.start, end: l.end })).sort((a, b) => a.start - b.start)
-  return { mode, legs: mapped, groundStops, home: home ? airportMark(home, airports) : null, span: { start, end }, days }
+  const groundStops = legs.filter(isGroundLeg).map((l) => ({ kind: l.kind, start: l.start, end: l.end })).sort((a, b) => a.start - b.start)
+  // Base as the legs name it, with its city and time zone: a wait or a marker there is at one of their airports.
+  const baseMark = base ? mapped.flatMap((l) => [l.origin, l.destination]).find((a) => a.code === base) ?? null : null
+  return {
+    mode, legs: mapped, groundStops, home: home ? airportMark(home, airports) : null, base: baseMark,
+    isWaitingAtBase: mode.kind === 'nextTrip' && isWaitingAtBase, span: { start, end }, days,
+  }
 }
 
 /** True from leaving the gate (or the driveway) until reaching the other end. */
@@ -151,12 +163,15 @@ export const legInMotion = (map: TripMap, t: number) => map.legs.find((l) => isM
 
 export const nextFlight = (map: TripMap, t: number) => map.legs.find((l) => l.kind === 'flight' && l.start > t) ?? null
 
-/** Where the pilot is at `t` when nothing is moving, or null while a leg is. Before a trip still ahead starts, home. */
+/**
+ * Where the pilot is at `t` when nothing is moving, or null while a leg is. Before a trip still ahead starts, home, or
+ * base while the pilot waits there.
+ */
 export function pilotLocation(map: TripMap, t: number): AirportMark | null {
   if (legInMotion(map, t)) return null
   // After a recap's trip, home, else where the trip ended (Stage 2 spec §8.2).
   if (map.mode.kind === 'recap' && t >= map.span.end) return map.home ?? map.legs[map.legs.length - 1].destination
-  if (map.mode.kind === 'nextTrip' && t < map.span.start) return map.home ?? map.legs[0].origin
+  if (map.mode.kind === 'nextTrip' && t < map.span.start) return (map.isWaitingAtBase ? map.base : map.home) ?? map.legs[0].origin
   const landed = map.legs.filter((l) => l.end <= t)
   return landed.length > 0 ? landed[landed.length - 1].destination : map.legs[0].origin
 }

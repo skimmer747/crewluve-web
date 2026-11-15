@@ -18,7 +18,7 @@ const COMMUTE_WINDOW = 12 * HOUR
 
 /**
  * A trip's own flights and jumpseats, the drives and standalone jumpseats within 12 hours of them, and its layovers,
- * turns, stays at base or home and report time, which name the waits between them (activity markers design §2.2).
+ * turns and stays at base or home, which name the waits between them (activity markers design §2.2).
  */
 export function tripLegs(legs: Leg[], tripId: string): Leg[] {
   const own = legs.filter((l) => isMove(l) && l.tripId === tripId)
@@ -32,7 +32,7 @@ export function tripLegs(legs: Leg[], tripId: string): Leg[] {
 
 /** The status page's trip map, or null when there's nothing to draw. */
 export function tripMapFor(snap: Snapshot, legs: Leg[], airports: AirportIndex): TripMap | null {
-  const options = (isNextTrip: boolean) => ({ isNextTrip, home: snap.pilot.effHome, now: snap.t, airports })
+  const options = (isNextTrip: boolean) => ({ isNextTrip, home: snap.pilot.effHome, base: snap.pilot.base, now: snap.t, airports })
   const kind = snap.status.kind
   if (kind === 'home' || kind === 'base') {
     // A recap is the trip as it happened: a drive or jumpseat logged for later, within 12 hours of it, stays off, so the
@@ -43,7 +43,10 @@ export function tripMapFor(snap: Snapshot, legs: Leg[], airports: AirportIndex):
     }
     // A night at home in the middle of a trip is still that trip, under way: its upcoming trip is the rest of it.
     const upcoming = snap.upcomingTrip
-    return upcoming ? makeTripMap(tripLegs(legs, upcoming.tripId), { ...options(!snap.midTripAtHome), days: upcoming.days }) : null
+    // Waiting for it at base, the pilot's marker and the chip say base (the app's base waits design §3).
+    return upcoming
+      ? makeTripMap(tripLegs(legs, upcoming.tripId), { ...options(!snap.midTripAtHome), isWaitingAtBase: kind === 'base', days: upcoming.days })
+      : null
   }
   const progress = snap.tripProgress
   const chosen = progress ? tripLegs(legs, progress.tripId) : []

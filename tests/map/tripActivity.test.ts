@@ -21,7 +21,16 @@ interface CaseLeg {
 interface Cases {
   constants: { shortestLayoverHours: number }
   airports: Record<string, { lat: number; lon: number; city: string | null }>
-  trips: { name: string; home: string | null; mode: 'trip' | 'nextTrip' | 'recap'; legs: CaseLeg[]; moments: { at: string; kind: string; words: string }[] }[]
+  trips: {
+    name: string
+    home: string | null
+    /** The pilot's base, and where a next trip's pilot waits (home when left out): base waits design §2, §3. */
+    base?: string | null
+    waitingAt?: 'home' | 'base' | null
+    mode: 'trip' | 'nextTrip' | 'recap'
+    legs: CaseLeg[]
+    moments: { at: string; kind: string; words: string }[]
+  }[]
 }
 const cases = JSON.parse(readFileSync(new URL('../fixtures/trip-map/activity-cases.json', import.meta.url), 'utf8')) as Cases
 const CASE_AIRPORTS = buildAirportIndex(Object.entries(cases.airports).map(([code, a]) => [code, a.city ?? '', 'US', a.lat, a.lon, 'UTC']))
@@ -52,7 +61,8 @@ describe('what the pilot is doing (activity markers design §2.2): the shared ca
   for (const trip of cases.trips) {
     it.each(trip.moments)(`${trip.name}, at $at`, (moment) => {
       const map = makeTripMap(trip.legs.map(caseLeg), {
-        isNextTrip: trip.mode === 'nextTrip', isRecap: trip.mode === 'recap', home: trip.home, now: 0, airports: CASE_AIRPORTS,
+        isNextTrip: trip.mode === 'nextTrip', isRecap: trip.mode === 'recap', home: trip.home, base: trip.base ?? null,
+        isWaitingAtBase: trip.waitingAt === 'base', now: 0, airports: CASE_AIRPORTS,
       })
       const activity = map ? activityAt(map, Date.parse(moment.at)) : null
       expect(activity?.kind).toBe(moment.kind)
@@ -65,18 +75,34 @@ describe('the waits and what the pilot is doing (activity markers design §2.2)'
   const options = (overrides: Partial<TripMapOptions> = {}): TripMapOptions => ({ isNextTrip: false, home: 'SDF', now: at(12), airports: AIRPORTS, ...overrides })
   const europe = (extra: Leg[] = [], overrides: Partial<TripMapOptions> = {}) => makeTripMap([...EUROPE, ...extra], options(overrides))!
 
-  it("keeps the trip's layovers, turns, stays and report time to name the waits, and draws none of them", () => {
+  it("keeps the trip's layovers, turns and stays to name the waits, draws none of them, and leaves out the report leg", () => {
     const map = europe([ground('l1', 'layover', 'CGN', 8, 24), ground('r1', 'report', 'SDF', -1, 1)])
-    expect(map.groundStops).toEqual([{ kind: 'base', start: at(-1), end: at(0) }, { kind: 'layover', start: at(8), end: at(32) }])
+    expect(map.groundStops).toEqual([{ kind: 'layover', start: at(8), end: at(32) }])
     expect(map.legs.map((l) => l.id)).toEqual(['f1', 'f2', 'f3'])
   })
 
-  it("is at base while a commuter waits between the drive in and the first flight, named by the report time", () => {
-    const legs = [drive('d1', 'LEX', 'SDF', 0, 1), ground('r1', 'report', 'SDF', 3, 1), flight('f1', 'SDF', 'CGN', 4, 8)]
-    const map = makeTripMap(legs, options({ home: 'LEX', now: at(2) }))!
-    expect(activityAt(map, at(2))).toMatchObject({ kind: 'base', place: { code: 'SDF' } })
-    // Without the report time, a 3-hour wait would be a turn.
-    expect(activityAt(makeTripMap(legs.filter((l) => l.id !== 'r1'), options({ home: 'LEX', now: at(2) }))!, at(2))?.kind).toBe('turn')
+  it('names a wait no ground leg names by where it is: at base, at home, else by its length (base waits design §2)', () => {
+    // A commuter: home Lexington, based in Louisville. Drive in, 3 hours at base, fly; 3 hours in Cologne; home.
+    const legs = [drive('d1', 'LEX', 'SDF', 0, 1), flight('f1', 'SDF', 'CGN', 4, 8), flight('f2', 'CGN', 'LEX', 15, 9)]
+    const map = makeTripMap(legs, options({ home: 'LEX', base: 'SDF', now: at(2) }))!
+    expect(activityAt(map, at(2))).toMatchObject({ kind: 'base', place: { code: 'SDF', city: 'Louisville' } })
+    expect(activityAt(map, at(13))?.kind).toBe('turn')
+    // With no base given, the 3 hours at Louisville are a turn too.
+    expect(activityAt(makeTripMap(legs, options({ home: 'LEX', now: at(2) }))!, at(2))?.kind).toBe('turn')
+    // Based at home, home comes first.
+    expect(activityAt(makeTripMap(legs, options({ home: 'SDF', base: 'SDF', now: at(2) }))!, at(2))?.kind).toBe('home')
+  })
+
+  it('shows a next trip from base, with base as the legs name it, while the pilot waits there (base waits design §3)', () => {
+    const legs = [drive('d1', 'LEX', 'SDF', 0, 1), flight('f1', 'SDF', 'CGN', 4, 8)]
+    const waiting = makeTripMap(legs, options({ isNextTrip: true, home: 'LEX', base: 'SDF', isWaitingAtBase: true, now: at(-5) }))!
+    expect(waiting.isWaitingAtBase).toBe(true)
+    expect(activityAt(waiting, at(-5))).toMatchObject({ kind: 'base', place: { code: 'SDF' } })
+    // At home, as before.
+    const home = makeTripMap(legs, options({ isNextTrip: true, home: 'LEX', base: 'SDF', now: at(-5) }))!
+    expect(activityAt(home, at(-5))).toMatchObject({ kind: 'home', place: { code: 'LEX' } })
+    // Only a trip ahead waits: a trip under way ignores it.
+    expect(makeTripMap(legs, options({ home: 'LEX', base: 'SDF', isWaitingAtBase: true, now: at(5) }))!.isWaitingAtBase).toBe(false)
   })
 
   it("finds the Europe trip's two waits, layovers since each is 8 hours or more", () => {

@@ -54,5 +54,5 @@ export const appComparisons = (): Comparison[] => parseComparisons(readJson('pub
 
 /** A trip map of one flight, in the air. */
 export function flightMap(leg: MapLeg, home: AirportMark | null): TripMap {
-  return { mode: { kind: 'inFlight', legId: leg.id }, legs: [leg], groundStops: [], home, span: { start: leg.start, end: leg.end }, days: null }
+  return { mode: { kind: 'inFlight', legId: leg.id }, legs: [leg], groundStops: [], base: null, isWaitingAtBase: false, home, span: { start: leg.start, end: leg.end }, days: null }
 }

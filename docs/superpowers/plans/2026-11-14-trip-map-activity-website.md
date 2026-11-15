@@ -1472,3 +1472,16 @@ Suggested commit: `The README's trip map: what the pilot is doing, Quick layover
 
 - ~~On the trip map card, the bottom chip covers most of the pilot's marker on a layover.~~ Fixed after the plan, at Todd's choice of two prototypes: the card's camera keeps the trip in the band between its chips, measured as they lay out (`chipInsets`, `useHeightOf`). The other prototype, chips under the map, would have made the card about 60 px taller. Then Todd chose "band first, then slide" for both: once the trip is framed, if the pilot's marker with 8 px round it still lies outside the clear part (on the website, only when the chips are too tall to leave a band, at large text sizes), the view slides the shortest way along each axis, never zooming, and centres a marker larger than the space (`slideToShow`, on the card and the full map). This is the app's rule, from its card framing design (Crewluv `docs/superpowers/specs/2026-11-14-trip-map-base-waits-and-card-framing-design.md` §4), which builds the app's half.
 - **On the full map, the marker sits over its airport's code** (MIA), as the heart did.
+
+### After the plan: the app's base waits rules (2026-11-14)
+
+From the app's base waits and card framing design (Crewluv `docs/superpowers/specs/2026-11-14-trip-map-base-waits-and-card-framing-design.md` §2, §3), with its updated `activity-cases.json` copied byte for byte. That copy has two new trips and the optional `base` and `waitingAt` fields.
+
+- **A wait no ground leg names** is named by where the pilot's marker stands as it starts:
+  - home at the home airport;
+  - base at the pilot's base;
+  - anywhere else, the 8-hour rule.
+  - Home comes first.
+  - `TripMap.base` is the base as the trip's legs name it, from `snap.pilot.base`.
+- **That replaces the report leg's naming from Batch A.** A commuter's wait at base is now base by place, as in the app. So `isGroundLeg` leaves the site's report leg out again.
+- **A next trip waited for at base:** the status says base, so `isWaitingAtBase` is set. Before the trip starts, the marker is a briefcase at base, and the card's chip and the full map's headline read "At base · next trip …".

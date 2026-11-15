@@ -43,8 +43,9 @@ export function nextDepartureChip(leg: MapLeg, now: number, viewerTz: string, h2
   return `Next: ${leg.destination.city}, ${dayPhrase(leg.start, now, viewerTz)} ${shortTimeText(leg.start, viewerTz, h24)}`
 }
 
-/** "Home · next trip Wednesday". */
-export const nextTripChip = (start: number, now: number, viewerTz: string) => `Home · next trip ${dayPhrase(start, now, viewerTz)}`
+/** "Home · next trip Wednesday", or "At base · next trip Wednesday" while the pilot waits at base (base waits design §3). */
+export const nextTripChip = (start: number, now: number, viewerTz: string, isAtBase = false) =>
+  `${isAtBase ? 'At base' : 'Home'} · next trip ${dayPhrase(start, now, viewerTz)}`
 
 /** "Landing in 2 h 10 min", to the gate arrival. */
 export function landingCountdown(leg: MapLeg, now: number): string {
@@ -114,7 +115,7 @@ export function cardChips(map: TripMap, t: number, viewerTz: string, h24: boolea
     const leg = currentLeg(map)
     return { top: null, bottom: leg ? landingCountdown(leg, t) : null }
   }
-  if (map.mode.kind === 'nextTrip') return { top: nextTripChip(map.span.start, t, viewerTz), bottom: null }
+  if (map.mode.kind === 'nextTrip') return { top: nextTripChip(map.span.start, t, viewerTz, map.isWaitingAtBase), bottom: null }
   const place = pilotLocation(map, t)
   const drive = driveUnderWay(map, t)
   const next = nextFlight(map, t)
@@ -135,7 +136,7 @@ export function topPill(map: TripMap, t: number, day: number | null, days: numbe
 export function panelHeadline(map: TripMap, t: number, viewerTz: string, h24: boolean): string {
   const leg = legInMotion(map, t)
   if (leg) return leg.kind === 'flight' ? landingLine(leg, viewerTz, h24) : `Driving to ${leg.destination.city}`
-  if (map.mode.kind === 'nextTrip' && t < map.span.start) return nextTripChip(map.span.start, t, viewerTz)
+  if (map.mode.kind === 'nextTrip' && t < map.span.start) return nextTripChip(map.span.start, t, viewerTz, map.isWaitingAtBase)
   const place = pilotLocation(map, t)
   return place ? placeChip(place, t, h24) : ''
 }

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { activityWords, timelineLine, timelineSpokenValue } from '../../src/copy/tripMap'
+import { activityWords, cardChips, nextTripChip, panelHeadline, timelineLine, timelineSpokenValue } from '../../src/copy/tripMap'
 import { buildAirportIndex } from '../../src/data/airports'
 import type { ActivityKind } from '../../src/map/tripActivity'
-import { airportMark } from '../../src/map/tripMap'
-import { AIRPORTS, at } from '../map/tripMapLegs'
+import { airportMark, makeTripMap } from '../../src/map/tripMap'
+import { AIRPORTS, at, flight } from '../map/tripMapLegs'
 
 const cologne = airportMark('CGN', AIRPORTS)!
 
@@ -27,5 +27,20 @@ describe('the words for what the pilot is doing (activity markers design §4.2, 
     expect(timelineSpokenValue(at(12), layover, 'America/New_York', false)).toMatch(/^Friday 7:00\sPM, layover in Cologne$/)
     expect(timelineLine(at(12), null, 'America/New_York', false)).toMatch(/^Fri 7:00\sPM$/)
     expect(timelineSpokenValue(at(12), { kind: 'home', place: cologne }, 'America/New_York', false)).toMatch(/^Friday 7:00\sPM, home$/)
+  })
+})
+
+describe('the next trip’s chip (the app’s base waits design §3)', () => {
+  it('says home, or at base while the pilot waits there', () => {
+    expect(nextTripChip(at(48), at(0), 'America/New_York')).toMatch(/^Home · next trip /)
+    expect(nextTripChip(at(48), at(0), 'America/New_York', true)).toMatch(/^At base · next trip /)
+  })
+
+  it('is the card’s chip and the full map’s headline for a next trip waited for at base', () => {
+    const map = makeTripMap([flight('f1', 'SDF', 'CGN', 48, 8)], {
+      isNextTrip: true, home: 'LEX', base: 'SDF', isWaitingAtBase: true, now: at(0), airports: AIRPORTS,
+    })!
+    expect(cardChips(map, at(0), 'America/New_York', false).top).toMatch(/^At base · next trip /)
+    expect(panelHeadline(map, at(0), 'America/New_York', false)).toMatch(/^At base · next trip /)
   })
 })
