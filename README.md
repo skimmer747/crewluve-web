@@ -7,7 +7,7 @@ The site shows what CrewLu shares with that partner, and changes nothing but its
 - Live: https://crewluve.crewlu.net
 - Demo: https://crewluve.crewlu.net/?demo=1 (add `&scene=layover`, `last-leg`, `home`, `commuting-home`, `nothing-ahead`, `recap`, …)
 - Schedule: add `#schedule` to either address, or tap a card with a chevron.
-- Trip map: the card on every scene with a trip; tap it, or add `#map`, for the full map with the trip's facts. `recap` shows the recap card the evening after a trip.
+- Trip map: the card on every scene with a trip; tap it, or add `#map`, for the full map with the trip's facts. `recap` shows the recap card the evening after a trip. The map is Apple's (MapKit JS), with the site's own drawing as the fallback: docs/superpowers/specs/2026-11-14-trip-map-apple-maps-design.md
 - Design: docs/superpowers/specs/2026-10-08-crewluve-web-slice1-design.md
 - Joining with the invite link: docs/superpowers/specs/2026-10-26-partner-links-piece5a-website-join-design.md
 
@@ -19,6 +19,13 @@ npm run dev     # http://localhost:5180/?demo=1
 npm test
 npm run build
 ```
+
+Apple's map needs a MapKit JS token. The site's own is in `src/map/appleMapToken.ts`, but Apple accepts it only on crewluve.crewlu.net, so locally the site's own drawing shows. To see Apple's map locally:
+- make a MapKit JS token with Restriction Type None in the Apple Developer account (Certificates, Identifiers & Profiles → Services → Maps → Tokens). It lasts 7 days.
+- put it in `.env.local` (git-ignored) as `VITE_MAPKIT_DEV_TOKEN=…`.
+- run the dev server fresh, which reads `.env.local` when it starts: `npm run dev -- --port 5182` (the `crewluve-mapkit` server in `.claude/launch.json`).
+
+The local token works on any site, so it's never committed, and `npm run build` fails if a build would carry it.
 
 ## Regenerate data
 
