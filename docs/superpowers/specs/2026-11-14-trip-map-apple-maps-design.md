@@ -21,10 +21,11 @@ A throwaway page on the dev server confirmed:
 - **The loader:** the npm package `@apple/mapkit-loader` (MIT, about 30 KB), bundled with the site. It loads MapKit JS from Apple's CDN the first time a map is shown, never before, with the `full-map` library.
 - **The site's token:** a MapKit JS token, domain-restricted to `crewluve.crewlu.net` with no expiration, kept in the code (`src/map/appleMapToken.ts`). A domain-locked token is meant to sit in page source; the repo being public is fine.
 - **The local token:**
-  - **What:** a MapKit JS token with no restriction. Apple makes these last 7 days.
-  - **Where:** in `.env.local`, which git ignores, as `MAPKIT_DEV_TOKEN`.
-  - **How it's used:** `vite.config.ts` puts it into the page only for the dev server (`command === 'serve'`), through `define`. A build always gets an empty string, so no build can carry it, even one made on a Mac that has `.env.local`.
-  - **When it's missing or expired:** the dev server shows the fallback (§7). The site's token is used only off localhost.
+  - **What:** a MapKit JS token with no restriction. Apple makes these last 7 days, and Apple won't take `localhost` as a domain.
+  - **Where:** in `.env.local`, which git ignores, as `VITE_MAPKIT_DEV_TOKEN`.
+  - **How it's used:** the code reads it only behind `import.meta.env.DEV`, which a build replaces with `false`, so the minifier drops the branch.
+  - **The build check:** a build plugin (`crewluve-no-dev-token`) fails the build if the token's text is in any file it writes, so no build can carry it, even one made on a Mac that has `.env.local`. (The config stays a plain object, as `tests/viteConfig.test.ts` reads it.)
+  - **When it's missing or expired:** the dev server shows the fallback (§7). The site's token is used everywhere else.
 - **Language:** `en-US`, as the site is.
 
 ## 4. What the family sees
@@ -101,7 +102,7 @@ The same data as today: `tripMapDrawing(map, t)` and `nightLayers(t)`, drawn wit
 - **The night:**
   - seven `PolygonOverlay`s, one per sun depth, each at today's opacity;
   - points reassigned every frame of a replay, and each minute live.
-- **Across the date line:** lines and shapes are laid out in one piece, and the date line is checked against MapKit early (§11).
+- **Across the date line:** lines are laid out in one piece (§11). Night shapes go as `nightLayers` makes them.
 
 ## 9. Code
 
@@ -129,12 +130,13 @@ The same data as today: `tripMapDrawing(map, t)` and `nightLayers(t)`, drawn wit
   - Todd's look on the live site after merge.
 - **Checks:** `npm test` and `npm run build`.
 
-## 11. To settle in the first task
+## 11. Settled on the test page (2026-11-14, before the plan)
 
-These are checked with the local token before building the rest:
-- Does a night layer as wide as the world, with its date-line split, draw right on MapKit? If not, split it into narrower pieces.
-- Does an Anchorage to Tokyo route draw the short way across the date line?
-- Is moving four or five annotations every frame smooth on a phone-sized window?
+- **The night:** a layer as wide as the world (all seven in November reach a pole, −180° to 180°) draws correctly on MapKit as it is, with no split.
+  - Measured on a screenshot: the Sahara at night reads 79 with the night on and 126 with it hidden.
+  - It is subtle at 42%, the app's strength.
+- **The date line:** a route must be laid out in one piece, each longitude within 180° of the one before, as `unwrapped` does. Then Anchorage to Tokyo curves the short way. Raw coordinates add a stray line across the whole world where they jump from 180° to −180°.
+- **Moving annotations:** five annotations moved by setting `coordinate` each frame work. Their smoothness gets watched in the build, because the hidden browser pane doesn't animate.
 
 ## 12. Not in this change
 
