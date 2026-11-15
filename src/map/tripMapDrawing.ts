@@ -1,5 +1,6 @@
 import type { GeoPoint } from './greatCircle'
-import { headingAt, isMoving, legProgress, pilotLocation, positionAt, type AirportMark, type TripMap } from './tripMap'
+import { activityAt, isGroundKind, type GroundActivity } from './tripActivity'
+import { headingAt, isMoving, legProgress, positionAt, type AirportMark, type TripMap } from './tripMap'
 
 /** Everything the trip map draws at one instant (moving map spec §7.1, §7.2), worked out here so the SVG only renders it. */
 
@@ -15,14 +16,27 @@ export interface RouteSegment {
   geodesic: boolean
 }
 
+/** The pilot's marker's radius, in px, on the SVG map and on Apple's. */
+export const PILOT_RADIUS = 12
+
+/** An airport on the map, and whether only drives reach it. */
+export interface DrawnAirport extends AirportMark {
+  /**
+   * No flight of the trip leaves from or lands at it, as with a commuter's home: it gives way where it crowds another
+   * airport (tidy markers design §2).
+   */
+  driveOnly: boolean
+}
+
 export interface TripMapDrawing {
   segments: RouteSegment[]
-  airports: AirportMark[]
+  airports: DrawnAirport[]
+  /** The car, only while the pilot drives, where they are along the drive (tidy markers design §1). */
   cars: { id: string; place: GeoPoint }[]
   /** The schedule's plane: where, and its angle in radians (0 east, clockwise). */
   plane: { place: GeoPoint; angle: number } | null
-  /** The heart: where the pilot is when nothing is moving. */
-  pin: AirportMark | null
+  /** The pilot's marker: what they're doing and where, while nothing moves (activity markers design §2). */
+  pilot: GroundActivity | null
 }
 
 export function tripMapDrawing(map: TripMap, t: number): TripMapDrawing {
@@ -34,7 +48,7 @@ export function tripMapDrawing(map: TripMap, t: number): TripMapDrawing {
     const to = leg.destination.place
     if (leg.kind === 'drive') {
       segments.push({ id: `${leg.id}-drive`, from, to, style: 'drive', geodesic: false })
-      cars.push({ id: `${leg.id}-car`, place: positionAt(leg, isMoving(leg, t) ? legProgress(leg, t) : 0.5) })
+      if (isMoving(leg, t)) cars.push({ id: `${leg.id}-car`, place: positionAt(leg, legProgress(leg, t)) })
     } else if (t >= leg.end) {
       segments.push({ id: `${leg.id}-flown`, from, to, style: 'flown', geodesic: true })
     } else if (isMoving(leg, t)) {
@@ -48,8 +62,12 @@ export function tripMapDrawing(map: TripMap, t: number): TripMapDrawing {
     }
   }
   const seen = new Set<string>()
+  const flown = new Set(map.legs.filter((l) => l.kind === 'flight').flatMap((l) => [l.origin.code, l.destination.code]))
   const airports = map.legs.flatMap((l) => [l.origin, l.destination]).filter((a) => !seen.has(a.code) && seen.add(a.code))
-  return { segments, airports, cars, plane, pin: pilotLocation(map, t) }
+    .map((a) => ({ ...a, driveOnly: !flown.has(a.code) }))
+  const activity = activityAt(map, t)
+  const pilot = activity && isGroundKind(activity.kind) ? { kind: activity.kind, place: activity.place } : null
+  return { segments, airports, cars, plane, pilot }
 }
 
 /** `t` held back to a whole number of `step` ms, so the night is redrawn only once it has moved enough to see. */

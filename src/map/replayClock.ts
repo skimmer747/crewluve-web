@@ -2,6 +2,9 @@
  * The full-screen map's time (moving map spec §6), as the app's TripReplayClock: now, a moment dragged to, or a replay
  * at 1x to 10x. A value the page keeps in state and reads on each frame, so nothing changes per frame. A leg in motion
  * that would pass in under 3 s at 1x slows so it takes 3 s (docs/superpowers/specs/2026-11-13-replay-short-legs-design.md).
+ * With Quick layovers on, a wait on the ground takes a second a day, never under 3 s and never slower than a day in 48 s,
+ * and the clock places any moment along the timeline in replay time (the app's activity markers design §3.2, §4.3).
+ * The shared cases are tests/fixtures/trip-map/replay-cases.json, a copy of the app's: change both together.
  */
 
 export type ReplaySpeed = 1 | 2 | 5 | 10
@@ -13,6 +16,12 @@ export const REPLAY_BASE_RATE = 1800
 /** The least real time, in ms at 1x, that a leg in motion takes, so a drive to work can be seen. */
 export const LEG_MIN_REPLAY = 3000
 
+/** The least real time, in ms at 1x, that a wait takes with Quick layovers on. */
+export const WAIT_MIN_REPLAY = 3000
+
+/** Trip time per real time at 1x through a long wait with Quick layovers on: a day a second. */
+export const QUICK_WAIT_RATE = 86_400
+
 /** A stretch of trip time. */
 export interface Stretch {
   start: number
@@ -23,12 +32,18 @@ export interface ReplayClock {
   span: Stretch
   /** The trip's legs. A short one slows the replay while it moves. */
   legs: readonly Stretch[]
+  /** The stretches with no leg moving, which Quick layovers hurries through. */
+  waits: readonly Stretch[]
+  /** Whether waits on the ground hurry by (activity markers design §3.1). */
+  quickLayovers: boolean
   speed: ReplaySpeed
   /** Null while live. Otherwise the trip time it was set to, and when it started playing from there. */
   anchor: { tripTime: number; playingSince: number | null } | null
 }
 
-export const liveClock = (span: Stretch, legs: readonly Stretch[] = []): ReplayClock => ({ span, legs, speed: 1, anchor: null })
+/** Live. Quick layovers is off unless asked, so a clock made as before plays as before. */
+export const liveClock = (span: Stretch, legs: readonly Stretch[] = [], waits: readonly Stretch[] = [], quickLayovers = false): ReplayClock =>
+  ({ span, legs, waits, quickLayovers, speed: 1, anchor: null })
 export const isLive = (c: ReplayClock) => c.anchor == null
 /** True while a replay plays, and still true once it has reached the trip's end: check `hasFinished` for that. */
 export const isPlaying = (c: ReplayClock) => c.anchor?.playingSince != null
@@ -41,22 +56,30 @@ interface Piece extends Stretch {
 }
 
 /**
- * The span cut at every leg's start and end. Each piece plays at the normal rate or, while legs move through it, at the
- * slowest of their rates: a leg's length over 3 s. A leg with no length covers no piece, so it adds no time.
+ * The span cut at every leg's and wait's start and end. Each piece plays at the normal rate. While legs move through
+ * it, it plays at the slowest of their rates, a leg's length over 3 s; a leg with no length covers no piece, so it adds
+ * no time. Through a wait with Quick layovers on, it plays at the whole wait's quick rate.
  */
 function pace(c: ReplayClock): Piece[] {
   const { start, end } = c.span
-  const cuts = [start, end, ...c.legs.flatMap((l) => [l.start, l.end])].filter((t) => t >= start && t <= end)
+  const cuts = [start, end, ...[...c.legs, ...c.waits].flatMap((l) => [l.start, l.end])].filter((t) => t >= start && t <= end)
   const times = [...new Set(cuts)].sort((a, b) => a - b)
   return times.slice(1).map((to, i) => {
     const from = times[i]
-    const rate = c.legs.reduce(
-      (slowest, l) => (l.start <= from && to <= l.end ? Math.min(slowest, (l.end - l.start) / LEG_MIN_REPLAY) : slowest),
-      REPLAY_BASE_RATE,
-    )
-    return { start: from, end: to, rate }
+    const moving = c.legs.filter((l) => l.start <= from && to <= l.end)
+    if (moving.length > 0) {
+      return { start: from, end: to, rate: moving.reduce((slowest, l) => Math.min(slowest, (l.end - l.start) / LEG_MIN_REPLAY), REPLAY_BASE_RATE) }
+    }
+    const wait = c.quickLayovers ? c.waits.find((w) => w.start <= from && to <= w.end) : undefined
+    return { start: from, end: to, rate: wait ? quickRate(wait.end - wait.start) : REPLAY_BASE_RATE }
   })
 }
+
+/**
+ * A wait of `length` plays in min(length / 1,800, max(3 s, length / 86,400)) at 1x: a second a day, never under 3 s,
+ * and never slower than the normal rate. As a rate, that's its length over that time.
+ */
+const quickRate = (length: number) => Math.max(REPLAY_BASE_RATE, Math.min(length / WAIT_MIN_REPLAY, QUICK_WAIT_RATE))
 
 /** The real time at 1x from the span's start to the trip time `t`. */
 const realAt = (pieces: Piece[], t: number) => pieces.reduce((sum, p) => sum + Math.max(0, Math.min(t, p.end) - p.start) / p.rate, 0)
@@ -112,4 +135,25 @@ export const pause = (c: ReplayClock, now: number): ReplayClock =>
 export const setSpeed = (c: ReplayClock, speed: ReplaySpeed, now: number): ReplayClock =>
   isPlaying(c) ? { ...c, speed, anchor: { tripTime: clockTime(c, now), playingSince: now } } : { ...c, speed }
 
+/** Hurries through waits or plays them at the normal rate, from the moment shown: a replay carries on from there (§3.1). */
+export const setQuickLayovers = (c: ReplayClock, quickLayovers: boolean, now: number): ReplayClock =>
+  isPlaying(c) ? { ...c, quickLayovers, anchor: { tripTime: clockTime(c, now), playingSince: now } } : { ...c, quickLayovers }
+
 export const goLive = (c: ReplayClock): ReplayClock => ({ ...c, anchor: null })
+
+// Positions along the timeline (activity markers design §4.3): the bar measures replay time at 1x at the clock's pace.
+
+/** The whole replay at 1x, in ms. */
+export const replayDuration = (c: ReplayClock) => realAt(pace(c), c.span.end)
+
+/** The replay ms at 1x from the span's start to the trip time `t`. */
+export const replayOffset = (c: ReplayClock, t: number) => realAt(pace(c), t)
+
+/** The trip time `offset` replay ms at 1x after the span's start: the span's end once the whole replay has played. */
+export const tripTimeAtOffset = (c: ReplayClock, offset: number) => tripAt(pace(c), Math.max(offset, 0), c.span.end)
+
+/** Where `t` sits along the timeline, 0 at the span's start and 1 at its end, in replay time at 1x. */
+export function progressAt(c: ReplayClock, t: number): number {
+  const whole = replayDuration(c)
+  return whole > 0 ? Math.min(Math.max(replayOffset(c, t) / whole, 0), 1) : 0
+}

@@ -1,11 +1,13 @@
 import type { Ref } from 'preact'
-import { useRef } from 'preact/hooks'
+import { useRef, useState } from 'preact/hooks'
 import { cardSummary, headline, recapLongestLine, recapTiles, type TripFacts } from '../facts/tripFacts'
 import { delayBannerText, spokenDelayBanner } from '../copy/flight'
 import { arrivalLocalTime, cardChips, landsAt, statsItems, tripMapSummary } from '../copy/tripMap'
 import type { GeoPoint } from '../map/greatCircle'
+import { NO_INSETS, type Insets } from '../map/mapFit'
 import { currentLeg, type MapLeg, type TripMap } from '../map/tripMap'
 import { AppleTripMap } from './AppleTripMap'
+import { useHeightOf } from './hooks/useHeightOf'
 import { useMapStyle } from './hooks/useMapStyle'
 import { useWidth } from './hooks/useWidth'
 import { Icon } from './Icon'
@@ -35,11 +37,21 @@ export interface TripMapCardProps {
 
 const MAP_HEIGHT = 220
 
+/** How far the chips sit in from the map's top and bottom edges (`.trip-map-chip` in tripMap.css). */
+const CHIP_EDGE = 10
+
+/** The room the camera leaves between a chip and the trip. */
+const CHIP_GAP = 4
+
 /**
- * Room for a chip over the map's top or bottom edge. The trip is framed clear of it, and Apple's map keeps its Maps logo
- * and Legal link above the bottom chip, as Apple requires them to show (Apple Maps spec §4.2).
+ * The part of the map each chip covers, measured from the map's edge, for the camera to keep the trip clear of. A chip
+ * with no height (none shown, or not yet laid out) covers nothing. On Apple's map it's the map's padding too, which
+ * keeps Apple's logo and Legal link above the bottom chip, as Apple requires them to show (Apple Maps spec §4.2).
  */
-const CHIP_ROOM = 40
+export function chipInsets(topChipHeight: number, bottomChipHeight: number): Insets {
+  const covered = (height: number) => (height > 0 ? CHIP_EDGE + height + CHIP_GAP : 0)
+  return { ...NO_INSETS, top: covered(topChipHeight), bottom: covered(bottomChipHeight) }
+}
 
 /**
  * The trip map on the status page (moving map spec §5). In flight it takes the in-flight card's place. On the ground it
@@ -54,8 +66,11 @@ export function TripMapCard(p: TripMapCardProps) {
   const chips = cardChips(p.map, p.now, p.viewerTz, p.h24)
   // In flight the bottom chip is the facts' headline, which falls back to the landing countdown (§6.4).
   const bottom = (leg && p.facts ? headline(p.facts, p.now) : null) ?? chips.bottom
-  const insets = { top: chips.top ? CHIP_ROOM : 0, right: 0, bottom: bottom ? CHIP_ROOM : 0, left: 0 }
   const summary = p.facts ? cardSummary(p.facts, p.now, p.name) : tripMapSummary(p.map, p.now, p.name, p.viewerTz, p.h24)
+  // The camera keeps the trip in the band between the chips, so neither covers the pilot's marker or a route.
+  const [topChip, setTopChip] = useState<HTMLElement | null>(null)
+  const [bottomChip, setBottomChip] = useState<HTMLElement | null>(null)
+  const insets = chipInsets(useHeightOf(topChip), useHeightOf(bottomChip))
   return (
     <section class="card glass trip-map-card">
       <h2 ref={p.headingRef} class="sr-only" tabIndex={-1}>{leg ? 'In flight' : isRecap ? 'Trip recap' : 'Trip map'}</h2>
@@ -64,9 +79,9 @@ export function TripMapCard(p: TripMapCardProps) {
           <AppleTripMap map={p.map} t={p.now} width={width} height={MAP_HEIGHT} focus={leg} land={p.land} nightStep={60_000} insets={insets}
             mapStyle={mapStyle} interactive={false} />
         </span>
-        {chips.top && <span class="trip-map-chip top" aria-hidden="true">{chips.top}</span>}
+        {chips.top && <span ref={setTopChip} class="trip-map-chip top" aria-hidden="true">{chips.top}</span>}
         {bottom && (
-          <span class="trip-map-chip bottom" aria-hidden="true">
+          <span ref={setBottomChip} class="trip-map-chip bottom" aria-hidden="true">
             {isRecap && <PlayMark />}
             {bottom}
           </span>

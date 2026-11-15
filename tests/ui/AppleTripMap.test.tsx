@@ -1,8 +1,10 @@
 // @vitest-environment happy-dom
 import { act, cleanup, render, waitFor } from '@testing-library/preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { appleCamera } from '../../src/map/appleMapPlan'
+import { NO_INSETS } from '../../src/map/mapFit'
 import type { MapKitApi } from '../../src/map/mapkitApi'
-import { makeTripMap } from '../../src/map/tripMap'
+import { framingPoints, makeTripMap } from '../../src/map/tripMap'
 import { AppleTripMap } from '../../src/ui/AppleTripMap'
 import { resetAppleMapKit, startAppleMapKit } from '../../src/ui/hooks/useAppleMapKit'
 import { fakeMapKit } from '../fixtures/fakeMapKit'
@@ -61,6 +63,42 @@ describe('Apple’s map (Apple Maps spec §4, §5, §8)', () => {
     expect(m.overlays.filter((o) => o instanceof kit.PolylineOverlay).length).toBeGreaterThan(0)
     expect(m.annotations.some((a) => a.element.classList.contains('plane'))).toBe(true)
     expect(m.rects).toHaveLength(1)
+    // The same view the SVG map takes of the leg in focus.
+    const leg = [map.legs[0].origin.place, map.legs[0].destination.place]
+    expect(m.rects[0].rect).toMatchObject(appleCamera(framingPoints(map, map.legs[0]), null, 390, 520, NO_INSETS).rect)
+    expect(leg).toHaveLength(2)
+  })
+
+  it('gives MapKit the panel as its padding, so the trip and Apple’s logo keep clear of it', async () => {
+    const kit = await ready()
+    const insets = { top: 0, right: 0, bottom: 0, left: 150 }
+    render(<AppleTripMap {...props} insets={insets} />)
+    await waitFor(() => expect(kit.maps).toHaveLength(1))
+    expect(kit.maps[0].padding).toMatchObject(insets)
+    expect(kit.maps[0].rects[0].rect).toMatchObject(appleCamera(framingPoints(map, map.legs[0]), null, 390, 520, insets).rect)
+  })
+
+  it('swaps the pilot’s marker when what they’re doing changes, leaving one marker', async () => {
+    const kit = await ready()
+    const view = render(<AppleTripMap {...props} t={at(12)} focus={null} />)
+    await waitFor(() => expect(kit.maps).toHaveLength(1))
+    const pilots = () => kit.maps[0].annotations.map((a) => a.element.className).filter((c) => c.includes('pilot'))
+    expect(pilots()).toEqual(['apple-mark pilot activity-layover'])
+    // In the air on the next leg there's no pilot's marker, and after the last leg, at home, there's the house.
+    view.rerender(<AppleTripMap {...props} t={at(34)} focus={null} />)
+    expect(pilots()).toEqual([])
+    view.rerender(<AppleTripMap {...props} t={at(39)} focus={null} />)
+    expect(pilots()).toHaveLength(1)
+    expect(pilots()[0]).not.toBe('apple-mark pilot activity-plane')
+  })
+
+  it('shows what the pilot is doing on the ground, where the heart was: a bed on a layover', async () => {
+    const kit = await ready()
+    render(<AppleTripMap {...props} t={at(12)} focus={null} />)
+    await waitFor(() => expect(kit.maps).toHaveLength(1))
+    const marks = kit.maps[0].annotations.map((a) => a.element.className)
+    expect(marks.filter((c) => c.includes('pilot'))).toEqual(['apple-mark pilot activity-layover'])
+    expect(marks.some((c) => c.includes('heart') || c.includes('plane'))).toBe(false)
   })
 
   it('never puts a night shape on the date line: MapKit would fill it inside-out for half of each day', async () => {

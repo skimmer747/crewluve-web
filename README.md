@@ -8,6 +8,9 @@ The site shows what CrewLu shares with that partner, and changes nothing but its
 - Demo: https://crewluve.crewlu.net/?demo=1 (add `&scene=layover`, `last-leg`, `home`, `commuting-home`, `nothing-ahead`, `recap`, …)
 - Schedule: add `#schedule` to either address, or tap a card with a chevron.
 - Trip map: the card on every scene with a trip; tap it, or add `#map`, for the full map with the trip's facts. `recap` shows the recap card the evening after a trip. The map is Apple's (MapKit JS), with the site's own drawing as the fallback: docs/superpowers/specs/2026-11-14-trip-map-apple-maps-design.md
+  - A marker shows what the pilot is doing on the ground: a bed on a layover (`layover`), an hourglass at a turn (`turn`), a briefcase at base (`base`), a house at home (`home`).
+  - The full map's timeline is colored by what the pilot is doing. Its "Quick layovers" switch, on by default and remembered in the browser, hurries a replay through each wait.
+  - Design: Crewluv's `docs/superpowers/specs/2026-11-14-trip-map-activity-markers-and-quick-layovers-design.md`.
 - Design: docs/superpowers/specs/2026-10-08-crewluve-web-slice1-design.md
 - Joining with the invite link: docs/superpowers/specs/2026-10-26-partner-links-piece5a-website-join-design.md
 
@@ -38,7 +41,7 @@ python3 -I scripts/make-icons.py   # public/icons/*.png (reads ../Crewluv)
 
 `npm run land` reads Natural Earth's land file, which isn't committed: download v5.1.2's `geojson/ne_110m_land.geojson` (public domain, about 140 KB) from https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_110m_land.geojson to `scripts/ne_110m_land.geojson` first.
 
-`public/data/geography.json` and `public/data/comparisons.json` are copies of the app's, in Crewluv's `Crewluv/Resources/TripMap/`, and `tests/fixtures/trip-map/facts-cases.json` is a copy of its `CrewluvTests/Fixtures/TripMap/facts-cases.json`. The app makes `geography.json` from Natural Earth (public domain) with `node scripts/build-geography.mjs`. Change each pair together.
+`public/data/geography.json` and `public/data/comparisons.json` are copies of the app's, in Crewluv's `Crewluv/Resources/TripMap/`, and `tests/fixtures/trip-map/facts-cases.json`, `replay-cases.json` and `activity-cases.json` are copies of its `CrewluvTests/Fixtures/TripMap/` files of those names. The app makes `geography.json` from Natural Earth (public domain) with `node scripts/build-geography.mjs`. Change each pair together.
 
 `npm run airports` expects the CrewLu Flight Globe checkout next to this repo (`../crewlu-globe`).
 To read its `airports.json` from somewhere else, set `AIRPORTS_SOURCE=/path/to/airports.json`.
