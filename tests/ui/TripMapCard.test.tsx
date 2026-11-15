@@ -1,10 +1,11 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, render, screen } from '@testing-library/preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { buildAirportIndex } from '../../src/data/airports'
 import { makeTripFacts } from '../../src/facts/tripFacts'
 import { makeTripMap, type TripMap } from '../../src/map/tripMap'
-import { TripMapCard } from '../../src/ui/TripMapCard'
-import { AIRPORTS, at, EUROPE } from '../map/tripMapLegs'
+import { chipInsets, TripMapCard } from '../../src/ui/TripMapCard'
+import { AIRPORTS, at, EUROPE, flight } from '../map/tripMapLegs'
 
 const NY = 'America/New_York'
 const card = (now: number, extra = {}) => {
@@ -73,5 +74,43 @@ describe('the card’s facts (Stage 2 spec §6.4, §6.5)', () => {
       'Trip recap: home from 4 days away. 2 cities, 14,819 miles, 18 time zones, 1 sunset from the cockpit. ' +
         'Longest flight, Dubai to Louisville, 7,382 miles. Opens the map to replay the trip.',
     )
+  })
+})
+
+describe('the card’s chips and its camera', () => {
+  afterEach(() => {
+    cleanup()
+    vi.restoreAllMocks()
+  })
+
+  it('works out the band each chip covers, from the map’s edge', () => {
+    expect(chipInsets(26, 26)).toEqual({ top: 40, right: 0, bottom: 40, left: 0 })
+    expect(chipInsets(0, 30)).toEqual({ top: 0, right: 0, bottom: 44, left: 0 })
+  })
+
+  it('keeps the trip and the pilot’s marker clear of the chips: a layover in Miami sits above the "Next" chip', () => {
+    const airports = buildAirportIndex([
+      ['SDF', 'Louisville', 'US', 38.1744, -85.736, 'America/New_York', 'KY'],
+      ['MIA', 'Miami', 'US', 25.7959, -80.287, 'America/New_York', 'FL'],
+    ])
+    const map = makeTripMap([flight('f1', 'SDF', 'MIA', 0, 2.5), flight('f2', 'MIA', 'SDF', 24, 2.5)], {
+      isNextTrip: false, home: 'SDF', now: at(10), airports,
+    })!
+    const marker = () => Number(document.querySelector('.trip-map-pilot circle')!.getAttribute('cy'))
+    const draw = () =>
+      render(<TripMapCard map={map} now={at(10)} viewerTz={NY} h24={false} name="Alex" day={1} days={2} delayMinutes={null} land={null}
+        onOpenMap={() => {}} />)
+    // Unmeasured (as happy-dom lays nothing out), the chips cover nothing, and Miami sits in the bottom chip's band.
+    draw()
+    expect(marker()).toBeGreaterThan(220 - 40)
+    cleanup()
+    // With each chip 26 px tall, the camera keeps the trip between them: from 40 px down to 40 px from the bottom.
+    const measured = HTMLElement.prototype.getBoundingClientRect
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      return this.classList.contains('trip-map-chip') ? DOMRect.fromRect({ width: 200, height: 26 }) : measured.call(this)
+    })
+    draw()
+    expect(marker()).toBeGreaterThanOrEqual(40)
+    expect(marker()).toBeLessThanOrEqual(220 - 40)
   })
 })

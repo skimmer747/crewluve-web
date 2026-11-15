@@ -1470,5 +1470,5 @@ Suggested commit: `The README's trip map: what the pilot is doing, Quick layover
 
 ### Left for later
 
-- **On the trip map card, the bottom chip ("Next: Louisville, tomorrow 2:58 AM") covers most of the pilot's marker** on a layover in Miami. It covered the heart the same way before this work, so it comes from the card's framing, which the design leaves alone.
+- ~~On the trip map card, the bottom chip covers most of the pilot's marker on a layover.~~ Fixed after the plan, at Todd's choice of two prototypes: the card's camera keeps the trip in the band between its chips, measured as they lay out (`chipInsets`, `useHeightOf`). The other prototype, chips under the map, would have made the card about 60 px taller. The app gets the same fix.
 - **On the full map, the marker sits over its airport's code** (MIA), as the heart did.
