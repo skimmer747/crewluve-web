@@ -36,6 +36,12 @@ export interface TripMapCardProps {
 const MAP_HEIGHT = 220
 
 /**
+ * Room for a chip over the map's top or bottom edge. The trip is framed clear of it, and Apple's map keeps its Maps logo
+ * and Legal link above the bottom chip, as Apple requires them to show (Apple Maps spec §4.2).
+ */
+const CHIP_ROOM = 40
+
+/**
  * The trip map on the status page (moving map spec §5). In flight it takes the in-flight card's place. On the ground it
  * sits above the location card, which keeps its weather and sun dial. Tapping the map opens the full map at #map.
  */
@@ -48,13 +54,15 @@ export function TripMapCard(p: TripMapCardProps) {
   const chips = cardChips(p.map, p.now, p.viewerTz, p.h24)
   // In flight the bottom chip is the facts' headline, which falls back to the landing countdown (§6.4).
   const bottom = (leg && p.facts ? headline(p.facts, p.now) : null) ?? chips.bottom
+  const insets = { top: chips.top ? CHIP_ROOM : 0, right: 0, bottom: bottom ? CHIP_ROOM : 0, left: 0 }
   const summary = p.facts ? cardSummary(p.facts, p.now, p.name) : tripMapSummary(p.map, p.now, p.name, p.viewerTz, p.h24)
   return (
     <section class="card glass trip-map-card">
       <h2 ref={p.headingRef} class="sr-only" tabIndex={-1}>{leg ? 'In flight' : isRecap ? 'Trip recap' : 'Trip map'}</h2>
       <button type="button" class="trip-map-open" data-trip-map-open aria-label={summary} onClick={() => p.onOpenMap()}>
         <span ref={box} class="trip-map-frame">
-          <AppleTripMap map={p.map} t={p.now} width={width} height={MAP_HEIGHT} focus={leg} land={p.land} nightStep={60_000} mapStyle={mapStyle} interactive={false} />
+          <AppleTripMap map={p.map} t={p.now} width={width} height={MAP_HEIGHT} focus={leg} land={p.land} nightStep={60_000} insets={insets}
+            mapStyle={mapStyle} interactive={false} />
         </span>
         {chips.top && <span class="trip-map-chip top" aria-hidden="true">{chips.top}</span>}
         {bottom && (

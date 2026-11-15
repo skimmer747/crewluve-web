@@ -70,6 +70,16 @@ describe('the card on Apple’s map (Apple Maps spec §4.2)', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Trip map\. Alex is in Cologne\./ }))
     expect(onOpenMap).toHaveBeenCalled()
   })
+
+  it('keeps the trip, and Apple’s logo and Legal link, clear of the chips', async () => {
+    const kit = fakeMapKit()
+    startAppleMapKit(async () => kit as unknown as MapKitApi)
+    // In flight the bottom chip counts down to landing.
+    card(at(4))
+    await waitFor(() => expect(kit.maps).toHaveLength(1))
+    expect(document.querySelector('.trip-map-chip.bottom')).toBeTruthy()
+    expect(kit.maps[0].padding).toMatchObject({ bottom: 40 })
+  })
 })
 
 describe('the card’s facts (Stage 2 spec §6.4, §6.5)', () => {
