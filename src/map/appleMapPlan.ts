@@ -108,6 +108,41 @@ export interface AppleCamera {
 export function appleCamera(framing: GeoPoint[], pilot: GeoPoint | null, width: number, height: number, insets: Insets): AppleCamera {
   const framed = fitClear(fitRect(framing) ?? { x: 0, y: 0, width: 1, height: 1 }, width, height, insets)
   const view = pilot ? slideToShow(framed, width, height, placeAt(pilot, { rect: framed, width, height }), PILOT_RADIUS, insets) : framed
+  return cameraFor(view, width, height, insets)
+}
+
+/** The pilot's marker counts as in view when a slide would move it less than this, in px: never a slide for rounding. */
+const SLIDE_TOLERANCE_PX = 1
+
+/**
+ * MapKit won't zoom out past its own limit, which a small view such as the card reaches on a wide trip: it then shows the
+ * middle of what it was asked for, closer in, and the pilot's marker near the trip's edge can fall outside. Given
+ * `shown`, what MapKit settled on (its visible rectangle, which is only the part inside its padding, and that padding),
+ * this is what to ask for next: the same view, at the same zoom, slid the shortest way that shows the marker in the
+ * clear part (as the app's TripMapSlide), or null when it's in view already.
+ */
+export function slideIntoView(shown: AppleCamera, pilot: GeoPoint, width: number, height: number, insets: Insets): AppleCamera | null {
+  const view = wholeView(shown, width, height)
+  const slid = slideToShow(view, width, height, placeAt(pilot, { rect: view, width, height }), PILOT_RADIUS, insets)
+  const perPixel = view.width / width
+  // A slide is far less than a world, so a whole world between the two is only the date line, not a move.
+  const dx = slid.x - view.x - Math.round(slid.x - view.x)
+  const dy = slid.y - view.y
+  if (Math.abs(dx) < SLIDE_TOLERANCE_PX * perPixel && Math.abs(dy) < SLIDE_TOLERANCE_PX * perPixel) return null
+  return cameraFor(slid, width, height, insets)
+}
+
+/** The whole `width` × `height` view MapKit shows for `camera`: its rectangle, grown by its padding. */
+function wholeView({ rect, padding }: AppleCamera, width: number, height: number): WorldRect {
+  const perPixel = rect.width / (width - padding.left - padding.right)
+  return { x: rect.x - padding.left * perPixel, y: rect.y - padding.top * perPixel, width: width * perPixel, height: height * perPixel }
+}
+
+/**
+ * What MapKit is asked for to show `view`, the whole of a `width` × `height` view: the part the insets leave clear, with
+ * the insets as its padding, or, when that part is too small to frame in, the whole view and no padding.
+ */
+function cameraFor(view: WorldRect, width: number, height: number, insets: Insets): AppleCamera {
   const clearWidth = width - insets.left - insets.right
   const clearHeight = height - insets.top - insets.bottom
   if (clearWidth < MIN_CLEAR_PX || clearHeight < MIN_CLEAR_PX) return { rect: view, padding: NO_INSETS }
