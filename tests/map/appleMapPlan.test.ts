@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { appleMapPlan, laidOut } from '../../src/map/appleMapPlan'
+import { appleMapPlan, laidOut, offDateLine } from '../../src/map/appleMapPlan'
 import { makeTripMap } from '../../src/map/tripMap'
 import { tripMapDrawing } from '../../src/map/tripMapDrawing'
 import { AIRPORTS, at, drive, EUROPE, flight } from '../map/tripMapLegs'
@@ -9,6 +9,14 @@ describe('what Apple’s map shows (Apple Maps spec §8, §11)', () => {
     const laid = laidOut([{ lat: 61, lng: -150 }, { lat: 60, lng: -175 }, { lat: 55, lng: 175 }, { lat: 36, lng: 140 }])
     expect(laid.map((p) => p.lng)).toEqual([-150, -175, -185, -220])
     expect(laidOut([{ lat: 0, lng: 10 }, { lat: 0, lng: 20 }]).map((p) => p.lng)).toEqual([10, 20])
+  })
+
+  it('keeps a night shape a hair off the date line, where MapKit takes 180° and −180° for one edge and fills the shape inside-out', () => {
+    // A layer as wide as the world: its top edge, then its lower edge back, deep at the date line.
+    const shape = [{ lat: 85, lng: -180 }, { lat: 85, lng: 0 }, { lat: 85, lng: 180 }, { lat: -60, lng: 180 }, { lat: 70, lng: 0 }, { lat: -60, lng: -180 }]
+    const kept = offDateLine(shape)
+    expect(kept.map((p) => p.lng)).toEqual([-179.999, 0, 179.999, 179.999, 0, -179.999])
+    expect(kept.map((p) => p.lat)).toEqual(shape.map((p) => p.lat))
   })
 
   it('draws each segment as a line in its style: a flight along its great circle, a drive straight', () => {

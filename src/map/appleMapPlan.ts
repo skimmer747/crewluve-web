@@ -45,6 +45,19 @@ export function laidOut(points: GeoPoint[]): GeoPoint[] {
   return laid
 }
 
+/** How close to the date line a night shape's points may come, in degrees: about 100 m. */
+const DATE_LINE_EDGE = 179.999
+
+/**
+ * A night shape for MapKit, with its points kept a hair off the date line. MapKit takes 180° and −180° for the same
+ * edge. A night layer as wide as the world runs from one to the other, and whenever the night is deep at the date line
+ * (morning in the Americas) MapKit filled it inside-out: daylight shaded, night clear, with the layers' edges sweeping
+ * up and down the map through the day. Measured on 2026-11-14: noon in Louisville drew as 28 to 36% night across North
+ * America, and as none with the points at ±179.999°.
+ */
+export const offDateLine = (shape: GeoPoint[]): GeoPoint[] =>
+  shape.map((p) => (Math.abs(p.lng) > DATE_LINE_EDGE ? { lat: p.lat, lng: Math.sign(p.lng) * DATE_LINE_EDGE } : p))
+
 export function appleMapPlan(drawing: TripMapDrawing, focus: MapLeg | null): AppleMapPlan {
   const onLeg = (code: string) => focus != null && (focus.origin.code === code || focus.destination.code === code)
   const marks: PlannedMark[] = [

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'preact/hooks'
-import { appleMapPlan, type PlannedMark } from '../map/appleMapPlan'
+import { appleMapPlan, offDateLine, type PlannedMark } from '../map/appleMapPlan'
 import type { AppleMapStyle } from '../map/appleMapStyle'
 import type { GeoPoint } from '../map/greatCircle'
 import { fitRect, NO_INSETS } from '../map/mapFit'
@@ -131,7 +131,7 @@ function AppleMapView({ mapkit, map, t, focus, nightStep, insets = NO_INSETS, ma
     const at = nightTime(t, nightStep)
     if (at !== state.nightAt) {
       nightLayers(at).forEach((shapes, i) => {
-        state.night[i].points = shapes.map((shape) => shape.map(C))
+        state.night[i].points = shapes.map((shape) => offDateLine(shape).map(C))
       })
       state.nightAt = at
     }

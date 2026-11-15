@@ -1486,3 +1486,20 @@ git commit -m "The security policy lets in Apple's map: its CDN, WebAssembly, wo
   - In `README.md`'s trip map line, add: the map is Apple's (MapKit JS) on the live site. Locally it needs a 7-day MapKit token with no restriction in `.env.local` as `VITE_MAPKIT_DEV_TOKEN`, made in the Apple Developer account, and the `crewluve-mapkit` dev server on 5182. Without one the SVG map shows.
   - Commit `.claude/launch.json` and `README.md`, with Todd's yes.
 - [ ] **Step 6:** Ask Todd to look on the dev server. Then ask about pushing `trip-map-apple`: note it in repo-state first, and remind him the site's token works only on the live site, after a merge.
+
+## Changes made during execution (2026-11-14)
+
+- **Task 1:** the token choice is a pure function, `chooseMapkitToken(isDev, localToken)`, with `mapkitToken()` reading the page's own values. A default parameter read the real `.env.local` in the test.
+- **Task 3:** the module was written before its test had been seen failing; the test was then run without the module, and failed as it should.
+- **Task 7:** the card's Apple-map tests reset the loader in a `beforeEach`, because the cards rendered earlier in the file had already tried MapKit and been refused.
+- **From looking at it (Task 9):**
+  - **The card's chips** covered Apple's Maps logo and Legal link. The card now gives its chips 40 px of room on the map (`CHIP_ROOM`), which also frames the trip clear of them.
+  - **`mapkit.Annotation.CollisionMode`** is deprecated in MapKit JS 6 and warned on every mark. The map uses `mapkit.AnnotationCollisionMode`.
+  - **The night drew inside-out for half of each day.** Todd saw lines of shade moving down from the top, then up from the bottom, in a replay. Two wrong answers came first: that they were Apple's borders, and that MapKit redraws large shapes in strips. Measuring the shading at six moments found it on the wrong side every morning. The cause is that MapKit takes 180° and −180° for one edge. The fix is `offDateLine`, in `src/map/appleMapPlan.ts`, which keeps night points at ±179.999°. Spec §11 is corrected.
+  - **The heart** is not the fallback map: it marks where the pilot is while on the ground, and the plane takes its place in flight. It shows on Apple's map too.
+- **The built site** was checked on port 5184 (5181 was in use by another checkout's server): its policy held, and it showed the SVG fallback, because Apple accepts the site's token only on crewluve.crewlu.net.
+- **The Sonnet review** found no critical issues. Still to do from it:
+  - an airport's priority isn't updated when the leg in focus changes;
+  - Apple's Legal link sits inside the card's button;
+  - the colours and Apple's light or dark tiles don't follow a change to dark mode while the map is open.
+

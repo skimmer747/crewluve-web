@@ -43,6 +43,16 @@ describe('Apple’s map (Apple Maps spec §4, §5, §8)', () => {
     expect(m.rects).toHaveLength(1)
   })
 
+  it('never puts a night shape on the date line: MapKit would fill it inside-out for half of each day', async () => {
+    const kit = await ready()
+    render(<AppleTripMap {...props} />)
+    await waitFor(() => expect(kit.maps).toHaveLength(1))
+    const night = kit.maps[0].overlays.filter((o) => o instanceof kit.PolygonOverlay)
+    const longitudes = night.flatMap((o) => (o.points as { longitude: number }[][]).flat().map((c) => c.longitude))
+    expect(longitudes.length).toBeGreaterThan(1000)
+    expect(Math.max(...longitudes.map(Math.abs))).toBeLessThan(180)
+  })
+
   it('updates in place as time moves, rather than adding again', async () => {
     const kit = await ready()
     const view = render(<AppleTripMap {...props} />)

@@ -102,7 +102,7 @@ The same data as today: `tripMapDrawing(map, t)` and `nightLayers(t)`, drawn wit
 - **The night:**
   - seven `PolygonOverlay`s, one per sun depth, each at today's opacity;
   - points reassigned every frame of a replay, and each minute live.
-- **Across the date line:** lines are laid out in one piece (§11). Night shapes go as `nightLayers` makes them.
+- **Across the date line:** lines are laid out in one piece (§11). Night shapes go as `nightLayers` makes them, with their points kept a hair off the date line (`offDateLine`, §11).
 
 ## 9. Code
 
@@ -132,8 +132,10 @@ The same data as today: `tripMapDrawing(map, t)` and `nightLayers(t)`, drawn wit
 
 ## 11. Settled on the test page (2026-11-14, before the plan)
 
-- **The night:** a layer as wide as the world (all seven in November reach a pole, −180° to 180°) draws correctly on MapKit as it is, with no split.
-  - Measured on a screenshot: the Sahara at night reads 79 with the night on and 126 with it hidden.
+- **The night:** a layer as wide as the world (all seven in November reach a pole, −180° to 180°) needs no split, but its points must stay off the date line (corrected 2026-11-14, after Todd saw lines of shade moving down from the top and up from the bottom during a replay).
+  - **The fault:** MapKit takes 180° and −180° for the same edge. When the night is deep at the date line (morning in the Americas), it filled the world-wide shape inside-out: daylight shaded and night clear. The seven layers' edges swept up and down the map through the day.
+  - **How it was missed:** the test page checked one moment only, 22:30 UTC, when the night is shallow at the date line and the fill comes out right.
+  - **Measured:** at noon in Louisville, North America drew as 28 to 36% night. With the points at ±179.999° (`offDateLine`) it draws as none, and morning and evening both shade the right side.
   - It is subtle at 42%, the app's strength.
 - **The date line:** a route must be laid out in one piece, each longitude within 180° of the one before, as `unwrapped` does. Then Anchorage to Tokyo curves the short way. Raw coordinates add a stray line across the whole world where they jump from 180° to −180°.
 - **Moving annotations:** five annotations moved by setting `coordinate` each frame work. Their smoothness gets watched in the build, because the hidden browser pane doesn't animate.
