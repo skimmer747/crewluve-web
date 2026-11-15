@@ -62,6 +62,7 @@ export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, 
   // Once the person pans or zooms, the camera stops framing and Recenter appears (Apple Maps spec §5).
   const [moved, setMoved] = useState(false)
   const [recenter, setRecenter] = useState(0)
+  const styleButton = useRef<HTMLButtonElement>(null)
   // The side panel opens with its facts showing; the bottom panel opens small, with "More facts" (§10).
   const [open, setOpen] = useState(side)
   useEffect(() => setOpen(side), [side])
@@ -99,12 +100,14 @@ export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, 
         </button>
         <h1 ref={heading} class="trip-map-pill" tabIndex={-1}>{topPill(map, t, day, days)}</h1>
         {apple && moved && (
-          <button type="button" class="trip-map-round" aria-label="Recenter map" onClick={() => { setMoved(false); setRecenter((n) => n + 1) }}>
+          // Recenter leaves the page as it's pressed, so focus moves to the style button beside it.
+          <button type="button" class="trip-map-round" aria-label="Recenter map"
+            onClick={() => { setMoved(false); setRecenter((n) => n + 1); styleButton.current?.focus() }}>
             <Icon name="GpsFix" size={20} />
           </button>
         )}
         {apple && (
-          <button type="button" class="trip-map-style" aria-label={`Map style: ${MAP_STYLE_NAMES[mapStyle]}`} onClick={() => setMapStyle(nextMapStyle(mapStyle))}>
+          <button ref={styleButton} type="button" class="trip-map-style" aria-label={`Map style: ${MAP_STYLE_NAMES[mapStyle]}`} onClick={() => setMapStyle(nextMapStyle(mapStyle))}>
             <Icon name={STYLE_ICONS[mapStyle]} size={18} />
             <span aria-hidden="true">{MAP_STYLE_NAMES[mapStyle]}</span>
           </button>

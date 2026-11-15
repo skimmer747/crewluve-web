@@ -41,24 +41,28 @@ const CSP = [
  * reads it only on the dev server, and this fails any build that carries it anyway, even one made on a Mac with
  * .env.local.
  */
-export function noDevTokenPlugin(token: string): Plugin {
+export function noDevTokenPlugin(...tokens: string[]): Plugin {
+  const local = tokens.filter(Boolean)
   return {
     name: 'crewluve-no-dev-token',
     apply: 'build',
     generateBundle(_options, bundle) {
-      if (!token) return
+      if (local.length === 0) return
       for (const file of Object.values(bundle)) {
         const text = file.type === 'chunk' ? file.code : typeof file.source === 'string' ? file.source : Buffer.from(file.source).toString('utf8')
-        if (text.includes(token)) this.error(`${file.fileName} carries the local MapKit token from .env.local`)
+        if (local.some((token) => text.includes(token))) this.error(`${file.fileName} carries the local MapKit token from .env.local`)
       }
     },
   }
 }
 
+/** The local token as either mode's env files give it: .env, .env.local, and the development and production ones. */
+const LOCAL_TOKENS = ['development', 'production'].map((mode) => loadEnv(mode, process.cwd(), 'VITE_').VITE_MAPKIT_DEV_TOKEN ?? '')
+
 export default defineConfig({
   plugins: [
     preact(),
-    noDevTokenPlugin(loadEnv('development', process.cwd(), 'VITE_').VITE_MAPKIT_DEV_TOKEN ?? ''),
+    noDevTokenPlugin(...LOCAL_TOKENS),
     {
       name: 'crewluve-csp',
       apply: 'build',

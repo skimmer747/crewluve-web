@@ -1,9 +1,9 @@
-import { useEffect, useRef } from 'preact/hooks'
+import { useEffect, useRef, useState } from 'preact/hooks'
 import { appleMapPlan, offDateLine, type PlannedMark } from '../map/appleMapPlan'
 import type { AppleMapStyle } from '../map/appleMapStyle'
 import type { GeoPoint } from '../map/greatCircle'
 import { fitRect, NO_INSETS } from '../map/mapFit'
-import type { MapKitApi, MkAnnotation, MkMap, MkPolygon, MkPolyline, MkStyle } from '../map/mapkitApi'
+import type { MapKitApi, MkAnnotation, MkMap, MkPolygon, MkPolyline } from '../map/mapkitApi'
 import { LAYER_ALPHA, nightLayers, SUN_DEPTHS } from '../map/nightShade'
 import { framingPoints } from '../map/tripMap'
 import { nightTime, tripMapDrawing, type SegmentStyle } from '../map/tripMapDrawing'
@@ -46,9 +46,11 @@ interface Live {
   lines: Map<string, { overlay: MkPolyline; key: string }>
   night: MkPolygon[]
   nightAt: number
-  marks: Map<string, { annotation: MkAnnotation; turn: (degrees: number) => void }>
+  marks: Map<string, { annotation: MkAnnotation; turn: (degrees: number) => void; priority: PlannedMark['priority'] }>
   framed: string
   moved: boolean
+  /** The Recenter count the camera last framed for. */
+  recenterSeen: number
 }
 
 function AppleMapView({ mapkit, map, t, focus, nightStep, insets = NO_INSETS, mapStyle, interactive, recenter = 0, onUserMove }: AppleTripMapProps & { mapkit: MapKitApi }) {
@@ -56,16 +58,19 @@ function AppleMapView({ mapkit, map, t, focus, nightStep, insets = NO_INSETS, ma
   const live = useRef<Live | null>(null)
   const userMove = useRef(onUserMove)
   userMove.current = onUserMove
+  // Bumped when the system turns light or dark, to draw the lines again in the new colours.
+  const [, repaint] = useState(0)
   const types: Record<AppleMapStyle, string> = { hybrid: mapkit.MapType.Hybrid, standard: mapkit.MapType.Standard, satellite: mapkit.MapType.Satellite }
   const color = (name: string, fallback: string) => (box.current ? getComputedStyle(box.current).getPropertyValue(name).trim() : '') || fallback
   const C = (p: GeoPoint) => new mapkit.Coordinate(p.lat, p.lng)
 
-  // The map, made once.
+  // The map, made once. `interactive` is read here only: the card's map is never the full map's.
   useEffect(() => {
-    const dark = typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches
+    const scheme = typeof matchMedia === 'function' ? matchMedia('(prefers-color-scheme: dark)') : null
+    const colorScheme = () => (scheme?.matches ? mapkit.ColorScheme.Dark : mapkit.ColorScheme.Light)
     const m = new mapkit.Map(box.current!, {
       mapType: types[mapStyle],
-      colorScheme: dark ? mapkit.ColorScheme.Dark : mapkit.ColorScheme.Light,
+      colorScheme: colorScheme(),
       isScrollEnabled: interactive,
       isZoomEnabled: interactive,
       isRotationEnabled: false,
@@ -80,7 +85,7 @@ function AppleMapView({ mapkit, map, t, focus, nightStep, insets = NO_INSETS, ma
       m.addOverlay(layer)
       return layer
     })
-    const state: Live = { map: m, lines: new Map(), night, nightAt: NaN, marks: new Map(), framed: '', moved: false }
+    const state: Live = { map: m, lines: new Map(), night, nightAt: NaN, marks: new Map(), framed: '', moved: false, recenterSeen: recenter }
     const moved = () => {
       if (state.moved) return
       state.moved = true
@@ -88,8 +93,18 @@ function AppleMapView({ mapkit, map, t, focus, nightStep, insets = NO_INSETS, ma
     }
     m.addEventListener('scroll-start', moved)
     m.addEventListener('zoom-start', moved)
+    // The system turned light or dark while the map is open: Apple's tiles follow, the night takes its new colour, and
+    // every line is drawn again in its own (the marks are styled by the page's CSS, which follows by itself).
+    const onScheme = () => {
+      m.colorScheme = colorScheme()
+      for (const layer of night) layer.style = nightStyle()
+      for (const kept of state.lines.values()) kept.key = ''
+      repaint((n) => n + 1)
+    }
+    scheme?.addEventListener('change', onScheme)
     live.current = state
     return () => {
+      scheme?.removeEventListener('change', onScheme)
       m.destroy()
       live.current = null
     }
@@ -105,20 +120,23 @@ function AppleMapView({ mapkit, map, t, focus, nightStep, insets = NO_INSETS, ma
     const state = live.current
     if (!state) return
     const plan = appleMapPlan(tripMapDrawing(map, t), focus)
+    // A line's style is made only when the line is new or has changed.
+    const lineStyle = (style: SegmentStyle) => {
+      const look = LINES[style]
+      return new mapkit.Style({ strokeColor: color(look.color, '#0a84ff'), lineWidth: look.width, lineDash: look.dash, lineCap: 'round' })
+    }
     const seen = new Set<string>()
     for (const line of plan.lines) {
       seen.add(line.id)
-      const look = LINES[line.style]
       const key = `${line.style}:${line.points.map((p) => `${p.lat},${p.lng}`).join(';')}`
-      const style: MkStyle = new mapkit.Style({ strokeColor: color(look.color, '#0a84ff'), lineWidth: look.width, lineDash: look.dash, lineCap: 'round' })
       const kept = state.lines.get(line.id)
       if (!kept) {
-        const overlay = new mapkit.PolylineOverlay(line.points.map(C), { style })
+        const overlay = new mapkit.PolylineOverlay(line.points.map(C), { style: lineStyle(line.style) })
         state.map.addOverlay(overlay)
         state.lines.set(line.id, { overlay, key })
       } else if (kept.key !== key) {
         kept.overlay.points = line.points.map(C)
-        kept.overlay.style = style
+        kept.overlay.style = lineStyle(line.style)
         kept.key = key
       }
     }
@@ -146,10 +164,15 @@ function AppleMapView({ mapkit, map, t, focus, nightStep, insets = NO_INSETS, ma
           collisionMode: mapkit.AnnotationCollisionMode.Circle,
         })
         state.map.addAnnotation(annotation)
-        kept = { annotation, turn }
+        kept = { annotation, turn, priority: mark.priority }
         state.marks.set(mark.id, kept)
       } else {
         kept.annotation.coordinate = C(mark.place)
+        // An airport outranks the rest only while its leg is in focus, so its rank moves on with the replay.
+        if (kept.priority !== mark.priority) {
+          kept.annotation.displayPriority = PRIORITY[mark.priority]
+          kept.priority = mark.priority
+        }
       }
       kept.turn(mark.degrees)
     }
@@ -168,7 +191,10 @@ function AppleMapView({ mapkit, map, t, focus, nightStep, insets = NO_INSETS, ma
     const state = live.current
     if (!state) return
     // Recenter pressed since the last framing: frame automatically again.
-    if (state.framed.split('|')[2] !== String(recenter)) state.moved = false
+    if (state.recenterSeen !== recenter) {
+      state.moved = false
+      state.recenterSeen = recenter
+    }
     if (state.moved || state.framed === frame) return
     state.map.padding = new mapkit.Padding(insets.top, insets.right, insets.bottom, insets.left)
     const still = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -176,5 +202,7 @@ function AppleMapView({ mapkit, map, t, focus, nightStep, insets = NO_INSETS, ma
     state.framed = frame
   }, [frame])
 
-  return <div ref={box} class={`apple-trip-map${interactive ? '' : ' still'}`} />
+  // The card's map is a picture inside the card's button: it's kept from screen readers and out of the Tab order, so
+  // Apple's Legal link isn't a link inside a button. The full map's controls and Legal link stay reachable.
+  return <div ref={box} class={`apple-trip-map${interactive ? '' : ' still'}`} {...(interactive ? {} : { 'aria-hidden': 'true', inert: true })} />
 }

@@ -1498,8 +1498,19 @@ git commit -m "The security policy lets in Apple's map: its CDN, WebAssembly, wo
   - **The night drew inside-out for half of each day.** Todd saw lines of shade moving down from the top, then up from the bottom, in a replay. Two wrong answers came first: that they were Apple's borders, and that MapKit redraws large shapes in strips. Measuring the shading at six moments found it on the wrong side every morning. The cause is that MapKit takes 180° and −180° for one edge. The fix is `offDateLine`, in `src/map/appleMapPlan.ts`, which keeps night points at ±179.999°. Spec §11 is corrected.
   - **The heart** is not the fallback map: it marks where the pilot is while on the ground, and the plane takes its place in flight. It shows on Apple's map too.
 - **The built site** was checked on port 5184 (5181 was in use by another checkout's server): its policy held, and it showed the SVG fallback, because Apple accepts the site's token only on crewluve.crewlu.net.
-- **The Sonnet review** found no critical issues. Still to do from it:
-  - an airport's priority isn't updated when the leg in focus changes;
-  - Apple's Legal link sits inside the card's button;
-  - the colours and Apple's light or dark tiles don't follow a change to dark mode while the map is open.
+- **The Sonnet review** found no critical issues. Fixed from it, each with a test seen failing first:
+  - **Airport rank:** an airport's `displayPriority` now moves on when the leg in focus changes.
+  - **The card's map** is `aria-hidden` and `inert`, so Apple's Legal link isn't a link inside the card's button. The full map's stays reachable.
+  - **Dark mode while open:** the map listens for the system's change. Apple's tiles, the night's colour and every line follow. Checked in the browser: the route went from `#0088ff` to `#3cd3fe` on the same map.
+  - **Recenter** moves focus to the style button as it leaves the page.
+  - **The build check** looks for the local token from the production env files too.
+  - **Tidying:** a line's style is made only when the line is new or changed, and the Recenter count is its own field.
+- **Checked in the browser, as the review asked:**
+  - The camera's own moves don't count as the person's: a replay follows the trip from leg to leg and Recenter stays hidden.
+  - A view that wraps past the world's edge (MapKit reported x = 1.048) still draws the lines, marks and night.
+- **Left as is, from the review:**
+  - the style button's name, "Map style: Hybrid";
+  - the line key built from every point each frame, which costs microseconds;
+  - `blob:` in `connect-src` and `img-src`, which Apple's guide lists.
+- **Todd's check:** after the date-line fix he replayed it on localhost:5182: "Looks like it is working".
 

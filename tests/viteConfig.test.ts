@@ -113,6 +113,9 @@ describe('the local MapKit token never in a build (Apple Maps spec §3)', () => 
     const bundle = (code: string) => ({ 'assets/index.js': { type: 'chunk', fileName: 'assets/index.js', code } })
     expect(() => plugin.generateBundle.call(context, {}, bundle('const t = "eyJlocal.token.here"'))).toThrow('carries the local MapKit token')
     expect(() => plugin.generateBundle.call(context, {}, bundle('const t = "site"'))).not.toThrow()
+    // A token from either mode's files is caught.
+    const either = noDevTokenPlugin('', 'eyJother.token') as unknown as typeof plugin
+    expect(() => either.generateBundle.call(context, {}, bundle('x = "eyJother.token"'))).toThrow('carries the local MapKit token')
     // With no local token there's nothing to look for.
     const none = noDevTokenPlugin('') as unknown as typeof plugin
     expect(() => none.generateBundle.call(context, {}, bundle('anything'))).not.toThrow()

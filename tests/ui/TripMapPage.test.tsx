@@ -140,6 +140,8 @@ describe('the full map on Apple’s map (Apple Maps spec §4.1)', () => {
     act(() => kit.maps[0].fire('zoom-start'))
     fireEvent.click(screen.getByRole('button', { name: 'Recenter map' }))
     expect(screen.queryByRole('button', { name: 'Recenter map' })).toBeNull()
+    // Recenter leaves the page as it's pressed: focus moves to the style button beside it, not off the page.
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Map style: Map' }))
     expect(kit.maps[0].rects.length).toBeGreaterThanOrEqual(2)
   })
 })
