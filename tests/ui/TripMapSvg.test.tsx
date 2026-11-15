@@ -3,7 +3,7 @@ import { cleanup, render } from '@testing-library/preact'
 import { afterEach, describe, expect, it } from 'vitest'
 import { makeTripMap } from '../../src/map/tripMap'
 import { PILOT_ICONS, TripMapSvg } from '../../src/ui/TripMapSvg'
-import { AIRPORTS, at, drive, EUROPE } from '../map/tripMapLegs'
+import { AIRPORTS, at, drive, EUROPE, flight } from '../map/tripMapLegs'
 
 afterEach(cleanup)
 
@@ -16,15 +16,28 @@ describe('the trip map drawing (moving map spec §7.1)', () => {
     expect(labels(container).sort()).toEqual(['CGN', 'DXB', 'SDF'])
   })
 
-  it('leaves out a label that would print over another, and keeps its dot', () => {
-    // Louisville and Lexington are 60 miles apart: on a view of the world they land a few pixels apart.
-    const map = makeTripMap([drive('d1', 'SDF', 'LEX', 0, 1), ...EUROPE.slice(0, 1).map((l) => ({ ...l, dep: 'LEX' }))], {
-      isNextTrip: false, home: 'SDF', now: at(0.5), airports: AIRPORTS,
-    })!
+  it('leaves out a flight airport’s label that would print over another, and keeps its dot', () => {
+    // Louisville and Lexington are 60 miles apart: on a view of the world they land a few pixels apart. Here both are
+    // flown from, so both dots stay.
+    const legs = [flight('f0', 'SDF', 'LEX', 0, 1), ...EUROPE.slice(0, 1).map((l) => ({ ...l, dep: 'LEX' }))]
+    const map = makeTripMap(legs, { isNextTrip: false, home: 'SDF', now: at(0.5), airports: AIRPORTS })!
     const { container } = render(<TripMapSvg map={map} t={at(0.5)} width={390} height={500} focus={null} land={null} nightStep={60_000} />)
     expect(container.querySelectorAll('.trip-map-airport circle').length).toBe(3)
     expect(labels(container)).toHaveLength(2)
     expect(labels(container).join('')).not.toContain('SDLEX')
+  })
+
+  it('lets an airport only drives reach give way, dot and code, where it crowds another, and shows it zoomed in (tidy markers design §2)', () => {
+    // A commuter's drive from Louisville to Lexington, then the flight to Cologne: only the drive reaches Louisville.
+    const legs = [drive('d1', 'SDF', 'LEX', 0, 1), ...EUROPE.slice(0, 1).map((l) => ({ ...l, dep: 'LEX' }))]
+    const map = makeTripMap(legs, { isNextTrip: false, home: 'SDF', now: at(0.5), airports: AIRPORTS })!
+    const draw = (focus: typeof map.legs[number] | null) =>
+      render(<TripMapSvg map={map} t={at(0.5)} width={390} height={500} focus={focus} land={null} nightStep={60_000} />).container
+    expect(labels(draw(null)).sort()).toEqual(['CGN', 'LEX'])
+    expect(document.querySelectorAll('.trip-map-airport circle').length).toBe(2)
+    cleanup()
+    // Framed on the drive, the two are far enough apart.
+    expect(labels(draw(map.legs[0])).sort()).toEqual(['CGN', 'LEX', 'SDF'])
   })
 
   it('keeps every airport clear of a panel over the left side (Stage 2 spec §10)', () => {

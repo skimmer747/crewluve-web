@@ -1485,3 +1485,13 @@ From the app's base waits and card framing design (Crewluv `docs/superpowers/spe
   - `TripMap.base` is the base as the trip's legs name it, from `snap.pilot.base`.
 - **That replaces the report leg's naming from Batch A.** A commuter's wait at base is now base by place, as in the app. So `isGroundLeg` leaves the site's report leg out again.
 - **A next trip waited for at base:** the status says base, so `isWaitingAtBase` is set. Before the trip starts, the marker is a briefcase at base, and the card's chip and the full map's headline read "At base · next trip …".
+
+### After the plan: fewer markers piled up near home (2026-11-14)
+
+From the app's tidy markers design (Crewluv `docs/superpowers/specs/2026-11-14-trip-map-tidy-markers-design.md`).
+
+- **The car shows only while the pilot drives,** where they are along the drive. A drive that's over, or still to come, is its dotted line alone.
+- **An airport only drives reach gives way where it crowds another** (`DrawnAirport.driveOnly`, `placeAirports`), dot and code, within 28 × 24 px. A commuter's home is one. It shows again when the map frames the drive.
+  - Airports a flight uses always show. As before, where two of their codes would collide, the later code is left out and its dot kept.
+  - The plane, the pilot's marker and the car never push an airport aside.
+  - The app does the same with MapKit's collision handling.

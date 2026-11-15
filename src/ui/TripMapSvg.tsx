@@ -41,14 +41,31 @@ function Mark({ name, at, size, degrees = 0, class: cls }: { name: IconName; at:
 /** How close, in px, two airports' labels may sit before the later one is left out and only its dot is drawn. */
 const LABEL_CLEARANCE = { x: 28, y: 14 }
 
-/** Each airport with whether its label fits: one that would print over an earlier label (SDF and LEX, zoomed out) is left out. */
-function withLabels(airports: { code: string; at: { x: number; y: number } }[]) {
-  const drawn: { x: number; y: number }[] = []
-  return airports.map((a) => {
-    const labelled = !drawn.some((d) => Math.abs(d.x - a.at.x) < LABEL_CLEARANCE.x && Math.abs(d.y - a.at.y) < LABEL_CLEARANCE.y)
-    if (labelled) drawn.push(a.at)
-    return { ...a, labelled }
-  })
+/** How close, in px, an airport only drives reach may sit to one drawn, dot and code, before it gives way. */
+const AIRPORT_CLEARANCE = { x: 28, y: 24 }
+
+type Point = { x: number; y: number }
+
+const isNear = (a: Point, b: Point, clearance: Point) => Math.abs(a.x - b.x) < clearance.x && Math.abs(a.y - b.y) < clearance.y
+
+/**
+ * The airports drawn, each with whether its code fits (tidy markers design §2):
+ * - every airport a flight uses, with its code left out, and its dot kept, where it would print over an earlier one's;
+ * - then each airport only drives reach, such as a commuter's home, where it crowds none already drawn. Zoomed in on
+ *   the drive, it has room again.
+ */
+function placeAirports(airports: { code: string; at: Point; driveOnly: boolean }[]) {
+  const shown: Point[] = []
+  const labels: Point[] = []
+  const placed: { code: string; at: Point; labelled: boolean }[] = []
+  for (const a of [...airports.filter((x) => !x.driveOnly), ...airports.filter((x) => x.driveOnly)]) {
+    if (a.driveOnly && shown.some((s) => isNear(s, a.at, AIRPORT_CLEARANCE))) continue
+    const labelled = !labels.some((l) => isNear(l, a.at, LABEL_CLEARANCE))
+    if (labelled) labels.push(a.at)
+    shown.push(a.at)
+    placed.push({ code: a.code, at: a.at, labelled })
+  }
+  return placed
 }
 
 /** Each ground marker's icon (activity markers design §2.1): Phosphor's match for the app's SF Symbol. */
@@ -85,7 +102,7 @@ export function TripMapSvg({ map, t, width, height, focus, land, nightStep, inse
   const landPath = useMemo(() => (land ? polygonsPath(land, view) : ''), [land, x, y, rectWidth, rectHeight, width, height])
   const night = nightTime(t, nightStep)
   const nightPaths = useMemo(() => nightLayers(night).map((shapes) => polygonsPath(shapes, view)), [night, x, y, rectWidth, rectHeight, width, height])
-  const airportMarks = withLabels(drawing.airports.map((a) => ({ code: a.code, at: placeAt(a.place, view) })))
+  const airportMarks = placeAirports(drawing.airports.map((a) => ({ code: a.code, at: placeAt(a.place, view), driveOnly: a.driveOnly })))
   return (
     <svg class="trip-map-svg" width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden="true">
       <rect class="trip-map-ocean" width={width} height={height} />
