@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { temperatureText, weatherAnimation, weatherVisual, type WeatherAnimation } from '../../src/copy/weather'
+import { landingWeatherText, temperatureText, weatherAnimation, weatherVisual, type WeatherAnimation } from '../../src/copy/weather'
 import { WEATHER_CODES, type WeatherCode } from '../../src/data/weather'
 import { ICON_PATHS } from '../../src/icons/iconPaths'
 import { cssColor } from '../../src/ui/colors'
@@ -90,5 +90,12 @@ describe('weatherAnimation', () => {
 
   it('has an animation for every code', () => {
     for (const code of WEATHER_CODES) expect(weatherAnimation(code, true)).toMatch(/^(sunRays|rain|snow|clouds|thunderstorm|fog)$/)
+  })
+})
+
+describe('weather on landing (Stage 2 spec §4.7)', () => {
+  it('says the temperature with its unit and the sky in lower case', () => {
+    expect(landingWeatherText({ temperature: 47.6, unit: 'fahrenheit', code: 61 })).toBe('48°F and rain on landing')
+    expect(landingWeatherText({ temperature: 30.2, unit: 'celsius', code: 2 })).toBe('30°C and partly cloudy on landing')
   })
 })

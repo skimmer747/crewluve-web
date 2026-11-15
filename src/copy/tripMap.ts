@@ -1,8 +1,9 @@
-import { METERS_PER_MILE } from '../map/greatCircle'
+import type { AppleMapStyle } from '../map/appleMapStyle'
 import {
-  legDistanceMeters, legInMotion, legProgress, nextFlight, pilotLocation, currentLeg, type AirportMark, type MapLeg, type TripMap,
+  dayCount, destinationsOf, legInMotion, milesFlown, nextFlight, pilotLocation, currentLeg, totalMiles, type AirportMark, type MapLeg, type TripMap,
 } from '../map/tripMap'
 import { calendarDay, MONTHS, WEEKDAYS, zoneOffsetMinutes, zonedParts } from '../time/zoned'
+import { recapChip } from './factsTrip'
 import { shortTimeText } from './format'
 
 /**
@@ -78,29 +79,25 @@ export function arrivalLocalTime(leg: MapLeg, viewerTz: string, h24: boolean): s
   return there ? `${there} in ${leg.destination.city}` : null
 }
 
-const miles = (meters: number) => Math.round(meters / METERS_PER_MILE).toLocaleString('en-US')
+const milesText = (miles: number) => miles.toLocaleString('en-US')
 
 /** The airports the trip's flights reach, in order, each once, home left out. */
-function destinations(map: TripMap): AirportMark[] {
-  const seen = new Set(map.home ? [map.home.code] : [])
-  return map.legs.filter((l) => l.kind === 'flight').map((l) => l.destination).filter((a) => !seen.has(a.code) && seen.add(a.code))
-}
+const destinations = (map: TripMap) => destinationsOf(map.legs, map.home)
 
 /** The bar's words on the ground (moving map spec §5.3); empty in flight, where the bar shows the flight. */
 export function statsItems(map: TripMap, t: number, day: number | null, days: number | null, viewerTz: string): string[] {
   const flights = map.legs.filter((l) => l.kind === 'flight')
   const cities = destinations(map)
-  if (map.mode.kind === 'inFlight') return []
+  // In flight the bar shows the flight; on the recap, the recap bar takes its place (Stage 2 spec §6.5).
+  if (map.mode.kind === 'inFlight' || map.mode.kind === 'recap') return []
   if (map.mode.kind === 'onTrip') {
-    const flown = flights.reduce((sum, l) => sum + legDistanceMeters(l) * legProgress(l, t), 0)
     return [
       ...(day != null && days != null ? [`Day ${day} of ${days}`] : []),
       ...(cities.length > 0 ? [cities.length === 1 ? '1 city' : `${cities.length} cities`] : []),
-      ...(flights.length > 0 ? [`${miles(flown)} mi so far`] : []),
+      ...(flights.length > 0 ? [`${milesText(milesFlown(map.legs, t))} mi so far`] : []),
     ]
   }
-  const total = flights.reduce((sum, l) => sum + legDistanceMeters(l), 0)
-  const distance = flights.length > 0 ? `${miles(total)} mi` : ''
+  const distance = flights.length > 0 ? `${milesText(totalMiles(map.legs))} mi` : ''
   return [dateRangeText(map.span.start, map.span.end, viewerTz), cities.map((c) => c.code).join(' · '), distance].filter((s) => s !== '')
 }
 
@@ -112,6 +109,7 @@ function driveUnderWay(map: TripMap, t: number): MapLeg | null {
 
 /** The chips on the card's map (moving map spec §5.1, §5.2). */
 export function cardChips(map: TripMap, t: number, viewerTz: string, h24: boolean): { top: string | null; bottom: string | null } {
+  if (map.mode.kind === 'recap') return { top: recapChip(dayCount(map, viewerTz)), bottom: 'Replay the trip' }
   if (map.mode.kind === 'inFlight') {
     const leg = currentLeg(map)
     return { top: null, bottom: leg ? landingCountdown(leg, t) : null }
@@ -126,6 +124,7 @@ export function cardChips(map: TripMap, t: number, viewerTz: string, h24: boolea
 
 /** The full map's pill: "UPS207 · In flight", "Driving to Louisville", "Day 2 of 4" or "Next trip". */
 export function topPill(map: TripMap, t: number, day: number | null, days: number | null): string {
+  if (map.mode.kind === 'recap' && t >= map.span.end) return 'Trip recap'
   const leg = legInMotion(map, t)
   if (leg) return leg.kind === 'flight' ? [leg.flightNumber, 'In flight'].filter(Boolean).join(' · ') : `Driving to ${leg.destination.city}`
   if (map.mode.kind === 'nextTrip' && t < map.span.start) return 'Next trip'
@@ -147,6 +146,10 @@ export const timelineTime = (ms: number, viewerTz: string, h24: boolean) => `${s
 /** The card as one sentence for screen readers (moving map spec §14), ending with what it opens. */
 export function tripMapSummary(map: TripMap, t: number, name: string, viewerTz: string, h24: boolean): string {
   const opens = 'Opens the full map.'
+  if (map.mode.kind === 'recap') {
+    const chip = recapChip(dayCount(map, viewerTz))
+    return `Trip recap: ${chip.charAt(0).toLowerCase()}${chip.slice(1)}. Opens the map to replay the trip.`
+  }
   if (map.mode.kind === 'inFlight') {
     const leg = currentLeg(map)
     if (!leg) return `Trip map. ${opens}`
@@ -167,3 +170,6 @@ export function tripMapSummary(map: TripMap, t: number, name: string, viewerTz: 
   if (next) parts.push(`${nextDepartureChip(next, t, viewerTz, h24)}.`)
   return [...parts, opens].join(' ')
 }
+
+/** The map styles by name, on the full map's style button (Apple Maps spec §4.1). */
+export const MAP_STYLE_NAMES: Record<AppleMapStyle, string> = { hybrid: 'Hybrid', standard: 'Map', satellite: 'Satellite' }

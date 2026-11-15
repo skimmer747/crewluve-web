@@ -17,6 +17,7 @@
     "land": "node scripts/build-land.mjs"
   },
   "dependencies": {
+    "@apple/mapkit-loader": "1.0.0",
     "preact": "10.29.8"
   },
   "devDependencies": {

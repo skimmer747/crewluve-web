@@ -1,8 +1,12 @@
 // @vitest-environment happy-dom
-import { cleanup, fireEvent, render, screen } from '@testing-library/preact'
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { makeTripMap } from '../../src/map/tripMap'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { makeTripFacts } from '../../src/facts/tripFacts'
+import type { MapKitApi } from '../../src/map/mapkitApi'
+import { makeTripMap, type TripMap } from '../../src/map/tripMap'
+import { resetAppleMapKit, startAppleMapKit } from '../../src/ui/hooks/useAppleMapKit'
 import { TripMapCard } from '../../src/ui/TripMapCard'
+import { fakeMapKit } from '../fixtures/fakeMapKit'
 import { AIRPORTS, at, EUROPE } from '../map/tripMapLegs'
 
 const NY = 'America/New_York'
@@ -43,5 +47,66 @@ describe('the trip map card (moving map spec §5)', () => {
   it('shows the delay banner in the air', () => {
     card(at(4), { delayMinutes: 45 })
     expect(document.querySelector('.inflight-banner.late')).toBeTruthy()
+  })
+})
+
+describe('the card on Apple’s map (Apple Maps spec §4.2)', () => {
+  // The cards rendered above already tried MapKit, which tests refuse: start this block afresh.
+  beforeEach(() => resetAppleMapKit())
+  afterEach(() => {
+    cleanup()
+    resetAppleMapKit()
+    localStorage.clear()
+  })
+
+  it('shows Apple’s map in the kept style, still, and opens the full map when tapped', async () => {
+    localStorage.setItem('crewluve.mapStyle.v1', 'satellite')
+    const kit = fakeMapKit()
+    startAppleMapKit(async () => kit as unknown as MapKitApi)
+    const { onOpenMap } = card(at(12))
+    await waitFor(() => expect(kit.maps).toHaveLength(1))
+    expect(kit.maps[0].mapType).toBe('satellite')
+    expect(kit.maps[0].options).toMatchObject({ isScrollEnabled: false, isZoomEnabled: false, showsZoomControl: false })
+    fireEvent.click(screen.getByRole('button', { name: /^Trip map\. Alex is in Cologne\./ }))
+    expect(onOpenMap).toHaveBeenCalled()
+  })
+
+  it('keeps the trip, and Apple’s logo and Legal link, clear of the chips', async () => {
+    const kit = fakeMapKit()
+    startAppleMapKit(async () => kit as unknown as MapKitApi)
+    // In flight the bottom chip counts down to landing.
+    card(at(4))
+    await waitFor(() => expect(kit.maps).toHaveLength(1))
+    expect(document.querySelector('.trip-map-chip.bottom')).toBeTruthy()
+    expect(kit.maps[0].padding).toMatchObject({ bottom: 40 })
+  })
+})
+
+describe('the card’s facts (Stage 2 spec §6.4, §6.5)', () => {
+  afterEach(cleanup)
+  const show = (map: TripMap, now: number) => {
+    const facts = makeTripFacts(map, { geography: null, comparisons: null, viewerTz: NY, h24: false })
+    return render(<TripMapCard map={map} now={now} viewerTz={NY} h24={false} name="Alex" day={null} days={null} delayMinutes={null} land={null}
+      onOpenMap={() => {}} facts={facts} />)
+  }
+
+  it('in flight, puts the headline on the chip: a cockpit sunset coming up', () => {
+    const { container } = show(makeTripMap(EUROPE, { isNextTrip: false, home: 'SDF', now: at(5.5), airports: AIRPORTS })!, at(5.5))
+    expect(container.querySelector('.trip-map-chip.bottom')!.textContent).toMatch(/^Sunset from the cockpit in \d+ min$/)
+  })
+
+  it('for a day after the trip, is its recap', () => {
+    const map = makeTripMap(EUROPE, { isNextTrip: false, isRecap: true, home: 'SDF', now: at(75), airports: AIRPORTS })!
+    const { container } = show(map, at(75))
+    expect(screen.getByRole('heading', { name: 'Trip recap' })).toBeTruthy()
+    expect(container.querySelector('.trip-map-chip.top')!.textContent).toBe('Home from 4 days away')
+    expect(container.querySelector('.trip-map-chip.bottom')!.textContent).toBe('Replay the trip')
+    expect([...container.querySelectorAll('.trip-recap-tiles li')].map((li) => li.textContent)).toEqual(['2cities', '14,819miles', '18time zones', '1sunset aloft'])
+    expect(screen.getByText('Longest: Dubai → Louisville, 7,382 mi')).toBeTruthy()
+    expect(container.querySelector('.trip-map-stats')).toBeNull()
+    expect(container.querySelector('[data-trip-map-open]')!.getAttribute('aria-label')).toBe(
+      'Trip recap: home from 4 days away. 2 cities, 14,819 miles, 18 time zones, 1 sunset from the cockpit. ' +
+        'Longest flight, Dubai to Louisville, 7,382 miles. Opens the map to replay the trip.',
+    )
   })
 })

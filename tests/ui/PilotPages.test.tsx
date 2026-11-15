@@ -17,6 +17,8 @@ import { setWindowSize, stubAnimationFrames } from '../fixtures/ui'
 
 // The map's land is a download these tests don't make.
 vi.mock('../../src/ui/hooks/useLand', () => ({ useLand: () => null }))
+// So is the facts' data: these tests see the facts without places or comparisons.
+vi.mock('../../src/ui/hooks/useFactsData', () => ({ useGeography: () => null, useComparisons: () => null }))
 
 const NOW = Date.UTC(2026, 9, 20, 16)
 
@@ -174,6 +176,29 @@ describe('PilotPages: the status page and the Schedule page (slice 3A §3.3)', (
     expect(container.querySelector('.trip-map-page')).toBeNull()
     expect(location.hash).toBe('')
     expect(document.activeElement).toBe(container.querySelector('[data-trip-map-open]'))
+  })
+
+  it('shows the facts on the full map, with the demo’s weather on landing (Stage 2 spec §5.1, §7)', async () => {
+    history.replaceState(null, '', '/#map')
+    render(<PilotPages schedule={handle(demoRawForScene('flying', NOW))} airports={testAirports} demo onLeave={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'More facts' }))
+    expect((await screen.findAllByText(/61°F and cloudy on landing/)).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/mi flown/).length).toBeGreaterThan(0)
+  })
+
+  it('asks for no landing weather until the full map opens (Stage 2 spec §7.2)', () => {
+    const loadLanding = vi.fn(async () => null)
+    render(<PilotPages schedule={handle(demoRawForScene('flying', NOW))} airports={testAirports} demo={false} onLeave={() => {}}
+      loadWeather={async () => null} loadLanding={loadLanding} />)
+    expect(loadLanding).not.toHaveBeenCalled()
+  })
+
+  it('shows the recap card the evening after a trip, and opens its replay paused at the start (Stage 2 spec §6.5)', () => {
+    const { container } = render(<PilotPages schedule={handle(demoRawForScene('recap', NOW))} airports={testAirports} demo onLeave={() => {}} />)
+    expect(container.querySelector('.trip-map-chip.top')!.textContent).toBe('Home from 2 days away')
+    fireEvent.click(container.querySelector<HTMLButtonElement>('[data-trip-map-open]')!)
+    expect(container.querySelector('.trip-map-page')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Live' })).toBeTruthy()
   })
 
   it('shows the status page at the map’s address when there is no trip to draw', () => {

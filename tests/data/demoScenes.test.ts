@@ -26,6 +26,7 @@ const EXPECTED: Record<DemoScene, StatusKind> = {
   reserve: 'reserve',
   training: 'training',
   'nothing-ahead': 'home',
+  recap: 'home',
 }
 
 function sceneSnapshot(scene: DemoScene) {
@@ -76,6 +77,8 @@ describe('demo trip cards (slice 2A)', () => {
     reserve: {},
     training: {},
     'nothing-ahead': {},
+    // Home the evening after the main trip: the next trip is a day or more off, so the recap stays.
+    recap: { upcoming: { tripId: 'demo-t2', days: 3, route: ['SDF', 'ONT', 'RFD'], departs: NOW + 7740 * MIN } },
   }
 
   it.each(Object.keys(CARDS) as DemoScene[])('%s shows the right trip card', (scene) => {
@@ -85,5 +88,11 @@ describe('demo trip cards (slice 2A)', () => {
     else expect(snap.upcomingTrip).toBeNull()
     if (want.progress) expect(snap.tripProgress).toMatchObject(want.progress)
     else expect(snap.tripProgress).toBeNull()
+  })
+
+  it('recap is home the evening after the main trip, which it recaps', () => {
+    expect(sceneSnapshot('recap').recap).toEqual({ tripId: 'demo-t1', days: 2 })
+    expect(sceneSnapshot('nothing-ahead').recap).toBeNull()
+    expect(sceneSnapshot('home').recap).toBeNull()
   })
 })

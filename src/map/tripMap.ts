@@ -2,8 +2,9 @@ import { flightNumberText } from '../copy/flight'
 import type { AirportIndex } from '../data/airports'
 import { isMove, type Leg } from '../engine/legs'
 import type { Iata } from '../engine/types'
-import { scheduledFraction } from './flightProgress'
-import { distanceMeters, pointAlong, pointsAlong, type GeoPoint } from './greatCircle'
+import { scheduledFraction, scheduledTime } from './flightProgress'
+import { distanceMeters, METERS_PER_MILE, pointAlong, pointsAlong, type GeoPoint } from './greatCircle'
+import { calendarDay } from '../time/zoned'
 import { aimFractions, flatMapAngle } from './planeHeading'
 
 /** The trip the map shows (moving map spec §5.1), as the app's TripMap: its drawable legs, its mode, and home. */
@@ -29,7 +30,7 @@ export interface MapLeg {
   flightNumber: string | null
 }
 
-export type TripMapMode = { kind: 'inFlight'; legId: string } | { kind: 'onTrip' } | { kind: 'nextTrip' }
+export type TripMapMode = { kind: 'inFlight'; legId: string } | { kind: 'onTrip' } | { kind: 'nextTrip' } | { kind: 'recap' }
 
 export interface TripMap {
   mode: TripMapMode
@@ -38,6 +39,8 @@ export interface TripMap {
   home: AirportMark | null
   /** From the earliest departure to the last arrival: the full-screen map's timeline. */
   span: { start: number; end: number }
+  /** CrewLu's count of the trip's days, when known: the recap's, the next trip's or the trip under way's (Stage 2 spec §8.1). */
+  days: number | null
 }
 
 export function airportMark(code: Iata, airports: AirportIndex): AirportMark | null {
@@ -68,20 +71,24 @@ function mapLeg(leg: Leg, airports: AirportIndex): MapLeg | null {
 export interface TripMapOptions {
   /** The legs are a trip still ahead, shown from home. */
   isNextTrip: boolean
+  /** The legs are a trip just finished, shown for a day as its recap (Stage 2 spec §8). */
+  isRecap?: boolean
+  /** CrewLu's count of the trip's days. */
+  days?: number | null
   home: Iata | null
   now: number
   airports: AirportIndex
 }
 
 /** The map of one trip's legs, or null when none can be drawn (moving map spec §12). */
-export function makeTripMap(legs: Leg[], { isNextTrip, home, now, airports }: TripMapOptions): TripMap | null {
+export function makeTripMap(legs: Leg[], { isNextTrip, isRecap = false, days = null, home, now, airports }: TripMapOptions): TripMap | null {
   const mapped = [...legs].sort((a, b) => a.start - b.start).map((l) => mapLeg(l, airports)).filter((l): l is MapLeg => l != null)
   if (mapped.length === 0) return null
   const start = Math.min(...mapped.map((l) => l.start))
   const end = Math.max(start, ...mapped.map((l) => l.end))
   const flying = mapped.find((l) => l.kind === 'flight' && isMoving(l, now))
-  const mode: TripMapMode = isNextTrip ? { kind: 'nextTrip' } : flying ? { kind: 'inFlight', legId: flying.id } : { kind: 'onTrip' }
-  return { mode, legs: mapped, home: home ? airportMark(home, airports) : null, span: { start, end } }
+  const mode: TripMapMode = isRecap ? { kind: 'recap' } : isNextTrip ? { kind: 'nextTrip' } : flying ? { kind: 'inFlight', legId: flying.id } : { kind: 'onTrip' }
+  return { mode, legs: mapped, home: home ? airportMark(home, airports) : null, span: { start, end }, days }
 }
 
 /** True from leaving the gate (or the driveway) until reaching the other end. */
@@ -95,6 +102,15 @@ export function legProgress(leg: MapLeg, t: number): number {
 }
 
 export const positionAt = (leg: MapLeg, fraction: number) => pointAlong(leg.origin.place, leg.destination.place, fraction)
+
+/** When the schedule has the pilot `fraction` of the way along (Stage 2 spec §4.2): in the air for a flight, steadily for a drive. */
+export function timeAtFraction(leg: MapLeg, fraction: number): number | null {
+  if (leg.kind === 'flight') return scheduledTime(leg.start, leg.end, fraction)
+  return leg.start + Math.min(Math.max(fraction, 0), 1) * (leg.end - leg.start)
+}
+
+/** Where the schedule has the pilot along `leg` at `t`. */
+export const positionAtTime = (leg: MapLeg, t: number) => positionAt(leg, legProgress(leg, t))
 
 export const legDistanceMeters = (leg: MapLeg) => distanceMeters(leg.origin.place, leg.destination.place)
 
@@ -117,6 +133,8 @@ export const nextFlight = (map: TripMap, t: number) => map.legs.find((l) => l.ki
 /** Where the pilot is at `t` when nothing is moving, or null while a leg is. Before a trip still ahead starts, home. */
 export function pilotLocation(map: TripMap, t: number): AirportMark | null {
   if (legInMotion(map, t)) return null
+  // After a recap's trip, home, else where the trip ended (Stage 2 spec §8.2).
+  if (map.mode.kind === 'recap' && t >= map.span.end) return map.home ?? map.legs[map.legs.length - 1].destination
   if (map.mode.kind === 'nextTrip' && t < map.span.start) return map.home ?? map.legs[0].origin
   const landed = map.legs.filter((l) => l.end <= t)
   return landed.length > 0 ? landed[landed.length - 1].destination : map.legs[0].origin
@@ -128,4 +146,26 @@ export function framingPoints(map: TripMap, focus: MapLeg | null): GeoPoint[] {
   const points = shown.flatMap((l) => pointsAlong(l.origin.place, l.destination.place, 33))
   if (!focus && map.home) points.push(map.home.place)
   return points
+}
+
+/** The airports the flights among `legs` reach, in order, each once, with home left out (moving map spec §5.3). */
+export function destinationsOf(legs: MapLeg[], home: AirportMark | null): AirportMark[] {
+  const seen = new Set(home ? [home.code] : [])
+  return legs.filter((l) => l.kind === 'flight').map((l) => l.destination).filter((a) => !seen.has(a.code) && seen.add(a.code))
+}
+
+/** Whole miles flown by `t` along the flights' planned routes, with the one in the air counted in part. */
+export function milesFlown(legs: MapLeg[], t: number): number {
+  return Math.round(legs.filter((l) => l.kind === 'flight').reduce((sum, l) => sum + legDistanceMeters(l) * legProgress(l, t), 0) / METERS_PER_MILE)
+}
+
+/** Whole miles of every flight among `legs`. */
+export function totalMiles(legs: MapLeg[]): number {
+  return Math.round(legs.filter((l) => l.kind === 'flight').reduce((sum, l) => sum + legDistanceMeters(l), 0) / METERS_PER_MILE)
+}
+
+/** The trip's days: CrewLu's count when known (at least 1), else the calendar days its span covers in `timeZone` (Stage 2 spec §8.1). */
+export function dayCount(map: TripMap, timeZone: string): number {
+  if (map.days != null) return Math.max(1, map.days)
+  return calendarDay(map.span.end, timeZone) - calendarDay(map.span.start, timeZone) + 1
 }

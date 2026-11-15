@@ -1,4 +1,4 @@
-import type { WeatherCode } from '../data/weather'
+import type { LandingForecast, WeatherCode } from '../data/weather'
 import type { IconName } from '../icons/iconPaths'
 import type { ColorToken } from './colors'
 
@@ -105,4 +105,10 @@ const WHOLE_DEGREES = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0,
 /** "41°": whole degrees with no unit letter, as the app's narrow weather format shows them. */
 export function temperatureText(degrees: number): string {
   return `${WHOLE_DEGREES.format(degrees)}°`
+}
+
+/** "48°F and rain on landing" (Stage 2 spec §4.7): whole degrees with the unit's letter, and the app's words for the sky in lower case. */
+export function landingWeatherText(forecast: LandingForecast): string {
+  const letter = forecast.unit === 'fahrenheit' ? 'F' : 'C'
+  return `${temperatureText(forecast.temperature)}${letter} and ${CONDITIONS[forecast.code][0].toLowerCase()} on landing`
 }

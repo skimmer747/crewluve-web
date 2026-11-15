@@ -3,6 +3,7 @@ import { useRef } from 'preact/hooks'
 import { arrivalWhenText, leaveWhenText, tripDepartsText } from '../copy/format'
 import { safeNarrative } from '../copy/narrative'
 import { arrivalCard, leaveCard, statusVisual } from '../copy/visuals'
+import type { TripFacts } from '../facts/tripFacts'
 import type { AirportIndex } from '../data/airports'
 import type { Weather } from '../data/weather'
 import type { Snapshot } from '../engine/snapshot'
@@ -60,6 +61,8 @@ export interface StatusScreenProps {
   tripMap?: TripMap | null
   /** The land the map is drawn on, or null while it loads or when it can't be had. */
   land?: GeoPoint[][] | null
+  /** The trip map's facts, for the card's chip and the recap card (Stage 2 spec §6.4, §6.5). */
+  facts?: TripFacts | null
   /** Opens the full map from the card's map. */
   onOpenMap?: () => void
 }
@@ -115,7 +118,7 @@ export function StatusScreen(p: StatusScreenProps) {
       {p.tripMap && (
         <TripMapCard map={p.tripMap} now={p.now} viewerTz={p.viewerTz} h24={p.h24} name={snap.name}
           day={snap.tripProgress?.day ?? null} days={snap.tripProgress?.days ?? null} delayMinutes={snap.delay?.minutes ?? null}
-          land={p.land ?? null} onOpenMap={p.onOpenMap ?? (() => {})}
+          land={p.land ?? null} facts={p.facts ?? null} onOpenMap={p.onOpenMap ?? (() => {})}
           onOpenTracking={flying?.trackingNumber ? tracking.show : undefined} headingRef={mapFlying ? inFlightHeading : undefined} />
       )}
       {facts && (

@@ -8,6 +8,7 @@ import { makeTripMap, type TripMap } from './tripMap'
  * Which trip the status page's map shows (moving map spec §5.1, §12), as the app's TripMap+Status, on the site's own
  * model:
  * - at home or base, the next trip;
+ * - at home or base for a day after a trip, its recap, unless the next trip leaves within 12 hours (Stage 2 spec §8.1);
  * - on a trip, the trip under way: the one the trip progress card shows;
  * - between trips, the leg in motion, such as a commute home.
  */
@@ -30,13 +31,19 @@ export function tripMapFor(snap: Snapshot, legs: Leg[], airports: AirportIndex):
   const options = (isNextTrip: boolean) => ({ isNextTrip, home: snap.pilot.effHome, now: snap.t, airports })
   const kind = snap.status.kind
   if (kind === 'home' || kind === 'base') {
+    // A recap is the trip as it happened: a drive or jumpseat logged for later, within 12 hours of it, stays off, so the
+    // recap reads as over (Stage 2 spec §8.2).
+    if (snap.recap) {
+      const happened = tripLegs(legs, snap.recap.tripId).filter((l) => l.end <= snap.t)
+      return makeTripMap(happened, { ...options(false), isRecap: true, days: snap.recap.days })
+    }
     // A night at home in the middle of a trip is still that trip, under way: its upcoming trip is the rest of it.
-    const tripId = snap.upcomingTrip?.tripId
-    return tripId ? makeTripMap(tripLegs(legs, tripId), options(!snap.midTripAtHome)) : null
+    const upcoming = snap.upcomingTrip
+    return upcoming ? makeTripMap(tripLegs(legs, upcoming.tripId), { ...options(!snap.midTripAtHome), days: upcoming.days }) : null
   }
-  const tripId = snap.tripProgress?.tripId
-  const chosen = tripId ? tripLegs(legs, tripId) : []
-  if (chosen.length > 0) return makeTripMap(chosen, options(false))
+  const progress = snap.tripProgress
+  const chosen = progress ? tripLegs(legs, progress.tripId) : []
+  if (progress && chosen.length > 0) return makeTripMap(chosen, { ...options(false), days: progress.days })
   const current = snap.status.current
   return current && (isMove(current) || current.kind === 'drive') ? makeTripMap([current], options(false)) : null
 }

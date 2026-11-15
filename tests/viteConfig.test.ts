@@ -5,7 +5,7 @@ import type { Plugin, PluginOption } from 'vite'
 import { describe, expect, it } from 'vitest'
 import { SUPABASE_URL } from '../src/cloud'
 import { DOOR_RPCS, doorFetch } from '../src/partner/doorGuard'
-import config from '../vite.config'
+import config, { noDevTokenPlugin } from '../vite.config'
 
 /** Vite's plugin list can nest arrays (preact() returns several plugins), so search it recursively. */
 function findPlugin(options: PluginOption[], name: string): Plugin | undefined {
@@ -39,19 +39,24 @@ describe('production CSP plugin', () => {
     expect(() => injectCsp('<head></head>')).toThrow('index.html lost its <!--csp--> placeholder')
   })
 
-  it('allows no inline styles or scripts', () => {
-    const csp = injectCsp('<!--csp-->')
-    expect(csp).toContain("style-src 'self';")
-    expect(csp).not.toContain("'unsafe-inline'")
+  it('allows no inline scripts, and inline styles only because Apple’s map needs them (Apple Maps spec §6)', () => {
+    expect(directive('script-src')).toBe("script-src 'self' https://cdn.apple-mapkit.com 'wasm-unsafe-eval'")
+    expect(directive('style-src')).toBe("style-src 'self' 'unsafe-inline'")
+  })
+
+  it('lets Apple’s map load its images, workers and frame, and nothing else new (Apple Maps spec §6)', () => {
+    expect(directive('img-src')).toBe("img-src 'self' data: blob: https://*.apple-mapkit.com")
+    expect(directive('worker-src')).toBe('worker-src https://*.apple-mapkit.com blob:')
+    expect(directive('frame-src')).toBe('frame-src https://*.apple-mapkit.com')
   })
 
   /** One directive of the policy, with its name: connect-src 'self' ... */
   const directive = (name: string) => injectCsp('<!--csp-->').split('; ').find((d) => d.startsWith(`${name} `))
 
-  it('lets the page call the four partner RPCs and Open-Meteo for the weather, and nothing else', () => {
+  it('lets the page call the four partner RPCs, Open-Meteo for the weather and Apple’s map, and nothing else', () => {
     const rpcs = ['partner_join', 'partner_handoff_redeem', 'partner_view', 'partner_leave'].map((name) => `${SUPABASE_URL}/rest/v1/rpc/${name}`)
     const connect = directive('connect-src')
-    expect(connect).toBe(`connect-src 'self' ${rpcs.join(' ')} https://api.open-meteo.com`)
+    expect(connect).toBe(`connect-src 'self' ${rpcs.join(' ')} https://api.open-meteo.com https://*.apple-mapkit.com blob:`)
     // Not the project's own address, which would let the page reach its tables, Auth, functions and storage.
     expect(connect!.split(' ')).not.toContain(SUPABASE_URL)
   })
@@ -93,5 +98,30 @@ describe('the /join page (piece 5a §4.1)', () => {
 
   it('fails the build when it is given no output folder, rather than copying in whatever folder the shell is in', () => {
     expect(() => writeBundle({})).toThrow('crewluve-join-page: no output folder')
+  })
+})
+
+describe('the local MapKit token never in a build (Apple Maps spec §3)', () => {
+  it('fails a build that would carry the local MapKit token, and passes one that doesn’t', () => {
+    const plugin = noDevTokenPlugin('eyJlocal.token.here') as unknown as { name: string; apply: string; generateBundle: (o: unknown, b: unknown) => void }
+    expect([plugin.name, plugin.apply]).toEqual(['crewluve-no-dev-token', 'build'])
+    const context = {
+      error: (message: string) => {
+        throw new Error(message)
+      },
+    }
+    const bundle = (code: string) => ({ 'assets/index.js': { type: 'chunk', fileName: 'assets/index.js', code } })
+    expect(() => plugin.generateBundle.call(context, {}, bundle('const t = "eyJlocal.token.here"'))).toThrow('carries the local MapKit token')
+    expect(() => plugin.generateBundle.call(context, {}, bundle('const t = "site"'))).not.toThrow()
+    // A token from either mode's files is caught.
+    const either = noDevTokenPlugin('', 'eyJother.token') as unknown as typeof plugin
+    expect(() => either.generateBundle.call(context, {}, bundle('x = "eyJother.token"'))).toThrow('carries the local MapKit token')
+    // With no local token there's nothing to look for.
+    const none = noDevTokenPlugin('') as unknown as typeof plugin
+    expect(() => none.generateBundle.call(context, {}, bundle('anything'))).not.toThrow()
+  })
+
+  it('runs the check in the real build', () => {
+    expect((config.plugins as { name?: string }[]).some((p) => p?.name === 'crewluve-no-dev-token')).toBe(true)
   })
 })

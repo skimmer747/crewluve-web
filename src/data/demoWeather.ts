@@ -1,5 +1,5 @@
 import { isDaytime, sunTimes } from '../time/sun'
-import type { WeatherCode, WeatherLoader } from './weather'
+import type { LandingLoader, WeatherCode, WeatherLoader } from './weather'
 
 /** Made-up weather for every airport in the demo (slice 2B1 §6), in °F. The demo never calls Open-Meteo. */
 const SAMPLES = new Map<string, { fahrenheit: number; code: WeatherCode }>([
@@ -22,5 +22,16 @@ export const loadDemoWeather: WeatherLoader = async (place) => {
     temperature: place.unit === 'fahrenheit' ? sample.fahrenheit : ((sample.fahrenheit - 32) * 5) / 9,
     code: sample.code,
     isDay: sun ? isDaytime(now, sun) : true,
+  }
+}
+
+/** The demo's landing forecasts (Stage 2 spec §7): each airport's sample, in the visitor's unit. The demo never calls Open-Meteo. */
+export const loadDemoLandingForecast: LandingLoader = async (place) => {
+  const sample = SAMPLES.get(place.code)
+  if (!sample) return null
+  return {
+    temperature: place.unit === 'fahrenheit' ? sample.fahrenheit : ((sample.fahrenheit - 32) * 5) / 9,
+    unit: place.unit,
+    code: sample.code,
   }
 }

@@ -1,6 +1,6 @@
-import { calendarDay } from '../time/zoned'
+import { calendarDay, HOUR } from '../time/zoned'
 import { nextTripFlight } from './home'
-import type { Leg, MoveLeg } from './legs'
+import { isMove, type Leg, type MoveLeg } from './legs'
 import type { Iata, Schedule, Trip } from './types'
 
 /** Trip length in days: trips.days when it is above 0 (Duty writes 0 for a trip under 24 hours), else the inclusive calendar-day count in `timeZone`. */
@@ -98,4 +98,47 @@ export function tripProgress(schedule: Schedule, legs: Leg[], t: number, baseTz:
     if (l.kind === 'flight' && l.tripId === trip.id && l.start > t && !upcoming.includes(l.arr)) upcoming.push(l.arr)
   }
   return { tripId: trip.id, day: tripDayNumber(trip, t, baseTz), days: tripDays(trip, baseTz), upcoming }
+}
+
+/** The trip just finished, which the trip map recaps (Stage 2 spec §8). */
+export interface RecapTrip {
+  tripId: string
+  /** CrewLu's count of the trip's days, else the calendar days it spans in the base's zone. */
+  days: number
+}
+
+/** A recap shows this long after its trip's last flight lands (Stage 2 spec §8.1). */
+export const RECAP_MS = 24 * HOUR
+/** A next trip leaving this soon takes over from the recap. */
+export const RECAP_YIELDS_WITHIN_MS = 12 * HOUR
+
+/**
+ * The trip whose last flight landed in the past 24 hours, as the app's TripMap+Status picks it (Stage 2 spec §8.1):
+ * the latest to end, unless another trip is under way (a night at home in the middle of it) or the next trip's first
+ * flight leaves within 12 hours. Flights without a trip, like a standalone jumpseat, aren't a trip. The snapshot asks
+ * only at home: a commuter at base still has the way home ahead.
+ */
+export function recapTrip(schedule: Schedule, legs: Leg[], t: number, baseTz: string): RecapTrip | null {
+  const spans = new Map<string, { start: number; end: number }>()
+  for (const leg of legs) {
+    if (!isMove(leg) || leg.tripId == null) continue
+    const span = spans.get(leg.tripId)
+    spans.set(leg.tripId, span ? { start: Math.min(span.start, leg.start), end: Math.max(span.end, leg.end) } : { start: leg.start, end: leg.end })
+  }
+  // A trip whose first flight has left and last hasn't landed is under way, whatever the pilot is doing between flights.
+  for (const span of spans.values()) {
+    if (span.start <= t && span.end > t) return null
+  }
+  let latest: { tripId: string; start: number; end: number } | null = null
+  for (const [tripId, span] of spans) {
+    if (span.end <= t && t - span.end < RECAP_MS && (!latest || span.end > latest.end)) latest = { tripId, ...span }
+  }
+  if (!latest) return null
+  // Taken apart here: TypeScript doesn't carry the null check on a `let` into the `find` callback below.
+  const { tripId, start, end } = latest
+  const nextDeparture = Math.min(...legs.filter((l) => isMove(l) && l.tripId != null && l.start > t).map((l) => l.start))
+  if (nextDeparture - t <= RECAP_YIELDS_WITHIN_MS) return null
+  const trip = schedule.trips.find((tr) => tr.id === tripId)
+  const days = trip ? tripDays(trip, baseTz) : calendarDay(end, baseTz) - calendarDay(start, baseTz) + 1
+  return { tripId, days }
 }

@@ -1,12 +1,15 @@
 import type { Ref } from 'preact'
 import { useRef } from 'preact/hooks'
+import { cardSummary, headline, recapLongestLine, recapTiles, type TripFacts } from '../facts/tripFacts'
 import { delayBannerText, spokenDelayBanner } from '../copy/flight'
 import { arrivalLocalTime, cardChips, landsAt, statsItems, tripMapSummary } from '../copy/tripMap'
 import type { GeoPoint } from '../map/greatCircle'
 import { currentLeg, type MapLeg, type TripMap } from '../map/tripMap'
+import { AppleTripMap } from './AppleTripMap'
+import { useMapStyle } from './hooks/useMapStyle'
 import { useWidth } from './hooks/useWidth'
 import { Icon } from './Icon'
-import { TripMapSvg } from './TripMapSvg'
+import { TripRecapBar } from './TripRecapBar'
 
 export interface TripMapCardProps {
   map: TripMap
@@ -20,6 +23,8 @@ export interface TripMapCardProps {
   /** The departure's delay when it's 15 minutes or more, shown under the map in flight, as the in-flight card did. */
   delayMinutes: number | null
   land: GeoPoint[][] | null
+  /** The facts (Stage 2 spec §6.4, §6.5): the headline on the chip in flight, the recap's numbers and the spoken summary. */
+  facts?: TripFacts | null
   /** Opens the full map from the card's map. The status page remounts, so focus finds the map again by `data-trip-map-open`. */
   onOpenMap: () => void
   /** Opens the tracking popup from the flight number, when the flight has tracking. */
@@ -31,24 +36,41 @@ export interface TripMapCardProps {
 const MAP_HEIGHT = 220
 
 /**
+ * Room for a chip over the map's top or bottom edge. The trip is framed clear of it, and Apple's map keeps its Maps logo
+ * and Legal link above the bottom chip, as Apple requires them to show (Apple Maps spec §4.2).
+ */
+const CHIP_ROOM = 40
+
+/**
  * The trip map on the status page (moving map spec §5). In flight it takes the in-flight card's place. On the ground it
  * sits above the location card, which keeps its weather and sun dial. Tapping the map opens the full map at #map.
  */
 export function TripMapCard(p: TripMapCardProps) {
   const box = useRef<HTMLSpanElement>(null)
   const width = useWidth(box, 343)
+  const [mapStyle] = useMapStyle()
   const leg = currentLeg(p.map)
+  const isRecap = p.map.mode.kind === 'recap'
   const chips = cardChips(p.map, p.now, p.viewerTz, p.h24)
+  // In flight the bottom chip is the facts' headline, which falls back to the landing countdown (§6.4).
+  const bottom = (leg && p.facts ? headline(p.facts, p.now) : null) ?? chips.bottom
+  const insets = { top: chips.top ? CHIP_ROOM : 0, right: 0, bottom: bottom ? CHIP_ROOM : 0, left: 0 }
+  const summary = p.facts ? cardSummary(p.facts, p.now, p.name) : tripMapSummary(p.map, p.now, p.name, p.viewerTz, p.h24)
   return (
     <section class="card glass trip-map-card">
-      <h2 ref={p.headingRef} class="sr-only" tabIndex={-1}>{leg ? 'In flight' : 'Trip map'}</h2>
-      <button type="button" class="trip-map-open" data-trip-map-open aria-label={tripMapSummary(p.map, p.now, p.name, p.viewerTz, p.h24)}
-        onClick={() => p.onOpenMap()}>
+      <h2 ref={p.headingRef} class="sr-only" tabIndex={-1}>{leg ? 'In flight' : isRecap ? 'Trip recap' : 'Trip map'}</h2>
+      <button type="button" class="trip-map-open" data-trip-map-open aria-label={summary} onClick={() => p.onOpenMap()}>
         <span ref={box} class="trip-map-frame">
-          <TripMapSvg map={p.map} t={p.now} width={width} height={MAP_HEIGHT} focus={leg} land={p.land} nightStep={60_000} />
+          <AppleTripMap map={p.map} t={p.now} width={width} height={MAP_HEIGHT} focus={leg} land={p.land} nightStep={60_000} insets={insets}
+            mapStyle={mapStyle} interactive={false} />
         </span>
         {chips.top && <span class="trip-map-chip top" aria-hidden="true">{chips.top}</span>}
-        {chips.bottom && <span class="trip-map-chip bottom" aria-hidden="true">{chips.bottom}</span>}
+        {bottom && (
+          <span class="trip-map-chip bottom" aria-hidden="true">
+            {isRecap && <PlayMark />}
+            {bottom}
+          </span>
+        )}
       </button>
       {leg && p.delayMinutes != null && (
         <p class={p.delayMinutes < 0 ? 'inflight-banner early' : 'inflight-banner late'}>
@@ -57,7 +79,9 @@ export function TripMapCard(p: TripMapCardProps) {
           <span class="sr-only">{spokenDelayBanner(p.delayMinutes)}</span>
         </p>
       )}
-      {leg ? <InFlightBar leg={leg} {...p} /> : <StatsBar items={statsItems(p.map, p.now, p.day, p.days, p.viewerTz)} />}
+      {leg ? <InFlightBar leg={leg} {...p} />
+        : isRecap && p.facts ? <TripRecapBar tiles={recapTiles(p.facts)} longest={recapLongestLine(p.facts)} />
+        : <StatsBar items={statsItems(p.map, p.now, p.day, p.days, p.viewerTz)} />}
     </section>
   )
 }
@@ -89,5 +113,14 @@ function StatsBar({ items }: { items: string[] }) {
     <ul class="trip-map-stats">
       {items.map((item) => <li key={item}>{item}</li>)}
     </ul>
+  )
+}
+
+/** The recap chip's play mark, drawn as the timeline's Replay button draws it (Stage 2 spec §6.5). */
+function PlayMark() {
+  return (
+    <svg class="trip-map-chip-play" width="10" height="10" viewBox="0 0 20 20" aria-hidden="true">
+      <path d="M6 3l11 7-11 7z" />
+    </svg>
   )
 }

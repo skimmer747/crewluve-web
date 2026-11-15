@@ -4,7 +4,7 @@ import { lastHomeArrival, leaveTarget, nextTripFlight, nextTripHomecoming, type 
 import { isDuty, isHomecomingMove, isMove, type DriveLeg, type DutyLeg, type Leg, type MoveLeg } from './legs'
 import { resolveStatus, type Status } from './status'
 import { arrivalTarget, type ArrivalTarget } from './targets'
-import { tripDayNumber, tripDays, tripProgress, upcomingTrip, type FlightDelay, type TripProgress, type UpcomingTrip } from './trips'
+import { recapTrip, tripDayNumber, tripDays, tripProgress, upcomingTrip, type FlightDelay, type RecapTrip, type TripProgress, type UpcomingTrip } from './trips'
 import type { Iata, Pilot, Schedule, Trip } from './types'
 
 export const DELAY_THRESHOLD_MIN = 15
@@ -59,6 +59,8 @@ export interface Snapshot {
   upcomingTrip: UpcomingTrip | null
   /** Day N of M and the cities still ahead, for the trip progress card: shown during a trip, away from home and base. */
   tripProgress: TripProgress | null
+  /** The trip just finished, for a day after it ends: only at home (a commuter at base still has the drive home ahead), never on a night home mid-trip (Stage 2 spec §8.1). */
+  recap: RecapTrip | null
   celebrate: boolean
   empty: boolean
 }
@@ -110,6 +112,7 @@ export function makeSnapshot(schedule: Schedule, legs: Leg[], t: number, baseTz:
     daysHome: atHome && !midTripAtHome ? daysSince(lastHomeArrival(legs, pilot, t), t) : null,
     upcomingTrip: settled ? upcomingTrip(schedule, legs, t, baseTz, { commute: nextCommute, delay }) : null,
     tripProgress: settled ? null : tripProgress(schedule, legs, t, baseTz),
+    recap: status.kind === 'home' && !midTripAtHome ? recapTrip(schedule, legs, t, baseTz) : null,
     celebrate: arrival != null && status.kind !== 'base' && arrival.time - t > 0 && arrival.time - t <= DAY,
     empty: schedule.empty,
   }
@@ -133,7 +136,7 @@ export function safeSnapshot(schedule: Schedule, legs: Leg[], t: number, baseTz:
       status: { kind: 'unknown', airport: null, current: null, previous: null, next: null },
       ring: null, delay: null, arrival: null, fallbackDaysRemaining: null, leave: null, homecoming: null,
       driveToWork: null, nextCommute: null, nextFlight: null, nextMove: null, nextHomeTrip: null, lastTripDays: null,
-      nextTripDays: null, midTripAtHome: false, daysHome: null, upcomingTrip: null, tripProgress: null, celebrate: false, empty: schedule?.empty ?? false,
+      nextTripDays: null, midTripAtHome: false, daysHome: null, upcomingTrip: null, tripProgress: null, recap: null, celebrate: false, empty: schedule?.empty ?? false,
     }
   }
 }

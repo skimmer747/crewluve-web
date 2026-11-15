@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fitRect, MIN_SIDE, toAspect, type WorldRect } from '../../src/map/mapFit'
+import { fitClear, fitRect, MIN_SIDE, toAspect, type WorldRect } from '../../src/map/mapFit'
 import { toWorld } from '../../src/map/mercator'
 
 const SDF = { lat: 38.1744, lng: -85.736 }
@@ -43,5 +43,42 @@ describe('the camera rectangle (moving map spec §6, §12)', () => {
     expect(wide.height).toBeCloseTo(0.1, 12)
     expect(wide.x + wide.width / 2).toBeCloseTo(0.25, 12)
     expect(toAspect(r, 0.5).height).toBeCloseTo(0.2, 12)
+  })
+})
+
+describe('fitClear (Stage 2 spec §10)', () => {
+  const rect = { x: 0.4, y: 0.4, width: 0.1, height: 0.1 }
+
+  it('is toAspect without insets', () => {
+    const plain = toAspect(rect, 2)
+    const clear = fitClear(rect, 1000, 500, { top: 0, right: 0, bottom: 0, left: 0 })
+    expect(clear.x).toBeCloseTo(plain.x, 12)
+    expect(clear.y).toBeCloseTo(plain.y, 12)
+    expect(clear.width).toBeCloseTo(plain.width, 12)
+    expect(clear.height).toBeCloseTo(plain.height, 12)
+  })
+
+  it('centres the trip in the part a panel on the left leaves clear', () => {
+    // 1000 × 500 px with 400 px covered: the clear part is 600 × 500, so the trip spans 0.12 × 0.1 of the world there,
+    // at 0.0002 world units a pixel, and the whole view starts 400 px further left.
+    const clear = fitClear(rect, 1000, 500, { top: 0, right: 0, bottom: 0, left: 400 })
+    expect(clear.width).toBeCloseTo(0.2, 12)
+    expect(clear.height).toBeCloseTo(0.1, 12)
+    expect(clear.x).toBeCloseTo(0.31, 12)
+    expect(clear.y).toBeCloseTo(0.4, 12)
+    // The trip's centre lands in the middle of the clear part: 400 + 600 / 2 px from the left.
+    expect((0.45 - clear.x) / (clear.width / 1000)).toBeCloseTo(700, 6)
+  })
+
+  it('leaves a panel along the bottom clear', () => {
+    const clear = fitClear(rect, 400, 800, { top: 0, right: 0, bottom: 300, left: 0 })
+    expect((0.45 - clear.y) / (clear.height / 800)).toBeCloseTo(250, 6)
+  })
+
+  it('ignores insets that leave less than 120 px clear', () => {
+    const plain = toAspect(rect, 1)
+    const clear = fitClear(rect, 400, 400, { top: 0, right: 0, bottom: 0, left: 300 })
+    expect(clear.x).toBeCloseTo(plain.x, 12)
+    expect(clear.width).toBeCloseTo(plain.width, 12)
   })
 })

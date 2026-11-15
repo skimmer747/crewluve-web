@@ -26,4 +26,16 @@ describe('the trip map drawing (moving map spec §7.1)', () => {
     expect(labels(container)).toHaveLength(2)
     expect(labels(container).join('')).not.toContain('SDLEX')
   })
+
+  it('keeps every airport clear of a panel over the left side (Stage 2 spec §10)', () => {
+    const map = makeTripMap(EUROPE, { isNextTrip: false, home: 'SDF', now: at(12), airports: AIRPORTS })!
+    const xs = (insets?: { top: number; right: number; bottom: number; left: number }) => {
+      const { container, unmount } = render(<TripMapSvg map={map} t={at(12)} width={1000} height={500} focus={null} land={null} nightStep={60_000} insets={insets} />)
+      const found = [...container.querySelectorAll('.trip-map-airport circle')].map((c) => Number(c.getAttribute('cx')))
+      unmount()
+      return found
+    }
+    expect(Math.min(...xs())).toBeLessThan(400)
+    expect(Math.min(...xs({ top: 0, right: 0, bottom: 0, left: 400 }))).toBeGreaterThanOrEqual(400)
+  })
 })
