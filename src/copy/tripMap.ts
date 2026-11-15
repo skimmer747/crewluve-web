@@ -1,3 +1,4 @@
+import type { AppleMapStyle } from '../map/appleMapStyle'
 import {
   dayCount, destinationsOf, legInMotion, milesFlown, nextFlight, pilotLocation, currentLeg, totalMiles, type AirportMark, type MapLeg, type TripMap,
 } from '../map/tripMap'
@@ -169,3 +170,6 @@ export function tripMapSummary(map: TripMap, t: number, name: string, viewerTz: 
   if (next) parts.push(`${nextDepartureChip(next, t, viewerTz, h24)}.`)
   return [...parts, opens].join(' ')
 }
+
+/** The map styles by name, on the full map's style button (Apple Maps spec §4.1). */
+export const MAP_STYLE_NAMES: Record<AppleMapStyle, string> = { hybrid: 'Hybrid', standard: 'Map', satellite: 'Satellite' }
