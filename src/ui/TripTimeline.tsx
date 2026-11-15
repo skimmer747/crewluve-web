@@ -1,26 +1,69 @@
-import { timelineTime } from '../copy/tripMap'
+import type { JSX } from 'preact'
+import { useMemo } from 'preact/hooks'
+import { timelineLine, timelineSpokenValue } from '../copy/tripMap'
 import {
-  clockTime, goLive, hasFinished, isLive, isPlaying, pause, play, REPLAY_SPEEDS, scrub, setSpeed, type ReplayClock, type ReplaySpeed,
+  clockTime, goLive, hasFinished, isLive, isPlaying, pause, play, progressAt, REPLAY_SPEEDS, replayDuration, replayOffset, scrub,
+  setSpeed, tripTimeAtOffset, type ReplayClock, type ReplaySpeed,
 } from '../map/replayClock'
+import { timelineBlocks } from '../map/timelineBlocks'
+import { activityAt } from '../map/tripActivity'
+import type { TripMap } from '../map/tripMap'
+import { TripTimelineBlocks } from './TripTimelineBlocks'
 
 export interface TripTimelineProps {
+  map: TripMap
   clock: ReplayClock
   onChange: (clock: ReplayClock) => void
+  /** Quick layovers switched on or off (activity markers design §3.1). */
+  onQuickLayovers: (on: boolean) => void
   now: number
   viewerTz: string
   h24: boolean
 }
 
-/** The slider moves in quarter hours, kind to keys on a trip of several days. */
-const STEP = 15 * 60_000
+/** An arrow key moves half a second of replay at 1x: a quarter hour of a flight, and more of a quick layover. */
+const KEY_STEP = 500
 
-/** Play, drag through the trip, go back to Live, and pick 1x to 10x (moving map spec §6). */
-export function TripTimeline({ clock, onChange, now, viewerTz, h24 }: TripTimelineProps) {
+/** Page Up and Page Down move a tenth of the replay. */
+const PAGE_FRACTION = 0.1
+
+/** How far a key moves the slider, in replay ms, or null for a key the input handles itself (Home, End). */
+function keyMove(key: string, whole: number): number | null {
+  switch (key) {
+    case 'ArrowRight':
+    case 'ArrowUp': return KEY_STEP
+    case 'ArrowLeft':
+    case 'ArrowDown': return -KEY_STEP
+    case 'PageUp': return whole * PAGE_FRACTION
+    case 'PageDown': return -whole * PAGE_FRACTION
+    default: return null
+  }
+}
+
+/**
+ * Play, drag through the trip, go back to Live, pick 1x to 10x, and Quick layovers (moving map spec §6; the app's
+ * activity markers design §3, §4). The bar measures replay time at 1x at the clock's pace, colored by what the pilot
+ * is doing, with when and what under it.
+ */
+export function TripTimeline({ map, clock, onChange, onQuickLayovers, now, viewerTz, h24 }: TripTimelineProps) {
   const t = clockTime(clock, now)
   const showsPause = isPlaying(clock) && !hasFinished(clock, now)
-  const { start, end } = clock.span
-  // Whole steps, never none, so the last one reaches the trip's end: `scrub` holds a time past the end at the end.
-  const max = start + Math.max(1, Math.ceil((end - start) / STEP)) * STEP
+  const whole = replayDuration(clock)
+  const offset = Math.min(replayOffset(clock, t), whole)
+  const activity = activityAt(map, t)
+  // The blocks follow the trip and the pace alone: the clock's span, legs and waits are the map's. Worked out once
+  // rather than every frame of a replay, which on a trip of 30 legs would cost a phone most of a frame.
+  const blocks = useMemo(() => timelineBlocks(map, clock), [map, clock.quickLayovers])
+  const moveTo = (to: number) => onChange(scrub(clock, tripTimeAtOffset(clock, Math.min(Math.max(to, 0), whole))))
+  // The input moves freely, so its thumb glides through a replay; the arrow and page keys step it here. A key held with
+  // a modifier (Alt+Left is Back) is left to the browser.
+  const onKeyDown = (e: JSX.TargetedKeyboardEvent<HTMLInputElement>) => {
+    if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return
+    const move = keyMove(e.key, whole)
+    if (move == null) return
+    e.preventDefault()
+    moveTo(offset + move)
+  }
   return (
     <div class="trip-timeline">
       <div class="trip-timeline-row">
@@ -30,15 +73,23 @@ export function TripTimeline({ clock, onChange, now, viewerTz, h24 }: TripTimeli
             {showsPause ? <path d="M5 3h3v14H5zM12 3h3v14h-3z" /> : <path d="M6 3l11 7-11 7z" />}
           </svg>
         </button>
-        <input type="range" class="trip-timeline-slider" aria-label="Trip time" aria-valuetext={timelineTime(t, viewerTz, h24)}
-          min={start} max={max} step={STEP} value={Math.min(Math.max(t, start), end)}
-          onInput={(e) => onChange(scrub(clock, Number(e.currentTarget.value)))} />
+        <div class="trip-timeline-bar">
+          <TripTimelineBlocks blocks={blocks} progress={progressAt(clock, t)} />
+          <input type="range" class="trip-timeline-slider" aria-label="Trip time" aria-valuetext={timelineSpokenValue(t, activity, viewerTz, h24)}
+            min={0} max={Math.max(whole, 1)} step="any" value={offset} onKeyDown={onKeyDown}
+            onInput={(e) => moveTo(Number(e.currentTarget.value))} />
+        </div>
         {!isLive(clock) && (
           <button type="button" class="trip-timeline-live" onClick={() => onChange(goLive(clock))}>Live</button>
         )}
       </div>
-      <div class="trip-timeline-row">
-        <span class="trip-timeline-time" aria-hidden="true">{timelineTime(t, viewerTz, h24)}</span>
+      <p class="trip-timeline-time" aria-hidden="true">{timelineLine(t, activity, viewerTz, h24)}</p>
+      <div class="trip-timeline-row trip-timeline-settings">
+        <label class="trip-timeline-quick">
+          <input type="checkbox" role="switch" class="trip-timeline-switch" checked={clock.quickLayovers}
+            onChange={(e) => onQuickLayovers(e.currentTarget.checked)} />
+          Quick layovers
+        </label>
         <select class="trip-timeline-speed" aria-label="Replay speed" value={String(clock.speed)}
           onChange={(e) => onChange(setSpeed(clock, Number(e.currentTarget.value) as ReplaySpeed, Date.now()))}>
           {REPLAY_SPEEDS.map((s) => <option key={s} value={String(s)}>{`${s}×`}</option>)}

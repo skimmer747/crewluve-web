@@ -69,7 +69,15 @@
   stroke-linejoin: round;
 }
 .trip-map-plane { fill: var(--trip-route); stroke: #ffffff; stroke-width: 8; paint-order: stroke; }
-.trip-map-heart { fill: var(--pink); stroke: #ffffff; stroke-width: 10; paint-order: stroke; }
+/* What the pilot is doing (activity markers design §2.1, §4.1): one color a kind, for the marker and the timeline. */
+.activity-flying { --activity: var(--blue); }
+.activity-driving { --activity: var(--gray); }
+.activity-layover { --activity: var(--indigo); }
+.activity-turn { --activity: var(--orange); }
+.activity-base { --activity: var(--teal); }
+.activity-home { --activity: var(--green); }
+.trip-map-pilot circle { fill: var(--activity); stroke: #ffffff; stroke-width: 1.5; }
+.trip-map-pilot-icon { fill: #ffffff; }
 .trip-map-car { fill: var(--trip-text); }
 
 .trip-map-chip {
@@ -144,12 +152,121 @@
 /* A heading for screen readers, at the size of the text around it. */
 .trip-map-headline { margin: 0; font-size: 1rem; font-weight: 600; }
 .trip-timeline-row { display: flex; align-items: center; gap: 12px; }
-.trip-timeline-row + .trip-timeline-row { margin-top: 8px; justify-content: space-between; }
+.trip-timeline-settings { justify-content: space-between; }
+.trip-timeline-time { margin: 2px 0 6px; color: var(--text-2); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+
+/* The bar (activity markers design §4.1): the colored blocks, with a range input's thumb over them. */
+.trip-timeline-bar { position: relative; flex: 1; min-width: 0; height: 44px; }
+.trip-timeline-blocks { position: absolute; top: 10px; left: 0; right: 0; height: 24px; overflow: hidden; border-radius: 12px; }
+.trip-timeline-layer { position: absolute; inset: 0; }
+/* A wait's length wraps out of sight below its block when it doesn't fit: the zero-width strut holds the first line. */
+.trip-timeline-block {
+  position: absolute;
+  top: 0;
+  height: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  justify-content: center;
+  overflow: hidden;
+  /* A browser without color-mix (before Safari 16.2) shows the part ahead in full color. */
+  background: var(--activity);
+  background: color-mix(in srgb, var(--activity) 35%, transparent);
+}
+.trip-timeline-block::before { content: ''; width: 0; height: 24px; }
+.trip-timeline-layer.played .trip-timeline-block { background: var(--activity); }
+.trip-timeline-label {
+  padding: 0 3px;
+  color: var(--text);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 24px;
+  white-space: nowrap;
+}
+/* White, as in the app, with a soft shadow so it stays readable on the lighter colors: orange, teal and green. */
+.trip-timeline-layer.played .trip-timeline-label { color: #ffffff; text-shadow: 0 0 3px rgba(0, 0, 0, 0.5); }
+
+.trip-timeline-slider {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 44px;
+  margin: 0;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+.trip-timeline-slider::-webkit-slider-runnable-track { height: 24px; background: transparent; }
+.trip-timeline-slider::-moz-range-track { height: 24px; background: transparent; }
+.trip-timeline-slider::-webkit-slider-thumb {
+  width: 28px;
+  height: 28px;
+  margin-top: -2px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  -webkit-appearance: none;
+  appearance: none;
+}
+.trip-timeline-slider::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+.trip-timeline-slider:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 14px; }
+
+/* Quick layovers (activity markers design §3.1): a checkbox in a switch's dress, with its label. */
+.trip-timeline-quick { display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; }
+.trip-timeline-switch {
+  position: relative;
+  flex: none;
+  width: 51px;
+  height: 31px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--button-fill);
+  /* A hairline, so the switch shows when it's off on a light panel. */
+  box-shadow: inset 0 0 0 1px var(--separator);
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.trip-timeline-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s;
+}
+.trip-timeline-switch:checked { background: var(--green); box-shadow: none; }
+.trip-timeline-switch:checked::after { transform: translateX(20px); }
+.trip-timeline-switch:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .trip-timeline-switch,
+  .trip-timeline-switch::after { transition: none; }
+}
+/* High contrast modes replace the colors: outline the thumbs and the switch, and fill the switch when it's on. */
+@media (forced-colors: active) {
+  /* An outline, not a border, so the switch's box and its thumb's travel stay as they are. */
+  .trip-timeline-switch { outline: 1px solid CanvasText; outline-offset: -1px; }
+  .trip-timeline-switch:checked { background: Highlight; }
+  .trip-timeline-switch::after { box-sizing: border-box; border: 1px solid CanvasText; }
+  .trip-timeline-slider::-webkit-slider-thumb { box-sizing: border-box; border: 2px solid CanvasText; }
+  .trip-timeline-slider::-moz-range-thumb { box-sizing: border-box; border: 2px solid CanvasText; }
+}
 .trip-timeline-play { min-width: 44px; min-height: 44px; border: 0; background: none; color: inherit; fill: currentColor; cursor: pointer; }
-.trip-timeline-slider { flex: 1; }
 .trip-timeline-live { min-height: 44px; padding: 0 14px; border-radius: 999px; }
 .trip-timeline-speed { min-height: 44px; }
-.trip-timeline-time { color: var(--text-2); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
 
 /* The facts' panel (Stage 2 spec §10): the headline and its toggle, the facts, then the timeline. Below 900 px it sits
    under the map, and "More facts" opens its facts, which scroll inside it. */
@@ -220,11 +337,23 @@
 .apple-trip-map { width: 100%; height: 100%; }
 .trip-map-frame .apple-trip-map { height: 220px; }
 .apple-trip-map.still { pointer-events: none; }
-/* Marks on Apple's map, as on the SVG map: centred on their place. */
+/* Marks on Apple's map, as on the SVG map. MapKit puts an element's bottom centre on its place: the plane, a car and
+   the pilot's marker are moved down by half, to centre on it, and an airport by all but half its dot, so the dot does. */
 .apple-mark { display: flex; flex-direction: column; align-items: center; transform: translateY(50%); }
+.apple-mark.airport { transform: translateY(calc(100% - 3.5px)); }
 .apple-mark svg { display: block; }
 .apple-mark.plane svg { fill: var(--trip-route); stroke: #ffffff; stroke-width: 8; paint-order: stroke; }
-.apple-mark.heart svg { fill: var(--pink); stroke: #ffffff; stroke-width: 10; paint-order: stroke; }
+/* The pilot's marker (activity markers design §2): a white icon on the colour of what they're doing, in a white ring. */
+.apple-mark.pilot {
+  justify-content: center;
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  border: 1.5px solid #ffffff;
+  border-radius: 50%;
+  background: var(--activity);
+}
+.apple-mark.pilot svg { fill: #ffffff; }
 .apple-mark.car svg { fill: var(--trip-text); }
 .apple-mark-dot { width: 7px; height: 7px; border: 0.5px solid rgba(0, 0, 0, 0.4); border-radius: 50%; background: #ffffff; }
 .apple-mark-code {

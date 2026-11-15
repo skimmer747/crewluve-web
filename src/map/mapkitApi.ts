@@ -55,7 +55,7 @@ export interface MapKitApi {
   PolygonOverlay: new (points: MkCoordinate[][], options: { style: MkStyle }) => MkPolygon
   Annotation: new (coordinate: MkCoordinate, factory: () => HTMLElement, options: { displayPriority: number; collisionMode: string }) => MkAnnotation
   /** MapKit JS 6's name; `Annotation.CollisionMode` is deprecated and logs a warning. */
-  AnnotationCollisionMode: { Circle: string }
+  AnnotationCollisionMode: { Circle: string; None: string }
   MapType: { Hybrid: string; Standard: string; Satellite: string }
   ColorScheme: { Light: string; Dark: string }
   FeatureVisibility: { Hidden: string }

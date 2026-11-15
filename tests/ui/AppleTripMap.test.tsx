@@ -1,8 +1,10 @@
 // @vitest-environment happy-dom
 import { act, cleanup, render, waitFor } from '@testing-library/preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { appleCamera } from '../../src/map/appleMapPlan'
+import { NO_INSETS } from '../../src/map/mapFit'
 import type { MapKitApi } from '../../src/map/mapkitApi'
-import { makeTripMap } from '../../src/map/tripMap'
+import { framingPoints, makeTripMap } from '../../src/map/tripMap'
 import { AppleTripMap } from '../../src/ui/AppleTripMap'
 import { resetAppleMapKit, startAppleMapKit } from '../../src/ui/hooks/useAppleMapKit'
 import { fakeMapKit } from '../fixtures/fakeMapKit'
@@ -61,6 +63,19 @@ describe('Apple’s map (Apple Maps spec §4, §5, §8)', () => {
     expect(m.overlays.filter((o) => o instanceof kit.PolylineOverlay).length).toBeGreaterThan(0)
     expect(m.annotations.some((a) => a.element.classList.contains('plane'))).toBe(true)
     expect(m.rects).toHaveLength(1)
+    // The same view the SVG map takes of the leg in focus.
+    const leg = [map.legs[0].origin.place, map.legs[0].destination.place]
+    expect(m.rects[0].rect).toMatchObject(appleCamera(framingPoints(map, map.legs[0]), null, 390, 520, NO_INSETS).rect)
+    expect(leg).toHaveLength(2)
+  })
+
+  it('shows what the pilot is doing on the ground, where the heart was: a bed on a layover', async () => {
+    const kit = await ready()
+    render(<AppleTripMap {...props} t={at(12)} focus={null} />)
+    await waitFor(() => expect(kit.maps).toHaveLength(1))
+    const marks = kit.maps[0].annotations.map((a) => a.element.className)
+    expect(marks.filter((c) => c.includes('pilot'))).toEqual(['apple-mark pilot activity-layover'])
+    expect(marks.some((c) => c.includes('heart') || c.includes('plane'))).toBe(false)
   })
 
   it('never puts a night shape on the date line: MapKit would fill it inside-out for half of each day', async () => {

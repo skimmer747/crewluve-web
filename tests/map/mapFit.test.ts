@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fitClear, fitRect, MIN_SIDE, toAspect, type WorldRect } from '../../src/map/mapFit'
+import { fitClear, fitRect, MIN_SIDE, NO_INSETS, slideToShow, toAspect, type WorldRect } from '../../src/map/mapFit'
 import { toWorld } from '../../src/map/mercator'
 
 const SDF = { lat: 38.1744, lng: -85.736 }
@@ -80,5 +80,36 @@ describe('fitClear (Stage 2 spec §10)', () => {
     const clear = fitClear(rect, 400, 400, { top: 0, right: 0, bottom: 0, left: 300 })
     expect(clear.x).toBeCloseTo(plain.x, 12)
     expect(clear.width).toBeCloseTo(plain.width, 12)
+  })
+})
+
+describe('sliding the view to show the pilot’s marker (the app’s card framing design §4.2)', () => {
+  // 400 × 200 px over a rectangle a quarter of a thousandth of the world per pixel. The marker and its 8 px margin reach
+  // 20 px from its centre.
+  const rect = { x: 0.2, y: 0.3, width: 0.1, height: 0.05 }
+  const perPixel = 0.1 / 400
+  const chips = { ...NO_INSETS, top: 40, bottom: 40 }
+
+  it('leaves the view alone when the marker shows in the clear part', () => {
+    expect(slideToShow(rect, 400, 200, { x: 200, y: 100 }, 12, chips)).toBe(rect)
+  })
+
+  it('slides up just far enough to lift the marker out of the bottom chip’s band', () => {
+    // The band ends 40 px from the bottom, at 160 px: the marker's centre goes to 140 px, 45 px up.
+    const slid = slideToShow(rect, 400, 200, { x: 100, y: 185 }, 12, chips)
+    expect(slid.x).toBe(rect.x)
+    expect(slid.y).toBeCloseTo(rect.y + 45 * perPixel, 12)
+  })
+
+  it('slides each axis on its own: in from the right edge and down from the top', () => {
+    const slid = slideToShow(rect, 400, 200, { x: 395, y: 5 }, 12)
+    expect(slid.x).toBeCloseTo(rect.x + 15 * perPixel, 12)
+    expect(slid.y).toBeCloseTo(rect.y - 15 * perPixel, 12)
+  })
+
+  it('centres a marker larger than the clear part in it', () => {
+    // 20 px clear between 90 and 110 px, less than the marker's 40: its centre goes to 100 px.
+    const slid = slideToShow(rect, 400, 200, { x: 200, y: 150 }, 12, { ...NO_INSETS, top: 90, bottom: 90 })
+    expect(slid.y).toBeCloseTo(rect.y + 50 * perPixel, 12)
   })
 })

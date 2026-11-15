@@ -1,12 +1,13 @@
 import { ICON_PATHS, type IconName } from '../icons/iconPaths'
 import type { MarkKind } from '../map/appleMapPlan'
+import type { GroundKind } from '../map/tripActivity'
+import { PILOT_ICONS } from './TripMapSvg'
 
 const SVG_NS = 'http://www.w3.org/2000/svg'
 
-const ICONS: Record<Exclude<MarkKind, 'airport'>, { name: IconName; size: number }> = {
+const ICONS: Record<'plane' | 'car', { name: IconName; size: number }> = {
   plane: { name: 'Airplane', size: 22 },
   car: { name: 'Car', size: 16 },
-  heart: { name: 'Heart', size: 22 },
 }
 
 /** A Phosphor icon, 256 units square, as an SVG element `size` px wide. */
@@ -25,11 +26,18 @@ function icon(name: IconName, size: number): SVGSVGElement {
 
 /**
  * The element for a mark on Apple's map (Apple Maps spec §8), styled by tripMap.css as on the SVG map: an airport's dot
- * and code, or the plane, a car or the heart. `turn` sets the mark's turn later, for the plane.
+ * and code, the plane, a car, or the pilot's marker, a white icon on the colour of what they're doing (activity markers
+ * design §2). `turn` sets the mark's turn later, for the plane.
  */
-export function markElement(kind: MarkKind, label: string | null): { element: HTMLElement; turn: (degrees: number) => void } {
+export function markElement(kind: MarkKind, label: string | null, activity: GroundKind | null = null): { element: HTMLElement; turn: (degrees: number) => void } {
   const element = document.createElement('div')
   element.className = `apple-mark ${kind}`
+  if (kind === 'pilot') {
+    const doing = activity ?? 'layover'
+    element.className = `apple-mark pilot activity-${doing}`
+    element.appendChild(icon(PILOT_ICONS[doing], 13))
+    return { element, turn: () => {} }
+  }
   if (kind === 'airport') {
     const dot = document.createElement('span')
     dot.className = 'apple-mark-dot'

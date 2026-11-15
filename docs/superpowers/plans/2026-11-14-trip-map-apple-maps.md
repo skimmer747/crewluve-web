@@ -1514,3 +1514,14 @@ git commit -m "The security policy lets in Apple's map: its CDN, WebAssembly, wo
   - `blob:` in `connect-src` and `img-src`, which Apple's guide lists.
 - **Todd's check:** after the date-line fix he replayed it on localhost:5182: "Looks like it is working".
 
+## After the merge (2026-11-14)
+
+- **Live:** PR 1 merged as `5251ca9`. On crewluve.crewlu.net Apple accepted the site's token, the map drew with the trip on it, and the console showed no errors.
+- **Combined with the app's newer work.** Todd wanted the website to match the app. Its activity markers, colored timeline, Quick layovers, At base waits, card framing and tidier markers had been built on the branch `trip-map-activity`, on the SVG map, from `c35feca`. On the branch `trip-map-activity-apple`, made from `main`, that branch was merged in and ported to Apple's map:
+  - **Conflicts:** `README.md`, `TripMapCard.tsx`, `TripMapPage.tsx` and the card's test, all in imports and one map line. Both sides are kept.
+  - **The pilot's marker** replaces the heart on Apple's map: `PlannedMark` gains `activity`, and its id carries the kind.
+  - **Airports:** one only drives reach ranks `lowest`. The plane, a car and the pilot's marker take no part in collisions.
+  - **The camera** is `appleCamera`: the view the SVG map takes, with the clear part's rectangle and the insets as MapKit's padding. The card uses the other branch's measured `chipInsets` in place of this plan's fixed 40 px.
+  - **Airport dots** sit exactly on their place: the element is moved down by all but half its dot.
+  - **Checked in the browser** on localhost:5182: a layover in Miami shows the bed marker with MIA beneath it, the colored timeline and Quick layovers, and the card frames the trip between its chips with Apple's logo clear.
+

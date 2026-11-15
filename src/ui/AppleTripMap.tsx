@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'preact/hooks'
-import { appleMapPlan, offDateLine, type PlannedMark } from '../map/appleMapPlan'
+import { appleCamera, appleMapPlan, offDateLine, type PlannedMark } from '../map/appleMapPlan'
 import type { AppleMapStyle } from '../map/appleMapStyle'
 import type { GeoPoint } from '../map/greatCircle'
-import { fitRect, NO_INSETS } from '../map/mapFit'
+import { NO_INSETS } from '../map/mapFit'
 import type { MapKitApi, MkAnnotation, MkMap, MkPolygon, MkPolyline } from '../map/mapkitApi'
 import { LAYER_ALPHA, nightLayers, SUN_DEPTHS } from '../map/nightShade'
 import { framingPoints } from '../map/tripMap'
@@ -39,7 +39,7 @@ const LINES: Record<SegmentStyle, { color: '--trip-route' | '--trip-flown'; widt
   drive: { color: '--trip-flown', width: 3, dash: [1, 6] },
 }
 
-const PRIORITY: Record<PlannedMark['priority'], number> = { low: 250, high: 750, required: 1000 }
+const PRIORITY: Record<PlannedMark['priority'], number> = { lowest: 100, low: 250, high: 750, required: 1000 }
 
 interface Live {
   map: MkMap
@@ -53,7 +53,7 @@ interface Live {
   recenterSeen: number
 }
 
-function AppleMapView({ mapkit, map, t, focus, nightStep, insets = NO_INSETS, mapStyle, interactive, recenter = 0, onUserMove }: AppleTripMapProps & { mapkit: MapKitApi }) {
+function AppleMapView({ mapkit, map, t, width, height, focus, nightStep, insets = NO_INSETS, mapStyle, interactive, recenter = 0, onUserMove }: AppleTripMapProps & { mapkit: MapKitApi }) {
   const box = useRef<HTMLDivElement>(null)
   const live = useRef<Live | null>(null)
   const userMove = useRef(onUserMove)
@@ -115,11 +115,13 @@ function AppleMapView({ mapkit, map, t, focus, nightStep, insets = NO_INSETS, ma
     if (live.current) live.current.map.mapType = types[mapStyle]
   }, [mapStyle])
 
+  const drawing = tripMapDrawing(map, t)
+
   // The trip at time t: lines, night and marks, in place.
   useEffect(() => {
     const state = live.current
     if (!state) return
-    const plan = appleMapPlan(tripMapDrawing(map, t), focus)
+    const plan = appleMapPlan(drawing, focus)
     // A line's style is made only when the line is new or has changed.
     const lineStyle = (style: SegmentStyle) => {
       const look = LINES[style]
@@ -158,10 +160,12 @@ function AppleMapView({ mapkit, map, t, focus, nightStep, insets = NO_INSETS, ma
       marked.add(mark.id)
       let kept = state.marks.get(mark.id)
       if (!kept) {
-        const { element, turn } = markElement(mark.kind, mark.label)
+        const { element, turn } = markElement(mark.kind, mark.label, mark.activity)
+        // Airports give way to each other where they crowd. The pilot's marker, the plane and a car sit on top of an
+        // airport by design, so they take no part: they hide nothing and are never hidden.
         const annotation = new mapkit.Annotation(C(mark.place), () => element, {
           displayPriority: PRIORITY[mark.priority],
-          collisionMode: mapkit.AnnotationCollisionMode.Circle,
+          collisionMode: mark.kind === 'airport' ? mapkit.AnnotationCollisionMode.Circle : mapkit.AnnotationCollisionMode.None,
         })
         state.map.addAnnotation(annotation)
         kept = { annotation, turn, priority: mark.priority }
@@ -184,9 +188,10 @@ function AppleMapView({ mapkit, map, t, focus, nightStep, insets = NO_INSETS, ma
     }
   })
 
-  // The camera: the leg or the whole trip, kept clear of the side panel, until the person moves the map (§5).
-  const rect = fitRect(framingPoints(map, focus)) ?? { x: 0, y: 0, width: 1, height: 1 }
-  const frame = `${rect.x},${rect.y},${rect.width},${rect.height}|${insets.top},${insets.right},${insets.bottom},${insets.left}|${recenter}`
+  // The camera: the view the SVG map takes (the leg or the whole trip, clear of the panel or the chips, with the pilot's
+  // marker in view), until the person moves the map (§5).
+  const { rect, padding } = appleCamera(framingPoints(map, focus), drawing.pilot?.place.place ?? null, width, height, insets)
+  const frame = `${rect.x},${rect.y},${rect.width},${rect.height}|${padding.top},${padding.right},${padding.bottom},${padding.left}|${recenter}`
   useEffect(() => {
     const state = live.current
     if (!state) return
@@ -196,7 +201,7 @@ function AppleMapView({ mapkit, map, t, focus, nightStep, insets = NO_INSETS, ma
       state.recenterSeen = recenter
     }
     if (state.moved || state.framed === frame) return
-    state.map.padding = new mapkit.Padding(insets.top, insets.right, insets.bottom, insets.left)
+    state.map.padding = new mapkit.Padding(padding.top, padding.right, padding.bottom, padding.left)
     const still = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
     state.map.setVisibleMapRectAnimated(new mapkit.MapRect(rect.x, rect.y, rect.width, rect.height), state.framed !== '' && !still)
     state.framed = frame

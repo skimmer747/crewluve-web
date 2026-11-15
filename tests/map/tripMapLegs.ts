@@ -1,5 +1,5 @@
 import { buildAirportIndex } from '../../src/data/airports'
-import type { DriveLeg, MoveLeg } from '../../src/engine/legs'
+import type { DriveLeg, MoveLeg, PlaceLeg } from '../../src/engine/legs'
 
 /** Friday 2026-11-13 12:00 UTC (7:00 AM in Louisville). */
 export const TRIP_START = Date.UTC(2026, 10, 13, 12)
@@ -27,6 +27,12 @@ export function flight(id: string, dep: string, arr: string, startHours: number,
 export function drive(id: string, from: string, to: string, startHours: number, hours: number): DriveLeg {
   const start = at(startHours)
   return { kind: 'drive', id, tripId: null, from, to, toHome: to === 'SDF', start, end: start + hours * HOUR, schedEnd: start + hours * HOUR }
+}
+
+/** A layover, turn, base or home leg at `airport`, as the engine makes them between a trip's flights. */
+export function ground(id: string, kind: PlaceLeg['kind'], airport: string, startHours: number, hours: number, tripId = 'T1'): PlaceLeg {
+  const start = at(startHours)
+  return { kind, id, tripId, airport, start, end: start + hours * HOUR }
 }
 
 /** SDF → CGN (8 h), a day in Cologne, CGN → DXB (6 h), 20 h in Dubai, DXB → SDF (14 h). */

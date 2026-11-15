@@ -15,6 +15,7 @@ const { version } = JSON.parse(readFileSync(resolve(phosphorDir, 'package.json')
 // the third adds the weather and sun dial symbols of the slice 2B1 location card; the fourth, the slice 2B2 sun popup's;
 // the fifth, the slice 2C in-flight card's and tracking popup's; the sixth, the slice 3A schedule list's; the seventh, the quick status's (partner links piece 5a §7).
 // The eighth, the trip map's facts (moving map Stage 2 spec §6.3).
+// The ninth, the trip map's markers for what the pilot is doing (the app's activity markers design §2.1).
 const ICONS = {
   House: 'house', Airplane: 'airplane', Car: 'car', ArrowsClockwise: 'arrows-clockwise', Bed: 'bed',
   Buildings: 'buildings', ClockCountdown: 'clock-countdown', Lightning: 'lightning', BookOpen: 'book-open',
@@ -41,6 +42,7 @@ const ICONS = {
   Phone: 'phone', ChatCircle: 'chat-circle', ForkKnife: 'fork-knife',
 
   Path: 'path', ChartBar: 'chart-bar',
+  Hourglass: 'hourglass', Briefcase: 'briefcase',
 }
 
 const lines = []

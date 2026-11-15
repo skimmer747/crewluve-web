@@ -1,6 +1,7 @@
 # The Website's Trip Map on Apple Maps (MapKit JS)
 
-- **Status:** Written 2026-11-14 at Todd's "write the spec", after a localhost test page. Waiting for Todd's review.
+- **Status:** Live since 2026-11-14 (PR 1, `main` at `5251ca9`): Apple accepted the site's token on crewluve.crewlu.net and the console was clean. Written that day at Todd's "write the spec", after a localhost test page.
+- **Amended:** 2026-11-14, when the app's newer trip map work (branch `trip-map-activity`: the activity markers, the colored timeline, Quick layovers, At base waits, the card's framing, tidier markers) was combined with Apple's map. The changes are in §4.2, §5 and §8.
 - **Replaces:** moving map spec §11's own SVG world as the map the family sees. The SVG drawing stays as the fallback (§7). It also replaces §9.7 "No mapkit-token": the site now carries a MapKit JS token, and its security policy loosens for Apple's map.
 - **Supersedes:** the NASA-tiles look (`docs/superpowers/specs/2026-11-14-trip-map-nasa-look-design.md`), which is shelved on the local branch `nasa-look-shelved`.
 
@@ -43,14 +44,15 @@ A throwaway page on the dev server confirmed:
 
 ### 4.2 The card on the status page
 
-- **The card shows Apple's map,** 220 px tall, in the kept style, framed as today.
+- **The card shows Apple's map,** 220 px tall, in the kept style.
+- **Framing:** the trip is framed in the band between the card's chips, by their measured height (`chipInsets`), and the view slides to keep the pilot's marker in that band, as on the SVG map and in the app. The same band is the map's padding, which keeps Apple's logo and Legal link above the bottom chip.
 - **It doesn't pan or zoom:** scrolling, zooming and rotating are off, and Apple's controls are hidden. A tap anywhere opens the full map, as today.
 - **Facts and accessibility are unchanged:** the chips, the bars and the one-sentence description for screen readers stay as they are.
 
 ## 5. The camera
 
-- **Automatic framing** is what the site does today: `framingPoints` → `fitRect` gives a rectangle in Web Mercator's unit square. MapKit's `MapRect` uses the same unit square, so the rectangle passes straight to `setVisibleMapRectAnimated`.
-- **The side panel's room** goes to the map as `padding`, from the same insets as today, so the trip stays clear of the panel.
+- **Automatic framing** is the very view the SVG map takes (`appleCamera` in `src/map/appleMapPlan.ts`): `framingPoints` → `fitRect` → `fitClear`, then `slideToShow` for the pilot's marker. These are rectangles in Web Mercator's unit square, which MapKit's `MapRect` shares.
+- **The room for the side panel or the card's chips:** MapKit is given the clear part's rectangle, with the insets as its `padding`, so the trip, Apple's logo and its controls all stay clear. When the clear part is under 120 px either way, MapKit gets the whole view and no padding.
 - **When it frames again:** when the map opens, when the leg in motion changes (in a replay, leg to leg), and on Recenter.
   - The move is animated, and immediate under Reduce Motion.
   - A replay moves the planes, cars and night every frame. It moves the camera only when the leg changes.
@@ -95,10 +97,14 @@ The same data as today: `tripMapDrawing(map, t)` and `nightLayers(t)`, drawn wit
   - one `PolylineOverlay` per segment, with great circles through `pointsAlong(…, 101)`;
   - styles as today: upcoming dashed blue, flying solid blue, flown grey, drives dotted grey;
   - updated in place (`points`, `style`) as the drawing changes.
-- **Airports:** a custom-element annotation for each, the dot and code as today, styled from the site's own CSS.
+- **Airports:** a custom-element annotation for each, the dot and code as today, styled from the site's own CSS. The dot sits exactly on the airport.
   - Where two would overlap (Louisville and Lexington, zoomed out), MapKit's own collision rules (`displayPriority`) show one, and zooming in shows both.
-  - The leg's airports outrank the rest.
-- **The plane, cars and heart:** custom-element annotations with today's Phosphor marks. The plane turns by its heading, and each moves by setting its `coordinate` every frame of a replay.
+  - The leg's airports outrank the rest, and an airport only drives reach (a commuter's home) ranks lowest, so it's the one that gives way.
+- **The plane, a car and the pilot's marker:** custom-element annotations.
+  - The plane turns by its heading, and each moves by setting its `coordinate` every frame of a replay.
+  - A car shows only while the pilot drives.
+  - The pilot's marker shows what they're doing on the ground, where the heart was: a bed on a layover, an hourglass at a turn, a briefcase at base, a house at home, white on the activity's colour.
+  - These three take no part in collisions (`AnnotationCollisionMode.None`): they sit on top of an airport by design, hide nothing and are never hidden.
 - **The night:**
   - seven `PolygonOverlay`s, one per sun depth, each at today's opacity;
   - points reassigned every frame of a replay, and each minute live.

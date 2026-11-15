@@ -3,7 +3,7 @@ import type { Leg } from '../../src/engine/legs'
 import type { Snapshot } from '../../src/engine/snapshot'
 import type { StatusKind } from '../../src/engine/status'
 import { tripLegs, tripMapFor } from '../../src/map/tripMapFor'
-import { AIRPORTS, at, drive, EUROPE, flight } from './tripMapLegs'
+import { AIRPORTS, at, drive, EUROPE, flight, ground } from './tripMapLegs'
 
 /** Just the snapshot fields tripMapFor reads. */
 function snap(kind: StatusKind, t: number, extra: Partial<Snapshot> = {}): Snapshot {
@@ -30,6 +30,15 @@ describe('which legs the trip map shows (moving map spec §5.1, §12)', () => {
     const map = tripMapFor(snap('home', at(150), { upcomingTrip }), LEGS, AIRPORTS)!
     expect(map.mode).toEqual({ kind: 'nextTrip' })
     expect(map.legs.map((l) => l.id)).toEqual(['g1'])
+  })
+
+  it('shows the next trip from base while the status says base, with the pilot’s base (base waits design §3)', () => {
+    const upcomingTrip = { tripId: 'T2', departs: at(200), days: 1, route: ['SDF', 'ANC'], delayMinutes: null }
+    const pilot = { firstName: 'Alex', base: 'SDF', home: 'LEX', effHome: 'LEX' }
+    const atBase = tripMapFor(snap('base', at(150), { upcomingTrip, pilot }), LEGS, AIRPORTS)!
+    expect(atBase.isWaitingAtBase).toBe(true)
+    expect(atBase.base?.code).toBe('SDF')
+    expect(tripMapFor(snap('home', at(150), { upcomingTrip, pilot }), LEGS, AIRPORTS)!.isWaitingAtBase).toBe(false)
   })
 
   it('shows nothing at home with no trip ahead', () => {
@@ -79,5 +88,12 @@ describe('which legs the trip map shows (moving map spec §5.1, §12)', () => {
     expect(tripMapFor(snap('home', at(150), { upcomingTrip }), LEGS, AIRPORTS)!.days).toBe(1)
     const tripProgress = { tripId: 'T1', day: 1, days: 4, upcoming: ['DXB', 'SDF'] }
     expect(tripMapFor(snap('layover', at(12), { tripProgress }), LEGS, AIRPORTS)!.days).toBe(4)
+  })
+})
+
+describe("a trip's ground legs (activity markers design §2.2)", () => {
+  it("come with its moving legs to name its waits, and no other trip's do", () => {
+    const legs = [flight('f1', 'SDF', 'CGN', 0, 8), ground('l1', 'layover', 'CGN', 8, 24), flight('f2', 'CGN', 'DXB', 32, 6), ground('l2', 'layover', 'DXB', 38, 20, 'T2')]
+    expect(tripLegs(legs, 'T1').map((l) => l.id)).toEqual(['f1', 'l1', 'f2'])
   })
 })
