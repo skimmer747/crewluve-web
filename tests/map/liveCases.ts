@@ -1,7 +1,10 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { expect } from 'vitest'
-import { METERS_PER_NM, type GeoPoint } from '../../src/map/greatCircle'
+import { makeFlightPath, type FlightPath } from '../../src/map/flightPath'
+import { makeFlightPlan, type FlightPlan } from '../../src/map/flightPlan'
+import { makeFlightRecord, type FlightRecord } from '../../src/map/flightRecord'
+import { distanceMeters, METERS_PER_NM, type GeoPoint } from '../../src/map/greatCircle'
 import type { LiveFlight } from '../../src/map/liveFlight'
 import { readLiveFlight } from '../../src/partner/liveAnswer'
 
@@ -120,6 +123,17 @@ export function caseFlight(raw: unknown): LiveFlight | null {
   const flight = readLiveFlight(raw)
   if (!flight) throw new Error('The door reader refused a flight of the shared cases')
   return flight
+}
+
+/** A flight case as this site's types: its plan, its live data, and the path and record made from them. */
+export function made(flightCase: CaseFlight): { plan: FlightPlan; flight: LiveFlight | null; path: FlightPath; record: FlightRecord | null } {
+  const origin = airport(flightCase.from)
+  const destination = airport(flightCase.to)
+  const plan = makeFlightPlan(at(flightCase.departure), at(flightCase.arrival), distanceMeters(origin, destination))
+  if (!plan) throw new Error(`${flightCase.name} has no plan`)
+  const flight = caseFlight(flightCase.flight)
+  const path = makeFlightPath(origin, destination, flight)
+  return { plan, flight, path, record: makeFlightRecord(path, plan) }
 }
 
 /** The cases' own tolerances (their `about`): 0.01 nm, 0.05 s, 0.0001 of a degree, 0.01 kt. */
