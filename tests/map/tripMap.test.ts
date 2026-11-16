@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest'
 import type { Leg } from '../../src/engine/legs'
 import { pointAlong } from '../../src/map/greatCircle'
 import { scheduledFraction } from '../../src/map/flightProgress'
+import { milesFlown, totalMiles } from '../../src/facts/tripTotals'
 import {
-  currentLeg, dayCount, destinationsOf, framingPoints, headingAt, legInMotion, legProgress, makeTripMap, milesFlown, nextFlight, pilotLocation,
-  positionAt, positionAtTime, timeAtFraction, totalMiles,
+  currentLeg, dayCount, destinationsOf, framingPoints, headingAt, legInMotion, legProgress, makeTripMap, nextFlight, pilotLocation,
+  positionAt, positionAtTime, timeAtFraction,
 } from '../../src/map/tripMap'
 import { AIRPORTS, at, drive, EUROPE, flight } from './tripMapLegs'
 

@@ -1,15 +1,17 @@
-import { airborneWindow } from '../map/flightProgress'
 import type { GeoPoint } from '../map/greatCircle'
-import { positionAtTime, type MapLeg } from '../map/tripMap'
+import type { MapLeg } from '../map/tripMap'
 import { moonPhase, type MoonPhase } from '../time/moon'
 import { subsolarPoint, SUN_UP_ALTITUDE, sunAltitude } from '../time/sun'
 import { DAY, HOUR, MINUTE } from '../time/zoned'
+import { coursePositionAt, legAirborne } from './legCourse'
 import { moonAltitude } from './moonPosition'
 
 /**
  * The sky from the cockpit (Stage 2 spec §4.5), as the app's SkyFacts: sunrises and sunsets at cruise, when the people
  * below see them, chasing the sun, and the moon. Also the next sunrise or sunset on the ground at an airport (§5.3).
- * It uses the site's own sun (src/time/sun.ts), which the location card's sunrise and sunset use too.
+ * It uses the site's own sun (src/time/sun.ts), which the location card's sunrise and sunset use too. A flight with a
+ * record is followed along its real path at its real times, and seen from the real plane's height at its cruise
+ * (Stage 3 spec §8); any other, from the schedule as before.
  */
 
 export type SunKind = 'sunrise' | 'sunset'
@@ -31,8 +33,13 @@ export interface MoonSight {
 
 /** The sun's centre at sunrise and sunset on the ground, after refraction. */
 export const GROUND_HORIZON = SUN_UP_ALTITUDE
-/** The schedule's height in the air. Stage 3 uses the live altitude. */
+/** The schedule's height in the air. It also stands in for a real plane that's climbing or coming down. */
 export const CRUISE_ALTITUDE_FEET = 35_000
+/**
+ * A real plane's own height counts while it's at its cruise: from 25,000 to 60,000 ft. Lower, it's on its way up or
+ * down, and the sunrises and sunsets ahead are seen from the cruise it's climbing to. Higher can't be right.
+ */
+export const CRUISE_ALTITUDES_FEET = { lowest: 25_000, highest: 60_000 }
 
 /** How far below level the horizon lies from `feet` up, in degrees: 1.76′ × √(height in m). */
 export const horizonDip = (feet: number) => (1.76 / 60) * Math.sqrt(Math.max(feet, 0) * 0.3048)
@@ -48,9 +55,22 @@ const SAMPLE_STEP_MS = 2 * MINUTE
 const GROUND_SEARCH_MS = 3 * HOUR
 const GROUND_STEP_MS = 10 * MINUTE
 
-/** The sun's altitude at the schedule's plane, in degrees. */
+/**
+ * The sun's altitude at a cockpit sunrise or sunset on `leg` (Stage 3 spec §8): from the height the real plane was last
+ * seen at, while it's in the air at its cruise, and from 35,000 ft otherwise.
+ */
+export function cockpitHorizonOnLeg(leg: MapLeg): number {
+  const live = leg.flight?.live
+  const fix = live?.state === 'airborne' ? live.fix : null
+  const feet = fix && !fix.onGround ? fix.altitudeFt : null
+  // NaN fails both comparisons, so it's left out too.
+  if (feet == null || !(feet >= CRUISE_ALTITUDES_FEET.lowest && feet <= CRUISE_ALTITUDES_FEET.highest)) return COCKPIT_HORIZON
+  return GROUND_HORIZON - horizonDip(feet)
+}
+
+/** The sun's altitude at the plane, in degrees: where its record has it, else where the schedule does. */
 export function sunAltitudeOnLeg(leg: MapLeg, t: number): number {
-  const here = positionAtTime(leg, t)
+  const here = coursePositionAt(leg, t)
   return sunAltitude(t, here.lat, here.lng)
 }
 
@@ -88,11 +108,15 @@ function peopleBelowGap(point: GeoPoint, cockpitTime: number, isSunrise: boolean
   return null
 }
 
-/** The sunrises and sunsets the cockpit sees while the schedule has the flight in the air, in order: sampled every 2 minutes and narrowed to 5 seconds. */
+/**
+ * The sunrises and sunsets the cockpit sees while the flight is in the air, in order: sampled every 2 minutes and
+ * narrowed to 5 seconds. A flight with a record is followed along its real path, at its real times.
+ */
 export function sunEvents(leg: MapLeg): SunEvent[] {
-  const window = leg.kind === 'flight' ? airborneWindow(leg.start, leg.end) : null
+  const window = leg.kind === 'flight' ? legAirborne(leg) : null
   if (!window) return []
-  const height = (t: number) => sunAltitudeOnLeg(leg, t) - COCKPIT_HORIZON
+  const horizon = cockpitHorizonOnLeg(leg)
+  const height = (t: number) => sunAltitudeOnLeg(leg, t) - horizon
   const times: number[] = []
   for (let t = window.start; t < window.end; t += SAMPLE_STEP_MS) times.push(t)
   times.push(window.end)
@@ -103,7 +127,7 @@ export function sunEvents(leg: MapLeg): SunEvent[] {
     const isSetting = heights[i - 1] > 0 && heights[i] <= 0
     if (!isRising && !isSetting) continue
     const time = crossing(height, times[i - 1], times[i], isRising, 5_000)
-    events.push({ kind: isRising ? 'sunrise' : 'sunset', time, peopleBelowGap: peopleBelowGap(positionAtTime(leg, time), time, isRising) })
+    events.push({ kind: isRising ? 'sunrise' : 'sunset', time, peopleBelowGap: peopleBelowGap(coursePositionAt(leg, time), time, isRising) })
   }
   return events
 }
@@ -116,10 +140,10 @@ const wrapped = (degrees: number) => ((((degrees + 180) % 360) + 360) % 360) - 1
  * while the sun is east of the plane's meridian.
  */
 export function chase(leg: MapLeg, t: number): Chase | null {
-  const window = leg.kind === 'flight' ? airborneWindow(leg.start, leg.end) : null
-  if (!window || t < window.start || t > window.end || sunAltitudeOnLeg(leg, t) <= COCKPIT_HORIZON) return null
-  const here = positionAtTime(leg, t)
-  const soon = positionAtTime(leg, t + MINUTE)
+  const window = leg.kind === 'flight' ? legAirborne(leg) : null
+  if (!window || t < window.start || t > window.end || sunAltitudeOnLeg(leg, t) <= cockpitHorizonOnLeg(leg)) return null
+  const here = coursePositionAt(leg, t)
+  const soon = coursePositionAt(leg, t + MINUTE)
   const degreesPerHour = 15 + wrapped(soon.lng - here.lng) * 60
   if (Math.abs(degreesPerHour) >= CHASE_RATE) return null
   return wrapped(here.lng - subsolarPoint(t).longitude) < 0 ? 'morning' : 'afternoon'
@@ -127,8 +151,8 @@ export function chase(leg: MapLeg, t: number): Chase | null {
 
 /** The moon while the sun is below the cockpit's horizon, or null in daylight. */
 export function moonSight(leg: MapLeg, t: number): MoonSight | null {
-  if (leg.kind !== 'flight' || sunAltitudeOnLeg(leg, t) > COCKPIT_HORIZON) return null
-  const here = positionAtTime(leg, t)
+  if (leg.kind !== 'flight' || sunAltitudeOnLeg(leg, t) > cockpitHorizonOnLeg(leg)) return null
+  const here = coursePositionAt(leg, t)
   return { phase: moonPhase(t), isUp: moonAltitude(here.lat, here.lng, t) > 0 }
 }
 

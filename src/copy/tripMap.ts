@@ -2,9 +2,9 @@ import type { AppleMapStyle } from '../map/appleMapStyle'
 import type { LiveLabel } from '../map/liveLabel'
 import { mapFlightProgress } from '../map/mapFlight'
 import {
-  dayCount, destinationsOf, isArrivalEstimated, legInMotion, milesFlown, nextFlight, pilotLocation, currentLeg, totalMiles, type AirportMark,
-  type MapLeg, type TripMap,
+  dayCount, destinationsOf, isArrivalEstimated, legInMotion, nextFlight, pilotLocation, currentLeg, type AirportMark, type MapLeg, type TripMap,
 } from '../map/tripMap'
+import { milesFlown, totalMiles } from '../facts/tripTotals'
 import { calendarDay, MONTHS, WEEKDAYS, zoneOffsetMinutes, zonedParts } from '../time/zoned'
 import type { TripActivity } from '../map/tripActivity'
 import { recapChip } from './factsTrip'

@@ -1,6 +1,7 @@
+import { legPathLength } from '../facts/legCourse'
 import type { TripTotals } from '../facts/tripTotals'
 import { METERS_PER_MILE } from '../map/greatCircle'
-import { legDistanceMeters, type MapLeg } from '../map/tripMap'
+import type { MapLeg } from '../map/tripMap'
 import { numberText } from './facts'
 
 /**
@@ -20,7 +21,8 @@ export const countText = (value: number, one: string, many: string) => `${number
 /** "4,351 mi". */
 export const milesText = (miles: number) => `${numberText(miles)} mi`
 
-const legMiles = (leg: MapLeg) => Math.round(legDistanceMeters(leg) / METERS_PER_MILE)
+/** A flight's whole miles, along its real path where it has one (Stage 3 spec §8). */
+const legMiles = (leg: MapLeg) => Math.round(legPathLength(leg) / METERS_PER_MILE)
 
 /**
  * "8 time zones · about 2 sunsets from the cockpit" for a trip ahead, or "a sunset from the cockpit" for one, without

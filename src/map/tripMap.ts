@@ -4,7 +4,7 @@ import { isMove, type Leg, type PlaceLeg } from '../engine/legs'
 import type { Iata } from '../engine/types'
 import { pathFramingPoints } from './flightPathDrawing'
 import { scheduledFraction, scheduledTime } from './flightProgress'
-import { distanceMeters, METERS_PER_MILE, pointAlong, pointsAlong, type GeoPoint } from './greatCircle'
+import { distanceMeters, pointAlong, pointsAlong, type GeoPoint } from './greatCircle'
 import { calendarDay } from '../time/zoned'
 import { isEstimate, type MapFlight } from './mapFlight'
 import { aimFractions, flatMapAngle } from './planeHeading'
@@ -211,16 +211,6 @@ export const framingSubject = (map: TripMap, focus: MapLeg | null) => focus?.id 
 export function destinationsOf(legs: MapLeg[], home: AirportMark | null): AirportMark[] {
   const seen = new Set(home ? [home.code] : [])
   return legs.filter((l) => l.kind === 'flight').map((l) => l.destination).filter((a) => !seen.has(a.code) && seen.add(a.code))
-}
-
-/** Whole miles flown by `t` along the flights' planned routes, with the one in the air counted in part. */
-export function milesFlown(legs: MapLeg[], t: number): number {
-  return Math.round(legs.filter((l) => l.kind === 'flight').reduce((sum, l) => sum + legDistanceMeters(l) * legProgress(l, t), 0) / METERS_PER_MILE)
-}
-
-/** Whole miles of every flight among `legs`. */
-export function totalMiles(legs: MapLeg[]): number {
-  return Math.round(legs.filter((l) => l.kind === 'flight').reduce((sum, l) => sum + legDistanceMeters(l), 0) / METERS_PER_MILE)
 }
 
 /** The trip's days: CrewLu's count when known (at least 1), else the calendar days its span covers in `timeZone` (Stage 2 spec §8.1). */
