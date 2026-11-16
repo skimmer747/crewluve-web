@@ -55,3 +55,42 @@ describe('the facts body (Stage 2 spec §5.2, §6.3)', () => {
     expect(screen.queryByRole('heading', { name: 'Trip so far' })).toBeNull()
   })
 })
+
+describe('the credit to adsb.lol under the facts (Stage 3 spec §8, §15)', () => {
+  const withWeather = factRow('headed', 'AirplaneLanding', 'Lands Cologne 9:30 PM', ['48°F and rain on landing'], true)
+  const footer = (container: Element) => container.querySelector('footer.facts-footer')!
+
+  it('shows under "Estimated from the schedule", beside the weather credit, whenever a flight with live data shows', () => {
+    const { container } = render(<FactsBody rows={[withWeather]} tripSoFar={soFar} showsLiveCredit />)
+    const lines = [...footer(container).children]
+    expect(lines).toHaveLength(3)
+    expect(lines[0].textContent).toBe('Estimated from the schedule')
+    expect(lines[1].classList.contains('live-credit')).toBe(true)
+    expect(lines[2].classList.contains('weather-credit')).toBe(true)
+  })
+
+  it('reads "Live position: adsb.lol", and is a sentence for screen readers', () => {
+    const { container } = render(<FactsBody rows={[below]} tripSoFar={soFar} showsLiveCredit />)
+    const credit = footer(container).querySelector('.live-credit')!
+    const shown = screen.getByText('Live position: adsb.lol')
+    expect(credit.contains(shown)).toBe(true)
+    expect(shown.getAttribute('aria-hidden')).toBe('true')
+    const spoken = screen.getByText('Live position from adsb.lol.')
+    expect(credit.contains(spoken)).toBe(true)
+    expect(spoken.classList.contains('sr-only')).toBe(true)
+    expect(spoken.closest('[aria-hidden="true"]')).toBeNull()
+    // Plain words, as the app's: no link.
+    expect(credit.querySelector('a')).toBeNull()
+  })
+
+  it('leaves the footer as it was with no live data', () => {
+    const { container } = render(<FactsBody rows={[below]} tripSoFar={soFar} />)
+    const before = footer(container).outerHTML
+    expect(footer(container).textContent).toBe('Estimated from the schedule')
+    expect(container.querySelector('.live-credit')).toBeNull()
+    cleanup()
+    const none = render(<FactsBody rows={[below]} tripSoFar={soFar} showsLiveCredit={false} />)
+    expect(footer(none.container).outerHTML).toBe(before)
+    expect(screen.queryByText(/adsb\.lol/)).toBeNull()
+  })
+})

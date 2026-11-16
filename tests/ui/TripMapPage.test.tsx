@@ -295,3 +295,45 @@ describe('opening a recap (Stage 2 spec §6.5)', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Trip recap' })).toBeTruthy()
   })
 })
+
+describe('the facts at a replay’s moment, and the credit to adsb.lol (Stage 3 spec §7.3, §8)', () => {
+  const facts: FactsAtMoment = {
+    headline: 'Over Kansas',
+    rows: [factRow('distance', 'Path', '2,140 mi flown · 1,960 to go')],
+    tripSoFar: { flights: [], totalsTitle: 'Trip so far', totals: null },
+  }
+  const show = (factsAt: (t: number, now: number, isReplay: boolean) => FactsAtMoment) => {
+    setWindowSize(1280, 800)
+    const map = makeTripMap(EUROPE, { isNextTrip: false, home: 'SDF', now: at(12), airports: AIRPORTS })!
+    return render(<TripMapPage map={map} now={at(12)} viewerTz="America/New_York" h24={false} day={1} days={4} land={null}
+      onBack={() => {}} factsAt={factsAt} />)
+  }
+
+  it('asks for the facts of a replay’s moment as a replay’s, and of now as now’s', () => {
+    const factsAt = vi.fn((_t: number, _now: number, _isReplay: boolean) => facts)
+    show(factsAt)
+    expect(factsAt.mock.lastCall).toEqual([at(12), at(12), false])
+    const slider = screen.getByRole('slider', { name: 'Trip time' }) as HTMLInputElement
+    fireEvent.input(slider, { target: { value: String(Number(slider.max) / 4) } })
+    const [t, now, isReplay] = factsAt.mock.lastCall!
+    expect(isReplay).toBe(true)
+    expect(t).not.toBe(at(12))
+    expect(now).toBe(at(12))
+    fireEvent.click(screen.getByRole('button', { name: 'Live' }))
+    expect(factsAt.mock.lastCall).toEqual([at(12), at(12), false])
+  })
+
+  it('credits adsb.lol under the facts when they say a flight with live data shows', () => {
+    const { container } = show(() => ({ ...facts, showsLiveCredit: true }))
+    const credit = container.querySelector('#trip-facts .facts-footer .live-credit')!
+    expect(credit.querySelector('[aria-hidden="true"]')?.textContent).toBe('Live position: adsb.lol')
+    expect(credit.querySelector('.sr-only')?.textContent).toBe('Live position from adsb.lol.')
+  })
+
+  it('has no credit when they don’t', () => {
+    const { container } = show(() => facts)
+    expect(container.querySelector('#trip-facts .facts-footer')).not.toBeNull()
+    expect(container.querySelector('.live-credit')).toBeNull()
+    expect(container.textContent).not.toMatch(/adsb\.lol/)
+  })
+})

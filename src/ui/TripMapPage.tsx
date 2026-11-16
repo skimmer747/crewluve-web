@@ -32,8 +32,11 @@ export interface TripMapPageProps {
   days: number | null
   land: GeoPoint[][] | null
   onBack: () => void
-  /** The facts at a moment on the timeline, with `now` the real time (Stage 2 spec §5). Without it the panel is Stage 1B's. */
-  factsAt?: (t: number, now: number) => FactsAtMoment
+  /**
+   * The facts at a moment on the timeline, with `now` the real time (Stage 2 spec §5). `isReplay` while the clock isn't
+   * live: a replay's facts are the replay's (Stage 3 spec §7.3). Without it the panel is Stage 1B's.
+   */
+  factsAt?: (t: number, now: number, isReplay: boolean) => FactsAtMoment
 }
 
 /** The side panel's gap from the screen's edge, and from the clear part of the map (Stage 2 spec §10). */
@@ -85,7 +88,9 @@ export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, 
   // The side panel opens with its facts showing; the bottom panel opens small, with "More facts" (§10).
   const [open, setOpen] = useState(side)
   useEffect(() => setOpen(side), [side])
-  const facts = factsAt ? factsAt(t, now) : null
+  // A replay's moment has a replay's facts: the real plane where its record has it, with no height or speed (Stage 3
+  // spec §7.3).
+  const facts = factsAt ? factsAt(t, now, isReplay) : null
   const showsFacts = facts != null && open
 
   // Focus the heading once, as the page opens. The page re-renders every second, so this must not depend on onBack.
@@ -157,7 +162,7 @@ export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, 
         </div>
         {facts && (
           <div id="trip-facts" class="trip-facts" hidden={!open}>
-            <FactsBody rows={facts.rows} tripSoFar={facts.tripSoFar} />
+            <FactsBody rows={facts.rows} tripSoFar={facts.tripSoFar} showsLiveCredit={facts.showsLiveCredit} />
           </div>
         )}
         <TripTimeline map={map} clock={clock} onChange={setClock} onQuickLayovers={onQuickLayovers} now={frameNow} viewerTz={viewerTz} h24={h24} />

@@ -43,4 +43,6 @@ export interface FactsAtMoment {
   headline: string
   rows: FactRow[]
   tripSoFar: TripSoFar
+  /** A flight of the trip on screen has live data, which the footer credits adsb.lol for (Stage 3 spec §8). False unless it's said. */
+  showsLiveCredit?: boolean
 }

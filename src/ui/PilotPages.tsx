@@ -4,14 +4,16 @@ import { loadDemoLandingForecast, loadDemoWeather } from '../data/demoWeather'
 import {
   loadLiveLandingForecast, loadLiveWeather, tempUnitFor, type LandingLoader, type TempUnit, type WeatherLoader, type WeatherPlace,
 } from '../data/weather'
+import type { FactsAtMoment } from '../facts/factRow'
 import { makeFactsStore } from '../facts/factsStore'
-import { makeTripFacts } from '../facts/tripFacts'
+import { makeTripFacts, type FactsOptions, type TripFacts } from '../facts/tripFacts'
 import { factsAtMoment } from '../facts/tripFactsRows'
 import { buildLegs, type Leg } from '../engine/legs'
 import { estimatedArrival, liveMapFlights, withLiveTimes } from '../engine/liveLegs'
 import { safeSnapshot, type Snapshot } from '../engine/snapshot'
 import type { Schedule } from '../engine/types'
 import type { MapFlight } from '../map/mapFlight'
+import type { TripMap } from '../map/tripMap'
 import { tripMapFor } from '../map/tripMapFor'
 import type { QuickStatus } from '../partner/summary'
 import { prefers24Hour, viewerTimeZone } from '../time/zoned'
@@ -137,11 +139,12 @@ export function PilotPages({
   const forecasts = useLandingWeather(mapOpen ? tripMap : null, now, unit, loadLanding)
   // One store for every facts this page makes, so a real path's story is kept between renders (Stage 3 spec §8).
   const factsStore = useMemo(() => makeFactsStore(), [])
-  const facts = tripMap && snap
-    ? makeTripFacts(tripMap, {
+  const factsOptions: FactsOptions | null = snap
+    ? {
       geography, comparisons, forecasts, viewerTz, h24, day: snap.tripProgress?.day ?? null, days: snap.tripProgress?.days ?? null, store: factsStore,
-    })
+    }
     : null
+  const facts = tripMap && factsOptions ? makeTripFacts(tripMap, factsOptions) : null
   const listed = useMemo(() => (ready ? scheduleLegs(ready.legs) : []), [ready])
 
   if (!snap) {
@@ -166,7 +169,7 @@ export function PilotPages({
   if (mapPage.open && tripMap) {
     return <TripMapPage map={tripMap} now={now} viewerTz={viewerTz} h24={h24} day={snap.tripProgress?.day ?? null}
       days={snap.tripProgress?.days ?? null} land={land} onBack={mapPage.back}
-      factsAt={facts ? (t, real) => factsAtMoment(facts, t, real) : undefined} />
+      factsAt={facts && factsOptions ? factsAtMoments(tripMap, facts, factsOptions) : undefined} />
   }
   const view = { legs: listed, pilot: snap.pilot, now, timeZone: viewerTz, h24, airports }
   // Side by side, the schedule sits beside the cards, and nothing on the status page opens it (3C §4.3). Each layout
@@ -180,6 +183,18 @@ export function PilotPages({
   }
 
   return <StatusScreen key="one-column" {...status} onOpenSchedule={page.show} />
+}
+
+/**
+ * The full map's facts at its moments (Stage 3 spec §7.3, §8). Now's are the page's own. A replay's are made as they
+ * are, but as a replay's: the real plane is where its record has it, with no height or speed. They're made from the
+ * same store, so a real path's story and sun events aren't made twice, and only once a render, the first time a
+ * replay's moment is asked about: the full map draws a playing replay every frame.
+ */
+function factsAtMoments(map: TripMap, facts: TripFacts, options: FactsOptions) {
+  let replay: TripFacts | null = null
+  return (t: number, now: number, isReplay: boolean): FactsAtMoment =>
+    factsAtMoment(isReplay ? (replay ??= makeTripFacts(map, { ...options, isReplay: true })) : facts, t, now)
 }
 
 /** The airport whose weather the location card shows, or null when the card is hidden or the airport isn't in the list. */

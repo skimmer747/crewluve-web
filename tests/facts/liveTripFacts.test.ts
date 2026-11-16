@@ -3,7 +3,7 @@ import { rowSentence, type FactRow, type FactRowKind } from '../../src/facts/fac
 import { makeGeography, type Geography } from '../../src/facts/geography'
 import { COCKPIT_HORIZON, cockpitHorizonOnLeg, sunAltitudeOnLeg } from '../../src/facts/sky'
 import { cardSummary, headline, makeTripFacts, showsLiveData, tripSoFar, type TripFacts } from '../../src/facts/tripFacts'
-import { factRows } from '../../src/facts/tripFactsRows'
+import { factRows, factsAtMoment } from '../../src/facts/tripFactsRows'
 import type { GeoPoint } from '../../src/map/greatCircle'
 import type { LiveFlight } from '../../src/map/liveFlight'
 import { makeMapFlight, mapFlightProgress } from '../../src/map/mapFlight'
@@ -357,5 +357,34 @@ describe('a real plane still on the ground at its departure airport (the website
     const theFacts = facts('12:53', { now: '12:58', landed: true })
     expect(headline(theFacts, at('12:58'))).toBe('Over the Test Sea')
     expect(row('distance', rowsAt(theFacts, '12:58')).title).toBe('1,382 mi flown · 0 to go')
+  })
+})
+
+describe('the full map’s facts at a moment, with and without live data (Stage 3 spec §7.3, §8)', () => {
+  it('credit adsb.lol whenever a flight of the trip has live data', () => {
+    expect(factsAtMoment(facts('11:10'), at('11:10'), at('11:10')).showsLiveCredit).toBe(true)
+    // In a replay too, and at a moment before the real plane was seen: it's the trip on screen that has live data.
+    expect(factsAtMoment(facts('11:10', { isReplay: true }), at('10:05'), at('11:10')).showsLiveCredit).toBe(true)
+    expect(factsAtMoment(factsOf(equatorFlight(0, 20)), at('11:10'), at('11:10')).showsLiveCredit).toBe(false)
+    expect(factsAtMoment(factsOf(equatorLiveLeg(null, at('11:10'))), at('11:10'), at('11:10')).showsLiveCredit).toBe(false)
+  })
+
+  it('credit adsb.lol for a real path with no fix, and for a plane seen only at its gate, with no path yet', () => {
+    const pathOnly = equatorLiveLeg({ ...equatorLive(at('11:10')), fix: null }, at('11:10'))
+    expect(pathOnly.flight?.path.isReal).toBe(true)
+    expect(factsAtMoment(factsOf(pathOnly), at('11:10'), at('11:10')).showsLiveCredit).toBe(true)
+    const gate = atTheGate('10:35')
+    const leg = gate.map.legs.find((l) => l.kind === 'flight')!
+    expect(leg.flight?.live?.fix).not.toBeNull()
+    expect(leg.flight?.path.isReal).toBe(false)
+    expect(factsAtMoment(gate, at('10:35'), at('10:35')).showsLiveCredit).toBe(true)
+  })
+
+  it('of a flight with no live data, are the same in a replay as they were', () => {
+    for (const leg of [equatorFlight(0, 20), equatorLiveLeg(null, at('11:10'))]) {
+      for (const t of ['10:05', '10:35', '11:10', '12:07', '13:20']) {
+        expect(factsAtMoment(factsOf(leg, { isReplay: true }), at(t), at('11:10'))).toEqual(factsAtMoment(factsOf(leg), at(t), at('11:10')))
+      }
+    }
   })
 })
