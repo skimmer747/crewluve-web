@@ -124,9 +124,21 @@ describe("the card's sentence for a screen reader (Stage 3 spec §9, §15)", () 
     expect(liveSummary(leg, t, NY, false)).toMatch(/^UPS207 to Philadelphia, about 14 minutes ahead of schedule\. Lands about /)
   })
 
+  it("while it's out of sight, says what's below by the plan, and where it was last seen (Stage 3 spec §15, best guesses design §2)", () => {
+    const { leg, t } = caseLeg('ahead, in the air', 3)
+    expect(liveSummary(leg, t, NY, false, 'Ohio', 'near Columbus'))
+      .toBe('UPS207 to Philadelphia, about 14 minutes ahead of schedule, over Ohio, last seen near Columbus. Lands about 8:30 AM your time.')
+    expect(liveSummary(leg, t, NY, false, null, '12 minutes ago'))
+      .toBe('UPS207 to Philadelphia, about 14 minutes ahead of schedule, last seen 12 minutes ago. Lands about 8:30 AM your time.')
+  })
+
   it('says it is still on the ground, and when it will land, and nothing of what is below', () => {
     const { leg, t } = caseLeg('still on the ground twenty minutes after')
     expect(liveSummary(leg, t, NY, false, 'Indiana')).toMatch(/^UPS207 to Philadelphia, still on the ground, 20 minutes behind schedule\. Lands about /)
+    // Nor where it was last seen: a plane on the ground or landed is over nothing, and out of sight of nothing.
+    expect(liveSummary(leg, t, NY, false, 'Indiana', 'near Indianapolis')).toMatch(/^UPS207 to Philadelphia, still on the ground, 20 minutes behind schedule\. Lands about /)
+    const landed = caseLeg('landed, seen all the way')
+    expect(liveSummary(landed.leg, landed.t, NY, false, null, '2 hours ago')).toMatch(/^UPS207 to Philadelphia, landed 23 minutes early\. Reaches the gate/)
   })
 
   it('once it has landed, says when it reaches the gate, not that it lands', () => {

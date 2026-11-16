@@ -1,10 +1,13 @@
+import { aircraftTypeName } from '../facts/aircraftTypeNames'
 import type { City, Place } from '../facts/geography'
 import type { Milestone, MilestoneKind } from '../facts/milestone'
 import type { Chase, MoonSight, SunEvent, SunKind } from '../facts/sky'
+import { METERS_PER_MILE, METERS_PER_NM } from '../map/greatCircle'
 import { isArrivalEstimated, type MapLeg } from '../map/tripMap'
 import type { MoonPhase } from '../time/moon'
 import { MINUTE, zoneOffsetMinutes } from '../time/zoned'
 import { shortTimeText } from './format'
+import { minutesText, spokenMinutes } from './tripMap'
 
 /**
  * The facts' sentences about a flight (Stage 2 spec §4, §5), as the app's FactsWording: milestones, what's below, the
@@ -31,9 +34,15 @@ export function milestoneHeadline(milestone: MilestoneKind): string {
   }
 }
 
-/** The trip so far's list: "Crossed into Kansas · 1:12 PM". */
+/** "about " before a time that's a best guess, else nothing (best guesses design §2). */
+const aboutIf = (isEstimate: boolean | undefined) => (isEstimate ? 'about ' : '')
+
+/**
+ * The trip so far's list: "Crossed into Kansas · 1:12 PM". A best guess reads "about": "Out over the Pacific · about
+ * 4:05 PM" (best guesses design §2).
+ */
 export function milestoneLine(milestone: Milestone, viewerTz: string, h24: boolean): string {
-  const time = shortTimeText(milestone.time, viewerTz, h24)
+  const time = `${aboutIf(milestone.isEstimate)}${shortTimeText(milestone.time, viewerTz, h24)}`
   switch (milestone.kind) {
     case 'crossedInto':
       return `Crossed into ${milestone.name} · ${time}`
@@ -57,11 +66,88 @@ export function flightTitle(leg: MapLeg): string {
 /** "Over Kansas", "Over Québec, near Montréal". */
 export const belowWords = (place: Place, city: City | null) => (city ? `Over ${place.name}, near ${city.name}` : `Over ${place.name}`)
 
-/** "Passes 40 mi from home at 1:05 PM", or "Closest to home was 40 mi at 1:05 PM" once it's passed. */
-export function closestToHomeText(miles: number, at: number, now: number, viewerTz: string, h24: boolean): string {
-  const clock = shortTimeText(at, viewerTz, h24)
+/**
+ * "Passes 40 mi from home at 1:05 PM", or "Closest to home was 40 mi at 1:05 PM" once it's passed. Where nobody saw the
+ * real plane (`isEstimate`) the time is a best guess: "Passes 40 mi from home at about 1:05 PM".
+ */
+export function closestToHomeText(miles: number, at: number, now: number, viewerTz: string, h24: boolean, isEstimate = false): string {
+  const clock = `${aboutIf(isEstimate)}${shortTimeText(at, viewerTz, h24)}`
   return at > now ? `Passes ${miles} mi from home at ${clock}` : `Closest to home was ${miles} mi at ${clock}`
 }
+
+// The real plane (Stage 3 spec §8)
+
+/** Whole minutes in `ago` ms, held from a minute to a year, so a length that can't be right never reaches the screen. */
+function minutesAgo(ago: number): number {
+  const asked = Math.round(ago / MINUTE)
+  return Number.isNaN(asked) ? 1 : Math.min(Math.max(asked, 1), 365 * 24 * 60)
+}
+
+/**
+ * Under what's below, while the real plane is out of sight, `ago` ms after it was last seen: "Last seen near Montréal ·
+ * 12 min ago" by a city of a million or more, else "Last seen over Québec · 12 min ago", else "Last seen 12 min ago".
+ * It's the one line that says the place above it is worked out, not seen (best guesses design §2).
+ */
+export function lastSeenLine(place: Place | null, city: City | null, ago: number): string {
+  const time = `${minutesText(minutesAgo(ago))} ago`
+  if (city) return `Last seen near ${city.name} · ${time}`
+  if (place) return `Last seen over ${place.name} · ${time}`
+  return `Last seen ${time}`
+}
+
+/**
+ * Where a plane that's out of sight was last seen, for the card's sentence for a screen reader: "near Montréal" by a
+ * city of a million or more, else "over Québec", else how long ago, "2 hours ago".
+ */
+export function spokenLastSeen(place: Place | null, city: City | null, ago: number): string {
+  if (city) return `near ${city.name}`
+  if (place) return `over ${place.name}`
+  return `${spokenMinutes(minutesAgo(ago))} ago`
+}
+
+/** `text` without the spaces around it, or null when nothing is left. */
+const nonEmpty = (text: string | null) => text?.trim() || null
+
+/**
+ * The plane's row: "Boeing 767-300 · N370UP". An unknown type code shows as itself, "ZZZZ · N370UP", and a missing type
+ * or registration is left out. Null with neither.
+ */
+export function aircraftText(typeCode: string | null, registration: string | null): string | null {
+  const type = nonEmpty(typeCode)
+  const parts = [type == null ? null : aircraftTypeName(type), nonEmpty(registration)].filter((p): p is string => p != null)
+  return parts.length > 0 ? parts.join(' · ') : null
+}
+
+/**
+ * A height or a speed outside these is left out: no airliner sends one, and a number that can't be right mustn't reach
+ * the screen.
+ */
+export const BELIEVED_HEIGHTS_FEET = { lowest: 0, highest: 60_000 }
+export const BELIEVED_SPEEDS_KNOTS = { lowest: 0, highest: 800 }
+
+/** Whether `value` is within `range`: never a value that isn't a number. */
+const isWithin = (value: number, range: { lowest: number; highest: number }) => value >= range.lowest && value <= range.highest
+
+/** `value` to the nearest `step`, as a whole number: "35,000", never "-0". */
+const toNearest = (value: number, step: number) => numberText(Math.round(value / step) * step + 0)
+
+/**
+ * "35,000 ft · 540 mph": the real plane's height to the nearest 100 ft and its speed over the ground to the nearest 10
+ * mph, each where the plane sent one that could be right. Null with neither.
+ */
+export function heightAndSpeedText(altitudeFeet: number | null, groundSpeedKnots: number | null): string | null {
+  const height = altitudeFeet != null && isWithin(altitudeFeet, BELIEVED_HEIGHTS_FEET) ? `${toNearest(altitudeFeet, 100)} ft` : null
+  const speed = groundSpeedKnots != null && isWithin(groundSpeedKnots, BELIEVED_SPEEDS_KNOTS)
+    ? `${toNearest((groundSpeedKnots * METERS_PER_NM) / METERS_PER_MILE, 10)} mph`
+    : null
+  const parts = [height, speed].filter((p): p is string => p != null)
+  return parts.length > 0 ? parts.join(' · ') : null
+}
+
+/** The credit under the facts wherever a flight with live data shows: adsb.lol's data is under the ODbL. */
+export const LIVE_CREDIT = 'Live position: adsb.lol'
+/** The credit as a screen reader reads it. */
+export const SPOKEN_LIVE_CREDIT = 'Live position from adsb.lol.'
 
 // The sky (§4.5)
 
@@ -111,7 +197,9 @@ export const groundSunText = (kind: SunKind, time: number, zone: string, h24: bo
 /** "2,140 mi flown · 1,960 to go". */
 export const flownText = (flown: number, toGo: number) => `${numberText(flown)} mi flown · ${numberText(toGo)} to go`
 
-export const halfwayText = (time: number, viewerTz: string, h24: boolean) => `Halfway at ${shortTimeText(time, viewerTz, h24)}`
+/** "Halfway at 4:12 PM", or with the real plane's estimate "Halfway at about 12:05 PM" (Stage 3 spec §8). */
+export const halfwayText = (time: number, viewerTz: string, h24: boolean, isEstimate = false) =>
+  `Halfway at ${aboutIf(isEstimate)}${shortTimeText(time, viewerTz, h24)}`
 
 /** "Averaging about 510 mph", to the nearest 10. */
 export const averageSpeedText = (milesPerHour: number) => `Averaging about ${Math.round(milesPerHour / 10) * 10} mph`

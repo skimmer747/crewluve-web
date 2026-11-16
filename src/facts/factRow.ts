@@ -5,8 +5,8 @@ import type { IconName } from '../icons/iconPaths'
  * the row's other parts.
  */
 export type FactRowKind =
-  // In flight (§5.1)
-  | 'below' | 'sky' | 'distance' | 'headed'
+  // In flight (§5.1), with the plane's row for a flight with live data (Stage 3 spec §8): "Boeing 767-300 · N370UP"
+  | 'below' | 'plane' | 'sky' | 'distance' | 'headed'
   // On a layover (§5.3), at home before a trip (§5.4) and in the recap (§5.5)
   | 'whereTheyAre' | 'nextFlight' | 'leaves' | 'tripAhead' | 'theTrip' | 'onTheWay' | 'tripSoFar' | 'longestFlight'
 

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
-  averageSpeedText, belowWords, chaseText, closestToHomeText, cockpitCountdown, cockpitEventText, flightTitle, flownText, flyingInto,
-  groundSunText, landsText, midLine, milestoneHeadline, milestoneLine, moonText, timeDifferenceText,
+  aircraftText, averageSpeedText, belowWords, chaseText, closestToHomeText, cockpitCountdown, cockpitEventText, flightTitle, flownText,
+  flyingInto, groundSunText, halfwayText, heightAndSpeedText, landsText, lastSeenLine, LIVE_CREDIT, midLine, milestoneHeadline, milestoneLine,
+  moonText, SPOKEN_LIVE_CREDIT, spokenLastSeen, timeDifferenceText,
 } from '../../src/copy/facts'
 import { longestText, onTheWayText, recapChip, recapSummary, soFarText, totalsTiles } from '../../src/copy/factsTrip'
 import type { MapLeg } from '../../src/map/tripMap'
@@ -31,6 +32,14 @@ describe('milestones in words (Stage 2 spec §4.3)', () => {
     expect(milestoneLine({ kind: 'closestToHome', miles: 40, time: NOW }, NY, false)).toBe(`Closest to home, 40 mi · 3:14${PM}`)
   })
 
+  it('says "about" before a best guess’s time (best guesses design §2)', () => {
+    expect(milestoneLine({ kind: 'outOver', name: 'the Pacific', time: NOW }, NY, false)).toBe(`Out over the Pacific · 3:14${PM}`)
+    expect(milestoneLine({ kind: 'outOver', name: 'the Pacific', time: NOW, isEstimate: true }, NY, false)).toBe(`Out over the Pacific · about 3:14${PM}`)
+    expect(milestoneLine({ kind: 'halfway', time: NOW, isEstimate: true }, NY, false)).toBe(`Halfway · about 3:14${PM}`)
+    expect(milestoneLine({ kind: 'crossedInto', name: 'Kansas', time: NOW, isEstimate: true }, NY, false)).toBe(`Crossed into Kansas · about 3:14${PM}`)
+    expect(milestoneLine({ kind: 'closestToHome', miles: 40, time: NOW, isEstimate: true }, NY, false)).toBe(`Closest to home, 40 mi · about 3:14${PM}`)
+  })
+
   it('names a flight by its number and cities', () => {
     expect(flightTitle(toCologne)).toBe('UPS207 · Louisville → Cologne')
     expect(flightTitle(home)).toBe('Cologne → Louisville')
@@ -47,6 +56,12 @@ describe('below, the sky and the distance in words (Stage 2 spec §4.1, §4.5, �
   it('says when it passes closest to home, before and after', () => {
     expect(closestToHomeText(40, NOW + 60 * MIN, NOW, NY, false)).toBe(`Passes 40 mi from home at 4:14${PM}`)
     expect(closestToHomeText(40, NOW, NOW + 60 * MIN, NY, false)).toBe(`Closest to home was 40 mi at 3:14${PM}`)
+  })
+
+  it('says "about" before the closest point’s time ahead of a real plane, and after it where nobody saw it pass', () => {
+    expect(closestToHomeText(40, NOW + 60 * MIN, NOW, NY, false, true)).toBe(`Passes 40 mi from home at about 4:14${PM}`)
+    // Where nobody saw the plane pass, it's still a best guess.
+    expect(closestToHomeText(40, NOW, NOW + 60 * MIN, NY, false, true)).toBe(`Closest to home was 40 mi at about 3:14${PM}`)
   })
 
   it('counts down to a cockpit sunset, rounding up', () => {
@@ -82,6 +97,92 @@ describe('below, the sky and the distance in words (Stage 2 spec §4.1, §4.5, �
     expect(averageSpeedText(504)).toBe('Averaging about 500 mph')
     expect(averageSpeedText(506)).toBe('Averaging about 510 mph')
     expect(midLine('Like driving coast to coast')).toBe('like driving coast to coast')
+  })
+
+  it('says "about" before the halfway time that’s the real plane’s estimate (Stage 3 spec §8)', () => {
+    expect(halfwayText(NOW, NY, false)).toBe(`Halfway at 3:14${PM}`)
+    expect(halfwayText(NOW, NY, false, true)).toBe(`Halfway at about 3:14${PM}`)
+  })
+})
+
+describe('the real plane in words (Stage 3 spec §8, best guesses design §2)', () => {
+  const quebec = { name: 'Québec', kind: 'province' as const, country: 'Canada' }
+  const montreal = { name: 'Montréal', lat: 45.5, lon: -73.57 }
+
+  it('says where it was last seen, by the city near it, else the place under it, and how long ago', () => {
+    expect(lastSeenLine(quebec, montreal, 10 * MIN)).toBe('Last seen near Montréal · 10 min ago')
+    expect(lastSeenLine(quebec, null, 130 * MIN)).toBe('Last seen over Québec · 2 h 10 min ago')
+    expect(lastSeenLine(null, null, 120 * MIN)).toBe('Last seen 2 h ago')
+  })
+
+  it('says it for a screen reader, by the city near it, else the place under it, else how long ago', () => {
+    expect(spokenLastSeen(quebec, montreal, 10 * MIN)).toBe('near Montréal')
+    expect(spokenLastSeen(quebec, null, 10 * MIN)).toBe('over Québec')
+    expect(spokenLastSeen(null, null, 10 * MIN)).toBe('10 minutes ago')
+    expect(spokenLastSeen(null, null, 130 * MIN)).toBe('2 hours 10 minutes ago')
+  })
+
+  it('holds a time that can’t be right from a minute to a year', () => {
+    expect(lastSeenLine(null, null, 20_000)).toBe('Last seen 1 min ago')
+    expect(lastSeenLine(null, null, -500_000)).toBe('Last seen 1 min ago')
+    expect(lastSeenLine(null, null, Infinity)).toBe('Last seen 8760 h ago')
+    expect(lastSeenLine(null, null, NaN)).toBe('Last seen 1 min ago')
+    expect(spokenLastSeen(null, null, NaN)).toBe('1 minute ago')
+  })
+
+  it('says how long ago to the nearest minute', () => {
+    expect(lastSeenLine(null, null, 10 * MIN + 29_000)).toBe('Last seen 10 min ago')
+    expect(lastSeenLine(null, null, 10 * MIN + 31_000)).toBe('Last seen 11 min ago')
+    expect(spokenLastSeen(null, null, 10 * MIN + 31_000)).toBe('11 minutes ago')
+  })
+
+  it('names the plane by its type and registration, each where it’s known', () => {
+    expect(aircraftText('B763', 'N370UP')).toBe('Boeing 767-300 · N370UP')
+    // An unknown type shows as itself.
+    expect(aircraftText('ZZZZ', 'N370UP')).toBe('ZZZZ · N370UP')
+    expect(aircraftText('B763', null)).toBe('Boeing 767-300')
+    expect(aircraftText(null, 'N370UP')).toBe('N370UP')
+    expect(aircraftText(null, null)).toBeNull()
+    expect(aircraftText('  ', '')).toBeNull()
+  })
+
+  it('leaves the spaces off a registration', () => {
+    expect(aircraftText(' b763 ', ' N370UP ')).toBe('Boeing 767-300 · N370UP')
+  })
+
+  it('says the height to the nearest 100 ft and the speed to the nearest 10 mph', () => {
+    // 470 kt is 540.9 mph.
+    expect(heightAndSpeedText(34_975, 470)).toBe('35,000 ft · 540 mph')
+    expect(heightAndSpeedText(35_000, null)).toBe('35,000 ft')
+    expect(heightAndSpeedText(null, 470)).toBe('540 mph')
+    expect(heightAndSpeedText(null, null)).toBeNull()
+    expect(heightAndSpeedText(34_949, null)).toBe('34,900 ft')
+    expect(heightAndSpeedText(34_950, null)).toBe('35,000 ft')
+  })
+
+  it('shows a height and a speed at the edges of what’s believed', () => {
+    expect(heightAndSpeedText(0, 0)).toBe('0 ft · 0 mph')
+    // 800 kt is 920.6 mph.
+    expect(heightAndSpeedText(60_000, 800)).toBe('60,000 ft · 920 mph')
+    expect(heightAndSpeedText(60_001, 801)).toBeNull()
+  })
+
+  it('leaves out a number that can’t be right', () => {
+    expect(heightAndSpeedText(1e12, 470)).toBe('540 mph')
+    expect(heightAndSpeedText(-500, 470)).toBe('540 mph')
+    expect(heightAndSpeedText(35_000, 5_000)).toBe('35,000 ft')
+    expect(heightAndSpeedText(NaN, Infinity)).toBeNull()
+  })
+
+  it('never writes a minus before nothing', () => {
+    // JSON can carry -0, and JavaScript writes it "-0": a number rounded to nothing is 0.
+    expect(heightAndSpeedText(-0, -0)).toBe('0 ft · 0 mph')
+    expect(heightAndSpeedText(20, 0.001)).toBe('0 ft · 0 mph')
+  })
+
+  it('credits adsb.lol', () => {
+    expect(LIVE_CREDIT).toBe('Live position: adsb.lol')
+    expect(SPOKEN_LIVE_CREDIT).toBe('Live position from adsb.lol.')
   })
 })
 
