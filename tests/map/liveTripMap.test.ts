@@ -83,13 +83,18 @@ describe("the trip map's camera with live data", () => {
 describe('a real plane still on the ground at its departure airport (the website’s own, Todd, 16 Nov 2026)', () => {
   const flightOf = (map: TripMap) => map.legs.find((l) => l.kind === 'flight')!
 
-  it('is told while its leg is between its gates and the plane hasn’t left: the airport it waits at', () => {
-    // Ten minutes after the plan's takeoff, and from the moment its leg begins.
-    for (const minutes of [25, 1]) {
-      const map = liveTripMap(START + minutes * MINUTE, atTheGate(minutes))
-      expect(legStillOnGround(flightOf(map), START + minutes * MINUTE)).toBe(true)
-      expect(stillOnGroundIn(map, START + minutes * MINUTE)).toMatchObject({ code: 'SDF', city: 'Louisville' })
-    }
+  it('is told once the plan’s takeoff time has gone by and the plane hasn’t left: the airport it waits at', () => {
+    // Ten minutes after the plan's takeoff.
+    const map = liveTripMap(START + 25 * MINUTE, atTheGate(25))
+    expect(legStillOnGround(flightOf(map), START + 25 * MINUTE)).toBe(true)
+    expect(stillOnGroundIn(map, START + 25 * MINUTE)).toMatchObject({ code: 'SDF', city: 'Louisville' })
+  })
+
+  it('isn’t told while an on-time plane is still before the plan’s takeoff time: it’s taxiing as the schedule has it', () => {
+    // A minute after its leg begins, 14 before the plan's takeoff: Todd's words are for a plane late leaving.
+    const map = liveTripMap(START + MINUTE, atTheGate(1))
+    expect(legStillOnGround(flightOf(map), START + MINUTE)).toBe(false)
+    expect(stillOnGroundIn(map, START + MINUTE)).toBeNull()
   })
 
   it('isn’t told of a plane at its gate before its leg begins: the pilot isn’t flying yet', () => {

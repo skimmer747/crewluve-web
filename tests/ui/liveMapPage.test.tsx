@@ -113,6 +113,13 @@ describe('a real plane still on the ground at its departure airport (the website
     expect(slider().getAttribute('aria-valuetext')).toMatch(/^Friday 7:25\sAM, on the ground in Louisville$/)
   })
 
+  it('says "Flying to", as before, while an on-time plane is still before the plan’s takeoff time', () => {
+    // A minute after its leg begins, 14 before the plan's takeoff.
+    render(page(START + MINUTE, atTheGate(1)))
+    expect(line()).toMatch(/ · Flying to Philadelphia$/)
+    expect(slider().getAttribute('aria-valuetext')).toMatch(/, flying to Philadelphia$/)
+  })
+
   it('says "Flying to" in a replay, which reads where the map has the plane', () => {
     render(page(LATE, atTheGate(25)))
     // A moment early in the flight, before the plane was seen at its gate.

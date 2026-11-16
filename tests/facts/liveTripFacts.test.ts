@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { rowSentence, type FactRow, type FactRowKind } from '../../src/facts/factRow'
 import { makeGeography, type Geography } from '../../src/facts/geography'
-import { COCKPIT_HORIZON, cockpitHorizonOnLeg, sunAltitudeOnLeg } from '../../src/facts/sky'
+import { COCKPIT_HORIZON, cockpitHorizonOnLeg, sunAltitudeOnLeg, sunEvents } from '../../src/facts/sky'
 import { cardSummary, headline, makeTripFacts, showsLiveData, tripSoFar, type TripFacts } from '../../src/facts/tripFacts'
 import { factRows, factsAtMoment } from '../../src/facts/tripFactsRows'
 import type { GeoPoint } from '../../src/map/greatCircle'
@@ -227,6 +227,25 @@ describe('the rows with a real plane (Stage 3 spec §8)', () => {
     expect(row('sky', rows).icon).toBe('Moon')
   })
 
+  it('at dusk, of a flight with no record, have the sunset seen from its own height, not another’s on its route and times', () => {
+    // The status page makes a record from any fix in the air, so this flight, its plane at 25,000 ft with no record, is
+    // made by hand: the sun events kept by route and times must still tell its height from the schedule's 35,000 ft.
+    const scheduled = equatorFlight(0, 20, EQUINOX + 7 * 3_600_000, 'dusk')
+    const live = movedOn(equatorLive(liveTime(10), { altitudeFt: 25_000 }), 7 * 3_600_000)
+    const flight = makeMapFlight(scheduled.start, scheduled.end, scheduled.origin.place, scheduled.destination.place, live)
+    if (!flight) throw new Error('The dusk flight has no plan')
+    const lower = { ...scheduled, flight: { ...flight, record: null } }
+    expect(cockpitHorizonOnLeg(lower)).not.toBe(COCKPIT_HORIZON)
+    const fromCruise = factsOf(scheduled).sunEvents.dusk
+    expect(fromCruise).toEqual(sunEvents(scheduled))
+    expect(fromCruise?.[0]?.kind).toBe('sunset')
+    // Seen from 25,000 ft its horizon is higher, and the sun sets sooner.
+    expect(factsOf(lower).sunEvents.dusk).toEqual(sunEvents(lower))
+    expect(factsOf(lower).sunEvents.dusk?.[0]?.time).toBeLessThan(fromCruise?.[0]?.time ?? -Infinity)
+    // And the schedule's are still its own.
+    expect(factsOf(scheduled).sunEvents.dusk).toEqual(fromCruise)
+  })
+
   it('with no live data, are the schedule’s, as before', () => {
     const rows = rowsAt(factsOf(equatorLiveLeg(null, at('11:10'))), '11:10')
     // No plane's row.
@@ -322,8 +341,29 @@ describe('a real plane still on the ground at its departure airport (the website
     expect(row('distance', rowsAt(atTheGate('10:35'), '10:35')).title).toBe('1,382 mi to go')
   })
 
-  it('says so from the moment its leg begins, before the plan’s takeoff', () => {
-    expect(headline(atTheGate('10:05'), at('10:05'))).toBe('Still on the ground in Rockford')
+  it('leaves out the sky’s row, as nothing is flying yet', () => {
+    // The equator flight 7 hours later, at dusk: the plan's takeoff is at 17:15, and at 17:35 the plane is at its gate.
+    const dusk = (isReplay: boolean) => {
+      const scheduled = equatorFlight(0, 20, EQUINOX + 7 * 3_600_000, 'dusk')
+      const flight = makeMapFlight(scheduled.start, scheduled.end, scheduled.origin.place, scheduled.destination.place, onTheGround(at('17:35')))
+      if (!flight) throw new Error('The dusk flight has no plan')
+      const progress = mapFlightProgress(flight, at('17:35'))
+      return factsOf({ ...scheduled, start: progress.start, end: progress.end, flight }, { isReplay })
+    }
+    // In a replay the map has the schedule's plane in the air, flying into the sunset: the same leg has a sky row then.
+    expect(row('sky', rowsAt(dusk(true), '17:35')).title).toBe('Flying into the night')
+    expect(rowsAt(dusk(false), '17:35').map((r) => r.kind)).toEqual(['below', 'plane', 'distance', 'headed'])
+  })
+
+  it('says nothing of it before the plan’s takeoff: an on-time plane taxiing out reads as before', () => {
+    // 10:05, ten minutes before the plan's takeoff: what's below the plane at the gate, and nothing flown yet.
+    const theFacts = atTheGate('10:05')
+    expect(headline(theFacts, at('10:05'))).toBe('Over Alpha')
+    const rows = rowsAt(theFacts, '10:05')
+    expect(row('below', rows).title).toBe('Over Alpha')
+    expect(row('below', rows).detail).toMatch(/^Passes 35 mi from home at \d/)
+    expect(row('distance', rows).title).toBe('0 mi flown · 1,382 to go')
+    expect(row('distance', rows).detail).toMatch(/^Halfway at \d/)
   })
 
   it('leads the headline before a crossing the schedule’s times have it make', () => {

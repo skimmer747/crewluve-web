@@ -18,7 +18,7 @@ import { hasLiveData, legPath } from './legCourse'
 import { legStory, placeAtDistance, type LegStory } from './legStory'
 import { MILESTONE_HEADLINE_MS, milestones, type Milestone } from './milestone'
 import { legPlane } from './planePosition'
-import { sunEvents, type SunEvent } from './sky'
+import { cockpitHorizonOnLeg, sunEvents, type SunEvent } from './sky'
 import { longestFlight, totalsSoFar, wholeTotals, type SunEventsByLeg } from './tripTotals'
 
 /**
@@ -75,7 +75,7 @@ export interface TripFacts {
  * route and home, as the app's LegStoryStore keeps them (§3.2).
  */
 const stories = new WeakMap<Geography, Map<string, LegStory>>()
-/** Each flight's sun events, by its route and its delay-moved times: a new delay works them out again (§3.2). */
+/** Each flight's sun events, by its route, its delay-moved times and its sky's height: a new delay works them out again (§3.2). */
 const sunEventsByRoute = new Map<string, SunEvent[]>()
 /** More than this many kept means a page open across many delays and trips: it starts again rather than grow. */
 const SUN_EVENTS_KEPT = 200
@@ -98,8 +98,12 @@ function storyOf(leg: MapLeg, geography: Geography, home: AirportMark | null): L
   return story
 }
 
+/**
+ * The sun events of a flight with no record, kept by its route, its times and the height its sky is seen from: a fix at
+ * its cruise moves them, so two flights alike but for that don't share them. With no live data it's 35,000 ft, as before.
+ */
 function sunEventsOf(leg: MapLeg): SunEvent[] {
-  const key = [pointKey(leg.origin.place), pointKey(leg.destination.place), leg.start, leg.end].join('|')
+  const key = [pointKey(leg.origin.place), pointKey(leg.destination.place), leg.start, leg.end, cockpitHorizonOnLeg(leg)].join('|')
   let events = sunEventsByRoute.get(key)
   if (!events) {
     if (sunEventsByRoute.size >= SUN_EVENTS_KEPT) sunEventsByRoute.clear()

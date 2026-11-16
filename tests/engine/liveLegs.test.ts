@@ -272,13 +272,18 @@ describe('a real plane still on the ground at its departure airport (the website
   const atTheGate = (minutes: number) =>
     liveFlight([], { legId: 'f1', state: 'ground', fix: fix(minutes - 1 / 3, airport('SDF').lat, airport('SDF').lng, { onGround: true }) })
 
-  it('is the flight between its gates whose plane hasn’t left, by its id: the narrative says so', () => {
+  it('is the flight between its gates whose plane hasn’t left by the plan’s takeoff time, by its id: the narrative says so', () => {
     const schedule = scheduleOf(TURN_TRIP)
-    for (const minutes of [25, 1]) {
-      const now = START + minutes * MINUTE
-      const flights = flightsFor(schedule, atTheGate(minutes))
-      expect(stillOnGroundFlight(buildLegs(withLiveTimes(schedule, flights, now)), flights, now)).toBe('f1')
-    }
+    const now = START + 25 * MINUTE
+    const flights = flightsFor(schedule, atTheGate(25))
+    expect(stillOnGroundFlight(buildLegs(withLiveTimes(schedule, flights, now)), flights, now)).toBe('f1')
+  })
+
+  it('is nothing while an on-time plane is still before the plan’s takeoff time: the narrative says flying, as before', () => {
+    const schedule = scheduleOf(TURN_TRIP)
+    const now = START + MINUTE
+    const flights = flightsFor(schedule, atTheGate(1))
+    expect(stillOnGroundFlight(buildLegs(withLiveTimes(schedule, flights, now)), flights, now)).toBeNull()
   })
 
   it('is nothing before its leg begins, in the air, landed, and with no live data', () => {

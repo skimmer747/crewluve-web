@@ -84,7 +84,13 @@ function planeRow(leg: MapLeg, plane: PlanePosition): FactRow | null {
   return parts.length > 0 ? factRow('plane', 'Airplane', parts[0], parts.slice(1)) : null
 }
 
+/**
+ * The sky from the cockpit: the next sunrise or sunset, chasing the sun, the moon. Left out while the real plane is still
+ * at its departure airport after the plan's takeoff time, as nothing says "flying" then (the website's own, Todd, 16
+ * Nov 2026): its times would be the schedule's, for a plane that hasn't left.
+ */
 function skyRow(facts: TripFacts, leg: MapLeg, t: number): FactRow | null {
+  if (isStillOnGround(facts, leg, t)) return null
   const next = (facts.sunEvents[leg.id] ?? []).find((e) => e.time > t) ?? null
   const chasing = chase(leg, t)
   const moon = moonSight(leg, t)

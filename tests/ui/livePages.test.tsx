@@ -86,6 +86,18 @@ describe('the status page with a real plane still on the ground at its departure
     expect(container.querySelector('.trip-map-card h2')?.textContent).toBe('On the ground')
   })
 
+  it('says flying, as with no live data, while an on-time plane is still before the plan’s takeoff time', () => {
+    // A minute after its leg begins, 14 before the plan's takeoff.
+    const taxiing = START + MINUTE
+    vi.setSystemTime(taxiing)
+    const before = page(null).querySelector('.narrative-text')?.textContent
+    cleanup()
+    const container = page({ flights: new Map([['f1', atTheGate(1)]]), clockOffset: 0 })
+    expect(container.querySelector('.narrative-text')?.textContent).toMatch(/^Alex is flying to Philadelphia on UPS flight 1234 from Louisville — /)
+    expect(container.querySelector('.narrative-text')?.textContent).toBe(before)
+    expect(container.querySelector('.trip-map-card h2')?.textContent).toBe('In flight')
+  })
+
   it('says flying, as before, once the plane is in the air, and with no live data', () => {
     expect(page(LIVE).querySelector('.narrative-text')?.textContent).toMatch(/^Alex is flying to Philadelphia on UPS flight 1234 from Louisville — /)
     cleanup()
