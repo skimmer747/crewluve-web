@@ -4,6 +4,7 @@ import { loadDemoLandingForecast, loadDemoWeather } from '../data/demoWeather'
 import {
   loadLiveLandingForecast, loadLiveWeather, tempUnitFor, type LandingLoader, type TempUnit, type WeatherLoader, type WeatherPlace,
 } from '../data/weather'
+import { makeFactsStore } from '../facts/factsStore'
 import { makeTripFacts } from '../facts/tripFacts'
 import { factsAtMoment } from '../facts/tripFactsRows'
 import { buildLegs, type Leg } from '../engine/legs'
@@ -134,8 +135,12 @@ export function PilotPages({
   const geography = useGeography(tripMap?.mode.kind === 'inFlight' || mapOpen)
   const comparisons = useComparisons(mapOpen)
   const forecasts = useLandingWeather(mapOpen ? tripMap : null, now, unit, loadLanding)
+  // One store for every facts this page makes, so a real path's story is kept between renders (Stage 3 spec §8).
+  const factsStore = useMemo(() => makeFactsStore(), [])
   const facts = tripMap && snap
-    ? makeTripFacts(tripMap, { geography, comparisons, forecasts, viewerTz, h24, day: snap.tripProgress?.day ?? null, days: snap.tripProgress?.days ?? null })
+    ? makeTripFacts(tripMap, {
+      geography, comparisons, forecasts, viewerTz, h24, day: snap.tripProgress?.day ?? null, days: snap.tripProgress?.days ?? null, store: factsStore,
+    })
     : null
   const listed = useMemo(() => (ready ? scheduleLegs(ready.legs) : []), [ready])
 

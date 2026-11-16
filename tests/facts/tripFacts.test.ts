@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { LandingForecast } from '../../src/data/weather'
 import { makeGeography, type Geography } from '../../src/facts/geography'
+import { legPathLength } from '../../src/facts/legCourse'
 import {
   cardSummary, forecastFor, headline, isRecapOver, makeTripFacts, recapLongestLine, recapTiles, sheetHeadline, tripSoFar,
 } from '../../src/facts/tripFacts'
@@ -56,14 +57,15 @@ describe('the headline (Stage 2 spec §4.4)', () => {
     expect(equatorFacts().stories.eq).toBe(equatorFacts().stories.eq)
   })
 
-  it('keeps the route’s story, along the great circle, for a flight with a real path', () => {
-    // A story is kept by route, which another flight on that route shares: a real path's story, made again as the path
-    // grows, is the store's (a later task of plan 3C-3). Charlie is north of Bravo, where only the real path goes.
+  it('makes a flight with a real path a story of its own, along the path it flew', () => {
+    // Not the route's, along the great circle (Stage 3 spec §8; factsStore.test.ts has how it's kept). Charlie is north
+    // of Bravo, where only the real path goes.
     const seenUntil = liveTime(13)
     const real = equatorLiveLeg(equatorLive(seenUntil, { latitude: dogLeg }), seenUntil)
     const geography = makeGeography([...EQUATOR.areas, box('Charlie', 'country', 5.5, 10.5, null, 1, 3)], [])
     const facts = makeTripFacts(flightMap(real, null), { geography, comparisons: null, viewerTz: NY, h24: false })
-    expect(facts.stories.eq.stretches.map((s) => s.place.name)).toEqual(['Alpha', 'Bravo', 'the Test Sea'])
+    expect(facts.stories.eq.stretches.map((s) => s.place.name)).toEqual(['Alpha', 'Bravo', 'Charlie', 'Bravo', 'the Test Sea'])
+    expect(facts.stories.eq.length).toBe(legPathLength(real))
   })
 })
 

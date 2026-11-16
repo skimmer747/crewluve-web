@@ -12,6 +12,7 @@ import { currentLeg, dayCount, legInMotion, type AirportMark, type MapLeg, type 
 import { MINUTE } from '../time/zoned'
 import type { Comparison } from './comparisons'
 import type { TripSoFar } from './factRow'
+import { forgetOldPaths, realPathFacts, type FactsStore } from './factsStore'
 import { cityNear, type City, type Geography, type Place } from './geography'
 import { landsWithinHorizon } from './landingWeather'
 import { hasLiveData, legPath } from './legCourse'
@@ -44,6 +45,11 @@ export interface FactsOptions {
   days?: number | null
   /** The moments asked about are a replay's, not now: the full map's clock isn't live. False unless it's said. */
   isReplay?: boolean
+  /**
+   * Where a real path's story and sun events are kept between renders, made again at most once a minute as the path
+   * grows (Stage 3 spec §8). The page owns one. Without it, as in the tests, they're made afresh each time.
+   */
+  store?: FactsStore | null
 }
 
 export interface TripFacts {
@@ -78,9 +84,8 @@ const SUN_EVENTS_KEPT = 200
 const pointKey = (p: GeoPoint) => `${p.lat},${p.lng}`
 
 /**
- * The route's story: along the great circle, whatever path the plane flew, since another flight on the route shares it.
- * It's read by distance along the flight's path. A real path's story, made again as the path grows, is the store's
- * (Stage 3 spec §8; a later task of plan 3C-3).
+ * The route's story, along the great circle, for a flight with no real path: another flight on the route shares it. A
+ * real path's story is factsStore.ts's (Stage 3 spec §8).
  */
 function storyOf(leg: MapLeg, geography: Geography, home: AirportMark | null): LegStory {
   let kept = stories.get(geography)
@@ -104,15 +109,26 @@ function sunEventsOf(leg: MapLeg): SunEvent[] {
   return events
 }
 
-/** The facts for `map`: each flight's story, once the geography has loaded, and its sun events. */
+/**
+ * The facts for `map`: each flight's story, once the geography has loaded, and its sun events. A flight with a real
+ * path has its own, from the store; any other, the route's story and its times' sun events.
+ */
 export function makeTripFacts(map: TripMap, options: FactsOptions): TripFacts {
   const legStories: Record<string, LegStory> = {}
   const events: SunEventsByLeg = {}
+  const store = options.store ?? null
   for (const leg of map.legs) {
     if (leg.kind !== 'flight') continue
+    const real = realPathFacts(store, leg, options.geography, map.home)
+    if (real) {
+      if (real.story) legStories[leg.id] = real.story
+      events[leg.id] = real.sunEvents
+      continue
+    }
     if (options.geography) legStories[leg.id] = storyOf(leg, options.geography, map.home)
     events[leg.id] = sunEventsOf(leg)
   }
+  if (store) forgetOldPaths(store, map)
   return {
     map,
     geography: options.geography,
