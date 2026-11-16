@@ -10,9 +10,9 @@ function guard() {
   return { base, response, guarded: doorFetch(base as unknown as typeof fetch) }
 }
 
-/** Everything but a POST to one of the four, by the way it would reach past the partner door. */
+/** Everything but a POST to one of the five, by the way it would reach past the partner door. */
 const BLOCKED: Array<[string, string]> = [
-  // one of the four, but not as a POST
+  // one of the five, but not as a POST
   ['GET', '/rest/v1/rpc/partner_view'],
   ['PATCH', '/rest/v1/rpc/partner_join'],
   // every other RPC, the pilot's own included
@@ -28,7 +28,7 @@ const BLOCKED: Array<[string, string]> = [
   ['POST', '/auth/v1/token?grant_type=password'],
   ['POST', '/functions/v1/partner-push'],
   ['GET', '/storage/v1/object/public/bucket/file.png'],
-  // close to one of the four
+  // close to one of the five
   ['POST', '/rest/v1/rpc/partner_view/'],
   ['POST', '/rest/v1/rpc/partner_views'],
   ['POST', '/rest/v1/rpc/PARTNER_VIEW'],
@@ -39,8 +39,8 @@ const BLOCKED: Array<[string, string]> = [
 ]
 
 describe('doorFetch (piece 5a §9)', () => {
-  it('has exactly the four partner RPCs', () => {
-    expect([...DOOR_RPCS].sort()).toEqual(['partner_handoff_redeem', 'partner_join', 'partner_leave', 'partner_view'])
+  it('has exactly the five partner RPCs', () => {
+    expect([...DOOR_RPCS].sort()).toEqual(['partner_handoff_redeem', 'partner_join', 'partner_leave', 'partner_live', 'partner_view'])
     expect(Object.isFrozen(DOOR_RPCS)).toBe(true)
   })
 

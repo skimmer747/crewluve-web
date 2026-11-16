@@ -1,5 +1,5 @@
 // Static checks over src/ for the partner door guarantee (piece 5a §9): the site reaches Crewlu Cloud only through the
-// four partner RPCs.
+// five partner RPCs.
 //
 // The guarantee itself is src/partner/doorGuard.ts: every request src/partner/door.ts sends passes through it. These
 // checks keep code from going around the door. In every file under src/ they flag:
@@ -20,7 +20,7 @@
 // address built from pieces, and a third-party HTTP client; for markup, a document reached through an alias or a call
 // (`const d = document`, `document.open().write(s)`) and a route the list doesn't name (`execCommand('insertHTML', …)`);
 // and for both, a computed member name (`el[name]`). The browser is the backstop, through the CSP in vite.config.ts. For
-// the network gaps it is connect-src, which allows the site, Open-Meteo and the four partner RPC addresses, so the browser
+// the network gaps it is connect-src, which allows the site, Open-Meteo and the five partner RPC addresses, so the browser
 // itself refuses a request to anywhere else. For the HTML gaps it is script-src, which allows no inline script, so markup
 // that gets in can't run.
 import { readdirSync, statSync } from 'node:fs'
@@ -267,7 +267,7 @@ function networkProblems(path: string, { sf, refs }: Facts): string[] {
       found.push(`${path}:${lineOf(sf, n)} constructs a Request; the site's fetches are plain calls it can check`)
     } else if (ts.isCallExpression(n) && isFetchCallee(n.expression) && path !== DOOR_MODULE) {
       const problem = fetchProblem(n)
-      // src/partner/door.ts passes the page's fetch to the door guard, which lets only the four partner RPCs through.
+      // src/partner/door.ts passes the page's fetch to the door guard, which lets only the five partner RPCs through.
       if (problem) found.push(`${path}:${lineOf(sf, n)} calls fetch ${problem}; only ${DOOR_MODULE} may send more than a plain GET`)
     }
   })

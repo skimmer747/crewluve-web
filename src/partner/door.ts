@@ -1,5 +1,6 @@
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '../cloud'
 import { doorFetch } from './doorGuard'
+import { readLiveAnswer, type LiveAnswer } from './liveAnswer'
 
 /** The door's own failures, which it answers with HTTP 200 (partner-api.md, "Answers"). */
 export interface Refused {
@@ -16,13 +17,22 @@ export type Viewed =
   | { partnerId: string; updatedAt: string | null; unchanged: false; status: unknown }
   | { partnerId: string; updatedAt: string | null; unchanged: true }
 
-/** The four partner RPCs the website calls (piece 5a §9). It redeems hand-off codes but never makes them (P5-4). */
+/** Four of the partner RPCs the website calls (piece 5a §9). It redeems hand-off codes but never makes them (P5-4). */
 export interface PartnerDoor {
   join(invite: string, key: string, label: string): Promise<Joined | Refused>
   redeem(code: string, key: string, label: string): Promise<Joined | Refused>
   view(key: string, since: string | null): Promise<Viewed | Refused>
   /** The door always answers {"ok": true}; this rejects only when there's no answer. */
   leave(key: string): Promise<void>
+}
+
+/**
+ * The fifth, partner_live: the pilot's flights with live data (Stage 3 spec §10.6, partner-api.md "The live plane"). It's
+ * apart from PartnerDoor, as the app's LiveFlightDoor is, so the doors made for the other four needn't answer it.
+ */
+export interface LiveFlightDoor {
+  /** `after` is the last answer's cursor, so only the trail points since then come, or null for every point. */
+  live(key: string, after: number | null): Promise<LiveAnswer | Refused>
 }
 
 /**
@@ -53,7 +63,7 @@ function timeLimit(ms: number): AbortSignal {
  * The partner door over `send` (~/Dev/Duty/supabase/partner-api.md, "Partner RPCs"), with the publishable key alone.
  * This is the only module that talks to Crewlu Cloud, and every call goes through the door guard.
  */
-export function makeDoor(send: typeof fetch): PartnerDoor {
+export function makeDoor(send: typeof fetch): PartnerDoor & LiveFlightDoor {
   const guarded = doorFetch(send)
 
   async function call(name: string, body: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -62,7 +72,7 @@ export function makeDoor(send: typeof fetch): PartnerDoor {
       headers: { apikey: SUPABASE_PUBLISHABLE_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
       signal: timeLimit(TIMEOUT_MS),
-      // The four RPCs never redirect; refusing one keeps a key from being sent on to another address.
+      // The five RPCs never redirect; refusing one keeps a key from being sent on to another address.
       redirect: 'error',
     })
     if (!response.ok) throw new DoorUnavailable(`${name} answered HTTP ${response.status}`)
@@ -95,8 +105,15 @@ export function makeDoor(send: typeof fetch): PartnerDoor {
     async leave(key) {
       await call('partner_leave', { p_key: key })
     },
+    async live(key, after) {
+      const answer = await call('partner_live', after == null ? { p_key: key } : { p_key: key, p_after: after })
+      if (isRefused(answer)) return { error: answer.error }
+      const read = readLiveAnswer(answer)
+      if (!read) throw new DoorUnavailable('partner_live answered with flights it could not read')
+      return read
+    },
   }
 }
 
 /** The door over the page's fetch, looked up per call rather than captured now. */
-export const liveDoor: PartnerDoor = makeDoor((input, init) => fetch(input, init))
+export const liveDoor: PartnerDoor & LiveFlightDoor = makeDoor((input, init) => fetch(input, init))

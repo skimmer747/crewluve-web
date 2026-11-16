@@ -4,7 +4,7 @@ import { DOOR_MODULE, callsTo, fetchCalls, importersOf, importsOf, parse, rel, s
 
 // The guarantee itself is src/partner/doorGuard.ts: src/partner/door.ts sends every Crewlu Cloud request through it,
 // tests/partner/door.test.ts pins that every call goes through the guard, and tests/partner/doorGuard.test.ts shows the
-// guard refusing everything but the four partner RPCs. The rules below stop code from going around the door (a Supabase
+// guard refusing everything but the five partner RPCs. The rules below stop code from going around the door (a Supabase
 // package, a Crewlu Cloud address, a raw POST) and catch the ways text becomes markup. They scan src/ from this file's
 // location, so they work whatever directory the tests run from.
 const sources: Record<string, string> = Object.fromEntries(sourceFiles().map((file) => [rel(file), readFileSync(file, 'utf8')]))

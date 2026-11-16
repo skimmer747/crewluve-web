@@ -24,15 +24,19 @@ function sent(send: ReturnType<typeof doorAnswering>['send']) {
   return { url, method: init?.method, headers: init?.headers, body: JSON.parse(String(init?.body)) }
 }
 
-/** One answer all four calls can read: a device and a partner (join, redeem), no summary yet (view), and ok (leave). */
-const EVERY_CALL_READS = { device_id: 'd1', partner_id: PARTNER_A, updated_at: null, status: null, ok: true }
+/**
+ * One answer all five calls can read: a device and a partner (join, redeem), no summary yet (view), ok (leave), and no
+ * flights (live).
+ */
+const EVERY_CALL_READS = { device_id: 'd1', partner_id: PARTNER_A, updated_at: null, status: null, ok: true, now: 0, cursor: 0, flights: [] }
 
-/** Makes each of the door's four calls once. */
+/** Makes each of the door's five calls once. */
 async function callEach(door: ReturnType<typeof makeDoor>) {
   await door.join('invite-a', key(1), '')
   await door.redeem('AB2C3D', key(1), '')
   await door.view(key(1), null)
   await door.leave(key(1))
+  await door.live(key(1), null)
 }
 
 describe('the partner door (piece 5a §9)', () => {
@@ -88,6 +92,47 @@ describe('the partner door (piece 5a §9)', () => {
     expect(sent(send)).toMatchObject({ url: `${SUPABASE_URL}/rest/v1/rpc/partner_leave`, body: { p_key: key(1) } })
   })
 
+  it('asks partner_live for every point with no cursor, and only for the new ones with one', async () => {
+    const first = doorAnswering({ now: 1_794_573_710_000, cursor: 41, flights: [] })
+    expect(await first.door.live(key(1), null)).toEqual({ now: 1_794_573_710_000, cursor: 41, flights: [] })
+    expect(sent(first.send)).toEqual({
+      url: `${SUPABASE_URL}/rest/v1/rpc/partner_live`,
+      method: 'POST',
+      headers: { apikey: SUPABASE_PUBLISHABLE_KEY, 'Content-Type': 'application/json' },
+      body: { p_key: key(1) },
+    })
+    const again = doorAnswering({ now: 1_794_573_740_000, cursor: 43, flights: [] })
+    await again.door.live(key(1), 41)
+    expect(sent(again.send).body).toEqual({ p_key: key(1), p_after: 41 })
+  })
+
+  it("reads partner_live's flights, and hands its refusals back as answers", async () => {
+    const flight = { leg_id: 'leg-1', callsign: 'UPS207', state: 'waiting', fix: null, landed_at: null, trail: [], trail_count: 0 }
+    const answer = await doorAnswering({ now: 5, cursor: 0, flights: [flight] }).door.live(key(1), null)
+    expect(answer).toEqual({
+      now: 5,
+      cursor: 0,
+      flights: [{ legId: 'leg-1', callsign: 'UPS207', state: 'waiting', fix: null, landedAt: null, trail: [], trailCount: 0 }],
+    })
+    expect(await doorAnswering({ error: 'sharing_ended' }).door.live(key(1), null)).toEqual({ error: 'sharing_ended' })
+  })
+
+  it('throws DoorUnavailable for a partner_live answer it cannot read', async () => {
+    const flight = { leg_id: 'leg-1', callsign: 'UPS207', state: 'airborne', fix: null, landed_at: null, trail: [], trail_count: 0 }
+    const fix = { lat: 40, lon: -80, altitude_ft: 35_000, ground_speed_kt: 450, track_deg: 80, on_ground: false, registration: null, type_code: null, seen_at: 5 }
+    for (const body of [
+      { now: 5, cursor: 0 },
+      { now: 5, cursor: '0', flights: [] },
+      { now: 5, cursor: 0, flights: [{ leg_id: 'leg-1' }] },
+      { now: 5, cursor: 0, flights: [{ ...flight, fix: { ...fix, lat: '40' } }] },
+      { now: 5, cursor: 0, flights: [{ ...flight, fix: { ...fix, on_ground: 'no' } }] },
+      { now: 5, cursor: 0, flights: [{ ...flight, trail: [[5, 40]], trail_count: 1 }] },
+    ]) {
+      await expect(doorAnswering(body).door.live(key(1), null), JSON.stringify(body)).rejects.toThrow(DoorUnavailable)
+    }
+    await expect(doorAnswering({ now: 5, cursor: 0, flights: [] }, 500).door.live(key(1), null)).rejects.toThrow(DoorUnavailable)
+  })
+
   it('throws DoorUnavailable for an HTTP error, or an answer it cannot read', async () => {
     await expect(doorAnswering({ message: 'boom' }, 500).door.view(key(1), null)).rejects.toThrow(DoorUnavailable)
     await expect(doorAnswering([1, 2]).door.view(key(1), null)).rejects.toThrow(DoorUnavailable)
@@ -115,7 +160,7 @@ describe('the partner door (piece 5a §9)', () => {
   it('gives every call a time limit', async () => {
     const { send, door } = doorAnswering(EVERY_CALL_READS)
     await callEach(door)
-    expect(send).toHaveBeenCalledTimes(4)
+    expect(send).toHaveBeenCalledTimes(5)
     for (const [, init] of send.mock.calls) expect(init?.signal).toBeInstanceOf(AbortSignal)
   })
 
@@ -124,7 +169,7 @@ describe('the partner door (piece 5a §9)', () => {
     try {
       const { door } = doorAnswering(EVERY_CALL_READS)
       await callEach(door)
-      expect(timeout).toHaveBeenCalledTimes(4)
+      expect(timeout).toHaveBeenCalledTimes(5)
       expect(timeout).toHaveBeenCalledWith(20_000)
     } finally {
       timeout.mockRestore()
@@ -168,7 +213,7 @@ describe('the partner door (piece 5a §9)', () => {
     const guards = vi.mocked(doorFetch)
     expect(guards).toHaveBeenCalledWith(send)
     const guarded = guards.mock.results[guards.mock.calls.findIndex(([base]) => base === send)].value
-    expect(guarded).toHaveBeenCalledTimes(4) // each of the four went through the guard...
-    expect(send).toHaveBeenCalledTimes(4) // ...and reached the fetch once, by way of it
+    expect(guarded).toHaveBeenCalledTimes(5) // each of the five went through the guard...
+    expect(send).toHaveBeenCalledTimes(5) // ...and reached the fetch once, by way of it
   })
 })

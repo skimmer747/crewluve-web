@@ -2,15 +2,15 @@ import { SUPABASE_URL } from '../cloud'
 
 /**
  * The partner door guard (piece 5a §9), enforced where no calling code can get around it: src/partner/door.ts sends
- * every Crewlu Cloud request through it. Only POSTs to the four partner RPCs get through, on the Crewlu Cloud
+ * every Crewlu Cloud request through it. Only POSTs to the five partner RPCs get through, on the Crewlu Cloud
  * project's own host and with no query string. Everything else is refused before it leaves the page: any other RPC,
  * table reads, /auth/v1/, /functions/, /storage/, other methods and other hosts. The weather and the airport list don't
  * come through here.
  */
 const ORIGIN = new URL(SUPABASE_URL).origin
 const RPC_PATH = '/rest/v1/rpc/'
-/** The four partner RPCs, the only calls the guard lets through. Frozen, so no code can add one. */
-export const DOOR_RPCS: readonly string[] = Object.freeze(['partner_join', 'partner_handoff_redeem', 'partner_view', 'partner_leave'])
+/** The five partner RPCs, the only calls the guard lets through. Frozen, so no code can add one. */
+export const DOOR_RPCS: readonly string[] = Object.freeze(['partner_join', 'partner_handoff_redeem', 'partner_view', 'partner_leave', 'partner_live'])
 const ALLOWED: ReadonlySet<string> = new Set(DOOR_RPCS)
 
 export class DoorGuardError extends Error {
@@ -36,7 +36,7 @@ function requested(input: RequestInfo | URL, init: RequestInit | undefined): Req
     // The URL parser resolves dot segments and %2e, so /rest/v1/rpc/../../auth/v1/token is judged as /auth/v1/token.
     url = new URL(address, 'https://unresolved.invalid')
   } catch {
-    // Refused below: a request that can't be read can't be shown to be one of the four.
+    // Refused below: a request that can't be read can't be shown to be one of the five.
   }
   return { method: String(method).toUpperCase(), url }
 }
@@ -53,7 +53,7 @@ function refusal(method: string, url: URL | null): string {
   return `Only the partner door: blocked ${method} ${where}${url.search ? ' (with a query string)' : ''}`
 }
 
-/** Wraps a fetch so that only the four partner RPCs get through; anything else rejects with a DoorGuardError and is never sent. */
+/** Wraps a fetch so that only the five partner RPCs get through; anything else rejects with a DoorGuardError and is never sent. */
 export function doorFetch(base: typeof fetch): typeof fetch {
   return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const { method, url } = requested(input, init)

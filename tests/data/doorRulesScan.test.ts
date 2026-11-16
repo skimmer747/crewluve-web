@@ -3,7 +3,7 @@ import { importersOf, violations } from '../fixtures/sourceScan'
 
 // Ways around the partner door that code reviews found. Each must be flagged by a source rule. What the rules can't see
 // has two backstops. The door guard judges everything src/partner/door.ts sends (tests/partner/doorGuard.test.ts). For any
-// other request, the browser has the CSP's connect-src, which lists only the four RPC addresses (tests/viteConfig.test.ts).
+// other request, the browser has the CSP's connect-src, which lists only the five RPC addresses (tests/viteConfig.test.ts).
 const BYPASSES: Array<[string, string, string, RegExp]> = [
   // A Supabase client: the site has none.
   ['a createClient from supabase-js', 'src/data/Client.ts', `import { createClient } from '@supabase/supabase-js'\nexport const db = createClient('https://example.supabase.co', 'key')`, /imports @supabase\/supabase-js/],

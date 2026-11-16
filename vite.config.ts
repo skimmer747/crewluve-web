@@ -6,21 +6,21 @@ import { SUPABASE_URL } from './src/cloud'
 import { OPEN_METEO_URL } from './src/data/weather'
 import { DOOR_RPCS } from './src/partner/doorGuard'
 
-// The four partner RPC addresses, built from the door guard's own list so the guard and the CSP can't drift apart.
+// The five partner RPC addresses, built from the door guard's own list so the guard and the CSP can't drift apart.
 const RPC_ADDRESSES = DOOR_RPCS.map((n) => `${SUPABASE_URL}/rest/v1/rpc/${n}`)
 
 // Production Content-Security-Policy (spec §9). Injected only into the built HTML, because the
-// Vite dev server needs inline scripts and a websocket for hot reload. connect-src lists the four partner RPC
+// Vite dev server needs inline scripts and a websocket for hot reload. connect-src lists the five partner RPC
 // addresses, not the Crewlu Cloud project; for the location card's weather, Open-Meteo (slice 2B1 §7); and Apple's map
 // servers (Apple Maps spec §6). So the
-// browser itself reaches only those four addresses on Crewlu Cloud, even from code that slipped past the source rules
+// browser itself reaches only those five addresses on Crewlu Cloud, even from code that slipped past the source rules
 // (tests/fixtures/sourceScan.ts). It checks the address, not the method or the query: a GET with a device key in the
-// query, to one of the four, passes the CSP, and only the source rules' address rule stops that. The CSP relies on
+// query, to one of the five, passes the CSP, and only the source rules' address rule stops that. The CSP relies on
 // Level 2's matching of paths, and on the door refusing redirects: once a request has been redirected, the browser no
 // longer checks the path.
 // Apple's map (Apple Maps spec §6): MapKit JS comes from Apple's CDN, runs WebAssembly, uses workers and blob: URLs,
 // loads images from and talks to Apple's map servers, and needs inline styles. Scripts still can't be inline, and Crewlu
-// Cloud is still reachable only at the four partner addresses.
+// Cloud is still reachable only at the five partner addresses.
 const APPLE_MAPS = 'https://*.apple-mapkit.com'
 const CSP = [
   "default-src 'self'",
