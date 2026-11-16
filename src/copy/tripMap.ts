@@ -1,4 +1,5 @@
 import type { AppleMapStyle } from '../map/appleMapStyle'
+import type { LiveLabel } from '../map/liveLabel'
 import {
   dayCount, destinationsOf, legInMotion, milesFlown, nextFlight, pilotLocation, currentLeg, totalMiles, type AirportMark, type MapLeg, type TripMap,
 } from '../map/tripMap'
@@ -51,11 +52,38 @@ export const nextTripChip = (start: number, now: number, viewerTz: string, isAtB
 /** "Landing in 2 h 10 min", to the gate arrival. */
 export function landingCountdown(leg: MapLeg, now: number): string {
   const minutes = Math.ceil((leg.end - now) / 60_000)
-  if (minutes <= 0) return 'Landing now'
+  return minutes <= 0 ? 'Landing now' : `Landing in ${minutesText(minutes)}`
+}
+
+/** "45 min", "2 h" or "2 h 10 min": the landing countdown's length, and the real plane's gap. */
+export function minutesText(minutes: number): string {
   const hours = Math.floor(minutes / 60)
   const rest = minutes % 60
-  if (hours === 0) return `Landing in ${rest} min`
-  return rest === 0 ? `Landing in ${hours} h` : `Landing in ${hours} h ${rest} min`
+  if (hours === 0) return `${rest} min`
+  return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`
+}
+
+/**
+ * "12 min ahead", "About 20 min behind", "Still on the ground · 20 min behind" or "Landed 8 min early": the real plane
+ * against the schedule (Stage 3 spec §5.3), as the app's TripMapWording.liveLabel.
+ */
+export function liveLabelText(label: LiveLabel): string {
+  switch (label.kind) {
+    case 'onSchedule':
+      return 'On schedule'
+    case 'ahead':
+      return `${label.isEstimated ? 'About ' : ''}${minutesText(label.minutes)} ahead`
+    case 'behind':
+      return `${label.isEstimated ? 'About ' : ''}${minutesText(label.minutes)} behind`
+    case 'stillOnGround':
+      return label.minutesBehind == null ? 'Still on the ground' : `Still on the ground · ${minutesText(label.minutesBehind)} behind`
+    case 'landedOnTime':
+      return 'Landed on time'
+    case 'landedEarly':
+      return `Landed ${minutesText(label.minutes)} early`
+    case 'landedLate':
+      return `Landed ${minutesText(label.minutes)} late`
+  }
 }
 
 /** The destination's own time at landing, or null when it keeps the family's. */
