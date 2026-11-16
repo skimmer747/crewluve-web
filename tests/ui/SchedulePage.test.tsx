@@ -1,12 +1,15 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { Leg } from '../../src/engine/legs'
+import type { Leg, MoveLeg } from '../../src/engine/legs'
+import type { LiveFlight } from '../../src/map/liveFlight'
+import { makeMapFlight } from '../../src/map/mapFlight'
 import { DAY } from '../../src/time/zoned'
 import { SchedulePage } from '../../src/ui/SchedulePage'
 import { testAirports } from '../fixtures/airports'
 import { drive, duty, flight, H, pilot, place } from '../fixtures/legs'
 import { stubAnimationFrames, visibleText } from '../fixtures/ui'
+import { fix, liveFlight } from '../map/madeUpFlights'
 
 afterEach(() => {
   cleanup()
@@ -533,5 +536,39 @@ describe('SchedulePage on a short window (slice 3B §3.2)', () => {
     expect(phone.listeners.size).toBe(1)
     unmount()
     expect(phone.listeners.size).toBe(0)
+  })
+})
+
+describe('SchedulePage with a real plane (Stage 3 spec §9)', () => {
+  const first = LEGS[0] as MoveLeg
+  /** Thursday's flight with `live` its real plane, which the plan has landing 10 minutes before the leg's end: the end is the real plane's. */
+  const flightsWith = (live: LiveFlight) =>
+    new Map([[first.id, makeMapFlight(first.start, first.end - 10 * 60_000, { lat: 38.17, lng: -85.74 }, { lat: 42.2, lng: -89.1 }, live)!]])
+  const timesOf = (container: Element) => [...container.querySelectorAll('.leg-times')].map((e) => e.textContent)
+  // One pilot for every render, so a new answer is all that changes.
+  const PILOT = pilot('LEX', 'SDF')
+  const pageWith = (flights?: ReturnType<typeof flightsWith>) =>
+    <SchedulePage legs={LEGS} pilot={PILOT} now={at(7)} timeZone={NY} h24={false} airports={testAirports} onBack={() => {}}
+      weekStart={0} flights={flights} />
+
+  it('says "about" before a landing time that’s the real plane’s estimate, as the card does', () => {
+    const { container } = render(pageWith(flightsWith(liveFlight([], { fix: fix(0, 40, -87) }))))
+    const times = timesOf(container)
+    expect(times[0]).toBe('6:15am edt – about 7:45am edt')
+    expect(times.slice(1).some((t) => t?.includes('about'))).toBe(false)
+  })
+
+  it('says "about" as soon as a new answer makes the time an estimate, with the same legs', () => {
+    const view = render(pageWith())
+    expect(timesOf(view.container)[0]).toBe('6:15am edt – 7:45am edt')
+    view.rerender(pageWith(flightsWith(liveFlight([], { fix: fix(0, 40, -87) }))))
+    expect(timesOf(view.container)[0]).toBe('6:15am edt – about 7:45am edt')
+  })
+
+  it('says no "about" once the plane has landed, nor with no live data, as before', () => {
+    const landed = liveFlight([], { state: 'landed', landedAt: first.end - 15 * 60_000, fix: fix(0, 42.2, -89.1, { onGround: true }) })
+    expect(timesOf(render(pageWith(flightsWith(landed))).container)[0]).toBe('6:15am edt – 7:45am edt')
+    cleanup()
+    expect(timesOf(render(pageWith()).container)[0]).toBe('6:15am edt – 7:45am edt')
   })
 })

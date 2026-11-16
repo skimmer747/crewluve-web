@@ -7,8 +7,7 @@ import { landingCountdown, liveSummary, panelHeadline, tripMapSummary } from '..
 import type { LandingForecast } from '../data/weather'
 import { pointAtDistance } from '../map/flightPath'
 import type { GeoPoint } from '../map/greatCircle'
-import { mapFlightProgress } from '../map/mapFlight'
-import { currentLeg, dayCount, legInMotion, type AirportMark, type MapLeg, type TripMap } from '../map/tripMap'
+import { currentLeg, dayCount, legInMotion, legStillOnGround, type AirportMark, type MapLeg, type TripMap } from '../map/tripMap'
 import { MINUTE } from '../time/zoned'
 import type { Comparison } from './comparisons'
 import type { TripSoFar } from './factRow'
@@ -185,7 +184,7 @@ export function lastSeenText(facts: TripFacts, leg: MapLeg, t: number): string |
  * website's own, Todd, 16 Nov 2026). Now only: a replay reads where the map has the plane, as the app does.
  */
 export function isStillOnGround(facts: TripFacts, leg: MapLeg, t: number): boolean {
-  return !facts.isReplay && leg.flight != null && mapFlightProgress(leg.flight, t).phase === 'onGround'
+  return !facts.isReplay && legStillOnGround(leg, t)
 }
 
 /** Whether a flight with live data shows, which adsb.lol is credited for (Stage 3 spec §8). */
@@ -226,9 +225,13 @@ export function forecastFor(facts: TripFacts, leg: MapLeg, now: number): Landing
   return landsWithinHorizon(leg, now) ? (facts.forecasts[leg.id] ?? null) : null
 }
 
-/** Each started flight's milestones so far, newest flight first, then the totals: the trip so far, or the recap (§5.2, §5.5). */
+/**
+ * Each started flight's milestones so far, newest flight first, then the totals: the trip so far, or the recap (§5.2,
+ * §5.5). A real plane still on the ground at its departure airport has passed none of its flight's, whatever the
+ * schedule's times say (the website's own, Todd, 16 Nov 2026).
+ */
 export function tripSoFar(facts: TripFacts, t: number): TripSoFar {
-  const started = facts.map.legs.filter((l) => l.kind === 'flight' && l.start <= t).reverse()
+  const started = facts.map.legs.filter((l) => l.kind === 'flight' && l.start <= t && !isStillOnGround(facts, l, t)).reverse()
   const flights = started.flatMap((leg) => {
     const lines = factsMilestones(facts, leg).filter((m) => m.time <= t).map((m) => milestoneLine(m, facts.viewerTz, facts.h24))
     return lines.length > 0 ? [{ id: leg.id, title: flightTitle(leg), milestones: lines }] : []

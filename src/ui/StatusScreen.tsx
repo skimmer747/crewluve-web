@@ -67,6 +67,11 @@ export interface StatusScreenProps {
   onOpenMap?: () => void
   /** When the flight in the air reaches its gate, while that's the real plane's estimate: the narrative and the countdown say "about" (Stage 3 spec §9). */
   estimatedArrival?: number | null
+  /**
+   * The flight under way, by its leg's id, while its real plane is still on the ground at its departure airport: the
+   * narrative says so in place of "flying" (the website's own, Todd, 16 Nov 2026).
+   */
+  stillOnGroundFlight?: string | null
 }
 
 /** The link into the schedule named `name`, or none when the page has no way into it. */
@@ -91,7 +96,9 @@ export function StatusScreen(p: StatusScreenProps) {
   const locationHeading = useRef<HTMLHeadingElement>(null)
   const inFlightHeading = useRef<HTMLHeadingElement>(null)
   const inTheirPlace = () => [inFlightHeading.current, locationHeading.current, titleHeading.current].find((el) => el?.isConnected) ?? null
-  const spans = safeNarrative(snap, { now: p.now, viewerTz: p.viewerTz, h24: p.h24, airports: p.airports, estimatedArrival: p.estimatedArrival })
+  const spans = safeNarrative(snap, {
+    now: p.now, viewerTz: p.viewerTz, h24: p.h24, airports: p.airports, estimatedArrival: p.estimatedArrival, stillOnGroundFlight: p.stillOnGroundFlight,
+  })
   const airport = snap.status.airport
   // The place, worked out once for the card, the popup and when the popup may be open: the card's rule for its dial.
   const facts = showsLocationCard(snap) ? locationFacts(airport, p.now, p.airports, p.weather) : null

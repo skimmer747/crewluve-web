@@ -22,6 +22,13 @@ export const LIVE_AIRPORTS = buildAirportIndex([
 export const TRAIL = [point(16, 38.25, -85.55), point(22, 38.6, -84.6), point(28, 38.95, -83.6), point(53, 39.6, -80.3), point(57, 39.65, -79.8)]
 export const FLYING = liveFlight(TRAIL, { legId: 'f1', fix: fix(58, 39.66, -79.7, { trackDeg: 75 }) })
 
+/**
+ * Still at its gate in Louisville, seen there 20 seconds before `minutes` after START, never yet in the air: from 15
+ * minutes, it's late leaving (the website's "on the ground" words, Todd, 16 Nov 2026).
+ */
+export const atTheGate = (minutes: number) =>
+  liveFlight([], { legId: 'f1', state: 'ground', fix: fix(minutes - 1 / 3, SDF.lat, SDF.lng, { onGround: true }) })
+
 /** The flight as the trip's leg, at its gate times. */
 export const SDF_PHL: MoveLeg = {
   kind: 'flight', id: 'f1', tripId: 'T1', dep: 'SDF', arr: 'PHL', start: START, end: START + 120 * MINUTE, schedStart: START,

@@ -6,7 +6,7 @@ import { pathFramingPoints } from './flightPathDrawing'
 import { scheduledFraction, scheduledTime } from './flightProgress'
 import { distanceMeters, pointAlong, pointsAlong, type GeoPoint } from './greatCircle'
 import { calendarDay } from '../time/zoned'
-import { isEstimate, type MapFlight } from './mapFlight'
+import { isAtDeparture, isEstimate, type MapFlight } from './mapFlight'
 import { aimFractions, flatMapAngle } from './planeHeading'
 import type { GroundKind } from './tripActivity'
 
@@ -146,6 +146,14 @@ export const isArrivalEstimated = (leg: MapLeg) => leg.flight != null && isEstim
 
 /** True from leaving the gate (or the driveway) until reaching the other end. */
 export const isMoving = (leg: MapLeg, t: number) => leg.start <= t && t < leg.end
+
+/**
+ * Whether the leg is between its gates at `now` while its real plane is still on the ground at its departure airport:
+ * the flight is late leaving, and the words say "on the ground" in place of "flying" (the website's own, Todd, 16 Nov
+ * 2026). It reads the live data at `now`, so it's for now only: a replay's moment reads where the map has the plane.
+ */
+export const legStillOnGround = (leg: MapLeg, now: number): boolean =>
+  leg.flight != null && isMoving(leg, now) && isAtDeparture(leg.flight, now)
 
 /** How far along the leg the schedule has the pilot, 0…1: a flight with the taxi allowances, a drive steadily. */
 export function legProgress(leg: MapLeg, t: number): number {

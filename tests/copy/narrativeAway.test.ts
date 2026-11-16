@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { narrative, safeNarrative, type NarrativeCtx, type Span } from '../../src/copy/narrative'
 import { demoRaw } from '../../src/data/demo'
 import { RawBuilder, type FlightSpec } from '../../src/data/rowBuilder'
-import type { Leg } from '../../src/engine/legs'
+import type { Leg, MoveLeg } from '../../src/engine/legs'
 import { makeSnapshot, safeSnapshot } from '../../src/engine/snapshot'
 import { testAirports } from '../fixtures/airports'
 import { alex, firstFlight, overnight, twoFlights } from '../fixtures/departures'
@@ -268,5 +268,57 @@ describe('countdowns for screen readers', () => {
     const spans = sentenceAt(engineFor(demoRaw('driver', A)), 100)
     expect(spans.filter((s) => s.digits).map((s) => s.spoken)).toEqual(['50 minutes'])
     expect(spans.filter((s) => !s.digits).every((s) => s.spoken === undefined)).toBe(true)
+  })
+})
+
+describe('narrative while the real plane is still on the ground at its departure airport (the website’s own, Todd, 16 Nov 2026)', () => {
+  const driver = engineFor(demoRaw('driver', A))
+  const snapAt = (e: ReturnType<typeof engineFor>, minutes: number) => makeSnapshot(e.schedule, e.legs, at(minutes), NY)
+  /** The sentence at `minutes`, with the flight under way's real plane at its gate. */
+  const onGround = (e: ReturnType<typeof engineFor>, minutes: number, more: Partial<NarrativeCtx> = {}) => {
+    const snap = snapAt(e, minutes)
+    return narrative(snap, { ...ctx(minutes), stillOnGroundFlight: (snap.status.current as MoveLeg).id, ...more })
+  }
+  const tripWith = (flight: Partial<FlightSpec>) =>
+    engineFor(
+      new RawBuilder(A).pilot('Alex', 'SDF', 'LEX').trip('t1', {
+        dutyPeriods: [{ start: 0, end: 400, flights: [{ dep: 'SDF', arr: 'ANC', out: 30, in: 330, ...flight }] }],
+      }).build(),
+    )
+
+  it('says so in place of flying, with the countdown and the time as before', () => {
+    expect(plain(onGround(driver, 100))).toBe('Alex is still on the ground in Louisville on UPS flight 2961 to Rockford — landing in 50m which is 8:00am EDT.')
+  })
+
+  it('says "about" of a landing time that’s the real plane’s estimate, as before', () => {
+    const end = (snapAt(driver, 100).status.current as MoveLeg).end
+    expect(plain(onGround(driver, 100, { estimatedArrival: end })))
+      .toBe('Alex is still on the ground in Louisville on UPS flight 2961 to Rockford — landing in 50m which is about 8:00am EDT.')
+  })
+
+  it('bolds the places and the times, and colors the countdown with the status color', () => {
+    const spans = onGround(driver, 100)
+    expect(spans.filter((s) => s.bold).map((s) => s.text)).toEqual(['Louisville', 'Rockford', '50m', '8:00am EDT'])
+    expect(coloredSpans(spans)).toEqual(['50m:status'])
+    expect(spans.find((s) => s.text === '50m')?.spoken).toBe('50 minutes')
+  })
+
+  it('takes the place of a delayed departure’s words too, keeping its red countdown', () => {
+    const spans = onGround(driver, 1700)
+    expect(plain(spans)).toBe('Alex is still on the ground in Anchorage on UPS flight 2962 to Louisville — landing in 3h 20m which is 1:10pm EDT.')
+    expect(coloredSpans(spans)).toEqual(['3h 20m:red'])
+  })
+
+  it('reads the same for a deadhead, and names the flight plainly when it has no usable number', () => {
+    expect(plain(onGround(tripWith({ dh: true }), 270)))
+      .toBe('Alex is still on the ground in Louisville on UPS flight 1000 to Anchorage — landing in 1h 0m which is 11:00am EDT.')
+    expect(plain(onGround(tripWith({ number: null }), 270)))
+      .toBe('Alex is still on the ground in Louisville on the flight to Anchorage — landing in 1h 0m which is 11:00am EDT.')
+  })
+
+  it('says flying, as before, when the plane on the ground is another flight’s, or none is', () => {
+    const flying = 'Alex is flying to Rockford on UPS flight 2961 from Louisville — landing in 50m which is 8:00am EDT.'
+    expect(plain(narrative(snapAt(driver, 100), { ...ctx(100), stillOnGroundFlight: 'another flight' }))).toBe(flying)
+    expect(plain(narrative(snapAt(driver, 100), { ...ctx(100), stillOnGroundFlight: null }))).toBe(flying)
   })
 })

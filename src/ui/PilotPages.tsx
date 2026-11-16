@@ -9,7 +9,7 @@ import { makeFactsStore } from '../facts/factsStore'
 import { makeTripFacts, type FactsOptions, type TripFacts } from '../facts/tripFacts'
 import { factsAtMoment } from '../facts/tripFactsRows'
 import { buildLegs, type Leg } from '../engine/legs'
-import { estimatedArrival, liveMapFlights, withLiveTimes } from '../engine/liveLegs'
+import { estimatedArrival, liveMapFlights, stillOnGroundFlight, withLiveTimes } from '../engine/liveLegs'
 import { safeSnapshot, type Snapshot } from '../engine/snapshot'
 import type { Schedule } from '../engine/types'
 import type { MapFlight } from '../map/mapFlight'
@@ -161,9 +161,12 @@ export function PilotPages({
   const quickStatus = quickStatusAt?.(now) ?? null
   // The flight in the air's arrival, while it's the real plane's estimate: the cards say "about" of it (Stage 3 spec §9).
   const estimated = ready ? estimatedArrival(ready.legs, ready.flights, now) : null
+  // The flight under way while its real plane is still at its departure airport: the narrative says "still on the
+  // ground" (the website's own, Todd, 16 Nov 2026).
+  const onGround = ready ? stillOnGroundFlight(ready.legs, ready.flights, now) : null
   const status = {
     snap, now, viewerTz, homeTz, h24, airports, weather, demo, celebrateKey, footer, notice, quickStatus, tripMap, land, facts,
-    onOpenMap: mapPage.show, estimatedArrival: estimated,
+    onOpenMap: mapPage.show, estimatedArrival: estimated, stillOnGroundFlight: onGround,
   }
   // A #map address with no trip to draw falls through to the status page (moving map spec §6).
   if (mapPage.open && tripMap) {
@@ -171,7 +174,8 @@ export function PilotPages({
       days={snap.tripProgress?.days ?? null} land={land} onBack={mapPage.back}
       factsAt={facts && factsOptions ? factsAtMoments(tripMap, facts, factsOptions) : undefined} />
   }
-  const view = { legs: listed, pilot: snap.pilot, now, timeZone: viewerTz, h24, airports }
+  // The Schedule page says "about" of a landing time that's the real plane's estimate, as the cards do (Stage 3 spec §9).
+  const view = { legs: listed, pilot: snap.pilot, now, timeZone: viewerTz, h24, airports, flights: ready?.flights }
   // Side by side, the schedule sits beside the cards, and nothing on the status page opens it (3C §4.3). Each layout
   // has a status page of its own, so crossing the line rebuilds it, and a popup open on it closes (§5.2, §5.3).
   if (sideBySide) {

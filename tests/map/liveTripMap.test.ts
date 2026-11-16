@@ -4,8 +4,9 @@ import { liveMapFlights, withLiveTimes } from '../../src/engine/liveLegs'
 import { pathPoints } from '../../src/map/flightPathDrawing'
 import { pointsAlong } from '../../src/map/greatCircle'
 import { fitRect } from '../../src/map/mapFit'
-import { framingPoints, isArrivalEstimated, makeTripMap, type TripMap } from '../../src/map/tripMap'
-import { LIVE_AIRPORTS as AIRPORTS, PHL, placeOf, SCHEDULE, SDF, SDF_PHL as F1 } from './liveTrip'
+import { stillOnGroundIn } from '../../src/map/tripActivity'
+import { framingPoints, isArrivalEstimated, legStillOnGround, makeTripMap, type TripMap } from '../../src/map/tripMap'
+import { atTheGate, FLYING, LIVE_AIRPORTS as AIRPORTS, liveTripMap, PHL, placeOf, SCHEDULE, SDF, SDF_PHL as F1 } from './liveTrip'
 import { fix, liveFlight, MINUTE, point, START } from './madeUpFlights'
 
 /** Seen north of the line, then far north of it, 40 minutes in: still in the air. */
@@ -76,5 +77,37 @@ describe("the trip map's camera with live data", () => {
     const live = fitRect(framingPoints(mapAt([F1], START + 42 * MINUTE, flights), null))!
     // The plane was seen at 40.6° north, well north of the great circle, whose frame tops out near Philadelphia.
     expect(live.y).toBeLessThan(schedule.y)
+  })
+})
+
+describe('a real plane still on the ground at its departure airport (the website’s own, Todd, 16 Nov 2026)', () => {
+  const flightOf = (map: TripMap) => map.legs.find((l) => l.kind === 'flight')!
+
+  it('is told while its leg is between its gates and the plane hasn’t left: the airport it waits at', () => {
+    // Ten minutes after the plan's takeoff, and from the moment its leg begins.
+    for (const minutes of [25, 1]) {
+      const map = liveTripMap(START + minutes * MINUTE, atTheGate(minutes))
+      expect(legStillOnGround(flightOf(map), START + minutes * MINUTE)).toBe(true)
+      expect(stillOnGroundIn(map, START + minutes * MINUTE)).toMatchObject({ code: 'SDF', city: 'Louisville' })
+    }
+  })
+
+  it('isn’t told of a plane at its gate before its leg begins: the pilot isn’t flying yet', () => {
+    const map = liveTripMap(START - 10 * MINUTE, atTheGate(-10))
+    expect(legStillOnGround(flightOf(map), START - 10 * MINUTE)).toBe(false)
+    expect(stillOnGroundIn(map, START - 10 * MINUTE)).toBeNull()
+  })
+
+  it('isn’t told of a plane in the air, landed, on the ground somewhere else, or with no live data', () => {
+    const landed = liveFlight([point(20, 38.6, -84.2), point(90, 39.8, -75.8)],
+      { legId: 'f1', state: 'landed', landedAt: START + 100 * MINUTE, fix: fix(100, PHL.lat, PHL.lng, { onGround: true }) })
+    // A diversion: on the ground in Cincinnati, 80 mi from Louisville.
+    const elsewhere = liveFlight([], { legId: 'f1', state: 'ground', fix: fix(25 - 1 / 3, 39.05, -84.67, { onGround: true }) })
+    for (const [live, minutes] of [[FLYING, 59], [landed, 103], [elsewhere, 25], [null, 25]] as const) {
+      const now = START + minutes * MINUTE
+      const map = liveTripMap(now, live)
+      expect(stillOnGroundIn(map, now)).toBeNull()
+      expect(legStillOnGround(flightOf(map), now)).toBe(false)
+    }
   })
 })

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildLegs, type Leg } from '../../src/engine/legs'
-import { estimatedArrival, isEstimatedArrival, liveMapFlights, watchedFlights, withLiveTimes } from '../../src/engine/liveLegs'
+import { estimatedArrival, isEstimatedArrival, liveMapFlights, stillOnGroundFlight, watchedFlights, withLiveTimes } from '../../src/engine/liveLegs'
 import { resolveStatus } from '../../src/engine/status'
 import type { Schedule } from '../../src/engine/types'
 import type { GeoPoint } from '../../src/map/greatCircle'
@@ -264,5 +264,33 @@ describe('"about" a landing time (Stage 3 spec §9)', () => {
     const down = buildLegs(withLiveTimes(schedule, landed, START + 103 * MINUTE))
     expect(estimatedArrival(down, landed, START + 103 * MINUTE)).toBeNull()
     expect(estimatedArrival(legs, new Map(), START + 52 * MINUTE)).toBeNull()
+  })
+})
+
+describe('a real plane still on the ground at its departure airport (the website’s own, Todd, 16 Nov 2026)', () => {
+  /** Seen at its gate in Louisville 20 seconds before `minutes` after the gate time, never yet in the air. */
+  const atTheGate = (minutes: number) =>
+    liveFlight([], { legId: 'f1', state: 'ground', fix: fix(minutes - 1 / 3, airport('SDF').lat, airport('SDF').lng, { onGround: true }) })
+
+  it('is the flight between its gates whose plane hasn’t left, by its id: the narrative says so', () => {
+    const schedule = scheduleOf(TURN_TRIP)
+    for (const minutes of [25, 1]) {
+      const now = START + minutes * MINUTE
+      const flights = flightsFor(schedule, atTheGate(minutes))
+      expect(stillOnGroundFlight(buildLegs(withLiveTimes(schedule, flights, now)), flights, now)).toBe('f1')
+    }
+  })
+
+  it('is nothing before its leg begins, in the air, landed, and with no live data', () => {
+    const schedule = scheduleOf(TURN_TRIP)
+    const onGroundAt = (live: LiveFlight | null, minutes: number) => {
+      const now = START + minutes * MINUTE
+      const flights = live ? flightsFor(schedule, live) : new Map()
+      return stillOnGroundFlight(buildLegs(withLiveTimes(schedule, flights, now)), flights, now)
+    }
+    expect(onGroundAt(atTheGate(-10), -10)).toBeNull()
+    expect(onGroundAt(IN_THE_AIR, 52)).toBeNull()
+    expect(onGroundAt(OFF_EARLY_LANDED, 103)).toBeNull()
+    expect(onGroundAt(null, 25)).toBeNull()
   })
 })

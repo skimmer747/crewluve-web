@@ -54,6 +54,10 @@ function belowRow(facts: TripFacts, leg: MapLeg, t: number): FactRow | null {
 /**
  * "Passes 40 mi from home at 1:05 PM", or "Closest to home was 40 mi at 1:05 PM" once it's passed. Where nobody saw the
  * real plane it's a best guess, and its time reads "about" (best guesses design §2).
+ *
+ * The website's own (Todd, 16 Nov 2026): a real plane still on the ground at its departure airport has passed nothing,
+ * and its time is a guess from a takeoff that hasn't happened: "about", and left out once that guess has gone by, as
+ * halfway's is.
  */
 function closestToHomeLine(facts: TripFacts, leg: MapLeg, t: number): string | null {
   const story = facts.stories[leg.id]
@@ -62,7 +66,9 @@ function closestToHomeLine(facts: TripFacts, leg: MapLeg, t: number): string | n
   const distance = closest.fraction * story.length
   const time = legTimeAtDistance(leg, distance)
   if (time == null) return null
-  return closestToHomeText(roundedMiles(closest.meters), time, t, facts.viewerTz, facts.h24, !isSeenAt(leg, distance))
+  const onGround = isStillOnGround(facts, leg, t)
+  if (onGround && time <= t) return null
+  return closestToHomeText(roundedMiles(closest.meters), time, t, facts.viewerTz, facts.h24, onGround || !isSeenAt(leg, distance))
 }
 
 /**
@@ -96,7 +102,8 @@ function skyRow(facts: TripFacts, leg: MapLeg, t: number): FactRow | null {
 /**
  * "1,140 mi flown · 3,010 to go": flown along the path so far, and to go along the rest of it, which for a real plane is
  * the great circle from where it is to the arrival airport (Stage 3 spec §8). A real plane still at its departure airport
- * has flown nothing yet: "2,788 mi to go" (the website's own, Todd, 16 Nov 2026).
+ * has flown nothing yet: "2,788 mi to go", and its halfway time is a guess from a takeoff that hasn't happened, "about"
+ * (the website's own, Todd, 16 Nov 2026).
  */
 function distanceRow(facts: TripFacts, leg: MapLeg, plane: PlanePosition, t: number): FactRow {
   const length = legPathLength(leg)
@@ -105,9 +112,10 @@ function distanceRow(facts: TripFacts, leg: MapLeg, plane: PlanePosition, t: num
   const halfwayAt = legHalfwayTime(leg)
   // The schedule's speed is told only of a flight with no live data: a real plane's row has its own.
   const window = hasLiveData(leg) ? null : airborneWindow(leg.start, leg.end)
-  const title = isStillOnGround(facts, leg, t) ? toGoText(Math.round(total)) : flownText(flown, Math.round(total) - flown)
+  const onGround = isStillOnGround(facts, leg, t)
+  const title = onGround ? toGoText(Math.round(total)) : flownText(flown, Math.round(total) - flown)
   return factRow('distance', 'Path', title, [
-    halfwayAt != null && halfwayAt > t ? halfwayText(halfwayAt, facts.viewerTz, facts.h24, !isSeenAt(leg, length / 2)) : null,
+    halfwayAt != null && halfwayAt > t ? halfwayText(halfwayAt, facts.viewerTz, facts.h24, onGround || !isSeenAt(leg, length / 2)) : null,
     window ? averageSpeedText(total / ((window.end - window.start) / HOUR)) : null,
     compared(facts, total),
   ])

@@ -25,6 +25,11 @@ export interface NarrativeCtx {
   airports: AirportIndex
   /** When the flight under way reaches its gate, while that's the real plane's estimate: the time says "about" (Stage 3 spec §9). */
   estimatedArrival?: number | null
+  /**
+   * The flight under way, by its leg's id, while its real plane is still on the ground at its departure airport: the
+   * sentence says so in place of "flying" (the website's own, Todd, 16 Nov 2026).
+   */
+  stillOnGroundFlight?: string | null
 }
 
 /** Builds one sentence out of plain, bold, and countdown spans. */
@@ -103,6 +108,12 @@ export function narrative(s: Snapshot, ctx: NarrativeCtx): Span[] {
       const f = s.status.current as MoveLeg
       const verb = f.deadhead ? 'riding' : 'flying'
       const fl = flightPhrase(f.airline, f.number)
+      // A late flight whose real plane hasn't left yet, delayed or not: "Alex is still on the ground in Rockford on UPS
+      // flight 2963 to Anchorage — landing in 5h 37m which is about 6:58pm EST." (the website's own, Todd, 16 Nov 2026).
+      if (ctx.stillOnGroundFlight === f.id) {
+        return n.t(`${name} is still on the ground in `).b(city(f.dep)).t(`${fl || ' on the flight'} to `).b(city(f.arr))
+          .t(' — landing in ').cd(f.end, delay ? changed : 'status').t(' which is ').time(f.end).t('.').spans
+      }
       if (delay) {
         return n.t(`${name} ${early ? 'pushed early' : 'was delayed'} in `).b(city(f.dep)).t(` and is ${verb} to `).b(city(f.arr))
           .t(`${fl} — landing in `).cd(f.end, changed).t(' which is ').time(f.end).t('.').spans

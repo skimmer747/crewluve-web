@@ -1,6 +1,6 @@
 import type { GeoPoint } from '../map/greatCircle'
 import type { LiveFlight } from '../map/liveFlight'
-import { isEstimate, makeMapFlight, mapFlightProgress, type MapFlight } from '../map/mapFlight'
+import { isAtDeparture, isEstimate, makeMapFlight, mapFlightProgress, type MapFlight } from '../map/mapFlight'
 import { isMove, type Leg } from './legs'
 import type { DutyPeriod, Iata, Move, Schedule, Trip } from './types'
 
@@ -162,4 +162,17 @@ export function estimatedArrival(legs: Leg[], flights: ReadonlyMap<string, MapFl
   if (flights.size === 0) return null
   const leg = legs.find((l) => isMove(l) && l.start <= now && now < l.end && isEstimatedArrival(l, flights))
   return leg ? leg.end : null
+}
+
+/**
+ * The flight between its gates at `now` whose real plane is still on the ground at its departure airport, by its leg's
+ * id: the narrative says so in place of "flying" (the website's own, Todd, 16 Nov 2026). Null with no such flight.
+ */
+export function stillOnGroundFlight(legs: Leg[], flights: ReadonlyMap<string, MapFlight>, now: number): string | null {
+  if (flights.size === 0) return null
+  const leg = legs.find((l) => {
+    const flight = isMove(l) && l.start <= now && now < l.end ? flights.get(l.id) : undefined
+    return flight != null && isAtDeparture(flight, now)
+  })
+  return leg ? leg.id : null
 }

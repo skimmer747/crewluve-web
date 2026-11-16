@@ -2,7 +2,8 @@ import type { AppleMapStyle } from '../map/appleMapStyle'
 import type { LiveLabel } from '../map/liveLabel'
 import { mapFlightProgress } from '../map/mapFlight'
 import {
-  dayCount, destinationsOf, isArrivalEstimated, legInMotion, nextFlight, pilotLocation, currentLeg, type AirportMark, type MapLeg, type TripMap,
+  dayCount, destinationsOf, isArrivalEstimated, legInMotion, legStillOnGround, nextFlight, pilotLocation, currentLeg, type AirportMark, type MapLeg,
+  type TripMap,
 } from '../map/tripMap'
 import { milesFlown, totalMiles } from '../facts/tripTotals'
 import { calendarDay, MONTHS, WEEKDAYS, zoneOffsetMinutes, zonedParts } from '../time/zoned'
@@ -261,18 +262,46 @@ export function activityWords({ kind, place }: TripActivity): string {
   }
 }
 
-/** "Sat 1:40 PM · Layover in Denver": the line under the timeline, when and what (activity markers design §4.2). */
-export function timelineLine(ms: number, activity: TripActivity | null, viewerTz: string, h24: boolean): string {
-  const time = timelineTime(ms, viewerTz, h24)
-  return activity ? `${time} · ${activityWords(activity)}` : time
+/**
+ * The words under the timeline: the activity's, or "On the ground in Rockford" where the flight's real plane is still on
+ * the ground at its departure airport, `stillOnGroundIn` (the website's own, Todd, 16 Nov 2026).
+ */
+function lineWords(activity: TripActivity | null, stillOnGroundIn: AirportMark | null): string | null {
+  if (stillOnGroundIn) return `On the ground in ${stillOnGroundIn.city}`
+  return activity ? activityWords(activity) : null
 }
 
-/** "Saturday 1:40 PM, layover in Denver": the timeline's value for screen readers (activity markers design §4.3). */
-export function timelineSpokenValue(ms: number, activity: TripActivity | null, viewerTz: string, h24: boolean): string {
+/**
+ * "Sat 1:40 PM · Layover in Denver": the line under the timeline, when and what (activity markers design §4.2). While
+ * the flight's real plane is still on the ground at its departure airport, `stillOnGroundIn`, "Mon 12:21 PM · On the
+ * ground in Rockford" (the website's own, Todd, 16 Nov 2026).
+ */
+export function timelineLine(
+  ms: number, activity: TripActivity | null, viewerTz: string, h24: boolean, stillOnGroundIn: AirportMark | null = null,
+): string {
+  const time = timelineTime(ms, viewerTz, h24)
+  const words = lineWords(activity, stillOnGroundIn)
+  return words ? `${time} · ${words}` : time
+}
+
+/** "Saturday 1:40 PM, layover in Denver": the timeline's value for screen readers (activity markers design §4.3), as the line under it. */
+export function timelineSpokenValue(
+  ms: number, activity: TripActivity | null, viewerTz: string, h24: boolean, stillOnGroundIn: AirportMark | null = null,
+): string {
   const time = `${WEEKDAYS[zonedParts(ms, viewerTz).weekday]} ${shortTimeText(ms, viewerTz, h24)}`
-  if (!activity) return time
-  const words = activityWords(activity)
+  const words = lineWords(activity, stillOnGroundIn)
+  if (!words) return time
   return `${time}, ${words.charAt(0).toLowerCase()}${words.slice(1)}`
+}
+
+/**
+ * The map card's heading, for screen readers: "In flight", or "On the ground" while the flight's real plane is still
+ * on the ground at its departure airport (the website's own, Todd, 16 Nov 2026); else "Trip recap" or "Trip map".
+ */
+export function cardHeading(map: TripMap, now: number): string {
+  const leg = currentLeg(map)
+  if (leg) return legStillOnGround(leg, now) ? 'On the ground' : 'In flight'
+  return map.mode.kind === 'recap' ? 'Trip recap' : 'Trip map'
 }
 
 /** The card as one sentence for screen readers (moving map spec §14), ending with what it opens. */

@@ -46,6 +46,12 @@ describe('legTimes', () => {
     expect(legTimes(out, landed, NY, true)).toBe('06:05 edt – 07:40 edt')
   })
 
+  it('says "about" before a landing time that’s the real plane’s estimate (Stage 3 spec §9)', () => {
+    expect(legTimes(out, landed, NY, false, true)).toBe('6:05am edt – about 7:40am edt')
+    expect(legTimes(out, landed, NY, true, true)).toBe('06:05 edt – about 07:40 edt')
+    expect(legTimes(out, landed, NY, false, false)).toBe('6:05am edt – 7:40am edt')
+  })
+
   it('gives each time the abbreviation in force then, across the change back to standard time', () => {
     // Sunday 1 November 2026: New York's clocks go back from 2am EDT to 1am EST.
     expect(legTimes(Date.UTC(2026, 10, 1, 4), Date.UTC(2026, 10, 1, 12), NY, false)).toBe('12:00am edt – 7:00am est')

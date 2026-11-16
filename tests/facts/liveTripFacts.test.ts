@@ -8,7 +8,7 @@ import type { GeoPoint } from '../../src/map/greatCircle'
 import type { LiveFlight } from '../../src/map/liveFlight'
 import { makeMapFlight, mapFlightProgress } from '../../src/map/mapFlight'
 import type { MapLeg } from '../../src/map/tripMap'
-import { appComparisons, box, EQUATOR, equatorFlight, EQUINOX, flightMap } from './factsTestData'
+import { appComparisons, box, EQUATOR, equatorFlight, EQUINOX, flightMap, mark } from './factsTestData'
 import { date, dogLeg, equatorLive, equatorLiveLeg, HOME_BY_THE_EQUATOR, liveTime } from './liveFacts'
 
 /**
@@ -357,6 +357,46 @@ describe('a real plane still on the ground at its departure airport (the website
     const theFacts = facts('12:53', { now: '12:58', landed: true })
     expect(headline(theFacts, at('12:58'))).toBe('Over the Test Sea')
     expect(row('distance', rowsAt(theFacts, '12:58')).title).toBe('1,382 mi flown · 0 to go')
+  })
+})
+
+describe('a real plane still at its departure airport: nothing passed, and its times guesses (the website’s own, Todd, 16 Nov 2026)', () => {
+  /** A border 1° E along: the schedule's times have the plane cross it at 10:24, before the real one has left. */
+  const border = makeGeography([box('Alpha', 'country', -1, 1), box('Bravo', 'country', 1, 21)], [])
+
+  it('lists none of the leg’s crossings in the trip so far, as nothing of it is flown', () => {
+    const soFar = tripSoFar(atTheGate('10:28', { geography: border }), at('10:28'))
+    expect(soFar.flights).toEqual([])
+    expect(soFar.totals).toBe('Day 1 of 1')
+  })
+
+  it('in a replay, lists them where the map has the plane: the schedule’s, as it has no record', () => {
+    expect(tripSoFar(atTheGate('10:28', { geography: border, isReplay: true }), at('10:28')).flights[0]?.milestones)
+      .toEqual([`Crossed into Bravo · 6:24${AM}`])
+  })
+
+  it('says "about" of the leg’s halfway and closest-to-home times, worked out from a takeoff that hasn’t happened', () => {
+    const rows = rowsAt(atTheGate('10:35'), '10:35')
+    expect(row('below', rows).detail).toMatch(/^Passes 35 mi from home at about \d{1,2}:\d\d AM$/)
+    expect(row('distance', rows).detail).toMatch(/^Halfway at about \d{1,2}:\d\d AM · /)
+  })
+
+  it('never says it has passed closest to home: a guessed time already gone by is left out, as halfway’s is', () => {
+    // Home by 1° E, and the plane held at the gate until 11:00: the schedule's times have it pass home at 10:26.
+    const leg = fromRockford(onTheGround(at('11:00')), '11:00')
+    const theFacts = makeTripFacts(flightMap(leg, mark('HOME', 0.5, 1)), {
+      geography: EQUATOR, comparisons: appComparisons(), viewerTz: NY, h24: false, day: 1, days: 1,
+    })
+    const rows = rowsAt(theFacts, '11:00')
+    expect(row('below', rows)).toMatchObject({ title: 'Still on the ground in Rockford', detail: null })
+    expect(row('distance', rows).detail).toMatch(/^Halfway at about /)
+  })
+
+  it('in a replay, and on the ground somewhere else, tells the schedule’s times as they are', () => {
+    expect(row('below', rowsAt(atTheGate('10:35', { isReplay: true }), '10:35')).detail).toMatch(/^Passes 35 mi from home at \d/)
+    const elsewhere = factsOf(equatorLiveLeg(onTheGround(at('10:35'), { lat: 0, lng: 3 }), at('10:35')))
+    expect(row('below', rowsAt(elsewhere, '10:35')).detail).toMatch(/^Passes 35 mi from home at \d/)
+    expect(row('distance', rowsAt(elsewhere, '10:35')).detail).toMatch(/^Halfway at \d/)
   })
 })
 

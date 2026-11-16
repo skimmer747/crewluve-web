@@ -28,6 +28,16 @@ describe('the words for what the pilot is doing (activity markers design §4.2, 
     expect(timelineLine(at(12), null, 'America/New_York', false)).toMatch(/^Fri 7:00\sPM$/)
     expect(timelineSpokenValue(at(12), { kind: 'home', place: cologne }, 'America/New_York', false)).toMatch(/^Friday 7:00\sPM, home$/)
   })
+
+  it('says where a flight’s real plane is still on the ground, in place of flying (the website’s own, Todd, 16 Nov 2026)', () => {
+    const flying = { kind: 'flying', place: cologne } as const
+    const rockford = { ...cologne, code: 'RFD', city: 'Rockford' }
+    expect(timelineLine(at(12), flying, 'America/New_York', false, rockford)).toMatch(/^Fri 7:00\sPM · On the ground in Rockford$/)
+    expect(timelineSpokenValue(at(12), flying, 'America/New_York', false, rockford)).toMatch(/^Friday 7:00\sPM, on the ground in Rockford$/)
+    // Without it, flying, as before.
+    expect(timelineLine(at(12), flying, 'America/New_York', false, null)).toMatch(/^Fri 7:00\sPM · Flying to Cologne$/)
+    expect(timelineSpokenValue(at(12), flying, 'America/New_York', false, null)).toMatch(/^Friday 7:00\sPM, flying to Cologne$/)
+  })
 })
 
 describe('the next trip’s chip (the app’s base waits design §3)', () => {

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { landsText } from '../../src/copy/facts'
 import { Sentence } from '../../src/copy/narrative'
 import {
-  flightStatus, landingCountdown, landingLine, landsAt, liveSummary, spokenLiveLabel, spokenMinutes, topPill, tripMapSummary,
+  cardHeading, flightStatus, landingCountdown, landingLine, landsAt, liveSummary, spokenLiveLabel, spokenMinutes, topPill, tripMapSummary,
 } from '../../src/copy/tripMap'
 import type { AirportIndex } from '../../src/data/airports'
 import { makeMapFlight } from '../../src/map/mapFlight'
@@ -157,5 +157,31 @@ describe("the card's sentence for a screen reader (Stage 3 spec §9, §15)", () 
     const map: TripMap = { mode: { kind: 'inFlight', legId: 'f1' }, legs: [leg], groundStops: [], home: null, base: null, isWaitingAtBase: false, span: { start: leg.start, end: leg.end }, days: null }
     expect(tripMapSummary(map, t, 'Alex', NY, false)).toMatch(/^UPS207 to Philadelphia, 14 minutes ahead of schedule\. Lands about .* your time\. Opens the full map\.$/)
     expect(tripMapSummary({ ...map, legs: [scheduleOnly(leg)] }, t, 'Alex', NY, false)).toMatch(/^UPS207 to Philadelphia, landing at .* your time\. Estimated from the schedule\. Opens the full map\.$/)
+  })
+})
+
+describe("the map card's heading for screen readers (the website's own, Todd, 16 Nov 2026)", () => {
+  const mapOf = (leg: MapLeg, mode: TripMap['mode'] = { kind: 'inFlight', legId: leg.id }): TripMap =>
+    ({ mode, legs: [leg], groundStops: [], home: null, base: null, isWaitingAtBase: false, span: { start: leg.start, end: leg.end }, days: null })
+
+  it('is "On the ground" while the real plane is still at its departure airport', () => {
+    const { leg, t } = caseLeg('still on the ground twenty minutes after')
+    expect(cardHeading(mapOf(leg), t)).toBe('On the ground')
+  })
+
+  it('is "In flight" in the air, landed, on the ground somewhere else and with no live data, as before', () => {
+    for (const name of ['ahead, in the air', 'landed, seen all the way', 'on the ground somewhere else']) {
+      const { leg, t } = caseLeg(name)
+      expect(cardHeading(mapOf(leg), t)).toBe('In flight')
+    }
+    const late = caseLeg('still on the ground twenty minutes after')
+    expect(cardHeading(mapOf(scheduleOnly(late.leg)), late.t)).toBe('In flight')
+  })
+
+  it('is "Trip recap" or "Trip map" with no flight in the air, as before', () => {
+    const { leg, t } = caseLeg('still on the ground twenty minutes after')
+    expect(cardHeading(mapOf(leg, { kind: 'recap' }), t)).toBe('Trip recap')
+    expect(cardHeading(mapOf(leg, { kind: 'onTrip' }), t)).toBe('Trip map')
+    expect(cardHeading(mapOf(leg, { kind: 'nextTrip' }), t)).toBe('Trip map')
   })
 })

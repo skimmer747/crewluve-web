@@ -6,7 +6,7 @@ import { currentLeg } from '../../src/map/tripMap'
 import { resetAppleMapKit } from '../../src/ui/hooks/useAppleMapKit'
 import { TripMapCard } from '../../src/ui/TripMapCard'
 import { TripMapPage } from '../../src/ui/TripMapPage'
-import { FLYING, liveTripMap } from '../map/liveTrip'
+import { atTheGate, FLYING, liveTripMap } from '../map/liveTrip'
 import { fix, MINUTE, START } from '../map/madeUpFlights'
 
 afterEach(() => {
@@ -83,5 +83,49 @@ describe('the full map with a real plane (Stage 3 spec §7.3, §9)', () => {
     expect(liveTripMap(START + 62 * MINUTE, slower).span.end).toBeGreaterThan(liveTripMap(IN_THE_AIR).span.end)
     view.rerender(page(START + 62 * MINUTE, slower))
     expect(slider().value).toBe(slider().max)
+  })
+})
+
+describe('a real plane still on the ground at its departure airport (the website’s own, Todd, 16 Nov 2026)', () => {
+  /** Ten minutes after the plan's takeoff, the plane still at its gate in Louisville. */
+  const LATE = START + 25 * MINUTE
+  const page = (t: number, live: Parameters<typeof liveTripMap>[1]) =>
+    <TripMapPage map={liveTripMap(t, live)} now={t} viewerTz={NY} h24={false} day={1} days={1} land={null} onBack={() => {}} />
+  const line = () => document.querySelector('.trip-timeline-time')?.textContent
+  const slider = () => screen.getByRole('slider', { name: 'Trip time' }) as HTMLInputElement
+
+  it('heads the card "On the ground" for screen readers, not "In flight"', () => {
+    card(LATE, atTheGate(25))
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('On the ground')
+  })
+
+  it('heads the card "In flight" in the air, and with no live data, as before', () => {
+    card(IN_THE_AIR)
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('In flight')
+    cleanup()
+    card(LATE, null as never)
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('In flight')
+  })
+
+  it('says under the full map’s timeline that it’s on the ground there, now', () => {
+    render(page(LATE, atTheGate(25)))
+    expect(line()).toMatch(/^Fri 7:25\sAM · On the ground in Louisville$/)
+    expect(slider().getAttribute('aria-valuetext')).toMatch(/^Friday 7:25\sAM, on the ground in Louisville$/)
+  })
+
+  it('says "Flying to" in a replay, which reads where the map has the plane', () => {
+    render(page(LATE, atTheGate(25)))
+    // A moment early in the flight, before the plane was seen at its gate.
+    fireEvent.input(slider(), { target: { value: String(Number(slider().max) / 20) } })
+    expect(line()).toMatch(/ · Flying to Philadelphia$/)
+    expect(slider().getAttribute('aria-valuetext')).toMatch(/, flying to Philadelphia$/)
+  })
+
+  it('says "Flying to" in the air, and with no live data, as before', () => {
+    render(page(IN_THE_AIR, FLYING))
+    expect(line()).toMatch(/ · Flying to Philadelphia$/)
+    cleanup()
+    render(page(LATE, null))
+    expect(line()).toMatch(/ · Flying to Philadelphia$/)
   })
 })

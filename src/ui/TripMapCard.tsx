@@ -2,7 +2,7 @@ import type { Ref } from 'preact'
 import { useRef, useState } from 'preact/hooks'
 import { cardSummary, headline, recapLongestLine, recapTiles, type TripFacts } from '../facts/tripFacts'
 import { delayBannerText, spokenDelayBanner } from '../copy/flight'
-import { arrivalLocalTime, cardChips, flightStatus, landsAt, statsItems, tripMapSummary } from '../copy/tripMap'
+import { arrivalLocalTime, cardChips, cardHeading, flightStatus, landsAt, statsItems, tripMapSummary } from '../copy/tripMap'
 import type { GeoPoint } from '../map/greatCircle'
 import { NO_INSETS, type Insets } from '../map/mapFit'
 import { currentLeg, type MapLeg, type TripMap } from '../map/tripMap'
@@ -79,7 +79,7 @@ export function TripMapCard(p: TripMapCardProps) {
   const insets = chipInsets(Math.max(useHeightOf(topChip), useHeightOf(key)), useHeightOf(bottomChip))
   return (
     <section class="card glass trip-map-card">
-      <h2 ref={p.headingRef} class="sr-only" tabIndex={-1}>{leg ? 'In flight' : isRecap ? 'Trip recap' : 'Trip map'}</h2>
+      <h2 ref={p.headingRef} class="sr-only" tabIndex={-1}>{cardHeading(p.map, p.now)}</h2>
       <button type="button" class="trip-map-open" data-trip-map-open aria-label={summary} onClick={() => p.onOpenMap()}>
         <span ref={box} class="trip-map-frame">
           <AppleTripMap map={p.map} t={p.now} width={width} height={MAP_HEIGHT} focus={leg} land={p.land} nightStep={60_000} insets={insets}

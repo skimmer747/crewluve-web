@@ -3,7 +3,9 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { dayHeading, legTimes } from '../copy/schedule'
 import type { AirportIndex } from '../data/airports'
 import type { Leg } from '../engine/legs'
+import { isEstimatedArrival } from '../engine/liveLegs'
 import type { Pilot } from '../engine/types'
+import type { MapFlight } from '../map/mapFlight'
 import { calendarDay, MINUTE } from '../time/zoned'
 import { firstWeekday, monthOf, scrollDay, type Month } from './calendarFacts'
 import { Icon } from './Icon'
@@ -28,7 +30,14 @@ export interface ScheduleViewProps {
    * the page (3A §3.3). Beside the status, nothing does (3C §5.4).
    */
   focusOnOpen?: RefObject<HTMLElement>
+  /**
+   * The flights Crewlu Cloud has seen, by leg id (Stage 3 spec §7.1): a landing time that's the real plane's estimate
+   * reads "about", as on the status page (§9). None, as in the tests, lists the times as they are.
+   */
+  flights?: ReadonlyMap<string, MapFlight>
 }
+
+const NO_FLIGHTS: ReadonlyMap<string, MapFlight> = new Map()
 
 /** How far below the top of the list's box a heading counts as stuck there: the app's 20 points (EventTimelineView). */
 const STUCK_SLACK = 20
@@ -59,7 +68,7 @@ interface Place {
  * top yellow. Tapping a day or a row, or Current Event, scrolls the list (3B §5). It goes under the Schedule page's
  * bar, or beside the status on a wide window (3C §4.5).
  */
-export function ScheduleView({ legs, pilot, now, timeZone, h24, airports, weekStart, focusOnOpen }: ScheduleViewProps) {
+export function ScheduleView({ legs, pilot, now, timeZone, h24, airports, weekStart, focusOnOpen, flights = NO_FLIGHTS }: ScheduleViewProps) {
   const days = useMemo(() => scheduleDays(legs, timeZone), [legs, timeZone])
   const today = calendarDay(now, timeZone)
   // The calendar opens on this month with today selected (3B §5.1). The page keeps both, so the calendar can move.
@@ -80,11 +89,11 @@ export function ScheduleView({ legs, pilot, now, timeZone, h24, airports, weekSt
         legs: d.legs.map((leg, i) => ({
           leg,
           look: rowLook(leg, pilot, airports),
-          times: legTimes(leg.start, leg.end, timeZone, h24),
+          times: legTimes(leg.start, leg.end, timeZone, h24, isEstimatedArrival(leg, flights)),
           gap: i > 0 ? gapBefore(d.legs[i - 1], leg) : null,
         })),
       })),
-    [days, pilot, airports, timeZone, h24],
+    [days, pilot, airports, timeZone, h24, flights],
   )
 
   /** The day whose heading is stuck at the top of the list: the last heading within 20 px of it (3A §4.3, 3B §3.4). */

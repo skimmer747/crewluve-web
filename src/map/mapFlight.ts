@@ -41,6 +41,12 @@ export const mapFlightProgress = (flight: MapFlight, now: number): LiveProgress 
   liveProgress(flight.plan, flight.path, flight.record, flight.live, now + flight.clockOffset)
 
 /**
+ * Whether the real plane is still on the ground at its departure airport when this browser's clock says `now`: seen
+ * there lately, and not yet in the air (spec §5.1's `onGround`).
+ */
+export const isAtDeparture = (flight: MapFlight, now: number): boolean => mapFlightProgress(flight, now).phase === 'onGround'
+
+/**
  * Whether `arrival`, the leg's gate arrival as it's shown, is the real plane's estimate, which the words mark with
  * "about" (spec §9): it isn't the plan's, by a second or more, and the plane hasn't landed.
  */
