@@ -50,12 +50,12 @@ describe('where a popup goes (which plane design §3)', () => {
   })
 
   it('is drawn over its plane, or under it, slid sideways by the shift', () => {
-    const words = { title: 'On schedule', lines: ['Where UPS1234 would be if it were on time'] }
+    const words = { title: 'On schedule', lines: ['Where UPS1234 was scheduled to be'] }
     const view = render(<PlanePopup words={words} at={{ x: 20, y: 150 }} placement={{ below: false, shift: 108 }} />)
     expect((popup() as HTMLElement).style.transform).toBe('translate(calc(-50% + 108px), calc(-100% - 18px))')
     view.rerender(<PlanePopup words={words} at={{ x: 20, y: 40 }} placement={{ below: true, shift: 0 }} />)
     expect((popup() as HTMLElement).style.transform).toBe('translate(calc(-50% + 0px), 18px)')
-    expect(popup()?.textContent).toBe('On scheduleWhere UPS1234 would be if it were on time')
+    expect(popup()?.textContent).toBe('On scheduleWhere UPS1234 was scheduled to be')
   })
 })
 

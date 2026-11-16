@@ -30,7 +30,7 @@ function realPlane(name: string, moment = 0) {
 describe("a plane's popup (which plane design §3)", () => {
   it('calls the ghost the schedule', () => {
     const { leg, t } = caseLeg('ahead, in the air')
-    expect(planePopupWords(leg, 'ghost', t, false, NY, false)).toEqual({ title: 'On schedule', lines: ['Where UPS207 would be if it were on time'] })
+    expect(planePopupWords(leg, 'ghost', t, false, NY, false)).toEqual({ title: 'On schedule', lines: ['Where UPS207 was scheduled to be'] })
   })
 
   it("names the real plane in the air, with the bar's words and when it lands", () => {
@@ -76,7 +76,7 @@ describe("a plane's popup (which plane design §3)", () => {
   it('says "the flight" of a flight with no number, and keeps the viewer\'s clock', () => {
     const { leg, t } = caseLeg('ahead, in the air')
     const unnamed = { ...leg, flightNumber: null }
-    expect(planePopupWords(unnamed, 'ghost', t, false, NY, false).lines).toEqual(['Where the flight would be if it were on time'])
+    expect(planePopupWords(unnamed, 'ghost', t, false, NY, false).lines).toEqual(['Where the flight was scheduled to be'])
     expect(planePopupWords(unnamed, 'realPlane', t, false, NY, false).title).toBe('The flight · real plane')
     expect(planePopupWords(leg, 'realPlane', t, true, NY, true).lines).toEqual([`Where it was at ${shortTimeText(t, NY, true)}`])
     expect(shortTimeText(t, NY, true)).toMatch(/^\d\d:\d\d$/)

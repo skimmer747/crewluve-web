@@ -6945,6 +6945,10 @@ Seven minor notes:
 - **This plan's commits, all on `claude/trip-map-live-598046`, none pushed:** `f6e1b04` (Task 2), `9486c3c` (Task 3), `be981e3` (Task 4), `754f6fd` (Task 5), `4689ed4` (Task 6), `fa85c59` (Task 7), `a869d4e` (Task 8), `7dd4441` (Task 9), `2b222bb` (the which plane design), `bd503fe` (Task 11), `4492e9b` (Task 12's fix), and this plan with its record.
 - **Still to do with Todd:** his second look at the key and the popup (Task 11 Step 8). Anything it turns up gets its own fix, with a test where a test can see it.
 
+**Todd's second look (Task 11 Step 8), 16 Nov 2026.**
+- The ghost's popup: "It should say 'Where UPS2961 was scheduled to be'". Changed from "Where … would be if it were on time" in `src/copy/planePopup.ts` and the design's table; with no flight number it's "Where the flight was scheduled to be". The title stays "On schedule". Tests first: the two words tests in `tests/copy/planePopup.test.ts` failed, then passed with the change, as did the popup test in `tests/ui/planePopup.test.tsx`; Task 11's 40 tests pass, and `tsc --noEmit` finds nothing. (Task 11's code above still shows the first words; this is the change to them.) Seen on Apple's map, opened from the card as a family would. Todd's run of Task 11's tests, started in his Terminal at his choice, 16 Nov 2026 at 2:28 pm: 3 files and 40 tests pass. Committed as he chose.
+- While the dev server updated the page in place as files changed, an open full map was once drawn twice, one over the other. A fresh load, and the full map opened from the card, show one map and one popup: it's the dev server's live update, not the site.
+
 ## Self-review
 
 - **Spec coverage.**

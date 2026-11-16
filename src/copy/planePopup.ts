@@ -21,7 +21,7 @@ const capitalized = (text: string) => `${text.charAt(0).toUpperCase()}${text.sli
 export function planePopupWords(leg: MapLeg, plane: PlaneKind, t: number, isReplay: boolean, viewerTz: string, h24: boolean): PopupWords {
   const name = leg.flightNumber ?? 'the flight'
   const time = (ms: number) => shortTimeText(ms, viewerTz, h24)
-  if (plane === 'ghost') return { title: 'On schedule', lines: [`Where ${name} would be if it were on time`] }
+  if (plane === 'ghost') return { title: 'On schedule', lines: [`Where ${name} was scheduled to be`] }
   const title = `${capitalized(name)} · real plane`
   if (isReplay) return { title, lines: [`Where it was at ${time(t)}`] }
   if (!leg.flight) return { title, lines: [] }

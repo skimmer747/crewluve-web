@@ -33,7 +33,7 @@ In the demo scene `live-on-ground-late`, the full map showed the real plane at t
 
 | The plane | Title | Lines |
 |---|---|---|
-| The ghost | On schedule | Where {flight} would be if it were on time |
+| The ghost | On schedule | Where {flight} was scheduled to be |
 | The real plane, on the ground at its departure airport | {flight} · real plane | {label} / Lands {about}{landing} |
 | The real plane, in the air | {flight} · real plane | {label} / Lands {about}{landing} |
 | The real plane, estimated (faded) | {flight} · best guess | Not seen since {seen}, so it's drawn where it should be by now / {label} · lands {about}{landing} |
