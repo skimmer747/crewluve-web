@@ -1,9 +1,9 @@
-import { pointsAlong, type GeoPoint } from './greatCircle'
+import type { GeoPoint } from './greatCircle'
 import { fitClear, fitRect, MIN_CLEAR_PX, NO_INSETS, slideToShow, type Insets, type WorldRect } from './mapFit'
 import { placeAt } from './svgPaths'
 import type { GroundKind } from './tripActivity'
 import type { MapLeg } from './tripMap'
-import { PILOT_RADIUS, type SegmentStyle, type TripMapDrawing } from './tripMapDrawing'
+import { PILOT_RADIUS, routePoints, type SegmentStyle, type TripMapDrawing } from './tripMapDrawing'
 
 /**
  * What Apple's map shows for a moment of the trip (Apple Maps spec §8): the same drawing as the SVG map, as lines and
@@ -16,7 +16,7 @@ export interface PlannedLine {
   points: GeoPoint[]
 }
 
-export type MarkKind = 'airport' | 'car' | 'pilot' | 'plane'
+export type MarkKind = 'airport' | 'car' | 'pilot' | 'plane' | 'realPlane' | 'ghost'
 
 export interface PlannedMark {
   id: string
@@ -33,6 +33,8 @@ export interface PlannedMark {
    * leg's own. The pilot's marker, the plane and a car are always shown.
    */
   priority: 'lowest' | 'low' | 'high' | 'required'
+  /** The real plane while it's an estimate, shown faded (Stage 3 spec §5.4). */
+  faded?: boolean
 }
 
 export interface AppleMapPlan {
@@ -83,13 +85,17 @@ export function appleMapPlan(drawing: TripMapDrawing, focus: MapLeg | null): App
     marks.push({ ...shown, id: `pilot:${drawing.pilot.kind}`, kind: 'pilot', place: drawing.pilot.place.place, activity: drawing.pilot.kind })
   }
   // The plane icon points up, so it turns a quarter more than the route's screen angle, as on the SVG map.
-  if (drawing.plane) {
-    marks.push({ ...shown, id: 'plane', kind: 'plane', place: drawing.plane.place, degrees: (drawing.plane.angle * 180) / Math.PI + 90 })
+  const degrees = (angle: number) => (angle * 180) / Math.PI + 90
+  if (drawing.plane) marks.push({ ...shown, id: 'plane', kind: 'plane', place: drawing.plane.place, degrees: degrees(drawing.plane.angle) })
+  // The ghost goes just under the real plane, which is on top (Stage 3 spec §5.4): MapKit stacks later marks higher.
+  if (drawing.ghost) marks.push({ ...shown, id: 'ghost', kind: 'ghost', place: drawing.ghost.place, degrees: degrees(drawing.ghost.angle) })
+  if (drawing.realPlane) {
+    const { place, angle, isEstimated } = drawing.realPlane
+    marks.push({ ...shown, id: 'realPlane', kind: 'realPlane', place, degrees: degrees(angle), faded: isEstimated })
   }
-  return {
-    lines: drawing.segments.map((s) => ({ id: s.id, style: s.style, points: laidOut(s.geodesic ? pointsAlong(s.from, s.to, 101) : [s.from, s.to]) })),
-    marks,
-  }
+  // The real path where the plane was seen goes over every other line.
+  const lines = [...drawing.segments.filter((s) => s.style !== 'seen'), ...drawing.segments.filter((s) => s.style === 'seen')]
+  return { lines: lines.map((s) => ({ id: s.id, style: s.style, points: laidOut(routePoints(s)) })), marks }
 }
 
 /** What MapKit is asked to show: a rectangle of the flat map, fitted inside the view less its padding. */

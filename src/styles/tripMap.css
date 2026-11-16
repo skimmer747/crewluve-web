@@ -11,6 +11,9 @@
   --trip-route: var(--blue);
   --trip-flown: var(--gray);
   --trip-text: #000000;
+  /* The real path where the plane was seen, or wasn't (Stage 3 spec §6.2), and the ghost's outline: white on a dark map,
+     blue on a light one, where white wouldn't show. */
+  --trip-seen: var(--blue);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -21,8 +24,13 @@
     --trip-land-edge: rgb(28%, 32%, 40%);
     --trip-route: var(--cyan);
     --trip-text: #ffffff;
+    --trip-seen: #ffffff;
   }
 }
+
+/* Apple's hybrid and satellite maps are photographs, dark in either scheme. */
+.apple-trip-map.hybrid,
+.apple-trip-map.satellite { --trip-seen: #ffffff; }
 
 .trip-map-open {
   position: relative;
@@ -56,6 +64,15 @@
 .trip-map-route.flying { stroke: var(--trip-route); stroke-width: 3; }
 .trip-map-route.flown { stroke: var(--trip-flown); stroke-width: 2.5; }
 .trip-map-route.drive { stroke: var(--trip-flown); stroke-width: 3; stroke-dasharray: 0.5 6; }
+.trip-map-route.seen { stroke: var(--trip-seen); stroke-width: 3; }
+.trip-map-route.unseen { stroke: var(--trip-seen); stroke-width: 2.5; stroke-dasharray: 0.5 6; }
+/* The real plane: a filled blue circle with a white border and a white plane, faded while it's an estimate. The ghost: a
+   dashed white outline with a faint white plane (Stage 3 spec §5.4), blue on a light map. */
+.trip-map-real-plane circle { fill: var(--blue); stroke: #ffffff; stroke-width: 1.5; }
+.trip-map-real-plane .trip-map-badge-icon { fill: #ffffff; }
+.trip-map-real-plane.estimated { opacity: 0.6; }
+.trip-map-ghost circle { fill: none; stroke: var(--trip-seen); stroke-width: 1.5; stroke-dasharray: 3 3; }
+.trip-map-ghost .trip-map-badge-icon { fill: var(--trip-seen); opacity: 0.4; }
 .trip-map-airport circle { fill: #ffffff; stroke: rgba(0, 0, 0, 0.4); stroke-width: 0.5; }
 .trip-map-airport text {
   fill: var(--trip-text);
@@ -355,6 +372,20 @@
 }
 .apple-mark.pilot svg { fill: #ffffff; }
 .apple-mark.car svg { fill: var(--trip-text); }
+/* The real plane and its ghost, as on the SVG map: one size, the pilot's marker's. */
+.apple-mark.realPlane,
+.apple-mark.ghost {
+  justify-content: center;
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+.apple-mark.realPlane { border: 1.5px solid #ffffff; background: var(--blue); }
+.apple-mark.realPlane svg { fill: #ffffff; }
+.apple-mark.realPlane.estimated { opacity: 0.6; }
+.apple-mark.ghost { border: 1.5px dashed var(--trip-seen); }
+.apple-mark.ghost svg { fill: var(--trip-seen); opacity: 0.4; }
 .apple-mark-dot { width: 7px; height: 7px; border: 0.5px solid rgba(0, 0, 0, 0.4); border-radius: 50%; background: #ffffff; }
 .apple-mark-code {
   margin-top: 3px;

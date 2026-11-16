@@ -1,12 +1,12 @@
 import { useMemo } from 'preact/hooks'
 import { ICON_PATHS, type IconName } from '../icons/iconPaths'
-import { pointsAlong, type GeoPoint } from '../map/greatCircle'
+import type { GeoPoint } from '../map/greatCircle'
 import { fitClear, fitRect, NO_INSETS, slideToShow, type Insets } from '../map/mapFit'
 import { LAYER_ALPHA, nightLayers } from '../map/nightShade'
 import { linePath, placeAt, polygonsPath, type Viewport } from '../map/svgPaths'
 import type { GroundKind } from '../map/tripActivity'
 import { framingPoints, type MapLeg, type TripMap } from '../map/tripMap'
-import { nightTime, PILOT_RADIUS, tripMapDrawing } from '../map/tripMapDrawing'
+import { nightTime, PILOT_RADIUS, routePoints, tripMapDrawing, type PlaneMark } from '../map/tripMapDrawing'
 
 export interface TripMapSvgProps {
   map: TripMap
@@ -24,6 +24,8 @@ export interface TripMapSvgProps {
    * trip is framed in the rest when there's room, and the pilot's marker is always kept there (`slideToShow`).
    */
   insets?: Insets
+  /** `t` is a moment of the replay, not now: a flight with a record shows its real plane alone (Stage 3 spec §7.3). */
+  isReplay?: boolean
 }
 
 /** A Phosphor icon (256 units, pointing up) centred on `at`, `size` px wide, turned `degrees` clockwise. */
@@ -78,17 +80,30 @@ function PilotMarker({ kind, at }: { kind: GroundKind; at: { x: number; y: numbe
   )
 }
 
+/** The real plane and its ghost (Stage 3 spec §5.4): a plane in a circle, the pilot's marker's size. */
+function PlaneBadge({ plane, at, class: cls }: { plane: PlaneMark; at: { x: number; y: number }; class: string }) {
+  return (
+    <g class={cls}>
+      <circle cx={at.x} cy={at.y} r={PILOT_RADIUS} />
+      {/* The site's plane icon points up, so it turns a quarter more than the screen angle. */}
+      <Mark name="Airplane" at={at} size={14} degrees={(plane.angle * 180) / Math.PI + 90} class="trip-map-badge-icon" />
+    </g>
+  )
+}
+
 /**
  * The trip map (moving map spec §7.1, §11): ocean, land, night, routes, airports, cars, the pilot's marker and the plane,
  * drawn by the site in SVG. The card and the full map describe it in words, so to screen readers it's hidden.
  */
-export function TripMapSvg({ map, t, width, height, focus, land, nightStep, insets = NO_INSETS }: TripMapSvgProps) {
+export function TripMapSvg({ map, t, width, height, focus, land, nightStep, insets = NO_INSETS, isReplay = false }: TripMapSvgProps) {
   const { top, right, bottom, left } = insets
   const framed = useMemo(
     () => fitClear(fitRect(framingPoints(map, focus)) ?? { x: 0, y: 0, width: 1, height: 1 }, width, height, { top, right, bottom, left }),
     [map, focus, width, height, top, right, bottom, left],
   )
-  const drawing = tripMapDrawing(map, t)
+  const drawing = tripMapDrawing(map, t, isReplay)
+  // The real path where the plane was seen goes over every other line.
+  const segments = [...drawing.segments.filter((s) => s.style !== 'seen'), ...drawing.segments.filter((s) => s.style === 'seen')]
   // The trip is framed in the clear part when there's room. Then, if the pilot's marker still lies outside it (the
   // card's chips at large text sizes), the view slides the shortest way that shows it (the app's card framing §4.2).
   const pilot = drawing.pilot ? placeAt(drawing.pilot.place.place, { rect: framed, width, height }) : null
@@ -105,9 +120,7 @@ export function TripMapSvg({ map, t, width, height, focus, land, nightStep, inse
       <rect class="trip-map-ocean" width={width} height={height} />
       {landPath && <path class="trip-map-land" d={landPath} />}
       {nightPaths.map((d, i) => <path key={i} class="trip-map-night" d={d} fill-opacity={LAYER_ALPHA} />)}
-      {drawing.segments.map((s) => (
-        <path key={s.id} class={`trip-map-route ${s.style}`} d={linePath(s.geodesic ? pointsAlong(s.from, s.to, 101) : [s.from, s.to], view)} />
-      ))}
+      {segments.map((s) => <path key={s.id} class={`trip-map-route ${s.style}`} d={linePath(routePoints(s), view)} />)}
       {airportMarks.map(({ code, at, labelled }) => (
         <g key={code} class="trip-map-airport">
           <circle cx={at.x} cy={at.y} r={3.5} />
@@ -119,6 +132,12 @@ export function TripMapSvg({ map, t, width, height, focus, land, nightStep, inse
       {drawing.plane && (
         // The site's plane icon points up, so it turns a quarter more than the screen angle.
         <Mark name="Airplane" at={placeAt(drawing.plane.place, view)} size={22} degrees={(drawing.plane.angle * 180) / Math.PI + 90} class="trip-map-plane" />
+      )}
+      {/* The ghost just under the real plane, which is drawn on top. */}
+      {drawing.ghost && <PlaneBadge plane={drawing.ghost} at={placeAt(drawing.ghost.place, view)} class="trip-map-ghost" />}
+      {drawing.realPlane && (
+        <PlaneBadge plane={drawing.realPlane} at={placeAt(drawing.realPlane.place, view)}
+          class={`trip-map-real-plane${drawing.realPlane.isEstimated ? ' estimated' : ''}`} />
       )}
     </svg>
   )

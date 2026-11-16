@@ -32,21 +32,35 @@ export function AppleTripMap(props: AppleTripMapProps) {
 }
 
 /** Each route style's look, as on the SVG map: colours come from the page's CSS, so dark mode follows. */
-const LINES: Record<SegmentStyle, { color: '--trip-route' | '--trip-flown'; width: number; dash: number[] }> = {
+const LINES: Record<SegmentStyle, { color: '--trip-route' | '--trip-flown' | '--trip-seen'; width: number; dash: number[] }> = {
   upcoming: { color: '--trip-route', width: 2, dash: [6, 6] },
   flying: { color: '--trip-route', width: 3, dash: [] },
   flown: { color: '--trip-flown', width: 2.5, dash: [] },
   drive: { color: '--trip-flown', width: 3, dash: [1, 6] },
+  seen: { color: '--trip-seen', width: 3, dash: [] },
+  unseen: { color: '--trip-seen', width: 2.5, dash: [1, 6] },
 }
 
 const PRIORITY: Record<PlannedMark['priority'], number> = { lowest: 100, low: 250, high: 750, required: 1000 }
+
+/**
+ * MapKit stacks each line and mark over the ones added before it, and keeps one where it is when it's moved. So when
+ * one is made, every one the plan puts after it is added again, in the plan's order: the real plane stays over its
+ * ghost when the ghost comes back after a replay, and the seen path over a line made later (Stage 3 spec §5.4, §6.2).
+ */
+function restack(order: string[], made: Set<string>, addAgain: (id: string) => void) {
+  const after = order.slice(order.findIndex((id) => made.has(id)) + 1)
+  // Nothing made, or nothing kept after what was: all is in order already, as on the first draw.
+  if (made.size === 0 || after.every((id) => made.has(id))) return
+  for (const id of after) addAgain(id)
+}
 
 interface Live {
   map: MkMap
   lines: Map<string, { overlay: MkPolyline; key: string }>
   night: MkPolygon[]
   nightAt: number
-  marks: Map<string, { annotation: MkAnnotation; turn: (degrees: number) => void; priority: PlannedMark['priority'] }>
+  marks: Map<string, { annotation: MkAnnotation; turn: (degrees: number) => void; fade: (faded: boolean) => void; priority: PlannedMark['priority'] }>
   framed: string
   /**
    * The latest framing, whether it was animated, until it has slid once to show the pilot's marker: each time MapKit
@@ -88,7 +102,9 @@ function slideToPilot(mapkit: MapKitApi, state: Live, now: Latest | undefined) {
   m.setVisibleMapRectAnimated(new mapkit.MapRect(rect.x, rect.y, rect.width, rect.height), settling.animated)
 }
 
-function AppleMapView({ mapkit, map, t, width, height, focus, nightStep, insets = NO_INSETS, mapStyle, interactive, recenter = 0, onUserMove }: AppleTripMapProps & { mapkit: MapKitApi }) {
+function AppleMapView({
+  mapkit, map, t, width, height, focus, nightStep, insets = NO_INSETS, mapStyle, interactive, recenter = 0, onUserMove, isReplay = false,
+}: AppleTripMapProps & { mapkit: MapKitApi }) {
   const box = useRef<HTMLDivElement>(null)
   const live = useRef<Live | null>(null)
   const userMove = useRef(onUserMove)
@@ -149,10 +165,15 @@ function AppleMapView({ mapkit, map, t, width, height, focus, nightStep, insets 
 
   // The style, on the same map.
   useEffect(() => {
-    if (live.current) live.current.map.mapType = types[mapStyle]
+    const state = live.current
+    if (!state) return
+    state.map.mapType = types[mapStyle]
+    // The real path's colour follows the style (tripMap.css): restyle the lines.
+    for (const kept of state.lines.values()) kept.key = ''
+    repaint((n) => n + 1)
   }, [mapStyle])
 
-  const drawing = tripMapDrawing(map, t)
+  const drawing = tripMapDrawing(map, t, isReplay)
 
   // The trip at time t: lines, night and marks, in place.
   useEffect(() => {
@@ -165,6 +186,7 @@ function AppleMapView({ mapkit, map, t, width, height, focus, nightStep, insets 
       return new mapkit.Style({ strokeColor: color(look.color, '#0a84ff'), lineWidth: look.width, lineDash: look.dash, lineCap: 'round' })
     }
     const seen = new Set<string>()
+    const madeLines = new Set<string>()
     for (const line of plan.lines) {
       seen.add(line.id)
       const key = `${line.style}:${line.points.map((p) => `${p.lat},${p.lng}`).join(';')}`
@@ -173,12 +195,18 @@ function AppleMapView({ mapkit, map, t, width, height, focus, nightStep, insets 
         const overlay = new mapkit.PolylineOverlay(line.points.map(C), { style: lineStyle(line.style) })
         state.map.addOverlay(overlay)
         state.lines.set(line.id, { overlay, key })
+        madeLines.add(line.id)
       } else if (kept.key !== key) {
         kept.overlay.points = line.points.map(C)
         kept.overlay.style = lineStyle(line.style)
         kept.key = key
       }
     }
+    restack(plan.lines.map((l) => l.id), madeLines, (id) => {
+      const { overlay } = state.lines.get(id)!
+      state.map.removeOverlay(overlay)
+      state.map.addOverlay(overlay)
+    })
     for (const [id, kept] of state.lines) {
       if (!seen.has(id)) {
         state.map.removeOverlay(kept.overlay)
@@ -193,11 +221,12 @@ function AppleMapView({ mapkit, map, t, width, height, focus, nightStep, insets 
       state.nightAt = at
     }
     const marked = new Set<string>()
+    const madeMarks = new Set<string>()
     for (const mark of plan.marks) {
       marked.add(mark.id)
       let kept = state.marks.get(mark.id)
       if (!kept) {
-        const { element, turn } = markElement(mark.kind, mark.label, mark.activity)
+        const { element, turn, fade } = markElement(mark.kind, mark.label, mark.activity)
         // Airports give way to each other where they crowd. The pilot's marker, the plane and a car sit on top of an
         // airport by design, so they take no part: they hide nothing and are never hidden.
         const annotation = new mapkit.Annotation(C(mark.place), () => element, {
@@ -205,8 +234,9 @@ function AppleMapView({ mapkit, map, t, width, height, focus, nightStep, insets 
           collisionMode: mark.kind === 'airport' ? mapkit.AnnotationCollisionMode.Circle : mapkit.AnnotationCollisionMode.None,
         })
         state.map.addAnnotation(annotation)
-        kept = { annotation, turn, priority: mark.priority }
+        kept = { annotation, turn, fade, priority: mark.priority }
         state.marks.set(mark.id, kept)
+        madeMarks.add(mark.id)
       } else {
         kept.annotation.coordinate = C(mark.place)
         // An airport outranks the rest only while its leg is in focus, so its rank moves on with the replay.
@@ -216,7 +246,13 @@ function AppleMapView({ mapkit, map, t, width, height, focus, nightStep, insets 
         }
       }
       kept.turn(mark.degrees)
+      kept.fade(mark.faded ?? false)
     }
+    restack(plan.marks.map((m) => m.id), madeMarks, (id) => {
+      const { annotation } = state.marks.get(id)!
+      state.map.removeAnnotation(annotation)
+      state.map.addAnnotation(annotation)
+    })
     for (const [id, kept] of state.marks) {
       if (!marked.has(id)) {
         state.map.removeAnnotation(kept.annotation)
@@ -250,5 +286,5 @@ function AppleMapView({ mapkit, map, t, width, height, focus, nightStep, insets 
 
   // The card's map is a picture inside the card's button: it's kept from screen readers and out of the Tab order, so
   // Apple's Legal link isn't a link inside a button. The full map's controls and Legal link stay reachable.
-  return <div ref={box} class={`apple-trip-map${interactive ? '' : ' still'}`} {...(interactive ? {} : { 'aria-hidden': 'true', inert: true })} />
+  return <div ref={box} class={`apple-trip-map ${mapStyle}${interactive ? '' : ' still'}`} {...(interactive ? {} : { 'aria-hidden': 'true', inert: true })} />
 }
