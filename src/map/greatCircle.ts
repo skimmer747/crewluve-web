@@ -10,6 +10,9 @@ export const EARTH_RADIUS_M = 6_371_008.8
 /** One statute mile, in meters. Families think in miles (moving map spec §8.3). */
 export const METERS_PER_MILE = 1_609.344
 
+/** One nautical mile, in meters: the unit of the real plane's shared cases (Stage 3 spec §16.1). */
+export const METERS_PER_NM = 1_852
+
 const rad = (d: number) => (d * Math.PI) / 180
 const deg = (r: number) => (r * 180) / Math.PI
 

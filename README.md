@@ -41,7 +41,7 @@ python3 -I scripts/make-icons.py   # public/icons/*.png (reads ../Crewluv)
 
 `npm run land` reads Natural Earth's land file, which isn't committed: download v5.1.2's `geojson/ne_110m_land.geojson` (public domain, about 140 KB) from https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_110m_land.geojson to `scripts/ne_110m_land.geojson` first.
 
-`public/data/geography.json` and `public/data/comparisons.json` are copies of the app's, in Crewluv's `Crewluv/Resources/TripMap/`, and `tests/fixtures/trip-map/facts-cases.json`, `replay-cases.json` and `activity-cases.json` are copies of its `CrewluvTests/Fixtures/TripMap/` files of those names. The app makes `geography.json` from Natural Earth (public domain) with `node scripts/build-geography.mjs`. Change each pair together.
+`public/data/geography.json` and `public/data/comparisons.json` are copies of the app's, in Crewluv's `Crewluv/Resources/TripMap/`, and `tests/fixtures/trip-map/facts-cases.json`, `replay-cases.json`, `activity-cases.json` and `live-cases.json` are copies of its `CrewluvTests/Fixtures/TripMap/` files of those names. The app makes `geography.json` from Natural Earth (public domain) with `node scripts/build-geography.mjs`, and `live-cases.json` with `node scripts/live-cases/generate.mjs`. Change each pair together.
 
 `npm run airports` expects the CrewLu Flight Globe checkout next to this repo (`../crewlu-globe`).
 To read its `airports.json` from somewhere else, set `AIRPORTS_SOURCE=/path/to/airports.json`.
