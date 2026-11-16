@@ -6956,16 +6956,16 @@ cd "/Users/toddanderson/Dev/Crewluve Website/.claude/worktrees/trip-map-live-598
 
 Expected: `fast-forward`. If it isn't (`main` has moved on since `ee8f0cb`), merge it in here: `git merge origin/main`. If any file conflicts, STOP and tell Todd. Then run `npm test && npm run build`.
 
-- [ ] **Step 3: Todd runs everything** (Task 10 Step 6's command) on the branch as it will go live.
-- [ ] **Step 4: Push the branch to `main`, on Todd's yes.** A fast-forward only; never force.
+- [x] **Step 3: Todd runs everything** (Task 10 Step 6's command) on the branch as it will go live.
+- [x] **Step 4: Push the branch to `main`, on Todd's yes.** A fast-forward only; never force.
 
 ```bash
 git push origin claude/trip-map-live-598046:main
 ```
 
-- [ ] **Step 5: Watch the deploy** (`gh run watch` on the run the push started) until it succeeds. If it fails, tell Todd at once with its log: the site stays as it was until a deploy succeeds.
-- [ ] **Step 6: Look at the live site** with Todd, at `https://crewluve.crewlu.net/?demo=1&scene=live-ahead#map` and `…scene=flying#map`: the real plane, its facts and the credit, and the schedule-only scene as before.
-- [ ] **Step 7: The record.** Under "Changes made during execution": the push's commit, the deploy's run and time, and what Todd saw. Commit the plan on his yes and push it (a fast-forward only), as Step 4.
+- [x] **Step 5: Watch the deploy** (`gh run watch` on the run the push started) until it succeeds. If it fails, tell Todd at once with its log: the site stays as it was until a deploy succeeds.
+- [x] **Step 6: Look at the live site** with Todd, at `https://crewluve.crewlu.net/?demo=1&scene=live-ahead#map` and `…scene=flying#map`: the real plane, its facts and the credit, and the schedule-only scene as before.
+- [x] **Step 7: The record.** Under "Changes made during execution": the push's commit, the deploy's run and time, and what Todd saw. Commit the plan on his yes and push it (a fast-forward only), as Step 4.
 
 ---
 
@@ -7009,6 +7009,11 @@ git push origin claude/trip-map-live-598046:main
   - It swept the facts and the card's sentence, now and in a replay, from 3 hours before a flight to 1 hour after, for a normal flight, a one-point path, a missing fix (with and without a trail), a plane last seen 2.5 hours before, a landed plane, a plane on the ground late and early, and a height that's NaN: no exception, no NaN, no "undefined". "About" comes from one test (`isEstimate(flight, leg.end)`) on the card, the status sentence, the facts and the Schedule page; "on the ground" from one (`isAtDeparture`) in all four places and the facts. A flight with no live data reads as before. A real flight's story takes about 22 ms (Louisville to Frankfurt, the real geography), at most once a minute.
   - Minor, left (added to "Left for later"): between touchdown and the gate, the facts still say "Over …" and "0 to go" while the card says it landed (the app's facts do the same, and a flight with no live data always has); a replay at the present moment, while the plane waits at its gate, reads the schedule's plane, as the map draws it; no one test reads every surface at one moment. And, recorded already: a story up to a minute old after a gap closes.
 - **Task 13, going live:** Todd chose "Go live: run it, then push if it passes" (16 Nov 2026, about 6 PM). `origin/main` was still `ee8f0cb`, so the branch is a fast-forward of it (Step 2: no merge needed).
+  - **Plan committed:** `0daeac8`.
+  - **Todd's run on the branch as it went live** (Step 3, in his Terminal): `0daeac8`, `npm test && npm run build` at 6:06 PM, 175 test files and 3,614 tests passed, `✓ built`.
+  - **Pushed** (Step 4): `git push origin claude/trip-map-live-598046:main`, `ee8f0cb..0daeac8`, a fast-forward. Plans 3C-1, 3C-2 and 3C-3 went live together.
+  - **Deployed** (Step 5): "Deploy to GitHub Pages" run `43976409072`, build and deploy succeeded, 6:08 PM EST (23:08 UTC), 16 Nov 2026.
+  - **The live site** (Step 6): the session read `https://crewluve.crewlu.net/?demo=1&scene=live-ahead#map` (Apple's map, the real plane and its ghost with the key, "Over Indiana", "Boeing 767-300 · 35,000 ft · 530 mph", "169 mi flown · 161 to go", "Live position: adsb.lol" under the facts) and `…scene=flying#map` (as before: no plane's row, no key, "Averaging about 290 mph", no credit; no console errors). **Todd: "Looks good."**
 
 ## Self-review
 
