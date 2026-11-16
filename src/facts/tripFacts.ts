@@ -1,24 +1,31 @@
-import { belowWords, cockpitCountdown, flightTitle, milestoneHeadline, milestoneLine } from '../copy/facts'
+import {
+  belowWords, cockpitCountdown, flightTitle, lastSeenLine, milestoneHeadline, milestoneLine, spokenLastSeen, stillOnGroundText,
+} from '../copy/facts'
 import { longestText, recapChip, recapSummary, soFarText, totalsTiles, type RecapTile } from '../copy/factsTrip'
 import { shortTimeText } from '../copy/format'
 import { landingCountdown, liveSummary, panelHeadline, tripMapSummary } from '../copy/tripMap'
 import type { LandingForecast } from '../data/weather'
+import { pointAtDistance } from '../map/flightPath'
 import type { GeoPoint } from '../map/greatCircle'
-import { currentLeg, dayCount, legInMotion, legProgress, positionAtTime, type AirportMark, type MapLeg, type TripMap } from '../map/tripMap'
+import { mapFlightProgress } from '../map/mapFlight'
+import { currentLeg, dayCount, legInMotion, type AirportMark, type MapLeg, type TripMap } from '../map/tripMap'
 import { MINUTE } from '../time/zoned'
 import type { Comparison } from './comparisons'
 import type { TripSoFar } from './factRow'
-import { cityNear, type Geography } from './geography'
+import { cityNear, type City, type Geography, type Place } from './geography'
 import { landsWithinHorizon } from './landingWeather'
-import { legStory, placeAtFraction, type LegStory } from './legStory'
+import { hasLiveData, legPath } from './legCourse'
+import { legStory, placeAtDistance, type LegStory } from './legStory'
 import { MILESTONE_HEADLINE_MS, milestones, type Milestone } from './milestone'
+import { legPlane } from './planePosition'
 import { sunEvents, type SunEvent } from './sky'
 import { longestFlight, totalsSoFar, wholeTotals, type SunEventsByLeg } from './tripTotals'
 
 /**
  * Everything the facts say about a trip at a moment (Stage 2 spec §3.1, §4.4, §5), as the app's TripFacts: the
  * headline, the trip so far and the card's words here, and the rows in tripFactsRows.ts. Each answer is a lookup in the
- * flights' stories and sun events, so replay and scrubbing need nothing extra (§4.10).
+ * flights' stories and sun events, so replay and scrubbing need nothing extra (§4.10). A flight with a real plane is read
+ * where the real plane is, along the path it really flew (Stage 3 spec §8).
  */
 
 /** A cockpit sunrise or sunset this close leads the headline (§4.4). */
@@ -35,6 +42,8 @@ export interface FactsOptions {
   /** The status's trip day, for "Day 2 of 4". */
   day?: number | null
   days?: number | null
+  /** The moments asked about are a replay's, not now: the full map's clock isn't live. False unless it's said. */
+  isReplay?: boolean
 }
 
 export interface TripFacts {
@@ -49,6 +58,11 @@ export interface TripFacts {
   h24: boolean
   day: number | null
   days: number | null
+  /**
+   * The moments asked about are a replay's, not now: the full map's clock isn't live. A real plane is then where its
+   * record has it, and what only its newest fix tells is left out (Stage 3 spec §7.3).
+   */
+  isReplay: boolean
 }
 
 /**
@@ -65,7 +79,8 @@ const pointKey = (p: GeoPoint) => `${p.lat},${p.lng}`
 
 /**
  * The route's story: along the great circle, whatever path the plane flew, since another flight on the route shares it.
- * A real path's story, made again as the path grows, is the store's (Stage 3 spec §8; a later task of plan 3C-3).
+ * It's read by distance along the flight's path. A real path's story, made again as the path grows, is the store's
+ * (Stage 3 spec §8; a later task of plan 3C-3).
  */
 function storyOf(leg: MapLeg, geography: Geography, home: AirportMark | null): LegStory {
   let kept = stories.get(geography)
@@ -109,6 +124,7 @@ export function makeTripFacts(map: TripMap, options: FactsOptions): TripFacts {
     h24: options.h24,
     day: options.day ?? null,
     days: options.days ?? null,
+    isReplay: options.isReplay ?? false,
   }
 }
 
@@ -118,21 +134,59 @@ export function factsMilestones(facts: TripFacts, leg: MapLeg): Milestone[] {
   return story ? milestones(leg, story) : []
 }
 
-/** "Over Kansas", "Over Québec, near Montréal", from the flight's story. */
+/**
+ * "Over Kansas", "Over Québec, near Montréal", from the flight's story, read where the plane is (Stage 3 spec §8). A real
+ * plane that's out of sight is where the plan has it, flying on from the last place it was seen, and reads the same
+ * (best guesses design §2).
+ */
 export function belowText(facts: TripFacts, leg: MapLeg, t: number): string | null {
   const story = facts.stories[leg.id]
-  const place = story ? placeAtFraction(story, legProgress(leg, t)) : null
+  const plane = legPlane(leg, t, facts.isReplay)
+  const place = story ? placeAtDistance(story, plane.distance) : null
   if (!place) return null
-  return belowWords(place, facts.geography ? cityNear(facts.geography, positionAtTime(leg, t)) : null)
+  return belowWords(place, facts.geography ? cityNear(facts.geography, plane.place) : null)
+}
+
+/** What was under the real plane where it was last seen, and the city by it. */
+function lastSeenPlace(facts: TripFacts, leg: MapLeg): [place: Place | null, city: City | null] {
+  const path = legPath(leg)
+  const story = facts.stories[leg.id]
+  return [
+    story ? placeAtDistance(story, path.flownLength) : null,
+    facts.geography ? cityNear(facts.geography, pointAtDistance(path, path.flownLength)) : null,
+  ]
+}
+
+/** "Last seen near Montréal · 12 min ago", while the real plane is out of sight, or null while it's seen (best guesses design §2). */
+export function lastSeenText(facts: TripFacts, leg: MapLeg, t: number): string | null {
+  const { unseenFor } = legPlane(leg, t, facts.isReplay)
+  return unseenFor == null ? null : lastSeenLine(...lastSeenPlace(facts, leg), unseenFor)
 }
 
 /**
+ * Whether the real plane of `leg`, the leg between its gates at `t`, is still on the ground at its departure airport.
+ * The facts then say so in place of what's below, and count nothing as flown: "Still on the ground in Rockford" (the
+ * website's own, Todd, 16 Nov 2026). Now only: a replay reads where the map has the plane, as the app does.
+ */
+export function isStillOnGround(facts: TripFacts, leg: MapLeg, t: number): boolean {
+  return !facts.isReplay && leg.flight != null && mapFlightProgress(leg.flight, t).phase === 'onGround'
+}
+
+/** Whether a flight with live data shows, which adsb.lol is credited for (Stage 3 spec §8). */
+export const showsLiveData = (facts: TripFacts): boolean => facts.map.legs.some(hasLiveData)
+
+/**
  * In flight: a milestone from the last 5 minutes, else a cockpit sunrise or sunset in the next 30, else the place below,
- * else the landing countdown (§4.4). Null on the ground and on a drive, where Stage 1B's words stay.
+ * else the landing countdown (§4.4). While the real plane is out of sight they're its best guesses, in the same plain
+ * words (best guesses design §2). Null on the ground and on a drive, where Stage 1B's words stay.
+ *
+ * The website's own (Todd, 16 Nov 2026): a real plane still on the ground at its departure airport is "Still on the
+ * ground in Rockford", ahead of all of them. It has crossed nothing yet, whatever the schedule's times say.
  */
 export function headline(facts: TripFacts, t: number): string | null {
   const leg = legInMotion(facts.map, t)
   if (!leg || leg.kind !== 'flight') return null
+  if (isStillOnGround(facts, leg, t)) return stillOnGroundText(leg.origin.city)
   const recent = factsMilestones(facts, leg).filter((m) => m.time <= t && t - m.time < MILESTONE_HEADLINE_MS).pop()
   if (recent) return milestoneHeadline(recent)
   const soon = (facts.sunEvents[leg.id] ?? []).find((e) => e.time > t && e.time - t <= SUN_HEADLINE_MS)
@@ -166,7 +220,8 @@ export function tripSoFar(facts: TripFacts, t: number): TripSoFar {
   if (isRecapOver(facts, t)) {
     return { flights, totalsTitle: 'Trip recap', totals: soFarText(wholeTotals(facts.map, facts.sunEvents), null, null) }
   }
-  return { flights, totalsTitle: 'Trip so far', totals: soFarText(totalsSoFar(facts.map, t, facts.sunEvents), facts.day, facts.days) }
+  const totals = totalsSoFar(facts.map, t, facts.sunEvents, facts.isReplay)
+  return { flights, totalsTitle: 'Trip so far', totals: soFarText(totals, facts.day, facts.days) }
 }
 
 /** The card as one sentence for screen readers, ending with what it opens (§6.4, §6.5). */
@@ -180,9 +235,13 @@ export function cardSummary(facts: TripFacts, now: number, name: string): string
   if (leg) {
     const lead = leg.flightNumber ? `${leg.flightNumber} to` : 'Flying to'
     const story = facts.stories[leg.id]
-    const place = story ? placeAtFraction(story, legProgress(leg, now)) : null
-    // With a real plane, its sentence (Stage 3 spec §9, §15). What's below is still read along the great circle (plan 3C-3).
-    const live = liveSummary(leg, now, viewerTz, h24, place?.name ?? null)
+    const plane = legPlane(leg, now, facts.isReplay)
+    const place = story ? placeAtDistance(story, plane.distance) : null
+    // With a real plane the sentence says how it's doing against the schedule (Stage 3 spec §9), and while it's out of
+    // sight, where it was last seen (§15).
+    const ago = plane.unseenFor
+    const lastSeen = ago == null ? null : spokenLastSeen(...lastSeenPlace(facts, leg), ago)
+    const live = liveSummary(leg, now, viewerTz, h24, place?.name ?? null, lastSeen)
     if (live) return `${live} Opens the full map.`
     const over = place ? `, over ${place.name}` : ''
     return `${lead} ${leg.destination.city}${over}. Lands at ${shortTimeText(leg.end, viewerTz, h24)} your time. Estimated from the schedule. Opens the full map.`

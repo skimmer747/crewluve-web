@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   aircraftText, averageSpeedText, belowWords, chaseText, closestToHomeText, cockpitCountdown, cockpitEventText, flightTitle, flownText,
   flyingInto, groundSunText, halfwayText, heightAndSpeedText, landsText, lastSeenLine, LIVE_CREDIT, midLine, milestoneHeadline, milestoneLine,
-  moonText, SPOKEN_LIVE_CREDIT, spokenLastSeen, timeDifferenceText,
+  moonText, SPOKEN_LIVE_CREDIT, spokenLastSeen, stillOnGroundText, timeDifferenceText, toGoText,
 } from '../../src/copy/facts'
 import { longestText, onTheWayText, recapChip, recapSummary, soFarText, totalsTiles } from '../../src/copy/factsTrip'
 import type { MapLeg } from '../../src/map/tripMap'
@@ -97,6 +97,11 @@ describe('below, the sky and the distance in words (Stage 2 spec §4.1, §4.5, �
     expect(averageSpeedText(504)).toBe('Averaging about 500 mph')
     expect(averageSpeedText(506)).toBe('Averaging about 510 mph')
     expect(midLine('Like driving coast to coast')).toBe('like driving coast to coast')
+  })
+
+  it('says where a real plane still at its departure airport is, and only what’s to go (the website’s own, Todd, 16 Nov 2026)', () => {
+    expect(stillOnGroundText('Rockford')).toBe('Still on the ground in Rockford')
+    expect(toGoText(2_788)).toBe('2,788 mi to go')
   })
 
   it('says "about" before the halfway time that’s the real plane’s estimate (Stage 3 spec §8)', () => {

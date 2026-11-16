@@ -67,6 +67,12 @@ export function flightTitle(leg: MapLeg): string {
 export const belowWords = (place: Place, city: City | null) => (city ? `Over ${place.name}, near ${city.name}` : `Over ${place.name}`)
 
 /**
+ * In place of what's below, a real plane still on the ground at its departure airport once its leg has begun: "Still on
+ * the ground in Rockford" (the website's own, Todd, 16 Nov 2026).
+ */
+export const stillOnGroundText = (city: string) => `Still on the ground in ${city}`
+
+/**
  * "Passes 40 mi from home at 1:05 PM", or "Closest to home was 40 mi at 1:05 PM" once it's passed. Where nobody saw the
  * real plane (`isEstimate`) the time is a best guess: "Passes 40 mi from home at about 1:05 PM".
  */
@@ -196,6 +202,9 @@ export const groundSunText = (kind: SunKind, time: number, zone: string, h24: bo
 
 /** "2,140 mi flown · 1,960 to go". */
 export const flownText = (flown: number, toGo: number) => `${numberText(flown)} mi flown · ${numberText(toGo)} to go`
+
+/** "2,788 mi to go": a real plane still at its departure airport has flown nothing yet (the website's own, Todd, 16 Nov 2026). */
+export const toGoText = (toGo: number) => `${numberText(toGo)} mi to go`
 
 /** "Halfway at 4:12 PM", or with the real plane's estimate "Halfway at about 12:05 PM" (Stage 3 spec §8). */
 export const halfwayText = (time: number, viewerTz: string, h24: boolean, isEstimate = false) =>

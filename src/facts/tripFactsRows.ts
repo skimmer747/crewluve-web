@@ -1,6 +1,6 @@
 import {
-  averageSpeedText, chaseText, closestToHomeText, cockpitEventText, flownText, flyingInto, groundSunText, halfwayText, landsText, midLine,
-  moonText, timeDifferenceText,
+  aircraftText, averageSpeedText, chaseText, closestToHomeText, cockpitEventText, flownText, flyingInto, groundSunText, halfwayText,
+  heightAndSpeedText, landsText, midLine, moonText, stillOnGroundText, timeDifferenceText, toGoText,
 } from '../copy/facts'
 import { longestText, milesText, onTheWayText, soFarText } from '../copy/factsTrip'
 import { daysText, shortTimeText } from '../copy/format'
@@ -8,19 +8,21 @@ import { dayPhrase, landingLine, nextDepartureChip } from '../copy/tripMap'
 import { landingWeatherText } from '../copy/weather'
 import { airborneWindow } from '../map/flightProgress'
 import { METERS_PER_MILE } from '../map/greatCircle'
-import { dayCount, destinationsOf, legDistanceMeters, legInMotion, legProgress, nextFlight, pilotLocation, timeAtFraction, type MapLeg } from '../map/tripMap'
+import { dayCount, destinationsOf, legDistanceMeters, legInMotion, nextFlight, pilotLocation, type MapLeg } from '../map/tripMap'
 import { HOUR } from '../time/zoned'
 import { comparisonFor } from './comparisons'
 import { factRow, type FactRow, type FactRowKind, type FactsAtMoment } from './factRow'
+import { hasLiveData, isSeenAt, legHalfwayTime, legPathLength, legTimeAtDistance } from './legCourse'
 import { roundedMiles } from './milestone'
-import { chase, COCKPIT_HORIZON, moonSight, nextGroundSunEvent, sunAltitudeOnLeg } from './sky'
-import { belowText, forecastFor, isRecapOver, sheetHeadline, tripSoFar, type TripFacts } from './tripFacts'
+import { legPlane, type PlanePosition } from './planePosition'
+import { chase, cockpitHorizonOnLeg, moonSight, nextGroundSunEvent, sunAltitudeOnLeg } from './sky'
+import { belowText, forecastFor, isRecapOver, isStillOnGround, lastSeenText, sheetHeadline, tripSoFar, type TripFacts } from './tripFacts'
 import { longestFlight, totalsSoFar, wholeTotals, type TripTotals } from './tripTotals'
 
 /**
  * The panel's rows (Stage 2 spec §5), as the app's TripFacts+Rows: in flight, "now, then where to"; on a layover, where
  * they are, the next flight and the trip so far; at home, the trip ahead and its forecast; after a recap's trip, the
- * trip. A row with nothing to say is left out.
+ * trip. A row with nothing to say is left out. A flight with live data has the plane's row second (Stage 3 spec §8).
  */
 
 const notNull = <T>(value: T | null): value is T => value != null
@@ -32,13 +34,48 @@ const compared = (facts: TripFacts, distance: number) => {
 
 // In flight (§5.1)
 
+function flightRows(facts: TripFacts, leg: MapLeg, t: number, now: number): FactRow[] {
+  const plane = legPlane(leg, t, facts.isReplay)
+  return [belowRow(facts, leg, t), planeRow(leg, plane), skyRow(facts, leg, t), distanceRow(facts, leg, plane, t), headedRow(facts, leg, now)]
+    .filter(notNull)
+}
+
+/**
+ * What's below, then where a plane that's out of sight was last seen, then the closest point to home. The first of them
+ * that there is leads the row. A real plane still at its departure airport says so in place of what's below (the
+ * website's own, Todd, 16 Nov 2026).
+ */
 function belowRow(facts: TripFacts, leg: MapLeg, t: number): FactRow | null {
-  const closest = facts.stories[leg.id]?.closestToHome ?? null
-  const closestAt = closest ? timeAtFraction(leg, closest.fraction) : null
-  const closestLine = closest && closestAt != null ? closestToHomeText(roundedMiles(closest.meters), closestAt, t, facts.viewerTz, facts.h24) : null
-  const place = belowText(facts, leg, t)
-  if (place) return factRow('below', 'MapPin', place, [closestLine])
-  return closestLine ? factRow('below', 'MapPin', closestLine) : null
+  const where = isStillOnGround(facts, leg, t) ? stillOnGroundText(leg.origin.city) : belowText(facts, leg, t)
+  const lines = [where, lastSeenText(facts, leg, t), closestToHomeLine(facts, leg, t)].filter(notNull)
+  return lines.length > 0 ? factRow('below', 'MapPin', lines[0], lines.slice(1)) : null
+}
+
+/**
+ * "Passes 40 mi from home at 1:05 PM", or "Closest to home was 40 mi at 1:05 PM" once it's passed. Where nobody saw the
+ * real plane it's a best guess, and its time reads "about" (best guesses design §2).
+ */
+function closestToHomeLine(facts: TripFacts, leg: MapLeg, t: number): string | null {
+  const story = facts.stories[leg.id]
+  const closest = story?.closestToHome
+  if (!story || !closest) return null
+  const distance = closest.fraction * story.length
+  const time = legTimeAtDistance(leg, distance)
+  if (time == null) return null
+  return closestToHomeText(roundedMiles(closest.meters), time, t, facts.viewerTz, facts.h24, !isSeenAt(leg, distance))
+}
+
+/**
+ * The plane's row, for a flight Crewlu Cloud has seen (Stage 3 spec §8): "Boeing 767-300 · N370UP", then "35,000 ft · 540
+ * mph" while the plane is seen in the air. Its height and speed are for now only, so a replay and an estimated plane have
+ * the first line alone.
+ */
+function planeRow(leg: MapLeg, plane: PlanePosition): FactRow | null {
+  const fix = leg.flight?.live?.fix
+  if (!fix) return null
+  const flying = plane.isSeenInAir ? heightAndSpeedText(fix.altitudeFt, fix.groundSpeedKt) : null
+  const parts = [aircraftText(fix.typeCode, fix.registration), flying].filter(notNull)
+  return parts.length > 0 ? factRow('plane', 'Airplane', parts[0], parts.slice(1)) : null
 }
 
 function skyRow(facts: TripFacts, leg: MapLeg, t: number): FactRow | null {
@@ -52,17 +89,25 @@ function skyRow(facts: TripFacts, leg: MapLeg, t: number): FactRow | null {
     moon ? moonText(moon) : null,
   ].filter(notNull)
   if (parts.length === 0) return null
-  const icon = next ? 'SunHorizon' : sunAltitudeOnLeg(leg, t) > COCKPIT_HORIZON ? 'Sun' : 'Moon'
+  const icon = next ? 'SunHorizon' : sunAltitudeOnLeg(leg, t) > cockpitHorizonOnLeg(leg) ? 'Sun' : 'Moon'
   return factRow('sky', icon, parts[0], parts.slice(1))
 }
 
-function distanceRow(facts: TripFacts, leg: MapLeg, t: number): FactRow {
-  const total = miles(leg)
-  const flown = Math.round(total * legProgress(leg, t))
-  const halfwayAt = timeAtFraction(leg, 0.5)
-  const window = airborneWindow(leg.start, leg.end)
-  return factRow('distance', 'Path', flownText(flown, Math.round(total) - flown), [
-    halfwayAt != null && halfwayAt > t ? halfwayText(halfwayAt, facts.viewerTz, facts.h24) : null,
+/**
+ * "1,140 mi flown · 3,010 to go": flown along the path so far, and to go along the rest of it, which for a real plane is
+ * the great circle from where it is to the arrival airport (Stage 3 spec §8). A real plane still at its departure airport
+ * has flown nothing yet: "2,788 mi to go" (the website's own, Todd, 16 Nov 2026).
+ */
+function distanceRow(facts: TripFacts, leg: MapLeg, plane: PlanePosition, t: number): FactRow {
+  const length = legPathLength(leg)
+  const total = length / METERS_PER_MILE
+  const flown = Math.round(plane.distance / METERS_PER_MILE)
+  const halfwayAt = legHalfwayTime(leg)
+  // The schedule's speed is told only of a flight with no live data: a real plane's row has its own.
+  const window = hasLiveData(leg) ? null : airborneWindow(leg.start, leg.end)
+  const title = isStillOnGround(facts, leg, t) ? toGoText(Math.round(total)) : flownText(flown, Math.round(total) - flown)
+  return factRow('distance', 'Path', title, [
+    halfwayAt != null && halfwayAt > t ? halfwayText(halfwayAt, facts.viewerTz, facts.h24, !isSeenAt(leg, length / 2)) : null,
     window ? averageSpeedText(total / ((window.end - window.start) / HOUR)) : null,
     compared(facts, total),
   ])
@@ -103,7 +148,7 @@ function nextFlightRow(facts: TripFacts, t: number, now: number): FactRow | null
 }
 
 function tripSoFarRow(facts: TripFacts, t: number): FactRow | null {
-  const line = soFarText(totalsSoFar(facts.map, t, facts.sunEvents), facts.day, facts.days)
+  const line = soFarText(totalsSoFar(facts.map, t, facts.sunEvents, facts.isReplay), facts.day, facts.days)
   return line ? factRow('tripSoFar', 'ChartBar', 'Trip so far', [line]) : null
 }
 
@@ -141,7 +186,7 @@ export function factRows(facts: TripFacts, t: number, now: number): FactRow[] {
   const leg = legInMotion(facts.map, t)
   if (leg) {
     if (leg.kind !== 'flight') return [tripSoFarRow(facts, t)].filter(notNull)
-    return [belowRow(facts, leg, t), skyRow(facts, leg, t), distanceRow(facts, leg, t), headedRow(facts, leg, now)].filter(notNull)
+    return flightRows(facts, leg, t, now)
   }
   if (isRecapOver(facts, t)) {
     const whole = wholeTotals(facts.map, facts.sunEvents)
