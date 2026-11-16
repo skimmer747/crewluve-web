@@ -112,6 +112,52 @@
 .trip-map-chip.top { top: 10px; }
 .trip-map-chip.bottom { bottom: 10px; }
 
+/* The key to the real plane and its ghost (which plane design §2): at the map's top right, in the chips' glass. */
+.trip-map-key {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--glass-fill);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  font-size: 0.8rem;
+  font-weight: 600;
+  pointer-events: none;
+}
+.trip-map-key-item { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+.trip-map-key-mark { box-sizing: border-box; width: 12px; height: 12px; border-radius: 50%; }
+.trip-map-key-mark.real { border: 1.5px solid #ffffff; background: var(--blue); }
+.trip-map-key-mark.ghost { border: 1.5px dashed currentColor; }
+
+/* A plane's popup (which plane design §3): over its plane, or under it near the map's top, in the panel's glass. */
+.trip-map-popup {
+  position: absolute;
+  z-index: 1;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: 240px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--glass-fill);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  color: var(--text);
+  font-size: 0.8rem;
+  line-height: 1.35;
+  pointer-events: none;
+}
+.trip-map-popup p { margin: 0; color: var(--text-2); }
+/* A line that wraps stays apart from the next. */
+.trip-map-popup p + p { margin-top: 3px; }
+.trip-map-popup .trip-map-popup-title { color: inherit; font-weight: 600; }
+/* On the full map, the real plane and its ghost take the pointer: the rest of the site's map doesn't. */
+.trip-map-svg.points .trip-map-ghost,
+.trip-map-svg.points .trip-map-real-plane { cursor: pointer; pointer-events: all; }
+
 .trip-map-stats {
   display: flex;
   flex-wrap: wrap;
@@ -163,7 +209,7 @@
   cursor: pointer;
 }
 .trip-map-round + .trip-map-style { margin-left: 0; }
-.trip-map-full { flex: 1; min-height: 0; overflow: hidden; }
+.trip-map-full { position: relative; flex: 1; min-height: 0; overflow: hidden; }
 .trip-map-panel { margin: 0 16px 16px; padding: 16px; border-radius: 24px; background: var(--glass-fill); -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px); }
 /* A heading for screen readers, at the size of the text around it. */
@@ -386,6 +432,10 @@
 .apple-mark.realPlane.estimated { opacity: 0.6; }
 .apple-mark.ghost { border: 1.5px dashed var(--trip-seen); }
 .apple-mark.ghost svg { fill: var(--trip-seen); opacity: 0.4; }
+.apple-trip-map:not(.still) .apple-mark.realPlane,
+.apple-trip-map:not(.still) .apple-mark.ghost { cursor: pointer; }
+/* The popup's own mark: a point, where MapKit puts its bottom centre, with the popup laid out from it. */
+.apple-popup { position: relative; width: 0; height: 0; pointer-events: none; }
 .apple-mark-dot { width: 7px; height: 7px; border: 0.5px solid rgba(0, 0, 0, 0.4); border-radius: 50%; background: #ffffff; }
 .apple-mark-code {
   margin-top: 3px;

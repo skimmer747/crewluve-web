@@ -60,6 +60,8 @@ export interface FakeMap {
    * was asked for, until a test sets another, as MapKit would at its zoom limit, before it fires `region-change-end`.
    */
   visibleMapRect: MapRect | null
+  /** Where every place is on the page, as `convertCoordinateToPointOnPage` says: the middle of a 390 by 300 map, until a test moves it. */
+  pagePoint: { x: number; y: number }
   fire(type: string): void
 }
 
@@ -75,6 +77,7 @@ export function fakeMapKit() {
     colorScheme: string
     padding: Padding | null = null
     visibleMapRect: MapRect | null = null
+    pagePoint = { x: 195, y: 150 }
     private events = new Map<string, (() => void)[]>()
     constructor(public parent: HTMLElement, public options: Record<string, unknown> = {}) {
       this.mapType = String(options.mapType ?? 'standard')
@@ -87,15 +90,21 @@ export function fakeMapKit() {
     removeOverlay(o: Overlay) {
       this.overlays = this.overlays.filter((x) => x !== o)
     }
+    // As MapKit does, an annotation's element goes inside the map, over the ones added before it.
     addAnnotation(a: Annotation) {
       this.annotations.push(a)
+      this.parent.appendChild(a.element)
     }
     removeAnnotation(a: Annotation) {
       this.annotations = this.annotations.filter((x) => x !== a)
+      a.element.remove()
     }
     setVisibleMapRectAnimated(rect: MapRect, animated: boolean) {
       this.rects.push({ rect, animated })
       this.visibleMapRect = rect
+    }
+    convertCoordinateToPointOnPage() {
+      return this.pagePoint
     }
     addEventListener(type: string, listener: () => void) {
       this.events.set(type, [...(this.events.get(type) ?? []), listener])

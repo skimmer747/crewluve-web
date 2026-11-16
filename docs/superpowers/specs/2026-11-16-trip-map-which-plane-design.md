@@ -27,7 +27,8 @@ In the demo scene `live-on-ground-late`, the full map showed the real plane at t
   - On a touch screen: a tap on a plane opens it. A tap anywhere else on the map closes it, and a tap on the other plane moves it there.
   - One popup at a time.
   - It closes when its plane is no longer drawn: the leg ends, or, for the ghost, the plane lands. It also closes when a replay starts or stops, since what it says changes.
-- **It moves with its plane,** just above the plane's mark, and its words change as the map's do, every second.
+- **It moves with its plane,** just above the plane's mark, and its words change as the map's do, every second. Near the map's top it goes under the plane, and near a side it slides in, to stay inside the map.
+- **Screen readers:** like the key, it's part of the map's picture, so it's hidden from them.
 - **The words** (Todd, 16 Nov 2026), by what the map draws. Each popup is a title and one or two lines.
 
 | The plane | Title | Lines |
@@ -36,13 +37,14 @@ In the demo scene `live-on-ground-late`, the full map showed the real plane at t
 | The real plane, on the ground at its departure airport | {flight} · real plane | {label} / Lands {about}{landing} |
 | The real plane, in the air | {flight} · real plane | {label} / Lands {about}{landing} |
 | The real plane, estimated (faded) | {flight} · best guess | Not seen since {seen}, so it's drawn where it should be by now / {label} · lands {about}{landing} |
-| The real plane, landed | {flight} · real plane | {label} / Reaches the gate {about}{landing} |
-| The real plane, down somewhere else | {flight} · real plane | {label}, if it has one |
+| The real plane, landed | {flight} · real plane | {label} / Reaches the gate {at}{landing} |
+| The real plane, down somewhere else | {flight} · real plane | nothing more: it has no label, and no landing time |
 | The real plane in a replay | {flight} · real plane | Where it was at {moment} |
 
   - `{flight}` is the leg's flight number as the card's bar shows it (`MapLeg.flightNumber`, such as "UPS2963"), or "the flight" when it has none.
   - `{label}` is the words on the card's bar and the full map's pill (`liveLabelText`), such as "10 min ahead", "Still on the ground · 23 min behind", "About 20 min behind" or "Landed 12 min late". A real plane with no label leaves that line out.
   - `{about}` is "about " when the landing time is the real plane's estimate (`about(leg)`, spec §9), and nothing otherwise.
+  - `{at}` is "at ", as the card's sentence says once the plane is down, or "about " while the gate time is still an estimate.
   - `{landing}` is the leg's real end (`MapLeg.end`).
   - `{seen}` is the time of the real plane's last fix.
   - `{moment}` is the replay's moment.

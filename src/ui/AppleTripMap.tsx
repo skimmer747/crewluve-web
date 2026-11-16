@@ -1,4 +1,6 @@
+import { render } from 'preact'
 import { useEffect, useRef, useState } from 'preact/hooks'
+import type { PlaneKind } from '../copy/planePopup'
 import { appleCamera, appleMapPlan, offDateLine, slideIntoView, type PlannedMark } from '../map/appleMapPlan'
 import type { AppleMapStyle } from '../map/appleMapStyle'
 import type { GeoPoint } from '../map/greatCircle'
@@ -10,7 +12,8 @@ import { nightTime, tripMapDrawing, type SegmentStyle } from '../map/tripMapDraw
 import { markElement } from './appleMarks'
 import { useAppleMapKit } from './hooks/useAppleMapKit'
 import { useSteadyFraming } from './hooks/useSteadyFraming'
-import { TripMapSvg, type TripMapSvgProps } from './TripMapSvg'
+import { PlanePopup, popupPlacement } from './PlanePopup'
+import { isOnPlane, pointingAt, TripMapSvg, type TripMapSvgProps } from './TripMapSvg'
 
 export interface AppleTripMapProps extends TripMapSvgProps {
   mapStyle: AppleMapStyle
@@ -62,6 +65,8 @@ interface Live {
   night: MkPolygon[]
   nightAt: number
   marks: Map<string, { annotation: MkAnnotation; turn: (degrees: number) => void; fade: (faded: boolean) => void; priority: PlannedMark['priority'] }>
+  /** The open plane's popup, a mark of its own over the rest (which plane design §3). */
+  popup: { annotation: MkAnnotation; element: HTMLElement } | null
   framed: string
   /**
    * The latest framing, whether it was animated, until it has slid once to show the pilot's marker: each time MapKit
@@ -104,7 +109,7 @@ function slideToPilot(mapkit: MapKitApi, state: Live, now: Latest | undefined) {
 }
 
 function AppleMapView({
-  mapkit, map, t, width, height, focus, nightStep, insets = NO_INSETS, mapStyle, interactive, recenter = 0, onUserMove, isReplay = false,
+  mapkit, map, t, width, height, focus, nightStep, insets = NO_INSETS, mapStyle, interactive, recenter = 0, onUserMove, isReplay = false, planeWords,
 }: AppleTripMapProps & { mapkit: MapKitApi }) {
   const box = useRef<HTMLDivElement>(null)
   const live = useRef<Live | null>(null)
@@ -113,6 +118,9 @@ function AppleMapView({
   const latest = useRef<Latest>()
   // Bumped when the system turns light or dark, to draw the lines again in the new colours.
   const [, repaint] = useState(0)
+  // The plane whose popup is open (which plane design §3). It closes when its plane goes, and as a replay starts or stops.
+  const [open, setOpen] = useState<PlaneKind | null>(null)
+  useEffect(() => setOpen(null), [isReplay])
   const types: Record<AppleMapStyle, string> = { hybrid: mapkit.MapType.Hybrid, standard: mapkit.MapType.Standard, satellite: mapkit.MapType.Satellite }
   const color = (name: string, fallback: string) => (box.current ? getComputedStyle(box.current).getPropertyValue(name).trim() : '') || fallback
   const C = (p: GeoPoint) => new mapkit.Coordinate(p.lat, p.lng)
@@ -138,7 +146,7 @@ function AppleMapView({
       m.addOverlay(layer)
       return layer
     })
-    const state: Live = { map: m, lines: new Map(), night, nightAt: NaN, marks: new Map(), framed: '', settling: null, moved: false, recenterSeen: recenter }
+    const state: Live = { map: m, lines: new Map(), night, nightAt: NaN, marks: new Map(), popup: null, framed: '', settling: null, moved: false, recenterSeen: recenter }
     const moved = () => {
       if (state.moved) return
       state.moved = true
@@ -156,9 +164,18 @@ function AppleMapView({
       repaint((n) => n + 1)
     }
     scheme?.addEventListener('change', onScheme)
+    // A press anywhere but on a plane closes its popup. It's heard on its way in, before MapKit's own handling of the
+    // map's gestures can stop it.
+    const frame = box.current!
+    const onPress = (e: PointerEvent) => {
+      if (!isOnPlane(e.target)) setOpen(null)
+    }
+    frame.addEventListener('pointerdown', onPress, { capture: true })
     live.current = state
     return () => {
       scheme?.removeEventListener('change', onScheme)
+      frame.removeEventListener('pointerdown', onPress, { capture: true })
+      if (state.popup) render(null, state.popup.element)
       m.destroy()
       live.current = null
     }
@@ -228,6 +245,13 @@ function AppleMapView({
       let kept = state.marks.get(mark.id)
       if (!kept) {
         const { element, turn, fade } = markElement(mark.kind, mark.label, mark.activity)
+        // On the full map the real plane and its ghost open their popups when pointed at or tapped.
+        if (planeWords && (mark.kind === 'realPlane' || mark.kind === 'ghost')) {
+          const pointing = pointingAt(mark.kind, setOpen)
+          element.addEventListener('pointerenter', pointing.onPointerEnter)
+          element.addEventListener('pointerleave', pointing.onPointerLeave)
+          element.addEventListener('click', pointing.onClick)
+        }
         // Airports give way to each other where they crowd. The pilot's marker, the plane and a car sit on top of an
         // airport by design, so they take no part: they hide nothing and are never hidden.
         const annotation = new mapkit.Annotation(C(mark.place), () => element, {
@@ -260,6 +284,35 @@ function AppleMapView({
         state.marks.delete(id)
       }
     }
+    // The open plane's popup, moving with its plane, over every mark: a mark made since goes under it again.
+    const opened = planeWords && open && drawing.liveLeg ? drawing[open] : null
+    if (opened) {
+      if (!state.popup) {
+        const element = document.createElement('div')
+        element.className = 'apple-popup'
+        const annotation = new mapkit.Annotation(C(opened.place), () => element, {
+          displayPriority: PRIORITY.required, collisionMode: mapkit.AnnotationCollisionMode.None,
+        })
+        state.map.addAnnotation(annotation)
+        state.popup = { annotation, element }
+      } else {
+        state.popup.annotation.coordinate = C(opened.place)
+        if (madeMarks.size > 0) {
+          state.map.removeAnnotation(state.popup.annotation)
+          state.map.addAnnotation(state.popup.annotation)
+        }
+      }
+      // MapKit gives the plane's place on the page, which scrolls; the map's box is measured in the window.
+      const page = state.map.convertCoordinateToPointOnPage(C(opened.place))
+      const frame = box.current!.getBoundingClientRect()
+      const placement = popupPlacement({ x: page.x - frame.left - scrollX, y: page.y - frame.top - scrollY }, width)
+      render(<PlanePopup words={planeWords!(drawing.liveLeg!, open!)} at={{ x: 0, y: 0 }} placement={placement} />, state.popup.element)
+    } else if (state.popup) {
+      render(null, state.popup.element)
+      state.map.removeAnnotation(state.popup.annotation)
+      state.popup = null
+    }
+    if (open && !opened) setOpen(null)
   })
 
   // The camera: the view the SVG map takes (the leg or the whole trip, clear of the panel or the chips, with the pilot's

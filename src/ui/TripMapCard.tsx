@@ -6,11 +6,13 @@ import { arrivalLocalTime, cardChips, flightStatus, landsAt, statsItems, tripMap
 import type { GeoPoint } from '../map/greatCircle'
 import { NO_INSETS, type Insets } from '../map/mapFit'
 import { currentLeg, type MapLeg, type TripMap } from '../map/tripMap'
+import { showsPlaneKey, tripMapDrawing } from '../map/tripMapDrawing'
 import { AppleTripMap } from './AppleTripMap'
 import { useHeightOf } from './hooks/useHeightOf'
 import { useMapStyle } from './hooks/useMapStyle'
 import { useWidth } from './hooks/useWidth'
 import { Icon } from './Icon'
+import { PlaneKey } from './PlaneKey'
 import { TripRecapBar } from './TripRecapBar'
 
 export interface TripMapCardProps {
@@ -67,10 +69,14 @@ export function TripMapCard(p: TripMapCardProps) {
   // In flight the bottom chip is the facts' headline, which falls back to the landing countdown (§6.4).
   const bottom = (leg && p.facts ? headline(p.facts, p.now) : null) ?? chips.bottom
   const summary = p.facts ? cardSummary(p.facts, p.now, p.name) : tripMapSummary(p.map, p.now, p.name, p.viewerTz, p.h24)
-  // The camera keeps the trip in the band between the chips, so neither covers the pilot's marker or a route.
+  // The key to the real plane and its ghost, while both show (which plane design §2), at the map's top right.
+  const showsKey = showsPlaneKey(tripMapDrawing(p.map, p.now))
+  // The camera keeps the trip in the band between the chips, so neither covers the pilot's marker or a route. The key
+  // is kept clear as the top chip is.
   const [topChip, setTopChip] = useState<HTMLElement | null>(null)
   const [bottomChip, setBottomChip] = useState<HTMLElement | null>(null)
-  const insets = chipInsets(useHeightOf(topChip), useHeightOf(bottomChip))
+  const [key, setKey] = useState<HTMLElement | null>(null)
+  const insets = chipInsets(Math.max(useHeightOf(topChip), useHeightOf(key)), useHeightOf(bottomChip))
   return (
     <section class="card glass trip-map-card">
       <h2 ref={p.headingRef} class="sr-only" tabIndex={-1}>{leg ? 'In flight' : isRecap ? 'Trip recap' : 'Trip map'}</h2>
@@ -80,6 +86,7 @@ export function TripMapCard(p: TripMapCardProps) {
             mapStyle={mapStyle} interactive={false} />
         </span>
         {chips.top && <span ref={setTopChip} class="trip-map-chip top" aria-hidden="true">{chips.top}</span>}
+        {showsKey && <PlaneKey boxRef={setKey} />}
         {bottom && (
           <span ref={setBottomChip} class="trip-map-chip bottom" aria-hidden="true">
             {isRecap && <PlayMark />}

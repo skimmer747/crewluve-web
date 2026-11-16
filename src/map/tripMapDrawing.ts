@@ -1,7 +1,7 @@
 import { flightDrawing, type PlaneMark, type RealPlaneMark, type RouteSegment } from './flightDrawing'
 import { distanceMeters, EARTH_RADIUS_M, pointsAlong, type GeoPoint } from './greatCircle'
 import { activityAt, isGroundKind, type GroundActivity } from './tripActivity'
-import { isMoving, legProgress, positionAt, type AirportMark, type TripMap } from './tripMap'
+import { isMoving, legProgress, positionAt, type AirportMark, type MapLeg, type TripMap } from './tripMap'
 
 export type { PlaneMark, RealPlaneMark, RouteSegment, SegmentStyle } from './flightDrawing'
 
@@ -30,9 +30,14 @@ export interface TripMapDrawing {
   realPlane: RealPlaneMark | null
   /** Where an on-schedule plane would be, beside the real one. */
   ghost: PlaneMark | null
+  /** The flight the real plane and its ghost are of, while there's a real plane: what their popups speak of. */
+  liveLeg: MapLeg | null
   /** The pilot's marker: what they're doing and where, while nothing moves (activity markers design §2). */
   pilot: GroundActivity | null
 }
+
+/** Whether the map shows the key to its two planes: while it draws a real plane and its ghost (which plane design §2). */
+export const showsPlaneKey = (drawing: TripMapDrawing) => drawing.realPlane != null && drawing.ghost != null
 
 /**
  * The trip at `t`: now, or a moment of the replay when `isReplay`, when a flight with a record shows its real plane alone
@@ -44,6 +49,7 @@ export function tripMapDrawing(map: TripMap, t: number, isReplay = false): TripM
   let plane: PlaneMark | null = null
   let realPlane: RealPlaneMark | null = null
   let ghost: PlaneMark | null = null
+  let liveLeg: MapLeg | null = null
   for (const leg of map.legs) {
     if (leg.kind === 'drive') {
       segments.push({ id: `${leg.id}-drive`, points: [leg.origin.place, leg.destination.place], style: 'drive', geodesic: false })
@@ -52,8 +58,11 @@ export function tripMapDrawing(map: TripMap, t: number, isReplay = false): TripM
       const flight = flightDrawing(leg, t, isReplay)
       segments.push(...flight.segments)
       plane = flight.plane ?? plane
-      realPlane = flight.realPlane ?? realPlane
-      ghost = flight.ghost ?? ghost
+      if (flight.realPlane) {
+        realPlane = flight.realPlane
+        ghost = flight.ghost
+        liveLeg = leg
+      }
     }
   }
   const seen = new Set<string>()
@@ -62,7 +71,7 @@ export function tripMapDrawing(map: TripMap, t: number, isReplay = false): TripM
     .map((a) => ({ ...a, driveOnly: !flown.has(a.code) }))
   const activity = activityAt(map, t)
   const pilot = activity && isGroundKind(activity.kind) ? { kind: activity.kind, place: activity.place } : null
-  return { segments, airports, cars, plane, realPlane, ghost, pilot }
+  return { segments, airports, cars, plane, realPlane, ghost, liveLeg, pilot }
 }
 
 /** About a degree of arc, in meters: the longest step of a real path's line (Stage 3 spec §13). */

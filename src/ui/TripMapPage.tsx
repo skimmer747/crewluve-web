@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
+import { planePopupWords } from '../copy/planePopup'
 import { MAP_STYLE_NAMES, panelHeadline, topPill } from '../copy/tripMap'
 import type { FactsAtMoment } from '../facts/factRow'
 import type { IconName } from '../icons/iconPaths'
@@ -8,6 +9,7 @@ import { NO_INSETS, type Insets } from '../map/mapFit'
 import { carried, clockTime, finishesAt, hasTimes, isLive, isPlaying, liveClock, scrub, setQuickLayovers } from '../map/replayClock'
 import { tripWaits } from '../map/tripActivity'
 import { currentLeg, legInMotion, type TripMap } from '../map/tripMap'
+import { showsPlaneKey, tripMapDrawing } from '../map/tripMapDrawing'
 import { AppleTripMap } from './AppleTripMap'
 import { Chevron } from './Chevron'
 import { FactsBody } from './FactsBody'
@@ -18,6 +20,7 @@ import { useQuickLayovers } from './hooks/useQuickLayovers'
 import { useSidePanel } from './hooks/useSidePanel'
 import { useSize } from './hooks/useSize'
 import { Icon } from './Icon'
+import { PlaneKey } from './PlaneKey'
 import { TripTimeline } from './TripTimeline'
 
 export interface TripMapPageProps {
@@ -131,7 +134,10 @@ export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, 
       </header>
       <div ref={box} class="trip-map-full">
         <AppleTripMap map={map} t={t} width={width} height={height} focus={focus} land={land} nightStep={nightStep} insets={insets}
-          mapStyle={mapStyle} interactive recenter={recenter} onUserMove={() => setMoved(true)} isReplay={isReplay} />
+          mapStyle={mapStyle} interactive recenter={recenter} onUserMove={() => setMoved(true)} isReplay={isReplay}
+          planeWords={(leg, plane) => planePopupWords(leg, plane, t, isReplay, viewerTz, h24)} />
+        {/* The key to the real plane and its ghost, while both show: now, not in a replay (which plane design §2). */}
+        {!isReplay && showsPlaneKey(tripMapDrawing(map, t)) && <PlaneKey />}
       </div>
       <section ref={panel} class={`trip-map-panel ${side ? 'side' : 'bottom'}${showsFacts ? ' open' : ''}`}
         aria-label={facts ? 'Trip facts and timeline' : 'Timeline'}>

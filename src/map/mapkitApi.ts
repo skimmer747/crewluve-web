@@ -57,6 +57,8 @@ export interface MkMap {
   addAnnotation(annotation: MkAnnotation): void
   removeAnnotation(annotation: MkAnnotation): void
   setVisibleMapRectAnimated(rect: unknown, animated: boolean): void
+  /** Where a place is on the page, in px: a popup's place on the map (which plane design §3). */
+  convertCoordinateToPointOnPage(coordinate: MkCoordinate): { x: number; y: number }
   addEventListener(type: string, listener: () => void): void
   destroy(): void
 }
