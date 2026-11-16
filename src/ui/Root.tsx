@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import { DEFAULT_SCENE, demoRawForScene, isDemoScene, type DemoScene } from '../data/demo'
+import { demoLiveFlights, isLiveDemoScene } from '../data/demoLive'
 import { buildSchedule } from '../engine/normalize'
 import { scheduleFromStored } from '../partner/convert'
 import { liveDoor, type LiveFlightDoor, type PartnerDoor } from '../partner/door'
 import { joinWithLink, type JoinOutcome } from '../partner/join'
+import { LIVE_INTERVAL_MS } from '../partner/liveSource'
 import { browserLabel, platformOf } from '../partner/label'
 import { linkFromHash, type PartnerLink } from '../partner/link'
 import { connectedNote, COULDNT_CONNECT, PASSWORD_SIGN_IN_ENDED, type JoinMessage } from '../partner/messages'
@@ -39,9 +41,34 @@ function DemoApp({ scene }: { scene: DemoScene }) {
   // Anchor the scene once, at page load, so the countdowns run in real time instead of resetting on refresh.
   const anchor = useMemo(() => Date.now(), [])
   const schedule = useSchedule({ load: async () => buildSchedule({ ...demoRawForScene(scene, anchor), fetchedAt: Date.now() }, Date.now()) })
+  // The scene's made-up real plane, answered afresh every 30 seconds and as the page is shown again, as partner_live
+  // would be. A scene without one has none.
+  const [asked, setAsked] = useState(() => Date.now())
+  useEffect(() => {
+    if (!isLiveDemoScene(scene)) return
+    const ask = () => setAsked(Date.now())
+    const tick = setInterval(ask, LIVE_INTERVAL_MS)
+    const onShown = () => {
+      if (document.visibilityState === 'visible') ask()
+    }
+    document.addEventListener('visibilitychange', onShown)
+    return () => {
+      clearInterval(tick)
+      document.removeEventListener('visibilitychange', onShown)
+    }
+  }, [scene])
+  const live = useMemo(() => {
+    const s = schedule.schedule
+    if (!isLiveDemoScene(scene) || !s || !airports) return null
+    const placeOf = (code: string) => {
+      const airport = airports.get(code)
+      return airport ? { lat: airport.lat, lng: airport.lng } : null
+    }
+    return { flights: demoLiveFlights(scene, s, placeOf, asked), clockOffset: 0 }
+  }, [scene, schedule.schedule, airports, asked])
   if (!airports) return null
   return (
-    <PilotPages schedule={schedule} airports={airports} demo onLeave={() => { window.location.href = window.location.pathname }} />
+    <PilotPages schedule={schedule} airports={airports} demo live={live} onLeave={() => { window.location.href = window.location.pathname }} />
   )
 }
 

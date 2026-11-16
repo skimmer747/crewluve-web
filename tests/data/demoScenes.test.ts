@@ -27,6 +27,10 @@ const EXPECTED: Record<DemoScene, StatusKind> = {
   training: 'training',
   'nothing-ahead': 'home',
   recap: 'home',
+  // On the schedule alone: the real planes are demoLive's (tests/data/demoLive.test.ts).
+  'live-ahead': 'inFlight',
+  'live-ocean-gap': 'inFlight',
+  'live-on-ground-late': 'inFlight',
 }
 
 function sceneSnapshot(scene: DemoScene) {
@@ -79,6 +83,9 @@ describe('demo trip cards (slice 2A)', () => {
     'nothing-ahead': {},
     // Home the evening after the main trip: the next trip is a day or more off, so the recap stays.
     recap: { upcoming: { tripId: 'demo-t2', days: 3, route: ['SDF', 'ONT', 'RFD'], departs: NOW + 7740 * MIN } },
+    'live-ahead': { progress: { day: 1, days: 2, upcoming: ['ANC', 'SDF'] } },
+    'live-ocean-gap': { progress: { day: 1, days: 2, upcoming: ['SDF'] } },
+    'live-on-ground-late': { progress: { day: 1, days: 2, upcoming: ['SDF'] } },
   }
 
   it.each(Object.keys(CARDS) as DemoScene[])('%s shows the right trip card', (scene) => {
