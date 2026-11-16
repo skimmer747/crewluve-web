@@ -1,7 +1,8 @@
 import { METERS_PER_MILE } from '../map/greatCircle'
-import { timeAtFraction, type MapLeg } from '../map/tripMap'
+import type { MapLeg } from '../map/tripMap'
 import { MINUTE } from '../time/zoned'
 import type { Place } from './geography'
+import { isSeenAt, legHalfwayTime, legPathLength, legTimeAtDistance } from './legCourse'
 import type { LegStory } from './legStory'
 
 /**
@@ -17,7 +18,15 @@ export type MilestoneKind =
   /** The closest the route comes to home, to the nearest 5 mi. */
   | { kind: 'closestToHome'; miles: number }
 
-export type Milestone = MilestoneKind & { time: number }
+export type Milestone = MilestoneKind & {
+  time: number
+  /**
+   * Nobody saw the plane where this happened, so it's a best guess from where the plan has the plane, and its time reads
+   * "about" (best guesses design §2, §3). Set, and true, only then: a milestone the plane was seen at, or one of a
+   * flight on the schedule, leaves it out, as the app's is false unless it's said.
+   */
+  isEstimate?: boolean
+}
 
 /** How long a milestone leads the headline. */
 export const MILESTONE_HEADLINE_MS = 5 * MINUTE
@@ -40,9 +49,14 @@ function crossingKind(previous: Place, next: Place): MilestoneKind | null {
   return next.kind === 'country' ? null : { kind: 'crossedInto', name: next.name }
 }
 
-/** A flight's milestones in time order, from its story and its delay-moved times. */
+/**
+ * A flight's milestones in time order, from its story and the leg's own times: the real plane's along a real path, else
+ * the schedule's (Stage 3 spec §8). Where nobody saw the real plane, on a stretch with no coverage or past the last place
+ * it was seen, a milestone is a best guess from where the plan has the plane, and says so (`isEstimate`, best guesses
+ * design §3). Halfway is half the path's whole length, flown and ahead.
+ */
 export function milestones(leg: MapLeg, story: LegStory): Milestone[] {
-  const found: { what: MilestoneKind; fraction: number }[] = []
+  const found: { what: MilestoneKind; distance: number }[] = []
   // The state or province the plane is in, kept across a stretch where only the country is known.
   let region = story.stretches.length > 0 && isRegion(story.stretches[0].place) ? story.stretches[0].place.name : null
   for (let i = 1; i < story.stretches.length; i++) {
@@ -55,16 +69,18 @@ export function milestones(leg: MapLeg, story: LegStory): Milestone[] {
     // Back into the state it was already in, after such a gap, is no crossing.
     if (isRegion(next) && isSameCountry && next.name === wasRegion) continue
     const what = crossingKind(previous, next)
-    if (what) found.push({ what, fraction: story.stretches[i].start })
+    if (what) found.push({ what, distance: story.stretches[i].start * story.length })
   }
-  found.push({ what: { kind: 'halfway' }, fraction: 0.5 })
+  found.push({ what: { kind: 'halfway' }, distance: legPathLength(leg) / 2 })
   const closest = story.closestToHome
-  if (closest) found.push({ what: { kind: 'closestToHome', miles: roundedMiles(closest.meters) }, fraction: closest.fraction })
+  if (closest) found.push({ what: { kind: 'closestToHome', miles: roundedMiles(closest.meters) }, distance: closest.fraction * story.length })
   // The sort is stable, so a tie keeps the order found, as the app's does.
   return [...found]
-    .sort((a, b) => a.fraction - b.fraction)
-    .flatMap(({ what, fraction }) => {
-      const time = timeAtFraction(leg, fraction)
-      return time == null ? [] : [{ ...what, time }]
+    .sort((a, b) => a.distance - b.distance)
+    .flatMap(({ what, distance }) => {
+      // Halfway keeps its own time: a leg that goes nowhere is halfway in the middle of its time in the air.
+      const time = what.kind === 'halfway' ? legHalfwayTime(leg) : legTimeAtDistance(leg, distance)
+      if (time == null) return []
+      return [isSeenAt(leg, distance) ? { ...what, time } : { ...what, time, isEstimate: true }]
     })
 }

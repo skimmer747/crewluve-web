@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { LandingForecast } from '../../src/data/weather'
-import type { Geography } from '../../src/facts/geography'
+import { makeGeography, type Geography } from '../../src/facts/geography'
 import {
   cardSummary, forecastFor, headline, isRecapOver, makeTripFacts, recapLongestLine, recapTiles, sheetHeadline, tripSoFar,
 } from '../../src/facts/tripFacts'
 import { airportMark, makeTripMap, type MapLeg } from '../../src/map/tripMap'
 import { AIRPORTS, at, EUROPE, HOUR } from '../map/tripMapLegs'
-import { EQUATOR, equatorFlight, flightMap, mark } from './factsTestData'
+import { box, EQUATOR, equatorFlight, flightMap, mark } from './factsTestData'
+import { dogLeg, equatorLive, equatorLiveLeg, liveTime } from './liveFacts'
 
 /**
  * The flight along the equator crosses into Bravo at 11:00 UTC, is halfway at 11:45, out over the Test Sea at 12:03
@@ -53,6 +54,16 @@ describe('the headline (Stage 2 spec §4.4)', () => {
 
   it('works out each route’s story once', () => {
     expect(equatorFacts().stories.eq).toBe(equatorFacts().stories.eq)
+  })
+
+  it('keeps the route’s story, along the great circle, for a flight with a real path', () => {
+    // A story is kept by route, which another flight on that route shares: a real path's story, made again as the path
+    // grows, is the store's (a later task of plan 3C-3). Charlie is north of Bravo, where only the real path goes.
+    const seenUntil = liveTime(13)
+    const real = equatorLiveLeg(equatorLive(seenUntil, { latitude: dogLeg }), seenUntil)
+    const geography = makeGeography([...EQUATOR.areas, box('Charlie', 'country', 5.5, 10.5, null, 1, 3)], [])
+    const facts = makeTripFacts(flightMap(real, null), { geography, comparisons: null, viewerTz: NY, h24: false })
+    expect(facts.stories.eq.stretches.map((s) => s.place.name)).toEqual(['Alpha', 'Bravo', 'the Test Sea'])
   })
 })
 

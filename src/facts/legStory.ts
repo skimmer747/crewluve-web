@@ -1,11 +1,15 @@
-import { distanceMeters, METERS_PER_MILE, pointAlong, type GeoPoint } from '../map/greatCircle'
+import { makeFlightPath, pointAtDistance, type FlightPath } from '../map/flightPath'
+import { distanceMeters, METERS_PER_MILE, type GeoPoint } from '../map/greatCircle'
 import type { AirportMark, MapLeg } from '../map/tripMap'
 import { placeAt, samePlace, type Geography, type Place } from './geography'
+import { legPath } from './legCourse'
 
 /**
- * A flight's story, worked out once (Stage 2 spec §4.2), as the app's LegStory: the places under its route and its
- * closest point to home, as fractions of the way along, 0 at the departure airport and 1 at the arrival. The schedule
- * turns a fraction into a time (`timeAtFraction`), so a new delay moves every time without redoing the geography.
+ * A flight's story (Stage 2 spec §4.2, Stage 3 spec §8), as the app's LegStory: the places under its path and its
+ * closest point to home, as fractions of the way along, 0 at the departure airport and 1 at the arrival. The path is the
+ * great circle until the plane has been seen in the air, and its real path from then on, when the story is made again
+ * as the path grows. The leg turns a distance along its path into a time (`legTimeAtDistance`), so a new delay moves
+ * every time without redoing the geography.
  */
 
 /** A place under the route, from where it starts. */
@@ -24,6 +28,11 @@ export interface LegStory {
   /** In order. The first starts at 0. Empty without geography. */
   stretches: Stretch[]
   closestToHome: ClosestToHome | null
+  /**
+   * The length of the path the story was made along, in meters: a fraction of the way is that share of it. A real path
+   * grows at its far end, and a place this far along it stays this far along it, so the story is read by distance.
+   */
+  length: number
 }
 
 /** The route is looked up this often. */
@@ -36,21 +45,21 @@ export const PRECISION_M = 0.1 * METERS_PER_MILE
 /** Home counts when the route passes this close. */
 export const HOME_RADIUS_M = 100 * METERS_PER_MILE
 
+/** A path as the story samples it, by the fraction of the way along. */
 interface Route {
-  origin: GeoPoint
-  destination: GeoPoint
+  path: FlightPath
   length: number
   sampleCount: number
   step: number
 }
 
-function route(origin: GeoPoint, destination: GeoPoint): Route {
-  const length = distanceMeters(origin, destination)
+function route(path: FlightPath): Route {
+  const length = path.length
   const sampleCount = Math.max(MINIMUM_SAMPLES, Math.ceil(length / SAMPLE_SPACING_M) + 1)
-  return { origin, destination, length, sampleCount, step: 1 / (sampleCount - 1) }
+  return { path, length, sampleCount, step: 1 / (sampleCount - 1) }
 }
 
-const pointOn = (r: Route, fraction: number) => pointAlong(r.origin, r.destination, fraction)
+const pointOn = (r: Route, fraction: number) => pointAtDistance(r.path, fraction * r.length)
 
 interface Run {
   place: Place
@@ -122,16 +131,21 @@ function closestPoint(r: Route, home: GeoPoint): ClosestToHome | null {
   return meters <= HOME_RADIUS_M ? { fraction, meters } : null
 }
 
-/** The story of the great circle from `origin` to `destination`. `home` is null for a flight that starts or ends there. */
-export function routeStory(origin: GeoPoint, destination: GeoPoint, geography: Geography | null, home: GeoPoint | null): LegStory {
-  const r = route(origin, destination)
-  return { stretches: geography ? stretchesAlong(r, geography) : [], closestToHome: home ? closestPoint(r, home) : null }
+/** The story along `path`. `home` is null for a flight that starts or ends there. */
+export function storyAlong(path: FlightPath, geography: Geography | null, home: GeoPoint | null): LegStory {
+  const r = route(path)
+  return { stretches: geography ? stretchesAlong(r, geography) : [], closestToHome: home ? closestPoint(r, home) : null, length: path.length }
 }
 
-/** A flight's story. Home counts only when the flight doesn't start or end there. */
+/** The story along the great circle from `origin` to `destination`. `home` is null for a flight that starts or ends there. */
+export function routeStory(origin: GeoPoint, destination: GeoPoint, geography: Geography | null, home: GeoPoint | null): LegStory {
+  return storyAlong(makeFlightPath(origin, destination), geography, home)
+}
+
+/** A flight's story, along its path (`legPath`). Home counts only when the flight doesn't start or end there. */
 export function legStory(leg: MapLeg, geography: Geography | null, home: AirportMark | null): LegStory {
   const isHomeLeg = home == null || home.code === leg.origin.code || home.code === leg.destination.code
-  return routeStory(leg.origin.place, leg.destination.place, geography, isHomeLeg ? null : home.place)
+  return storyAlong(legPath(leg), geography, isHomeLeg ? null : home.place)
 }
 
 /** The place `fraction` of the way along, or null where no place is known. */
@@ -140,3 +154,7 @@ export function placeAtFraction(story: LegStory, fraction: number): Place | null
   for (const stretch of story.stretches) if (stretch.start <= fraction) found = stretch.place
   return found
 }
+
+/** The place `distance` meters along the path, or null where no place is known. */
+export const placeAtDistance = (story: LegStory, distance: number): Place | null =>
+  placeAtFraction(story, story.length > 0 ? distance / story.length : 0)

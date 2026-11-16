@@ -10,9 +10,9 @@ import type { AirportMark, MapLeg, TripMap } from '../../src/map/tripMap'
 
 const MINUTE = 60_000
 
-/** A rectangle a degree either side of the equator, from `west`° to `east`°. */
-export function box(name: string, kind: AreaKind, west: number, east: number, country: string | null = null): Area {
-  return { name, kind, country, box: [west, -1, east, 1], rings: [[west, -1, east, -1, east, 1, west, 1]] }
+/** A rectangle from `west`° to `east`°, and from `south`° to `north`°: unless they're given, a degree either side of the equator. */
+export function box(name: string, kind: AreaKind, west: number, east: number, country: string | null = null, south = -1, north = 1): Area {
+  return { name, kind, country, box: [west, south, east, north], rings: [[west, south, east, south, east, north, west, north]] }
 }
 
 /**

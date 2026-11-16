@@ -63,12 +63,19 @@ const SUN_EVENTS_KEPT = 200
 
 const pointKey = (p: GeoPoint) => `${p.lat},${p.lng}`
 
+/**
+ * The route's story: along the great circle, whatever path the plane flew, since another flight on the route shares it.
+ * A real path's story, made again as the path grows, is the store's (Stage 3 spec §8; a later task of plan 3C-3).
+ */
 function storyOf(leg: MapLeg, geography: Geography, home: AirportMark | null): LegStory {
   let kept = stories.get(geography)
   if (!kept) stories.set(geography, (kept = new Map()))
   const key = [leg.origin.code, pointKey(leg.origin.place), leg.destination.code, pointKey(leg.destination.place), home?.code ?? '', home ? pointKey(home.place) : ''].join('|')
   let story = kept.get(key)
-  if (!story) kept.set(key, (story = legStory(leg, geography, home)))
+  if (!story) {
+    const { flight: _, ...route } = leg
+    kept.set(key, (story = legStory(route, geography, home)))
+  }
   return story
 }
 

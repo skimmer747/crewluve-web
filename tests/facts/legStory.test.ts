@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { makeGeography, type Geography } from '../../src/facts/geography'
-import { legStory, placeAtFraction, routeStory } from '../../src/facts/legStory'
-import type { GeoPoint } from '../../src/map/greatCircle'
+import { legStory, placeAtDistance, placeAtFraction, routeStory } from '../../src/facts/legStory'
+import { distanceMeters, type GeoPoint } from '../../src/map/greatCircle'
 import { box, EQUATOR, equatorFlight, mark } from './factsTestData'
 
 /** Along the equator from 0° to 20° E, where a fraction of the way is a fraction of the longitude. */
@@ -39,6 +39,24 @@ describe('a flight’s story (Stage 2 spec §4.2)', () => {
     // Inside the dropped Wedge.
     expect(placeAtFraction(equator, 0.46)?.name).toBe('Bravo')
     expect(placeAtFraction(equator, 0.9)?.name).toBe('the Test Sea')
+  })
+
+  it('reads the place at a distance, by meters (Stage 3 spec §8)', () => {
+    const equator = story()
+    expect(equator.length).toBe(distanceMeters({ lat: 0, lng: 0 }, { lat: 0, lng: 20 }))
+    expect(placeAtDistance(equator, 0.1 * equator.length)?.name).toBe('Alpha')
+    expect(placeAtDistance(equator, 0.46 * equator.length)?.name).toBe('Bravo')
+    expect(placeAtDistance(equator, 0.9 * equator.length)?.name).toBe('the Test Sea')
+    // Past the arrival airport.
+    expect(placeAtDistance(equator, 2 * equator.length)?.name).toBe('the Test Sea')
+  })
+
+  it('reads a story with no length at its start', () => {
+    // Not in the app's tests: it's read there, not divided by nothing. One made along a route that goes nowhere has no
+    // places (the hold rule drops them all), so this one is made by hand.
+    const alpha = { name: 'Alpha', kind: 'country' as const, country: 'Alpha' }
+    expect(routeStory({ lat: 0, lng: 3 }, { lat: 0, lng: 3 }, EQUATOR, null)).toEqual({ stretches: [], closestToHome: null, length: 0 })
+    expect(placeAtDistance({ stretches: [{ place: alpha, start: 0 }], closestToHome: null, length: 0 }, 0)).toEqual(alpha)
   })
 
   it('finds where the route passes closest to home', () => {
