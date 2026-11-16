@@ -2,9 +2,11 @@ import { flightNumberText } from '../copy/flight'
 import type { AirportIndex } from '../data/airports'
 import { isMove, type Leg, type PlaceLeg } from '../engine/legs'
 import type { Iata } from '../engine/types'
+import { pathFramingPoints } from './flightPathDrawing'
 import { scheduledFraction, scheduledTime } from './flightProgress'
 import { distanceMeters, METERS_PER_MILE, pointAlong, pointsAlong, type GeoPoint } from './greatCircle'
 import { calendarDay } from '../time/zoned'
+import { isEstimate, type MapFlight } from './mapFlight'
 import { aimFractions, flatMapAngle } from './planeHeading'
 import type { GroundKind } from './tripActivity'
 
@@ -29,6 +31,11 @@ export interface MapLeg {
   start: number
   end: number
   flightNumber: string | null
+  /**
+   * A flight's plan, path and record, once Crewlu Cloud has answered for it (Stage 3 spec §11). Left out for a drive,
+   * and for a flight with no live data, which the map draws from the schedule as before.
+   */
+  flight?: MapFlight
 }
 
 /** One of the trip's ground legs, kept to name the waits between its moving legs (activity markers design §2.2). Never drawn. */
@@ -70,7 +77,7 @@ export function airportMark(code: Iata, airports: AirportIndex): AirportMark | n
   return { code: airport.iata, city: airports.city(code) ?? airport.iata, place: { lat: airport.lat, lng: airport.lng }, timeZone: airports.tz(code) }
 }
 
-function mapLeg(leg: Leg, airports: AirportIndex): MapLeg | null {
+function mapLeg(leg: Leg, airports: AirportIndex, flights: ReadonlyMap<string, MapFlight>): MapLeg | null {
   const ends = isMove(leg) ? [leg.dep, leg.arr] : leg.kind === 'drive' ? [leg.from, leg.to] : null
   if (!ends) return null
   const origin = airportMark(ends[0], airports)
@@ -78,6 +85,7 @@ function mapLeg(leg: Leg, airports: AirportIndex): MapLeg | null {
   if (!origin || !destination) return null
   // A van or bus between airports (`ground`) goes by road, so it's drawn as a drive.
   const isFlight = isMove(leg) && !leg.ground
+  const flight = isFlight ? flights.get(leg.id) : undefined
   return {
     id: leg.id,
     kind: isFlight ? 'flight' : 'drive',
@@ -86,6 +94,7 @@ function mapLeg(leg: Leg, airports: AirportIndex): MapLeg | null {
     start: leg.start,
     end: leg.end,
     flightNumber: isFlight ? flightNumberText(leg.airline, leg.number) : null,
+    ...(flight && { flight }),
   }
 }
 
@@ -103,13 +112,18 @@ export interface TripMapOptions {
   isWaitingAtBase?: boolean
   now: number
   airports: AirportIndex
+  /** Each flight Crewlu Cloud answered for, by its leg's id (`liveMapFlights`). */
+  flights?: ReadonlyMap<string, MapFlight>
 }
+
+const NO_FLIGHTS: ReadonlyMap<string, MapFlight> = new Map()
 
 /** The map of one trip's legs, or null when none can be drawn (moving map spec §12). */
 export function makeTripMap(
-  legs: Leg[], { isNextTrip, isRecap = false, days = null, home, base = null, isWaitingAtBase = false, now, airports }: TripMapOptions,
+  legs: Leg[],
+  { isNextTrip, isRecap = false, days = null, home, base = null, isWaitingAtBase = false, now, airports, flights = NO_FLIGHTS }: TripMapOptions,
 ): TripMap | null {
-  const mapped = [...legs].sort((a, b) => a.start - b.start).map((l) => mapLeg(l, airports)).filter((l): l is MapLeg => l != null)
+  const mapped = [...legs].sort((a, b) => a.start - b.start).map((l) => mapLeg(l, airports, flights)).filter((l): l is MapLeg => l != null)
   if (mapped.length === 0) return null
   const start = Math.min(...mapped.map((l) => l.start))
   const end = Math.max(start, ...mapped.map((l) => l.end))
@@ -126,6 +140,9 @@ export function makeTripMap(
     span: { start, end }, days,
   }
 }
+
+/** Whether the leg's gate arrival is the real plane's estimate, which the words mark with "about" (Stage 3 spec §9). */
+export const isArrivalEstimated = (leg: MapLeg) => leg.flight != null && isEstimate(leg.flight, leg.end)
 
 /** True from leaving the gate (or the driveway) until reaching the other end. */
 export const isMoving = (leg: MapLeg, t: number) => leg.start <= t && t < leg.end
@@ -179,13 +196,16 @@ export function pilotLocation(map: TripMap, t: number): AirportMark | null {
   return landed.length > 0 ? landed[landed.length - 1].destination : map.legs[0].origin
 }
 
-/** The places the camera must show: one leg's arc, or every leg's arcs and home. */
+/** The places the camera must show: one leg's arc, or every leg's arcs and home. A flight with a real path frames all of it (Stage 3 spec §6.2). */
 export function framingPoints(map: TripMap, focus: MapLeg | null): GeoPoint[] {
   const shown = focus ? [focus] : map.legs
-  const points = shown.flatMap((l) => pointsAlong(l.origin.place, l.destination.place, 33))
+  const points = shown.flatMap((l) => (l.flight ? pathFramingPoints(l.flight.path) : pointsAlong(l.origin.place, l.destination.place, 33)))
   if (!focus && map.home) points.push(map.home.place)
   return points
 }
+
+/** What the camera frames, as a key: the leg in focus, or the whole trip. */
+export const framingSubject = (map: TripMap, focus: MapLeg | null) => focus?.id ?? map.legs.map((l) => l.id).join(',')
 
 /** The airports the flights among `legs` reach, in order, each once, with home left out (moving map spec §5.3). */
 export function destinationsOf(legs: MapLeg[], home: AirportMark | null): AirportMark[] {

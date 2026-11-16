@@ -2,6 +2,7 @@ import type { AirportIndex } from '../data/airports'
 import { isMove, type Leg } from '../engine/legs'
 import type { Snapshot } from '../engine/snapshot'
 import { HOUR } from '../time/zoned'
+import type { MapFlight } from './mapFlight'
 import { isGroundLeg, makeTripMap, type TripMap } from './tripMap'
 
 /**
@@ -30,9 +31,12 @@ export function tripLegs(legs: Leg[], tripId: string): Leg[] {
   return [...own, ...commutes, ...ground].sort((a, b) => a.start - b.start)
 }
 
-/** The status page's trip map, or null when there's nothing to draw. */
-export function tripMapFor(snap: Snapshot, legs: Leg[], airports: AirportIndex): TripMap | null {
-  const options = (isNextTrip: boolean) => ({ isNextTrip, home: snap.pilot.effHome, base: snap.pilot.base, now: snap.t, airports })
+/**
+ * The status page's trip map, or null when there's nothing to draw. `flights` are the flights Crewlu Cloud answered for,
+ * by leg id: the map draws their real planes (Stage 3 spec §11).
+ */
+export function tripMapFor(snap: Snapshot, legs: Leg[], airports: AirportIndex, flights?: ReadonlyMap<string, MapFlight>): TripMap | null {
+  const options = (isNextTrip: boolean) => ({ isNextTrip, home: snap.pilot.effHome, base: snap.pilot.base, now: snap.t, airports, flights })
   const kind = snap.status.kind
   if (kind === 'home' || kind === 'base') {
     // A recap is the trip as it happened: a drive or jumpseat logged for later, within 12 hours of it, stays off, so the

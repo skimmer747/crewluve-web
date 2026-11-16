@@ -47,6 +47,22 @@ export function fitRect(places: GeoPoint[], padding = 0.2, minSide = MIN_SIDE): 
   return normalized({ x: (minX + maxX) / 2 - width / 2, y: (minY + maxY) / 2 - height / 2, width, height })
 }
 
+/**
+ * Whether every place of `next` lies inside the rectangle that frames `kept`, with the same room around it: the camera
+ * framed on `kept` already shows them. A real path grows as the plane is seen (Stage 3 spec §6.2), and the map frames
+ * again only once it grows past its frame, so the camera doesn't move with every answer.
+ */
+export function framesAll(kept: GeoPoint[], next: GeoPoint[]): boolean {
+  const rect = fitRect(kept)
+  if (!rect) return next.length === 0
+  return next.every((place) => {
+    const p = toWorld(place)
+    // The copy of the world that puts the place nearest the rectangle's middle.
+    const x = p.x + Math.round(rect.x + rect.width / 2 - p.x)
+    return x >= rect.x && x <= rect.x + rect.width && p.y >= rect.y && p.y <= rect.y + rect.height
+  })
+}
+
 /** `rect` grown about its centre to the screen's shape (`aspect` is width over height), so nothing stretches. */
 export function toAspect(rect: WorldRect, aspect: number): WorldRect {
   const width = rect.width / rect.height < aspect ? rect.height * aspect : rect.width

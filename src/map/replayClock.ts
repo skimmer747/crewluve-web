@@ -141,6 +141,27 @@ export const setQuickLayovers = (c: ReplayClock, quickLayovers: boolean, now: nu
 
 export const goLive = (c: ReplayClock): ReplayClock => ({ ...c, anchor: null })
 
+const sameStretches = (a: readonly Stretch[], b: readonly Stretch[]) =>
+  a.length === b.length && a.every((s, i) => s.start === b[i].start && s.end === b[i].end)
+
+/** Whether the clock was made for these times: the trip's span, its legs and its waits. */
+export const hasTimes = (c: ReplayClock, span: Stretch, legs: readonly Stretch[], waits: readonly Stretch[]) =>
+  c.span.start === span.start && c.span.end === span.end && sameStretches(c.legs, legs) && sameStretches(c.waits, waits)
+
+/**
+ * The clock for the trip's new times, as the app's TripReplayClock.carried: each new landing estimate moves a leg
+ * (Stage 3 spec §7.3). Live stays live. A replay keeps its moment, playing or paused, at its speed, and plays on at the
+ * new legs' pace. A moment at either end of the trip stays at that end, wherever the new times put it. A replay that
+ * has finished stays at the end.
+ */
+export function carried(c: ReplayClock, span: Stretch, legs: readonly Stretch[], waits: readonly Stretch[], now: number): ReplayClock {
+  const next: ReplayClock = { ...c, span, legs, waits, anchor: null }
+  if (isLive(c)) return next
+  const moment = clockTime(c, now)
+  const tripTime = held(next, moment >= c.span.end ? span.end : moment <= c.span.start ? span.start : moment)
+  return { ...next, anchor: { tripTime, playingSince: isPlaying(c) && !hasFinished(c, now) ? now : null } }
+}
+
 // Positions along the timeline (activity markers design §4.3): the bar measures replay time at 1x at the clock's pace.
 
 /** The whole replay at 1x, in ms. */
