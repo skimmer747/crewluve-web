@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { Joined, PartnerDoor, Refused, Viewed } from '../../src/partner/door'
+import type { Joined, LiveFlightDoor, PartnerDoor, Refused, Viewed } from '../../src/partner/door'
+import type { AnsweredFlight } from '../../src/partner/liveAnswer'
 import type { KeyValueStore } from '../../src/partner/store'
 
 export const PARTNER_A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
@@ -62,6 +63,10 @@ export function fakeDoor() {
   const summaries = new Map<string, { updatedAt: string; status: unknown }>()
   const devices = new Map<string, string>()
   const calls: string[] = []
+  /** partner_live's calls, kept apart so the other calls read as they always have. */
+  const liveCalls: string[] = []
+  /** What partner_live answers each partner: no flights unless a test sets some. */
+  const liveFlights = new Map<string, AnsweredFlight[]>()
   const network = { down: false, loseNext: false }
   const reach = () => {
     if (network.down) throw new TypeError('Failed to fetch')
@@ -99,7 +104,7 @@ export function fakeDoor() {
     if (since != null && summary.updatedAt <= since) return { partnerId: partner, updatedAt: summary.updatedAt, unchanged: true }
     return { partnerId: partner, updatedAt: summary.updatedAt, unchanged: false, status: summary.status }
   }
-  const door: PartnerDoor = {
+  const door: PartnerDoor & LiveFlightDoor = {
     async join(invite, key, label) {
       calls.push(`join ${invite} ${key} ${label}`)
       reach()
@@ -127,6 +132,13 @@ export function fakeDoor() {
       devices.delete(key)
       lose()
     },
+    async live(key, after) {
+      liveCalls.push(`live ${key} ${after}`)
+      reach()
+      const partner = devices.get(key)
+      if (!partner) return { error: 'sharing_ended' }
+      return { now: Date.now(), cursor: after ?? 0, flights: liveFlights.get(partner) ?? [] }
+    },
   }
-  return { door, invites, codes, summaries, devices, calls, network }
+  return { door, invites, codes, summaries, devices, calls, liveCalls, liveFlights, network }
 }

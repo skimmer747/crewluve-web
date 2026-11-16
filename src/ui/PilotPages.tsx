@@ -7,8 +7,10 @@ import {
 import { makeTripFacts } from '../facts/tripFacts'
 import { factsAtMoment } from '../facts/tripFactsRows'
 import { buildLegs, type Leg } from '../engine/legs'
+import { estimatedArrival, liveMapFlights, withLiveTimes } from '../engine/liveLegs'
 import { safeSnapshot, type Snapshot } from '../engine/snapshot'
 import type { Schedule } from '../engine/types'
+import type { MapFlight } from '../map/mapFlight'
 import { tripMapFor } from '../map/tripMapFor'
 import type { QuickStatus } from '../partner/summary'
 import { prefers24Hour, viewerTimeZone } from '../time/zoned'
@@ -17,6 +19,7 @@ import { Footer, type FooterProps } from './Footer'
 import { useComparisons, useGeography } from './hooks/useFactsData'
 import { useLand } from './hooks/useLand'
 import { useLandingWeather } from './hooks/useLandingWeather'
+import type { LivePlane } from './hooks/useLivePlane'
 import type { ScheduleHandle } from './hooks/useSchedule'
 import { useNow } from './hooks/useNow'
 import { useSchedulePage } from './hooks/useSchedulePage'
@@ -47,7 +50,11 @@ export interface PilotPagesProps {
   quickStatusAt?: (now: number) => QuickStatus | null
   /** One line above the cards: that this browser just connected, or why a link didn't (piece 5a §4.3). */
   notice?: string | null
+  /** What Crewlu Cloud has said of the pilot's flights: the live page's source, or the demo's made-up planes. */
+  live?: LivePlane | null
 }
+
+const NO_FLIGHTS: ReadonlyMap<string, MapFlight> = new Map()
 
 /**
  * Rebuilds the legs when a new schedule arrives, and the snapshot every second. Shows the status page, or the Schedule
@@ -56,23 +63,33 @@ export interface PilotPagesProps {
  */
 export function PilotPages({
   schedule, airports, demo, onLeave, loadWeather = demo ? loadDemoWeather : loadLiveWeather,
-  loadLanding = demo ? loadDemoLandingForecast : loadLiveLandingForecast, quickStatusAt, notice = null,
+  loadLanding = demo ? loadDemoLandingForecast : loadLiveLandingForecast, quickStatusAt, notice = null, live = null,
 }: PilotPagesProps) {
   const now = useNow()
   const celebrateKey = useVisibilityCount()
   const viewerTz = useMemo(() => viewerTimeZone(), [])
   const h24 = useMemo(() => prefers24Hour(), [])
   const unit = useMemo(() => tempUnitFor(), [])
-  const built = useMemo<{ s: Schedule; legs: Leg[] } | null>(() => {
-    const s = schedule.schedule
-    if (!s) return null
+  // One landing time (Stage 3 spec §7.1): each flight Crewlu Cloud has seen gets the real plane's times here, once for
+  // every card, at each new schedule, each new answer, and each minute while there's one, as an estimate moves by itself.
+  const hasLive = live != null && live.flights.size > 0
+  const minute = hasLive ? Math.floor(now / 60_000) : 0
+  const built = useMemo<{ s: Schedule; legs: Leg[]; flights: ReadonlyMap<string, MapFlight> } | null>(() => {
+    const summary = schedule.schedule
+    if (!summary) return null
     try {
-      return { s, legs: buildLegs(s) }
+      const placeOf = (code: string) => {
+        const airport = airports.get(code)
+        return airport ? { lat: airport.lat, lng: airport.lng } : null
+      }
+      const flights = hasLive ? liveMapFlights(summary, live.flights, live.clockOffset, placeOf) : NO_FLIGHTS
+      const s = withLiveTimes(summary, flights, now)
+      return { s, legs: buildLegs(s), flights }
     } catch (err) {
       console.error('Could not read the schedule', err)
       return null
     }
-  }, [schedule.schedule])
+  }, [schedule.schedule, live, airports, minute])
 
   const footer: FooterProps = {
     now,
@@ -93,7 +110,7 @@ export function PilotPages({
   // Asked for before the early return below, so the hooks run in the same order on every render.
   const weather = useWeather(weatherPlace(snap, airports, unit), loadWeather)
   // snap is only set with ready, so the legs are always there; the fallback is for the type checker.
-  const tripMap = snap ? tripMapFor(snap, ready?.legs ?? [], airports) : null
+  const tripMap = snap ? tripMapFor(snap, ready?.legs ?? [], airports, ready?.flights) : null
   const land = useLand(tripMap != null)
   // The page the address asks for, and the legs the Schedule page lists. A wide window shows both pages side by side
   // (slice 3C §3).
@@ -123,7 +140,12 @@ export function PilotPages({
   }
 
   const quickStatus = quickStatusAt?.(now) ?? null
-  const status = { snap, now, viewerTz, homeTz, h24, airports, weather, demo, celebrateKey, footer, notice, quickStatus, tripMap, land, facts, onOpenMap: mapPage.show }
+  // The flight in the air's arrival, while it's the real plane's estimate: the cards say "about" of it (Stage 3 spec §9).
+  const estimated = ready ? estimatedArrival(ready.legs, ready.flights, now) : null
+  const status = {
+    snap, now, viewerTz, homeTz, h24, airports, weather, demo, celebrateKey, footer, notice, quickStatus, tripMap, land, facts,
+    onOpenMap: mapPage.show, estimatedArrival: estimated,
+  }
   // A #map address with no trip to draw falls through to the status page (moving map spec §6).
   if (mapPage.open && tripMap) {
     return <TripMapPage map={tripMap} now={now} viewerTz={viewerTz} h24={h24} day={snap.tripProgress?.day ?? null}

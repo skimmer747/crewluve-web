@@ -1,0 +1,62 @@
+// @vitest-environment happy-dom
+import { act, cleanup, render } from '@testing-library/preact'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ScheduleHandle } from '../../src/ui/hooks/useSchedule'
+import { PilotPages } from '../../src/ui/PilotPages'
+import { FLYING, LIVE_AIRPORTS, SCHEDULE, SDF } from '../map/liveTrip'
+import { fix, liveFlight, MINUTE, START } from '../map/madeUpFlights'
+
+const NOW = START + 59 * MINUTE
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
+  vi.setSystemTime(NOW)
+})
+
+afterEach(() => {
+  cleanup()
+  vi.useRealTimers()
+  localStorage.clear()
+})
+
+const handle: ScheduleHandle = { schedule: SCHEDULE, lastSuccessAt: START, problem: null, refreshing: false, refresh: () => {} }
+const LIVE = { flights: new Map([['f1', FLYING]]), clockOffset: 0 }
+const noWeather = async () => null
+
+const page = (live: typeof LIVE | null) =>
+  render(<PilotPages schedule={handle} airports={LIVE_AIRPORTS} demo={false} onLeave={() => {}} live={live} loadWeather={noWeather} />).container
+
+describe('the status page with a real plane (Stage 3 spec §7.1, §9)', () => {
+  it("shows one landing time, the real plane's, said with \"about\" on the map's bar, the countdown and the narrative", () => {
+    const container = page(LIVE)
+    expect(container.querySelector('.inflight-status')?.textContent).not.toBe('In flight')
+    const lands = container.querySelector('.inflight-time')?.textContent ?? ''
+    expect(lands).toMatch(/^Lands about \d{1,2}:\d\d\s[AP]M$/)
+    expect(container.querySelector('.countdown-sub')?.textContent).toMatch(/^About /)
+    expect(container.querySelector('.narrative-text')?.textContent).toMatch(/ which is about \d/)
+    expect(container.querySelector('.trip-map-open')?.getAttribute('aria-label')).toMatch(/^UPS1234 to Philadelphia, .* schedule(, over [^.]+)?\. Lands about .* your time\. Opens the full map\.$/)
+  })
+
+  it('moves an estimate that moves by itself each minute: a plane still at the gate lands later as time goes by', () => {
+    vi.setSystemTime(START + 25 * MINUTE)
+    // At the gate ten minutes after the plan's takeoff, seen 20 seconds ago.
+    const atTheGate = liveFlight([], { legId: 'f1', state: 'ground', fix: fix(25 - 1 / 3, SDF.lat, SDF.lng, { onGround: true }) })
+    const container = page({ flights: new Map([['f1', atTheGate]]), clockOffset: 0 })
+    const lands = () => container.querySelector('.inflight-time')?.textContent
+    const before = lands()
+    expect(before).toMatch(/^Lands about /)
+    act(() => {
+      vi.advanceTimersByTime(2 * MINUTE)
+    })
+    expect(lands()).toMatch(/^Lands about /)
+    expect(lands()).not.toBe(before)
+  })
+
+  it('shows the schedule as before with no live data', () => {
+    const container = page(null)
+    expect(container.querySelector('.inflight-status')?.textContent).toBe('In flight')
+    expect(container.querySelector('.inflight-time')?.textContent).toMatch(/^Lands \d/)
+    expect(container.querySelector('.countdown-sub')?.textContent).not.toMatch(/^About /)
+    expect(container.querySelector('.narrative-text')?.textContent).not.toMatch(/about/)
+  })
+})

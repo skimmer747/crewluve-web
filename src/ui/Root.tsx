@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import { DEFAULT_SCENE, demoRawForScene, isDemoScene, type DemoScene } from '../data/demo'
 import { buildSchedule } from '../engine/normalize'
 import { scheduleFromStored } from '../partner/convert'
-import { liveDoor, type PartnerDoor } from '../partner/door'
+import { liveDoor, type LiveFlightDoor, type PartnerDoor } from '../partner/door'
 import { joinWithLink, type JoinOutcome } from '../partner/join'
 import { browserLabel, platformOf } from '../partner/label'
 import { linkFromHash, type PartnerLink } from '../partner/link'
@@ -11,13 +11,14 @@ import { NotConnected, refreshSummary, SharingEnded } from '../partner/refresh'
 import { clearOldSignIn, hadPasswordSignIn, localPartnerStore, newKey, type PartnerStore, type StoredSummary } from '../partner/store'
 import { currentQuickStatus, nameIn, type PartnerSummary } from '../partner/summary'
 import { useAirports } from './hooks/useAirports'
+import { useLivePlane } from './hooks/useLivePlane'
 import { useSchedule } from './hooks/useSchedule'
 import { PilotPages } from './PilotPages'
 import { Connecting, Welcome } from './Welcome'
 
 export interface RootProps {
   /** Crewlu Cloud's partner door, and where this browser keeps its connection. Tests pass fakes. */
-  door?: PartnerDoor
+  door?: PartnerDoor & LiveFlightDoor
   store?: PartnerStore
 }
 
@@ -134,7 +135,7 @@ function spokenIn(phase: Phase, passwordEnded: boolean): string {
 }
 
 /** A browser's own connection: the welcome screen, joining, or its pilot's status (piece 5a §4, §5). */
-function PartnerRoot({ door, given }: { door: PartnerDoor; given?: PartnerStore }) {
+function PartnerRoot({ door, given }: { door: PartnerDoor & LiveFlightDoor; given?: PartnerStore }) {
   const [store] = useState(() => given ?? localPartnerStore())
   // Whether this browser used the password sign-in until this load, read before Root's effect deletes its session.
   // The welcome screen says so until a join starts, so it's shown and read once, as the ended line is; the next load
@@ -232,7 +233,7 @@ function PartnerRoot({ door, given }: { door: PartnerDoor; given?: PartnerStore 
 }
 
 interface PartnerLiveProps {
-  door: PartnerDoor
+  door: PartnerDoor & LiveFlightDoor
   store: PartnerStore
   notice: string | null
   /**
@@ -293,6 +294,19 @@ function PartnerLive({ door, store, notice, onEnded, onFollowed, onDisconnected 
       else if (err instanceof NotConnected) onEnded(null)
     },
   })
+  // The real plane (Stage 3 spec §11, §12), asked for while this page shows. Sharing ended there ends it as a refresh
+  // that meets it does: the key and the summary go, and the welcome screen says so.
+  const live = useLivePlane({
+    door,
+    device: () => store.device(),
+    schedule: schedule.schedule,
+    onSharingEnded: () => {
+      if (leaving.current) return
+      const name = shown.current?.name ?? 'your pilot'
+      store.forget()
+      onEnded(name)
+    },
+  })
 
   const disconnect = async () => {
     // One Disconnect at a time: a second click while the leave is out asks nothing and sends nothing.
@@ -330,6 +344,7 @@ function PartnerLive({ door, store, notice, onEnded, onFollowed, onDisconnected 
       demo={false}
       notice={notice}
       quickStatusAt={(now) => (shown.current ? currentQuickStatus(shown.current, now) : null)}
+      live={live}
       onLeave={() => void disconnect()}
     />
   )

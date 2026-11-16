@@ -65,6 +65,8 @@ export interface StatusScreenProps {
   facts?: TripFacts | null
   /** Opens the full map from the card's map. */
   onOpenMap?: () => void
+  /** When the flight in the air reaches its gate, while that's the real plane's estimate: the narrative and the countdown say "about" (Stage 3 spec §9). */
+  estimatedArrival?: number | null
 }
 
 /** The link into the schedule named `name`, or none when the page has no way into it. */
@@ -89,7 +91,7 @@ export function StatusScreen(p: StatusScreenProps) {
   const locationHeading = useRef<HTMLHeadingElement>(null)
   const inFlightHeading = useRef<HTMLHeadingElement>(null)
   const inTheirPlace = () => [inFlightHeading.current, locationHeading.current, titleHeading.current].find((el) => el?.isConnected) ?? null
-  const spans = safeNarrative(snap, { now: p.now, viewerTz: p.viewerTz, h24: p.h24, airports: p.airports })
+  const spans = safeNarrative(snap, { now: p.now, viewerTz: p.viewerTz, h24: p.h24, airports: p.airports, estimatedArrival: p.estimatedArrival })
   const airport = snap.status.airport
   // The place, worked out once for the card, the popup and when the popup may be open: the card's rule for its dial.
   const facts = showsLocationCard(snap) ? locationFacts(airport, p.now, p.airports, p.weather) : null
@@ -206,7 +208,7 @@ function HomeCards({ snap, now, homeTz, h24, airports, onOpenSchedule }: StatusS
   )
 }
 
-function AwayCard({ snap, now, homeTz, h24, airports, celebrateKey, onOpenSchedule }: StatusScreenProps) {
+function AwayCard({ snap, now, homeTz, h24, airports, celebrateKey, onOpenSchedule, estimatedArrival }: StatusScreenProps) {
   const arrival = snap.arrival
   if (!arrival) {
     return snap.fallbackDaysRemaining != null
@@ -215,7 +217,9 @@ function AwayCard({ snap, now, homeTz, h24, airports, celebrateKey, onOpenSchedu
   }
   const visual = arrivalCard(snap, arrival, airports)
   const city = airports.city(arrival.airport)
-  const when = arrivalWhenText(arrival.time, homeTz, h24)
+  // A time that's the real plane's estimate reads "About" (Stage 3 spec §9).
+  const isEstimate = estimatedArrival != null && Math.abs(arrival.time - estimatedArrival) < 1000
+  const when = `${isEstimate ? 'About ' : ''}${arrivalWhenText(arrival.time, homeTz, h24)}`
   return (
     <CountdownCard
       title={visual.title}

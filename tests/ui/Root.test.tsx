@@ -444,6 +444,22 @@ describe('Root: a connected browser', () => {
     expect(store.device()).toBeNull()
   })
 
+  it("asks partner_live for the real plane as the page shows, with this browser's key (Stage 3 spec §11, §12)", async () => {
+    const { f, store } = connectedAsB()
+    render(<Root door={f.door} store={store} />)
+    await pollAnswered()
+    await settle()
+    expect(f.liveCalls).toEqual([`live ${key(1)} null`])
+  })
+
+  it('goes back to the welcome screen, naming the pilot, when partner_live says sharing has ended', async () => {
+    const { f, store } = connectedAsB()
+    f.door.live = async () => ({ error: 'sharing_ended' })
+    render(<Root door={f.door} store={store} />)
+    expect(await waitFor(() => page().getByText('Sharing with Alex has ended.'))).toBeTruthy()
+    expect(store.device()).toBeNull()
+  })
+
   it('goes back to a plain welcome screen when another tab disconnected', async () => {
     const { f, store } = connectedAsB()
     render(<Root door={f.door} store={store} />)
