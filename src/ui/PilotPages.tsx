@@ -82,8 +82,19 @@ export function PilotPages({
         const airport = airports.get(code)
         return airport ? { lat: airport.lat, lng: airport.lng } : null
       }
-      const flights = hasLive ? liveMapFlights(summary, live.flights, live.clockOffset, placeOf) : NO_FLIGHTS
-      const s = withLiveTimes(summary, flights, now)
+      // The real plane can't take the page with it: an answer it can't read leaves the schedule as it was.
+      let flights = NO_FLIGHTS
+      let s = summary
+      if (hasLive) {
+        try {
+          const answered = liveMapFlights(summary, live.flights, live.clockOffset, placeOf)
+          const timed = withLiveTimes(summary, answered, now)
+          flights = answered
+          s = timed
+        } catch (err) {
+          console.error('Could not show the real plane', err)
+        }
+      }
       return { s, legs: buildLegs(s), flights }
     } catch (err) {
       console.error('Could not read the schedule', err)

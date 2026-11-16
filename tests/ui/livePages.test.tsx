@@ -52,6 +52,17 @@ describe('the status page with a real plane (Stage 3 spec §7.1, §9)', () => {
     expect(lands()).not.toBe(before)
   })
 
+  it('shows the schedule as before when the real plane can’t be read, and says so in the console', () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    // An answer that breaks the live code: a place on its trail with no place.
+    const broken = { flights: new Map([['f1', { ...FLYING, trail: [{ time: START, place: null as never, altitudeFt: 30_000 }] }]]), clockOffset: 0 }
+    const container = page(broken)
+    expect(container.querySelector('.inflight-status')?.textContent).toBe('In flight')
+    expect(container.querySelector('.inflight-time')?.textContent).toMatch(/^Lands \d/)
+    expect(error).toHaveBeenCalledWith('Could not show the real plane', expect.any(Error))
+    error.mockRestore()
+  })
+
   it('shows the schedule as before with no live data', () => {
     const container = page(null)
     expect(container.querySelector('.inflight-status')?.textContent).toBe('In flight')
