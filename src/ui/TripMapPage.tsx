@@ -5,7 +5,7 @@ import type { IconName } from '../icons/iconPaths'
 import { nextMapStyle, type AppleMapStyle } from '../map/appleMapStyle'
 import type { GeoPoint } from '../map/greatCircle'
 import { NO_INSETS, type Insets } from '../map/mapFit'
-import { clockTime, finishesAt, isPlaying, liveClock, scrub, setQuickLayovers } from '../map/replayClock'
+import { carried, clockTime, finishesAt, hasTimes, isLive, isPlaying, liveClock, scrub, setQuickLayovers } from '../map/replayClock'
 import { tripWaits } from '../map/tripActivity'
 import { currentLeg, legInMotion, type TripMap } from '../map/tripMap'
 import { AppleTripMap } from './AppleTripMap'
@@ -50,8 +50,15 @@ export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, 
   const [quickLayovers, rememberQuickLayovers] = useQuickLayovers()
   const waits = useMemo(() => tripWaits(map), [map])
   // The span, legs and waits always follow the map, so the slider's range and the replay's pace are right if the trip
-  // changes while the page is open. Quick layovers is this browser's choice (activity markers design §3.1).
-  const clock = { ...kept, span: map.span, legs: map.legs, waits, quickLayovers }
+  // changes while the page is open. A new landing estimate changes them: a replay keeps its moment and plays on from it
+  // (Stage 3 spec §7.3). Quick layovers is this browser's choice (activity markers design §3.1).
+  const current = hasTimes(kept, map.span, map.legs, waits) ? kept : carried(kept, map.span, map.legs, waits, Date.now())
+  useEffect(() => {
+    if (current !== kept) setClock(current)
+  })
+  const clock = { ...current, quickLayovers }
+  // A moment of the replay shows the real plane alone, and the pill says "In flight".
+  const isReplay = !isLive(clock)
   // Switching keeps the moment shown, and a replay carries on from it at the new pace.
   const onQuickLayovers = (on: boolean) => {
     setClock(setQuickLayovers(clock, on, Date.now()))
@@ -107,7 +114,7 @@ export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, 
         <button type="button" class="trip-map-close" aria-label="Close map" onClick={onBack}>
           <Icon name="XCircle" size={28} />
         </button>
-        <h1 ref={heading} class="trip-map-pill" tabIndex={-1}>{topPill(map, t, day, days)}</h1>
+        <h1 ref={heading} class="trip-map-pill" tabIndex={-1}>{topPill(map, t, day, days, isReplay)}</h1>
         {apple && moved && (
           // Recenter leaves the page as it's pressed, so focus moves to the style button beside it.
           <button type="button" class="trip-map-round" aria-label="Recenter map"
@@ -124,7 +131,7 @@ export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, 
       </header>
       <div ref={box} class="trip-map-full">
         <AppleTripMap map={map} t={t} width={width} height={height} focus={focus} land={land} nightStep={nightStep} insets={insets}
-          mapStyle={mapStyle} interactive recenter={recenter} onUserMove={() => setMoved(true)} />
+          mapStyle={mapStyle} interactive recenter={recenter} onUserMove={() => setMoved(true)} isReplay={isReplay} />
       </div>
       <section ref={panel} class={`trip-map-panel ${side ? 'side' : 'bottom'}${showsFacts ? ' open' : ''}`}
         aria-label={facts ? 'Trip facts and timeline' : 'Timeline'}>

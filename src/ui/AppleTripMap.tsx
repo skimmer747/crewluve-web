@@ -5,10 +5,11 @@ import type { GeoPoint } from '../map/greatCircle'
 import { NO_INSETS, type Insets } from '../map/mapFit'
 import type { MapKitApi, MkAnnotation, MkMap, MkPolygon, MkPolyline } from '../map/mapkitApi'
 import { LAYER_ALPHA, nightLayers, SUN_DEPTHS } from '../map/nightShade'
-import { framingPoints } from '../map/tripMap'
+import { framingPoints, framingSubject } from '../map/tripMap'
 import { nightTime, tripMapDrawing, type SegmentStyle } from '../map/tripMapDrawing'
 import { markElement } from './appleMarks'
 import { useAppleMapKit } from './hooks/useAppleMapKit'
+import { useSteadyFraming } from './hooks/useSteadyFraming'
 import { TripMapSvg, type TripMapSvgProps } from './TripMapSvg'
 
 export interface AppleTripMapProps extends TripMapSvgProps {
@@ -265,7 +266,8 @@ function AppleMapView({
   // marker in view), until the person moves the map (§5).
   const pilot = drawing.pilot?.place.place ?? null
   latest.current = { pilot, width, height, insets }
-  const { rect, padding } = appleCamera(framingPoints(map, focus), pilot, width, height, insets)
+  const framing = useSteadyFraming(framingPoints(map, focus), framingSubject(map, focus))
+  const { rect, padding } = appleCamera(framing, pilot, width, height, insets)
   const frame = `${rect.x},${rect.y},${rect.width},${rect.height}|${padding.top},${padding.right},${padding.bottom},${padding.left}|${recenter}`
   useEffect(() => {
     const state = live.current

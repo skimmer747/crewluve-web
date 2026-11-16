@@ -5,8 +5,9 @@ import { fitClear, fitRect, NO_INSETS, slideToShow, type Insets } from '../map/m
 import { LAYER_ALPHA, nightLayers } from '../map/nightShade'
 import { linePath, placeAt, polygonsPath, type Viewport } from '../map/svgPaths'
 import type { GroundKind } from '../map/tripActivity'
-import { framingPoints, type MapLeg, type TripMap } from '../map/tripMap'
+import { framingPoints, framingSubject, type MapLeg, type TripMap } from '../map/tripMap'
 import { nightTime, PILOT_RADIUS, routePoints, tripMapDrawing, type PlaneMark } from '../map/tripMapDrawing'
+import { useSteadyFraming } from './hooks/useSteadyFraming'
 
 export interface TripMapSvgProps {
   map: TripMap
@@ -97,9 +98,10 @@ function PlaneBadge({ plane, at, class: cls }: { plane: PlaneMark; at: { x: numb
  */
 export function TripMapSvg({ map, t, width, height, focus, land, nightStep, insets = NO_INSETS, isReplay = false }: TripMapSvgProps) {
   const { top, right, bottom, left } = insets
+  const framing = useSteadyFraming(framingPoints(map, focus), framingSubject(map, focus))
   const framed = useMemo(
-    () => fitClear(fitRect(framingPoints(map, focus)) ?? { x: 0, y: 0, width: 1, height: 1 }, width, height, { top, right, bottom, left }),
-    [map, focus, width, height, top, right, bottom, left],
+    () => fitClear(fitRect(framing) ?? { x: 0, y: 0, width: 1, height: 1 }, width, height, { top, right, bottom, left }),
+    [framing, width, height, top, right, bottom, left],
   )
   const drawing = tripMapDrawing(map, t, isReplay)
   // The real path where the plane was seen goes over every other line.

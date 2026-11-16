@@ -2,7 +2,7 @@ import type { Ref } from 'preact'
 import { useRef, useState } from 'preact/hooks'
 import { cardSummary, headline, recapLongestLine, recapTiles, type TripFacts } from '../facts/tripFacts'
 import { delayBannerText, spokenDelayBanner } from '../copy/flight'
-import { arrivalLocalTime, cardChips, landsAt, statsItems, tripMapSummary } from '../copy/tripMap'
+import { arrivalLocalTime, cardChips, flightStatus, landsAt, statsItems, tripMapSummary } from '../copy/tripMap'
 import type { GeoPoint } from '../map/greatCircle'
 import { NO_INSETS, type Insets } from '../map/mapFit'
 import { currentLeg, type MapLeg, type TripMap } from '../map/tripMap'
@@ -101,7 +101,7 @@ export function TripMapCard(p: TripMapCardProps) {
   )
 }
 
-function InFlightBar({ leg, viewerTz, h24, onOpenTracking }: TripMapCardProps & { leg: MapLeg }) {
+function InFlightBar({ leg, now, viewerTz, h24, onOpenTracking }: TripMapCardProps & { leg: MapLeg }) {
   const local = arrivalLocalTime(leg, viewerTz, h24)
   return (
     <div class="inflight-bar">
@@ -112,7 +112,8 @@ function InFlightBar({ leg, viewerTz, h24, onOpenTracking }: TripMapCardProps & 
             {leg.flightNumber}
           </button>
         ) : leg.flightNumber && <span class="inflight-number">{leg.flightNumber}</span>}
-        <span class="inflight-status">In flight</span>
+        {/* The real plane's label, or "In flight" (Stage 3 spec §9). */}
+        <span class="inflight-status">{flightStatus(leg, now)}</span>
       </div>
       <div class="inflight-arrival">
         <p class="inflight-time">{landsAt(leg, viewerTz, h24)}</p>
