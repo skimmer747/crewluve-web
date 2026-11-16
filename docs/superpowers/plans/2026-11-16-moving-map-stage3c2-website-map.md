@@ -5281,7 +5281,7 @@ import { browserLabel, platformOf } from '../partner/label'
 
 - [x] **Step 5: Batch C's review.** Dispatch `superpowers:code-reviewer` (`model: "sonnet"`) on Tasks 8 and 9, against the spec's §7, §9, §11, §12 and §13, and this plan's list. Ask it in particular about the page: an order of events that asks from a hidden page, a call left out after the page is gone, sharing ended twice, and anything that reads the schedule's own times after Task 8.
 
-- [ ] **Step 6: Batch C's checkpoint: Todd runs everything.**
+- [x] **Step 6: Batch C's checkpoint: Todd runs everything.**
 
 ```bash
 cd "/Users/toddanderson/Dev/Crewluve Website/.claude/worktrees/trip-map-live-598046" && npm test && npm run build
@@ -6828,7 +6828,7 @@ git add tests/fixtures/fakeMapKit.ts tests/copy/planePopup.test.ts tests/map/pla
 git commit -m "Which plane is which: a key to the real plane and its ghost on the trip map, and on the full map a popup on each, on Apple's map and the site's own (which plane design)"
 ```
 
-- [ ] **Step 8: Todd looks again.** The `crewluve-mapkit` server (port 5182), Task 10's addresses, on a computer and a phone:
+- [x] **Step 8: Todd looks again.** The `crewluve-mapkit` server (port 5182), Task 10's addresses, on a computer and a phone:
   - the key at the map's top right on the card and the full map in `live-ahead`, `live-ocean-gap` and `live-on-ground-late`; none in `flying`, or in a replay;
   - pointing at each plane on a computer opens its popup, and moving away closes it; on a phone a tap opens it, and a tap elsewhere closes it;
   - the popup's words, its place over the plane (or under it near the top, slid in near a side), and that it moves with the plane;
@@ -6947,6 +6947,7 @@ Seven minor notes:
 
 **Todd's second look (Task 11 Step 8), 16 Nov 2026.**
 - The ghost's popup: "It should say 'Where UPS2961 was scheduled to be'". Changed from "Where … would be if it were on time" in `src/copy/planePopup.ts` and the design's table; with no flight number it's "Where the flight was scheduled to be". The title stays "On schedule". Tests first: the two words tests in `tests/copy/planePopup.test.ts` failed, then passed with the change, as did the popup test in `tests/ui/planePopup.test.tsx`; Task 11's 40 tests pass, and `tsc --noEmit` finds nothing. (Task 11's code above still shows the first words; this is the change to them.) Seen on Apple's map, opened from the card as a family would. Todd's run of Task 11's tests, started in his Terminal at his choice, 16 Nov 2026 at 2:28 pm: 3 files and 40 tests pass. Committed as he chose.
+- Then the key and the popup with the new words: Todd, "Looks good" (16 Nov 2026). Task 11 Step 8 is done.
 - While the dev server updated the page in place as files changed, an open full map was once drawn twice, one over the other. A fresh load, and the full map opened from the card, show one map and one popup: it's the dev server's live update, not the site.
 
 ## Self-review
