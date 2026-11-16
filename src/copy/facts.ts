@@ -1,7 +1,7 @@
 import type { City, Place } from '../facts/geography'
 import type { Milestone, MilestoneKind } from '../facts/milestone'
 import type { Chase, MoonSight, SunEvent, SunKind } from '../facts/sky'
-import type { MapLeg } from '../map/tripMap'
+import { isArrivalEstimated, type MapLeg } from '../map/tripMap'
 import type { MoonPhase } from '../time/moon'
 import { MINUTE, zoneOffsetMinutes } from '../time/zoned'
 import { shortTimeText } from './format'
@@ -135,6 +135,8 @@ export function timeDifferenceText(zone: string, viewerTz: string, t: number): s
 /** "lands 4:05 PM there", or in the family's time when the destination keeps it or its zone isn't known. */
 export function landsText(leg: MapLeg, viewerTz: string, h24: boolean): string {
   const there = leg.destination.timeZone
-  if (there && zoneOffsetMinutes(leg.end, there) !== zoneOffsetMinutes(leg.end, viewerTz)) return `lands ${shortTimeText(leg.end, there, h24)} there`
-  return `lands ${shortTimeText(leg.end, viewerTz, h24)}`
+  // "lands about 4:05 PM there" when it's the real plane's estimate (Stage 3 spec §9).
+  const about = isArrivalEstimated(leg) ? 'about ' : ''
+  if (there && zoneOffsetMinutes(leg.end, there) !== zoneOffsetMinutes(leg.end, viewerTz)) return `lands ${about}${shortTimeText(leg.end, there, h24)} there`
+  return `lands ${about}${shortTimeText(leg.end, viewerTz, h24)}`
 }

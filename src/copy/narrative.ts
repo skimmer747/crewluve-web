@@ -23,6 +23,8 @@ export interface NarrativeCtx {
   viewerTz: string
   h24: boolean
   airports: AirportIndex
+  /** When the flight under way reaches its gate, while that's the real plane's estimate: the time says "about" (Stage 3 spec §9). */
+  estimatedArrival?: number | null
 }
 
 /** Builds one sentence out of plain, bold, and countdown spans. */
@@ -47,6 +49,7 @@ export class Sentence {
   }
 
   time(ms: number): this {
+    if (this.ctx.estimatedArrival != null && Math.abs(ms - this.ctx.estimatedArrival) < 1000) this.t('about ')
     return this.b(timeWithZone(ms, this.ctx.viewerTz, this.ctx.h24))
   }
 }

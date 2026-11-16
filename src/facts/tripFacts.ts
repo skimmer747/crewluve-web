@@ -1,7 +1,7 @@
 import { belowWords, cockpitCountdown, flightTitle, milestoneHeadline, milestoneLine } from '../copy/facts'
 import { longestText, recapChip, recapSummary, soFarText, totalsTiles, type RecapTile } from '../copy/factsTrip'
 import { shortTimeText } from '../copy/format'
-import { landingCountdown, panelHeadline, tripMapSummary } from '../copy/tripMap'
+import { landingCountdown, liveSummary, panelHeadline, tripMapSummary } from '../copy/tripMap'
 import type { LandingForecast } from '../data/weather'
 import type { GeoPoint } from '../map/greatCircle'
 import { currentLeg, dayCount, legInMotion, legProgress, positionAtTime, type AirportMark, type MapLeg, type TripMap } from '../map/tripMap'
@@ -174,6 +174,9 @@ export function cardSummary(facts: TripFacts, now: number, name: string): string
     const lead = leg.flightNumber ? `${leg.flightNumber} to` : 'Flying to'
     const story = facts.stories[leg.id]
     const place = story ? placeAtFraction(story, legProgress(leg, now)) : null
+    // With a real plane, its sentence (Stage 3 spec §9, §15). What's below is still read along the great circle (plan 3C-3).
+    const live = liveSummary(leg, now, viewerTz, h24, place?.name ?? null)
+    if (live) return `${live} Opens the full map.`
     const over = place ? `, over ${place.name}` : ''
     return `${lead} ${leg.destination.city}${over}. Lands at ${shortTimeText(leg.end, viewerTz, h24)} your time. Estimated from the schedule. Opens the full map.`
   }

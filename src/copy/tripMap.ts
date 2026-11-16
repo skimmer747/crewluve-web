@@ -1,7 +1,9 @@
 import type { AppleMapStyle } from '../map/appleMapStyle'
 import type { LiveLabel } from '../map/liveLabel'
+import { mapFlightProgress } from '../map/mapFlight'
 import {
-  dayCount, destinationsOf, legInMotion, milesFlown, nextFlight, pilotLocation, currentLeg, totalMiles, type AirportMark, type MapLeg, type TripMap,
+  dayCount, destinationsOf, isArrivalEstimated, legInMotion, milesFlown, nextFlight, pilotLocation, currentLeg, totalMiles, type AirportMark,
+  type MapLeg, type TripMap,
 } from '../map/tripMap'
 import { calendarDay, MONTHS, WEEKDAYS, zoneOffsetMinutes, zonedParts } from '../time/zoned'
 import type { TripActivity } from '../map/tripActivity'
@@ -55,6 +57,18 @@ export function landingCountdown(leg: MapLeg, now: number): string {
   return minutes <= 0 ? 'Landing now' : `Landing in ${minutesText(minutes)}`
 }
 
+/** "about " before a landing time that's the real plane's estimate, else nothing (Stage 3 spec §9). */
+export const about = (leg: MapLeg) => (isArrivalEstimated(leg) ? 'about ' : '')
+
+/**
+ * What the card's bar and the full map's pill say of a flight between its gates (Stage 3 spec §9): the real plane's
+ * label, or "In flight" when it has none. A moment of the replay is always "In flight" (§7.3).
+ */
+export function flightStatus(leg: MapLeg, now: number, isReplay = false): string {
+  const label = !isReplay && leg.flight ? mapFlightProgress(leg.flight, now).label : null
+  return label ? liveLabelText(label) : 'In flight'
+}
+
 /** "45 min", "2 h" or "2 h 10 min": the landing countdown's length, and the real plane's gap. */
 export function minutesText(minutes: number): string {
   const hours = Math.floor(minutes / 60)
@@ -86,6 +100,54 @@ export function liveLabelText(label: LiveLabel): string {
   }
 }
 
+/** "1 minute", "45 minutes", "2 hours" or "2 hours 10 minutes": a length as a screen reader says it. */
+export function spokenMinutes(minutes: number): string {
+  const hours = Math.floor(minutes / 60)
+  const rest = minutes % 60
+  const hoursText = hours === 1 ? '1 hour' : `${hours} hours`
+  const restText = rest === 1 ? '1 minute' : `${rest} minutes`
+  if (hours === 0) return restText
+  return rest === 0 ? hoursText : `${hoursText} ${restText}`
+}
+
+/** The label as a screen reader hears it in the card's sentence: "12 minutes ahead of schedule", "landed 8 minutes early". */
+export function spokenLiveLabel(label: LiveLabel): string {
+  switch (label.kind) {
+    case 'onSchedule':
+      return 'on schedule'
+    case 'ahead':
+      return `${label.isEstimated ? 'about ' : ''}${spokenMinutes(label.minutes)} ahead of schedule`
+    case 'behind':
+      return `${label.isEstimated ? 'about ' : ''}${spokenMinutes(label.minutes)} behind schedule`
+    case 'stillOnGround':
+      return label.minutesBehind == null ? 'still on the ground' : `still on the ground, ${spokenMinutes(label.minutesBehind)} behind schedule`
+    case 'landedOnTime':
+      return 'landed on time'
+    case 'landedEarly':
+      return `landed ${spokenMinutes(label.minutes)} early`
+    case 'landedLate':
+      return `landed ${spokenMinutes(label.minutes)} late`
+  }
+}
+
+/**
+ * The card's sentence for a flight with a real plane (Stage 3 spec §9, §15): "UPS207 to Cologne, 12 minutes ahead of
+ * schedule, over Québec. Lands about 3:18 PM your time." Once it's down, "…, landed 8 minutes early. Reaches the gate at
+ * 3:18 PM your time." Null when the plane has no label, and the schedule's sentence stands. `over` is what's below,
+ * said only of a plane in the air: one on the ground or landed is over nothing.
+ */
+export function liveSummary(leg: MapLeg, now: number, viewerTz: string, h24: boolean, over: string | null = null): string | null {
+  const label = leg.flight ? mapFlightProgress(leg.flight, now).label : null
+  if (!label) return null
+  const lead = leg.flightNumber ? `${leg.flightNumber} to` : 'Flying to'
+  const time = shortTimeText(leg.end, viewerTz, h24)
+  const isDown = label.kind === 'landedOnTime' || label.kind === 'landedEarly' || label.kind === 'landedLate'
+  const isFlying = label.kind === 'onSchedule' || label.kind === 'ahead' || label.kind === 'behind'
+  // It's down and on its way in: "landed 8 minutes early. Lands at 3:18 PM" would say so twice.
+  const arrival = isDown ? `Reaches the gate at ${time} your time.` : `Lands ${isArrivalEstimated(leg) ? 'about' : 'at'} ${time} your time.`
+  return `${lead} ${leg.destination.city}, ${spokenLiveLabel(label)}${over && isFlying ? `, over ${over}` : ''}. ${arrival}`
+}
+
 /** The destination's own time at landing, or null when it keeps the family's. */
 function thereAtLanding(leg: MapLeg, viewerTz: string, h24: boolean): string | null {
   const there = leg.destination.timeZone
@@ -93,15 +155,19 @@ function thereAtLanding(leg: MapLeg, viewerTz: string, h24: boolean): string | n
   return shortTimeText(leg.end, there, h24)
 }
 
-/** "Lands Cologne 9:30 PM · 3:30 PM your time", or "Lands Louisville 3:30 PM". */
+/**
+ * "Lands Cologne 9:30 PM · 3:30 PM your time", or "Lands Louisville 3:30 PM". With the real plane's estimate, "Lands
+ * Cologne about 9:18 PM · 3:18 PM your time": "about" once.
+ */
 export function landingLine(leg: MapLeg, viewerTz: string, h24: boolean): string {
   const yours = shortTimeText(leg.end, viewerTz, h24)
   const there = thereAtLanding(leg, viewerTz, h24)
-  return there ? `Lands ${leg.destination.city} ${there} · ${yours} your time` : `Lands ${leg.destination.city} ${yours}`
+  const city = `Lands ${leg.destination.city} ${about(leg)}`
+  return there ? `${city}${there} · ${yours} your time` : `${city}${yours}`
 }
 
-/** "Lands 3:30 PM", for the card's bar. */
-export const landsAt = (leg: MapLeg, viewerTz: string, h24: boolean) => `Lands ${shortTimeText(leg.end, viewerTz, h24)}`
+/** "Lands 3:30 PM", for the card's bar. With the real plane's estimate, "Lands about 3:18 PM". */
+export const landsAt = (leg: MapLeg, viewerTz: string, h24: boolean) => `Lands ${about(leg)}${shortTimeText(leg.end, viewerTz, h24)}`
 
 /** "9:30 PM in Cologne", or null when the destination keeps the family's time. */
 export function arrivalLocalTime(leg: MapLeg, viewerTz: string, h24: boolean): string | null {
@@ -152,11 +218,14 @@ export function cardChips(map: TripMap, t: number, viewerTz: string, h24: boolea
   return { top, bottom: next ? nextDepartureChip(next, t, viewerTz, h24) : null }
 }
 
-/** The full map's pill: "UPS207 · In flight", "Driving to Louisville", "Day 2 of 4" or "Next trip". */
-export function topPill(map: TripMap, t: number, day: number | null, days: number | null): string {
+/**
+ * The full map's pill: "UPS207 · In flight", "UPS207 · 12 min ahead", "Driving to Louisville", "Day 2 of 4" or "Next
+ * trip". A moment of the replay (`isReplay`) is "In flight" (Stage 3 spec §7.3).
+ */
+export function topPill(map: TripMap, t: number, day: number | null, days: number | null, isReplay = false): string {
   if (map.mode.kind === 'recap' && t >= map.span.end) return 'Trip recap'
   const leg = legInMotion(map, t)
-  if (leg) return leg.kind === 'flight' ? [leg.flightNumber, 'In flight'].filter(Boolean).join(' · ') : `Driving to ${leg.destination.city}`
+  if (leg) return leg.kind === 'flight' ? [leg.flightNumber, flightStatus(leg, t, isReplay)].filter(Boolean).join(' · ') : `Driving to ${leg.destination.city}`
   if (map.mode.kind === 'nextTrip' && t < map.span.start) return 'Next trip'
   return day != null && days != null ? `Day ${day} of ${days}` : 'Trip map'
 }
@@ -209,6 +278,8 @@ export function tripMapSummary(map: TripMap, t: number, name: string, viewerTz: 
   if (map.mode.kind === 'inFlight') {
     const leg = currentLeg(map)
     if (!leg) return `Trip map. ${opens}`
+    const live = liveSummary(leg, t, viewerTz, h24)
+    if (live) return `${live} ${opens}`
     const lead = leg.flightNumber ? `${leg.flightNumber} to` : 'Flying to'
     return `${lead} ${leg.destination.city}, landing at ${shortTimeText(leg.end, viewerTz, h24)} your time. Estimated from the schedule. ${opens}`
   }

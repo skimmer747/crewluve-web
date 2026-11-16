@@ -1,0 +1,149 @@
+import { describe, expect, it } from 'vitest'
+import { landsText } from '../../src/copy/facts'
+import { Sentence } from '../../src/copy/narrative'
+import {
+  flightStatus, landingCountdown, landingLine, landsAt, liveSummary, spokenLiveLabel, spokenMinutes, topPill, tripMapSummary,
+} from '../../src/copy/tripMap'
+import type { AirportIndex } from '../../src/data/airports'
+import { makeMapFlight } from '../../src/map/mapFlight'
+import { makeTripMap, type MapLeg, type TripMap } from '../../src/map/tripMap'
+import { airport, at, caseFlight, LIVE_CASES } from '../map/liveCases'
+
+const NY = 'America/New_York'
+
+/** A shared case's flight as the map's leg at one of its moments: its real times then, with Philadelphia's or Cologne's names. */
+function caseLeg(name: string, moment = 0): { leg: MapLeg; t: number } {
+  const flightCase = LIVE_CASES.flights.find((f) => f.name === name)!
+  const m = flightCase.moments[moment]
+  const flight = makeMapFlight(at(flightCase.departure), at(flightCase.arrival), airport(flightCase.from), airport(flightCase.to), caseFlight(flightCase.flight))!
+  const city = (code: string) => ({ SDF: 'Louisville', PHL: 'Philadelphia', CGN: 'Cologne', CVG: 'Cincinnati' })[code] ?? code
+  const zone = (code: string) => (code === 'CGN' ? 'Europe/Berlin' : NY)
+  const mark = (code: string) => ({ code, city: city(code), place: airport(code), timeZone: zone(code) })
+  return {
+    leg: { id: 'f1', kind: 'flight', origin: mark(flightCase.from), destination: mark(flightCase.to), start: at(m.start), end: at(m.end), flightNumber: 'UPS207', flight },
+    t: at(m.at),
+  }
+}
+
+/** The same leg on the schedule alone. */
+const scheduleOnly = ({ flight: _, ...leg }: MapLeg): MapLeg => leg
+
+describe("the card's bar and the full map's pill (Stage 3 spec §9)", () => {
+  it("say the real plane's label", () => {
+    const { leg, t } = caseLeg('ahead, in the air')
+    expect(flightStatus(leg, t)).toBe('14 min ahead')
+    const estimated = caseLeg('ahead, in the air', 2)
+    expect(flightStatus(estimated.leg, estimated.t)).toBe('About 14 min ahead')
+    const late = caseLeg('still on the ground twenty minutes after')
+    expect(flightStatus(late.leg, late.t)).toBe('Still on the ground · 20 min behind')
+  })
+
+  it('say "In flight" with no label, as before, and in a replay', () => {
+    const { leg, t } = caseLeg('ahead, in the air')
+    expect(flightStatus(scheduleOnly(leg), t)).toBe('In flight')
+    expect(flightStatus(leg, t, true)).toBe('In flight')
+    const elsewhere = caseLeg('on the ground somewhere else')
+    expect(flightStatus(elsewhere.leg, elsewhere.t)).toBe('In flight')
+  })
+
+  it('put the label on the pill, and "In flight" in a replay', () => {
+    const { leg, t } = caseLeg('ahead, in the air')
+    const airports = { get: (code: string) => ({ iata: code, lat: airport(code).lat, lng: airport(code).lng }), city: () => null, tz: () => NY } as unknown as AirportIndex
+    const map = makeTripMap(
+      [{ kind: 'flight', id: 'f1', tripId: 'T1', dep: 'SDF', arr: 'PHL', start: leg.start, end: leg.end, schedStart: leg.start, schedEnd: leg.end, airline: '5X', enteredAirline: null, number: '207', deadhead: false, ground: false }],
+      { isNextTrip: false, home: 'SDF', now: t, airports, flights: new Map([['f1', leg.flight!]]) },
+    )!
+    expect(topPill(map, t, 1, 2)).toBe('UPS207 · 14 min ahead')
+    expect(topPill(map, t, 1, 2, true)).toBe('UPS207 · In flight')
+    expect(topPill({ ...map, legs: map.legs.map(scheduleOnly) }, t, 1, 2)).toBe('UPS207 · In flight')
+  })
+})
+
+describe('"about" a landing time (Stage 3 spec §9)', () => {
+  it("is said of the real plane's estimate on the bar", () => {
+    const { leg } = caseLeg('ahead, in the air')
+    expect(landsAt(leg, NY, false)).toBe(`Lands about ${landsAt(scheduleOnly(leg), NY, false).slice(6)}`)
+    expect(landsAt(leg, NY, false)).toMatch(/^Lands about \d{1,2}:\d\d\s[AP]M$/)
+  })
+
+  it("isn't said of the schedule's time, or once the plane has landed", () => {
+    const { leg } = caseLeg('ahead, in the air')
+    expect(landsAt(scheduleOnly(leg), NY, false)).toMatch(/^Lands \d/)
+    const landed = caseLeg('landed, seen all the way')
+    expect(landsAt(landed.leg, NY, false)).toMatch(/^Lands \d/)
+  })
+
+  it('is said once on the landing line, before the time there', () => {
+    const { leg } = caseLeg('behind, with a late first point and an unseen ocean')
+    expect(landingLine(leg, NY, false)).toMatch(/^Lands Cologne about \d{1,2}:\d\d\s[AP]M · \d{1,2}:\d\d\s[AP]M your time$/)
+  })
+
+  it("is said in the facts' landing words", () => {
+    const { leg } = caseLeg('behind, with a late first point and an unseen ocean')
+    expect(landsText(leg, NY, false)).toMatch(/^lands about \d{1,2}:\d\d\s[AP]M there$/)
+    expect(landsText(scheduleOnly(leg), NY, false)).toMatch(/^lands \d/)
+  })
+
+  it("is said in the narrative of the time that's the estimate, and of no other", () => {
+    const ctx = { now: 0, viewerTz: NY, h24: false, airports: {} as AirportIndex, estimatedArrival: Date.UTC(2027, 0, 15, 20, 18) }
+    const text = (ms: number) => new Sentence(ctx).t('which is ').time(ms).spans.map((s) => s.text).join('')
+    expect(text(Date.UTC(2027, 0, 15, 20, 18))).toBe('which is about 3:18pm EST')
+    expect(text(Date.UTC(2027, 0, 15, 20, 30))).toBe('which is 3:30pm EST')
+    expect(new Sentence({ ...ctx, estimatedArrival: null }).time(Date.UTC(2027, 0, 15, 20, 18)).spans.map((s) => s.text)).toEqual(['3:18pm EST'])
+  })
+
+  it("counts the landing countdown to the real plane's arrival", () => {
+    const { leg } = caseLeg('ahead, in the air')
+    expect(landingCountdown(leg, leg.end - 30 * 60_000)).toBe('Landing in 30 min')
+  })
+})
+
+describe("the card's sentence for a screen reader (Stage 3 spec §9, §15)", () => {
+  it('says each label in full', () => {
+    expect(spokenLiveLabel({ kind: 'onSchedule' })).toBe('on schedule')
+    expect(spokenLiveLabel({ kind: 'ahead', minutes: 12, isEstimated: false })).toBe('12 minutes ahead of schedule')
+    expect(spokenLiveLabel({ kind: 'behind', minutes: 61, isEstimated: true })).toBe('about 1 hour 1 minute behind schedule')
+    expect(spokenLiveLabel({ kind: 'stillOnGround', minutesBehind: null })).toBe('still on the ground')
+    expect(spokenLiveLabel({ kind: 'stillOnGround', minutesBehind: 20 })).toBe('still on the ground, 20 minutes behind schedule')
+    expect(spokenLiveLabel({ kind: 'landedOnTime' })).toBe('landed on time')
+    expect(spokenLiveLabel({ kind: 'landedEarly', minutes: 8 })).toBe('landed 8 minutes early')
+    expect(spokenLiveLabel({ kind: 'landedLate', minutes: 120 })).toBe('landed 2 hours late')
+  })
+
+  it('counts hours and minutes', () => {
+    expect([1, 45, 60, 61, 130].map(spokenMinutes)).toEqual(['1 minute', '45 minutes', '1 hour', '1 hour 1 minute', '2 hours 10 minutes'])
+  })
+
+  it("says how the plane is doing, what's below, and when it lands", () => {
+    const { leg, t } = caseLeg('ahead, in the air')
+    expect(liveSummary(leg, t, NY, false, 'West Virginia')).toMatch(/^UPS207 to Philadelphia, 14 minutes ahead of schedule, over West Virginia\. Lands about \d{1,2}:\d\d\s[AP]M your time\.$/)
+  })
+
+  it('says "about" while the plane is an estimate', () => {
+    const { leg, t } = caseLeg('ahead, in the air', 2)
+    expect(liveSummary(leg, t, NY, false)).toMatch(/^UPS207 to Philadelphia, about 14 minutes ahead of schedule\. Lands about /)
+  })
+
+  it('says it is still on the ground, and when it will land, and nothing of what is below', () => {
+    const { leg, t } = caseLeg('still on the ground twenty minutes after')
+    expect(liveSummary(leg, t, NY, false, 'Indiana')).toMatch(/^UPS207 to Philadelphia, still on the ground, 20 minutes behind schedule\. Lands about /)
+  })
+
+  it('once it has landed, says when it reaches the gate, not that it lands', () => {
+    const { leg, t } = caseLeg('landed, seen all the way')
+    expect(liveSummary(leg, t, NY, false, 'New Jersey')).toMatch(/^UPS207 to Philadelphia, landed 23 minutes early\. Reaches the gate at \d{1,2}:\d\d\s[AP]M your time\.$/)
+  })
+
+  it('is nothing with no label', () => {
+    const { leg, t } = caseLeg('on the ground somewhere else')
+    expect(liveSummary(leg, t, NY, false)).toBeNull()
+    expect(liveSummary(scheduleOnly(caseLeg('ahead, in the air').leg), t, NY, false)).toBeNull()
+  })
+
+  it("is the card's sentence with a real plane, and the schedule's without one, as before", () => {
+    const { leg, t } = caseLeg('ahead, in the air')
+    const map: TripMap = { mode: { kind: 'inFlight', legId: 'f1' }, legs: [leg], groundStops: [], home: null, base: null, isWaitingAtBase: false, span: { start: leg.start, end: leg.end }, days: null }
+    expect(tripMapSummary(map, t, 'Alex', NY, false)).toMatch(/^UPS207 to Philadelphia, 14 minutes ahead of schedule\. Lands about .* your time\. Opens the full map\.$/)
+    expect(tripMapSummary({ ...map, legs: [scheduleOnly(leg)] }, t, 'Alex', NY, false)).toMatch(/^UPS207 to Philadelphia, landing at .* your time\. Estimated from the schedule\. Opens the full map\.$/)
+  })
+})
