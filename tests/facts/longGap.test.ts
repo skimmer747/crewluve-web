@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { FactRow } from '../../src/facts/factRow'
 import { isOcean, makeGeography, OCEAN_NAMES } from '../../src/facts/geography'
 import { GUESS_HORIZON_MS, isPastGuessHorizon, type PlanePosition } from '../../src/facts/planePosition'
-import { belowText, cardSummary, headline, makeTripFacts, type TripFacts } from '../../src/facts/tripFacts'
+import { belowText, cardSummary, headline, latestEvent, makeTripFacts, tripSoFar, type TripFacts } from '../../src/facts/tripFacts'
 import { factRows } from '../../src/facts/tripFactsRows'
 import { OWN_SPEED_AHEAD_MS } from '../../src/map/flightPlan'
 import { appGeography, box, flightMap } from './factsTestData'
@@ -52,6 +52,9 @@ function facts({ seenUntil = '10:45', now, unseen, isReplay = false }: Options):
 function belowRow(theFacts: TripFacts, t: string): FactRow | undefined {
   return factRows(theFacts, at(t), at(t)).find((r) => r.kind === 'below')
 }
+
+/** The flight's lines in the list at `t`, newest first. */
+const events = (theFacts: TripFacts, t: string) => tripSoFar(theFacts, at(t)).flights[0]?.events.map((e) => plain(e.text))
 
 describe("what's below, past 2 hours out of tracking range (long gap design §3)", () => {
   it('names the ocean, with no city', () => {
@@ -111,6 +114,17 @@ describe("the shared long ocean gap, with the site's geography (long gap design 
     const row = factRows(shared(), date('2026-11-14T00:40:00Z'), date('2026-11-14T00:40:00Z')).find((r) => r.kind === 'below')
     expect(plain(row?.title)).toBe('Last tracked over Québec · 5 h 1 min ago')
   })
+
+  it("holds what it's guessed to pass more than 2 hours on, halfway among them, until it's at the gate", () => {
+    // Halfway is guessed at 21:45, 2 h 5 min on; then Ireland, the United Kingdom, the North Sea, the Netherlands and
+    // Germany.
+    const lines = (iso: string) => tripSoFar(shared(), date(iso)).flights[0]?.events.map((e) => e.text.split(' · ')[0])
+    expect(latestEvent(shared(), date('2026-11-14T01:00:00Z'))?.title).toBe('Out over the Labrador Sea')
+    expect(lines('2026-11-14T01:00:00Z')?.[0]).toBe('Out over the Labrador Sea')
+    expect(lines('2026-11-14T01:00:00Z')).not.toContain('Halfway')
+    expect(lines('2026-11-14T01:45:00Z')?.slice(0, 3)).toEqual(['Crossed into Germany', 'Crossed into the Netherlands', 'Out over the North Sea'])
+    expect(lines('2026-11-14T01:45:00Z')).toContain('Halfway')
+  })
 })
 
 describe('2 hours out of tracking range (long gap design §3)', () => {
@@ -128,12 +142,57 @@ describe('2 hours out of tracking range (long gap design §3)', () => {
   })
 })
 
+describe('events, past 2 hours out of tracking range (long gap design §3)', () => {
+  it('are held from the list when guessed more than 2 hours after the last sighting', () => {
+    // By the guess it crosses into Delta at 21° E just before 13:00, over 2 hours after it was last seen: not told. The
+    // others were guessed within the 2 hours, and are told with "about".
+    expect(events(facts({ now: '13:10' }), '13:10')).toEqual([
+      'Closest to home, 35 mi · about 8:05 AM', 'Halfway · about 7:49 AM', 'Out over the Atlantic · about 7:34 AM', 'Crossed into Bravo · about 6:54 AM',
+    ])
+  })
+
+  it('are held from the banner and the headline', () => {
+    const guessed = facts({ now: '13:10' })
+    expect(latestEvent(guessed, at('13:10'))?.title).toBe('Closest to home, 35 mi')
+    // Not "Just crossed into Delta": over land past 2 hours, the landing countdown.
+    expect(headline(guessed, at('13:02'))).toBe('Landing in 39 min')
+  })
+
+  it('are all told as best guesses once the flight is over, if it is never tracked again', () => {
+    // It reaches the gate at 13:40.6 by its estimate. After that the crossing into Delta is told too.
+    const over = facts({ now: '13:45' })
+    expect(events(over, '13:45')?.[0]).toBe('Crossed into Delta · about 8:59 AM')
+    expect(events(over, '13:45')).toHaveLength(5)
+    // Not before: at 13:30 it's past the schedule's 13:22 at the gate, but in the air by its estimate.
+    expect(events(facts({ now: '13:30' }), '13:30')?.[0]).toBe('Closest to home, 35 mi · about 8:05 AM')
+  })
+
+  it('are told on the straight join once the plane is tracked again', () => {
+    // Nobody saw it from 3.75° E at 10:45 to 20.5° E at 12:59. Seen again, it crossed into Delta just before 13:03, and
+    // what it passed in the gap is told on the straight join between the two, with "about".
+    const trackedAgain = facts({ seenUntil: '13:05', now: '13:05', unseen: [3.8, 20.5] })
+    expect(events(trackedAgain, '13:05')).toEqual([
+      'Crossed into Delta · 9:02 AM', 'Closest to home, 35 mi · about 8:06 AM', 'Halfway · about 7:51 AM', 'Out over the Atlantic · about 7:35 AM',
+      'Crossed into Bravo · about 6:55 AM',
+    ])
+    // The website's own banner and headline: the newest event, seen, with its plain time.
+    expect(latestEvent(trackedAgain, at('13:05'))?.title).toBe('Crossed into Delta')
+    expect(headline(trackedAgain, at('13:05'))).toBe('Just crossed into Delta')
+  })
+})
+
 describe('the card for screen readers, past 2 hours (long gap design §3)', () => {
   it("leaves out what's below over land, and says the ocean", () => {
     expect(plain(cardSummary(facts({ now: '13:10' }), at('13:10'), 'Alex')))
       .toMatch(/^TST1 to E24, about 19 minutes behind schedule, last tracked over Alpha\. Lands about 9:40 AM your time\. /)
     expect(plain(cardSummary(facts({ now: '12:48' }), at('12:48'), 'Alex')))
       .toMatch(/^TST1 to E24, about 19 minutes behind schedule, over the Atlantic, last tracked over Alpha\. /)
+  })
+
+  it('tells the newest event told, and none held', () => {
+    expect(plain(cardSummary(facts({ now: '13:10' }), at('13:10'), 'Alex'))).toBe(
+      'TST1 to E24, about 19 minutes behind schedule, last tracked over Alpha. Lands about 9:40 AM your time. Latest: closest to home, 35 miles, about 1 hour 5 minutes ago. Opens the full map.',
+    )
   })
 })
 

@@ -20,7 +20,7 @@ import { landsWithinHorizon } from './landingWeather'
 import { hasLiveData, legPath } from './legCourse'
 import { legStory, placeAtDistance, type LegStory } from './legStory'
 import { MILESTONE_HEADLINE_MS, milestones, type Milestone } from './milestone'
-import { isPastGuessHorizon, legPlane, type PlanePosition } from './planePosition'
+import { GUESS_HORIZON_MS, isPastGuessHorizon, legPlane, type PlanePosition } from './planePosition'
 import { cockpitHorizonOnLeg, sunEvents, type SunEvent } from './sky'
 import { longestFlight, totalsSoFar, wholeTotals, type SunEventsByLeg } from './tripTotals'
 
@@ -157,6 +157,20 @@ export function factsMilestones(facts: TripFacts, leg: MapLeg): Milestone[] {
 }
 
 /**
+ * The flight's milestones as they're told at `t`. While the flight is in the air, one guessed more than 2 hours after the
+ * plane was last seen waits until it's tracked again, as it can be hundreds of miles out. Once the flight is over they're
+ * all told, as best guesses (long gap design §3). Everything up to the last place the plane was seen happened before it,
+ * so only a guess ahead can be held. `factsMilestones` still gives them all, for the shared cases.
+ */
+export function toldMilestones(facts: TripFacts, leg: MapLeg, t: number): Milestone[] {
+  const all = factsMilestones(facts, leg)
+  const knots = leg.flight?.path.knots ?? []
+  const lastSeen = knots[knots.length - 1]
+  if (t >= leg.end || !lastSeen) return all
+  return all.filter((m) => m.time - lastSeen.time <= GUESS_HORIZON_MS)
+}
+
+/**
  * "Over Kansas", "Over Québec, near Montréal", from the flight's story, read where the plane is (Stage 3 spec §8). A real
  * plane that's out of sight is where the plan has it, flying on from the last place it was seen, and reads the same
  * (best guesses design §2), but for one out of tracking range for more than 2 hours: only an ocean, with no city (long
@@ -222,9 +236,10 @@ export const showsLiveData = (facts: TripFacts): boolean => facts.map.legs.some(
 /**
  * In flight: a milestone from the last 5 minutes, else a cockpit sunrise or sunset in the next 30, else the place below,
  * else the landing countdown (§4.4). While the real plane is out of sight they're its best guesses, in the same plain
- * words (best guesses design §2). Null on the ground and on a drive, where Stage 1B's words stay. `includesEvents` is
- * false beside the latest event's banner, which shows the milestone already (latest event design §2); the shared
- * cases read the headline with them.
+ * words (best guesses design §2), and a milestone guessed more than 2 hours after it was last seen waits
+ * (`toldMilestones`, long gap design §3). Null on the ground and on a drive, where Stage 1B's words stay.
+ * `includesEvents` is false beside the latest event's banner, which shows the milestone already (latest event design
+ * §2); the shared cases read the headline with them.
  *
  * The website's own (Todd, 16 Nov 2026): a real plane still on the ground at its departure airport is "Still on the
  * ground in Rockford", ahead of all of them. It has crossed nothing yet, whatever the schedule's times say. And at the
@@ -236,7 +251,7 @@ export function headline(facts: TripFacts, t: number, includesEvents = true): st
   if (!leg || leg.kind !== 'flight') return null
   if (isStillOnGround(facts, leg, t)) return stillOnGroundText(leg.origin.city)
   if (isLandedBeforeGate(facts, leg, t)) return landedText(leg.destination.city)
-  const recent = includesEvents ? factsMilestones(facts, leg).filter((m) => m.time <= t && t - m.time < MILESTONE_HEADLINE_MS).pop() : null
+  const recent = includesEvents ? toldMilestones(facts, leg, t).filter((m) => m.time <= t && t - m.time < MILESTONE_HEADLINE_MS).pop() : null
   if (recent) return milestoneHeadline(recent)
   const soon = (facts.sunEvents[leg.id] ?? []).find((e) => e.time > t && e.time - t <= SUN_HEADLINE_MS)
   if (soon) return cockpitCountdown(soon, t)
@@ -246,7 +261,7 @@ export function headline(facts: TripFacts, t: number, includesEvents = true): st
 /**
  * The newest event of the flight between its gates at `t`, for the banner (latest event design §1): what it was, how
  * long ago, and its sentence for screen readers. It stays until the next. Null on the ground, on a drive, and before the
- * flight's first event.
+ * flight's first event. One held past 2 hours out of tracking range isn't told yet (`toldMilestones`, long gap design §3).
  *
  * The website's own (Todd, 16 Nov 2026): none for a real plane still on the ground at its departure airport after the
  * plan's takeoff time, which has passed nothing yet, whatever the schedule's times say.
@@ -255,7 +270,7 @@ export function latestEvent(facts: TripFacts, t: number): LatestEvent | null {
   const leg = legInMotion(facts.map, t)
   if (!leg || leg.kind !== 'flight' || isStillOnGround(facts, leg, t)) return null
   // By time, not by the way along: a best guess and a sighting can disagree a little.
-  const newest = factsMilestones(facts, leg)
+  const newest = toldMilestones(facts, leg, t)
     .filter((m) => m.time <= t)
     .reduce<Milestone | null>((latest, m) => (latest == null || m.time > latest.time ? m : latest), null)
   if (!newest) return null
@@ -300,7 +315,8 @@ export function hasTripSoFarRow(facts: TripFacts, t: number): boolean {
 /**
  * The trip so far, or the recap (§5.2, §5.5; best guesses design §4): the flight between its gates, set apart and listed
  * even before its first event, then each earlier flight with an event, newest first. Under each, its events, newest
- * first, so the latest is at the top. Then the totals, unless the rows already have them.
+ * first, so the latest is at the top, but for those held past 2 hours out of tracking range (`toldMilestones`, long gap
+ * design §3). Then the totals, unless the rows already have them.
  *
  * The website's own (Todd, 16 Nov 2026): a real plane still on the ground at its departure airport after the plan's
  * takeoff time has passed none of its flight's events, whatever the schedule's times say, and its flight is left out
@@ -310,7 +326,7 @@ export function hasTripSoFarRow(facts: TripFacts, t: number): boolean {
 export function tripSoFar(facts: TripFacts, t: number): TripSoFar {
   const started = facts.map.legs.filter((l) => l.kind === 'flight' && l.start <= t && !isStillOnGround(facts, l, t)).reverse()
   const flights = started.flatMap((leg) => {
-    const events = factsMilestones(facts, leg)
+    const events = toldMilestones(facts, leg, t)
       .filter((m) => m.time <= t)
       .reverse()
       .map((m) => ({ text: milestoneLine(m, facts.viewerTz, facts.h24), isEstimate: m.isEstimate === true }))
