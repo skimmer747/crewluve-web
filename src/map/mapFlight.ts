@@ -3,7 +3,7 @@ import { makeFlightPlan, type FlightPlan } from './flightPlan'
 import { makeFlightRecord, type FlightRecord } from './flightRecord'
 import { distanceMeters, type GeoPoint } from './greatCircle'
 import type { LiveFlight } from './liveFlight'
-import { liveProgress, type LiveProgress } from './liveProgress'
+import { AIRPORT_RADIUS, liveProgress, type LiveProgress } from './liveProgress'
 
 /**
  * A flight leg as the trip map measures and draws it (Stage 3 spec §11), as the app's MapFlight: the schedule's plan,
@@ -55,8 +55,17 @@ export function isAtDeparture(flight: MapFlight, now: number): boolean {
  * Whether the real plane has landed, when this browser's clock says `now`: Crewlu Cloud's state for the flight is
  * "landed" (spec §5.1's `landed`). Until the gate the words say "Landed in Anchorage" (the landed, not yet at the gate
  * design §2, Todd, 17 Nov 2026).
+ *
+ * The diversion rule (Todd, 17 Nov 2026, as the app's `MapFlight.hasLanded`): where the last fix is on the ground, it
+ * must be within 10 nm of the arrival airport, else the plane landed somewhere else and nothing says "Landed in …". A
+ * fix still in the air, or none, can't tell a diversion from a stale fix, so it isn't used.
  */
-export const hasLanded = (flight: MapFlight, now: number): boolean => mapFlightProgress(flight, now).phase === 'landed'
+export function hasLanded(flight: MapFlight, now: number): boolean {
+  if (mapFlightProgress(flight, now).phase !== 'landed') return false
+  const fix = flight.live?.fix
+  if (!fix?.onGround) return true
+  return distanceMeters(fix.place, flight.path.destination) <= AIRPORT_RADIUS
+}
 
 /**
  * Whether `arrival`, the leg's gate arrival as it's shown, is the real plane's estimate, which the words mark with

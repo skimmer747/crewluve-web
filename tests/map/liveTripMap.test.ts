@@ -143,6 +143,23 @@ describe('a real plane down, not yet at the gate (the landed, not yet at the gat
     }
   })
 
+  it('isn’t told of a plane landed somewhere other than its arrival airport, and is of one whose last fix is still in the air (the diversion rule, Todd, 17 Nov 2026)', () => {
+    const now = START + 103 * MINUTE
+    // Down in Harrisburg, about 90 mi short of Philadelphia: it landed somewhere else, which nothing names.
+    const diverted = liveFlight(LANDED_EARLY.trail,
+      { legId: 'f1', state: 'landed', landedAt: START + 100 * MINUTE, fix: fix(100, 40.19, -76.76, { onGround: true }) })
+    expect(legLandedBeforeGate(flightOf(liveTripMap(now, diverted)), now)).toBe(false)
+    expect(landedIn(liveTripMap(now, diverted), now)).toBeNull()
+    // Down by Philadelphia, inside its 10 nm: landed there, as before.
+    const atPhiladelphia = liveFlight(LANDED_EARLY.trail,
+      { legId: 'f1', state: 'landed', landedAt: START + 100 * MINUTE, fix: fix(100, PHL.lat + 0.1, PHL.lng, { onGround: true }) })
+    expect(legLandedBeforeGate(flightOf(liveTripMap(now, atPhiladelphia)), now)).toBe(true)
+    // Its last fix still in the air, short of Philadelphia: a stale fix can't tell a diversion, so it counts as landed.
+    const lastSeenAloft = liveFlight(LANDED_EARLY.trail,
+      { legId: 'f1', state: 'landed', landedAt: START + 100 * MINUTE, fix: fix(95, 40.19, -76.76) })
+    expect(legLandedBeforeGate(flightOf(liveTripMap(now, lastSeenAloft)), now)).toBe(true)
+  })
+
   it('names the airport it’s down at, which the line under the timeline names in place of "Flying to", and none otherwise', () => {
     const now = START + 103 * MINUTE
     expect(landedIn(liveTripMap(now, LANDED_EARLY), now)).toMatchObject({ code: 'PHL', city: 'Philadelphia' })
