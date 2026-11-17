@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { makeFlightPath } from '../../src/map/flightPath'
 import {
-  DESCENT_DISTANCE, DESCENT_SPEED, distanceLeft, flownPlan, makeFlightPlan, OWN_SPEED_LEAST_SHARE, OWN_SPEED_MOST_SHARE, taxiIn, taxiOut,
-  timeInAir, timeToFly,
+  cruiseSpeed, DESCENT_DISTANCE, DESCENT_SPEED, distanceLeft, flownPlan, makeFlightPlan, OWN_SPEED_AHEAD_MS, OWN_SPEED_LEAST_SHARE, OWN_SPEED_MOST_SHARE,
+  taxiIn, taxiOut, timeInAir, timeToFly,
 } from '../../src/map/flightPlan'
 import { SHORTEST_CRUISE_MS, TAXI_IN_MS, TAXI_OUT_MS } from '../../src/map/flightProgress'
 import { distanceMeters, METERS_PER_NM } from '../../src/map/greatCircle'
@@ -20,6 +20,7 @@ describe("the schedule's flight plan (Stage 3 spec §4)", () => {
     expect(DESCENT_DISTANCE).toBe(c.descentDistanceNm * METERS_PER_NM)
     expect(DESCENT_SPEED).toBeCloseTo((c.descentSpeedKt * METERS_PER_NM) / 3600, 9)
     expect([OWN_SPEED_LEAST_SHARE, OWN_SPEED_MOST_SHARE]).toEqual([c.ownSpeedLeastShare, c.ownSpeedMostShare])
+    expect(OWN_SPEED_AHEAD_MS).toBe(c.ownSpeedAheadMinutes * MINUTE)
   })
 
   it.each(LIVE_CASES.plans)('matches the shared case: $name', (c) => {
@@ -62,6 +63,27 @@ describe("the schedule's flight plan (Stage 3 spec §4)", () => {
   })
 })
 
+describe("its own speed for 2 hours, and the plan's after (long gap design §2)", () => {
+  const knot = METERS_PER_NM / 3600
+
+  it("is the plane's own with under 2 hours of cruise left", () => {
+    // 800 nm at its own 450 kt is 1 h 47 min.
+    expect(cruiseSpeed(800 * METERS_PER_NM, 450 * knot, 500 * knot) / knot).toBeCloseTo(450, 9)
+  })
+
+  it("flies the plan's speed for the rest past 2 hours", () => {
+    // 2,000 nm: 900 at its own 450 kt in 2 hours, and 1,100 at the plan's 500 kt in 2.2 hours. 2,000 nm in 4.2 hours.
+    expect(cruiseSpeed(2000 * METERS_PER_NM, 450 * knot, 500 * knot) / knot).toBeCloseTo(2000 / 4.2, 9)
+    // Faster than the plan: 1,100 at its own 550 kt in 2 hours, and 900 at the plan's 500 in 1.8.
+    expect(cruiseSpeed(2000 * METERS_PER_NM, 550 * knot, 500 * knot) / knot).toBeCloseTo(2000 / 3.8, 9)
+  })
+
+  it("is the plane's own with no cruise left", () => {
+    expect(cruiseSpeed(0, 450 * knot, 500 * knot)).toBe(450 * knot)
+    expect(cruiseSpeed(-10 * METERS_PER_NM, 450 * knot, 500 * knot)).toBe(450 * knot)
+  })
+})
+
 describe("the plan as the plane flies it (Stage 3 spec §4, the plane's own speed)", () => {
   it.each(LIVE_CASES.flights)("flies the shared case's speed and keeps the schedule's times: $name", (c) => {
     const { plan, path } = made(c)
@@ -76,6 +98,15 @@ describe("the plan as the plane flies it (Stage 3 spec §4, the plane's own spee
       return flownPlan(plan, path).speed !== plan.speed
     })
     expect(own.length).toBeGreaterThan(0)
+  })
+
+  it("is a speed between its own and the plan's in some of the shared cases, so the cases test the 2 hours", () => {
+    const mixed = LIVE_CASES.flights.filter((c) => {
+      const { plan, path } = made(c)
+      const flown = flownPlan(plan, path).speed
+      return path.ownSpeed != null && flown !== plan.speed && flown !== path.ownSpeed
+    })
+    expect(mixed.map((c) => c.name)).toContain('faster than the plan, then a long ocean gap')
   })
 
   it('takes no own speed that isn\'t a number', () => {

@@ -5,8 +5,9 @@ import { METERS_PER_NM } from './greatCircle'
 /**
  * The schedule's flight plan (Stage 3 spec §4), as the app's FlightPlan: when an on-schedule plane takes off and
  * touches down, and how fast it flies in between. The real plane is measured against it, flown at the plane's own
- * speed once that's known. The constants are written down in tests/fixtures/trip-map/live-cases.json, a copy of the
- * app's. Times are epoch ms, distances meters, and speeds meters a second.
+ * speed for the next 2 hours once that's known, and at the schedule's after that (long gap design §2). The constants
+ * are written down in tests/fixtures/trip-map/live-cases.json, a copy of the app's. Times are epoch ms, distances
+ * meters, and speeds meters a second.
  */
 
 /** The last stretch before touchdown, flown at DESCENT_SPEED: 120 nautical miles. */
@@ -18,6 +19,11 @@ const DESCENT_SECONDS = DESCENT_DISTANCE / DESCENT_SPEED
 /** A plane's own speed is believed from 0.7 of the plan's speed to 1.5 of it, which the strongest winds stay inside. */
 export const OWN_SPEED_LEAST_SHARE = 0.7
 export const OWN_SPEED_MOST_SHARE = 1.5
+/**
+ * How far ahead of the last place the plane was seen its own speed is trusted: 2 hours of its cruise, in ms. Past that,
+ * the winds it meets are the schedule's to know, and so is its speed (long gap design §2).
+ */
+export const OWN_SPEED_AHEAD_MS = 2 * 60 * 60_000
 
 export interface FlightPlan {
   /** Leaving the gate and reaching it, both moved by any reported delay. */
@@ -50,17 +56,31 @@ export function makeFlightPlan(departure: number, arrival: number, distance: num
 }
 
 /**
- * `plan` as the plane flies it: with the plane's own speed over its cruise so far in place of the schedule's, once
- * `path` has one that could be right. The takeoff and the touchdown stay the schedule's, and a leg flown at one steady
- * speed keeps it. The landing estimate, the estimated plane and the ghost all fly this plan, so the gap between the
- * two planes is still the label.
+ * `plan` as the plane flies it, once `path` has an own speed that could be right: that speed for the next
+ * `OWN_SPEED_AHEAD_MS` of the cruise left from the last place the plane was seen, and the schedule's after, made into the
+ * one speed that flies the cruise left in the same time (long gap design §2). The takeoff and the touchdown stay the
+ * schedule's, and a leg flown at one steady speed keeps it. The landing estimate, the estimated plane, the ghost and the
+ * record all fly this plan, so the gap between the two planes is still the label. Only the time is meant: inside the
+ * gap, the estimated plane is a little off where a plane flying the two speeds would be.
  */
 export function flownPlan(plan: FlightPlan, path: FlightPath): FlightPlan {
   const own = path.ownSpeed
   if (plan.isSteady || own == null) return plan
   // Written so that a speed that isn't a number is no speed, as the app's range has it.
   if (!(own >= plan.speed * OWN_SPEED_LEAST_SHARE && own <= plan.speed * OWN_SPEED_MOST_SHARE)) return plan
-  return { ...plan, speed: own }
+  // The way left from the last place it was seen is the great circle, and its last 120 nm the descent.
+  const cruiseLeft = path.length - path.flownLength - DESCENT_DISTANCE
+  return { ...plan, speed: cruiseSpeed(cruiseLeft, own, plan.speed) }
+}
+
+/**
+ * The one speed that flies `cruise` meters in the time it takes at `own` for `OWN_SPEED_AHEAD_MS`, or all the way when
+ * that's further, and at `planned` for the rest. With no cruise left, `own`. Speeds are meters a second.
+ */
+export function cruiseSpeed(cruise: number, own: number, planned: number): number {
+  if (!(cruise > 0)) return own
+  const atOwnSpeed = Math.min(cruise, (own * OWN_SPEED_AHEAD_MS) / 1000)
+  return cruise / (atOwnSpeed / own + (cruise - atOwnSpeed) / planned)
 }
 
 /** The plan's time in the air, in ms. */

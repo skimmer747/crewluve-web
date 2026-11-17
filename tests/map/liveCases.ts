@@ -31,6 +31,7 @@ export interface LiveCases {
     ownSpeedLeastMinutes: number
     ownSpeedLeastShare: number
     ownSpeedMostShare: number
+    ownSpeedAheadMinutes: number
     windowOpensMinutesBefore: number
     windowClosesHoursAfter: number
     windowKeepsMinutes: number
