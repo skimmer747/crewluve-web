@@ -116,7 +116,8 @@ describe('the status page with a real plane down, not yet at the gate (the lande
     const container = page(LANDED)
     expect(container.querySelector('.narrative-text')?.textContent)
       // The countdown's digits, then its words for screen readers.
-      .toMatch(/^Alex has landed in Philadelphia on UPS flight 1234 — at the gate in 4m4 minutes which is 8:47am EST\.$/)
+      // The time is the viewer's, in whatever zone the tests run (GitHub's build runs in UTC): its minutes are the gate's.
+      .toMatch(/^Alex has landed in Philadelphia on UPS flight 1234 — at the gate in 4m4 minutes which is \d{1,2}:47[ap]m [A-Z]+\.$/)
     expect(container.querySelector('.trip-map-card h2')?.textContent).toBe('Landed')
     expect(container.querySelector('.trip-map-chip.bottom')?.textContent).toBe('Landed in Philadelphia')
   })
@@ -125,9 +126,9 @@ describe('the status page with a real plane down, not yet at the gate (the lande
     vi.setSystemTime(DOWN)
     const container = page(LANDED)
     expect(container.querySelector('.inflight-status')?.textContent).toBe('Landed 13 min early')
-    expect(container.querySelector('.inflight-time')?.textContent).toMatch(/^At the gate 8:47\sAM$/)
+    expect(container.querySelector('.inflight-time')?.textContent).toMatch(/^At the gate \d{1,2}:47\s[AP]M$/)
     expect(container.querySelector('.trip-map-open')?.getAttribute('aria-label'))
-      .toMatch(/^UPS1234 to Philadelphia, landed 13 minutes early\. Reaches the gate at 8:47\sAM your time\. (.+\. )?Opens the full map\.$/)
+      .toMatch(/^UPS1234 to Philadelphia, landed 13 minutes early\. Reaches the gate at \d{1,2}:47\s[AP]M your time\. (.+\. )?Opens the full map\.$/)
   })
 
   it('says flying, as before, with no live data', () => {
@@ -135,7 +136,7 @@ describe('the status page with a real plane down, not yet at the gate (the lande
     const container = page(null)
     expect(container.querySelector('.narrative-text')?.textContent).toMatch(/^Alex is flying to Philadelphia on UPS flight 1234 from Louisville — /)
     expect(container.querySelector('.trip-map-card h2')?.textContent).toBe('In flight')
-    expect(container.querySelector('.inflight-time')?.textContent).toMatch(/^Lands 9:00\sAM$/)
+    expect(container.querySelector('.inflight-time')?.textContent).toMatch(/^Lands \d{1,2}:00\s[AP]M$/)
   })
 })
 
