@@ -527,16 +527,20 @@ describe('the full map’s facts at a moment, with and without live data (Stage 
     expect(factsAtMoment(gate, at('10:35'), at('10:35')).showsLiveCredit).toBe(true)
   })
 
-  it('of a flight with no live data, are the same in a replay as they were, but for the tag that says it’s now', () => {
-    // The flight in the air is "In the air now", and in a replay "In the air" (best guesses design §4).
-    const asReplay = (moment: FactsAtMoment): FactsAtMoment => ({
+  it('of a flight with no live data, are the same in a replay as they were, but for the words that say it’s now', () => {
+    // The flight in the air is "In the air now", and in a replay "In the air" (best guesses design §4). The latest event
+    // was "10 min ago", and in a replay it was at a clock time (latest event design §1).
+    const withoutNow = (moment: FactsAtMoment) => ({
       ...moment,
-      tripSoFar: { ...moment.tripSoFar, flights: moment.tripSoFar.flights.map((f) => ({ ...f, tag: f.tag && 'In the air' })) },
+      tripSoFar: { ...moment.tripSoFar, flights: moment.tripSoFar.flights.map((f) => ({ ...f, tag: f.tag != null })) },
+      latestEvent: moment.latestEvent?.title ?? null,
     })
     for (const leg of [equatorFlight(0, 20), equatorLiveLeg(null, at('11:10'))]) {
       for (const t of ['10:05', '10:35', '11:10', '12:07', '13:20']) {
-        expect(factsAtMoment(factsOf(leg, { isReplay: true }), at(t), at('11:10'))).toEqual(asReplay(factsAtMoment(factsOf(leg), at(t), at('11:10'))))
+        const replayed = factsAtMoment(factsOf(leg, { isReplay: true }), at(t), at('11:10'))
+        expect(withoutNow(replayed)).toEqual(withoutNow(factsAtMoment(factsOf(leg), at(t), at('11:10'))))
       }
     }
+    expect(factsAtMoment(factsOf(equatorFlight(0, 20), { isReplay: true }), at('11:10'), at('11:10')).latestEvent?.when).toBe(`7:00${AM}`)
   })
 })

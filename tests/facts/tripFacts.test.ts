@@ -130,6 +130,11 @@ describe('the latest event (latest event design §1)', () => {
     expect(headline(facts, t('11:46'), false)).toBe('Over Bravo')
     expect(headline(facts, t('11:10'), false)).toBe('Over Bravo, near Testville')
   })
+
+  it('is on the map above the full map’s panel, so the panel’s first line leaves events out', () => {
+    expect(sheetHeadline(equatorFacts(), t('11:02'))).toBe('Over Bravo')
+    expect(sheetHeadline(equatorFacts(), t('11:46'))).toBe('Over Bravo')
+  })
 })
 
 describe('weather’s window (Stage 2 spec §7.3)', () => {

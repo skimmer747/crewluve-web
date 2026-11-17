@@ -16,7 +16,9 @@ import { hasLiveData, isSeenAt, legHalfwayTime, legPathLength, legTimeAtDistance
 import { roundedMiles } from './milestone'
 import { legPlane, type PlanePosition } from './planePosition'
 import { chase, cockpitHorizonOnLeg, moonSight, nextGroundSunEvent, sunAltitudeOnLeg } from './sky'
-import { belowText, forecastFor, isRecapOver, isStillOnGround, lastSeenText, sheetHeadline, showsLiveData, tripSoFar, type TripFacts } from './tripFacts'
+import {
+  belowText, forecastFor, isRecapOver, isStillOnGround, lastSeenText, latestEvent, sheetHeadline, showsLiveData, tripSoFar, type TripFacts,
+} from './tripFacts'
 import { longestFlight, totalsSoFar, wholeTotals, type TripTotals } from './tripTotals'
 
 /**
@@ -220,10 +222,12 @@ export function factRows(facts: TripFacts, t: number, now: number): FactRow[] {
 
 /**
  * Everything the full map's panel shows at `t`: the headline, the rows and the trip so far, and whether the footer
- * credits adsb.lol, as it does whenever a flight of the trip has live data (Stage 3 spec §8).
+ * credits adsb.lol, as it does whenever a flight of the trip has live data (Stage 3 spec §8). And the latest event, which
+ * the full map shows large over the map (latest event design §1).
  */
 export function factsAtMoment(facts: TripFacts, t: number, now: number): FactsAtMoment {
   return {
     headline: sheetHeadline(facts, t), rows: factRows(facts, t, now), tripSoFar: tripSoFar(facts, t), showsLiveCredit: showsLiveData(facts),
+    latestEvent: latestEvent(facts, t),
   }
 }

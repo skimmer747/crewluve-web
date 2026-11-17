@@ -80,4 +80,6 @@ export interface FactsAtMoment {
   tripSoFar: TripSoFar
   /** A flight of the trip on screen has live data, which the footer credits adsb.lol for (Stage 3 spec §8). False unless it's said. */
   showsLiveCredit?: boolean
+  /** The newest event of the flight in the air, for the banner over the map (latest event design §1). None unless it's said. */
+  latestEvent?: LatestEvent | null
 }

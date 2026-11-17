@@ -95,11 +95,29 @@ describe('the rows on the ground (Stage 2 spec §5.3, §5.4, §5.5)', () => {
 })
 
 describe('the facts at a moment', () => {
-  it('gather the headline, the rows and the trip so far', () => {
+  it('gather the headline, the rows, the trip so far and the latest event', () => {
     const shown = Date.parse('2026-03-20T11:10:00Z')
     const moment = factsAtMoment(facts(equator()), shown, shown)
     expect(moment.headline).toBe('Over Bravo, near Testville')
     expect(moment.rows).toHaveLength(3)
     expect(moment.tripSoFar.totalsTitle).toBe('Trip so far')
+    expect(moment.latestEvent).toEqual({ title: 'Crossed into Bravo', when: '10 min ago', sentence: 'Latest: crossed into Bravo, 10 minutes ago.' })
+  })
+
+  it('beside the latest event, head the panel with what’s below (latest event design §2)', () => {
+    const shown = Date.parse('2026-03-20T11:02:00Z')
+    const moment = factsAtMoment(facts(equator()), shown, shown)
+    expect(moment.headline).toBe('Over Bravo')
+    expect(moment.latestEvent?.when).toBe('2 min ago')
+  })
+
+  it('have the latest event at the moment shown, not now’s', () => {
+    const shown = Date.parse('2026-03-20T12:10:00Z')
+    const now = Date.parse('2026-03-20T11:10:00Z')
+    expect(factsAtMoment(facts(equator()), shown, now).latestEvent?.title).toBe('Out over the Test Sea')
+  })
+
+  it('have no latest event on the ground', () => {
+    expect(factsAtMoment(facts(europe(at(12))), at(12), at(12)).latestEvent).toBeNull()
   })
 })

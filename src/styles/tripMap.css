@@ -128,6 +128,36 @@
   font-weight: 600;
   pointer-events: none;
 }
+/* The newest event of the flight in the air (latest event design §1, §2): the event large, and how long ago under it,
+   smaller and muted, in the chips' glass. On the card at the map's top left, in the top chip's place; on the full map
+   centred under the pill, over the open part of the map (TripMapPage sets where that starts). While it shows, the key
+   moves just under it where they don't fit side by side (LatestEventBanner's bannerLayout sets its top). */
+.latest-event {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  box-sizing: border-box;
+  max-width: calc(100% - 20px);
+  padding: 7px 12px;
+  border-radius: 14px;
+  background: var(--glass-fill);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  pointer-events: none;
+}
+.trip-map-open .latest-event { position: absolute; top: 10px; left: 10px; }
+.latest-event-title { font-size: 1.0625rem; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+.latest-event-when { color: var(--text-2); font-size: 0.75rem; }
+.latest-event-place {
+  position: absolute;
+  top: 10px;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  padding: 0 10px;
+  pointer-events: none;
+}
+.latest-event.centred { max-width: 100%; align-items: center; text-align: center; }
 .trip-map-key-item { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
 .trip-map-key-mark { box-sizing: border-box; width: 12px; height: 12px; border-radius: 50%; }
 .trip-map-key-mark.real { border: 1.5px solid #ffffff; background: var(--blue); }

@@ -19,7 +19,9 @@ import { useMapStyle } from './hooks/useMapStyle'
 import { useQuickLayovers } from './hooks/useQuickLayovers'
 import { useSidePanel } from './hooks/useSidePanel'
 import { useSize } from './hooks/useSize'
+import { useSizeOf } from './hooks/useSizeOf'
 import { Icon } from './Icon'
+import { bannerLayout, LatestEventBanner } from './LatestEventBanner'
 import { PlaneKey } from './PlaneKey'
 import { TripTimeline } from './TripTimeline'
 
@@ -92,6 +94,12 @@ export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, 
   // spec §7.3).
   const facts = factsAt ? factsAt(t, now, isReplay) : null
   const showsFacts = facts != null && open
+  // The newest event of the flight in the air, large under the pill until the next (latest event design §1, §2).
+  const latest = facts?.latestEvent ?? null
+  const [banner, setBanner] = useState<HTMLElement | null>(null)
+  const [key, setKey] = useState<HTMLElement | null>(null)
+  const bannerSize = useSizeOf(banner)
+  const keySize = useSizeOf(key)
 
   // Focus the heading once, as the page opens. The page re-renders every second, so this must not depend on onBack.
   useEffect(() => {
@@ -108,9 +116,15 @@ export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, 
 
   // A side panel lies over the map, so the camera keeps the trip clear of it: its width while open, its height while
   // folded to the corner. The bottom panel sits under the map, which shrinks to make room (§10).
-  const insets: Insets = !side || panelSize.width === 0 ? NO_INSETS
+  const panelInsets: Insets = !side || panelSize.width === 0 ? NO_INSETS
     : showsFacts ? { ...NO_INSETS, left: panelSize.width + 2 * PANEL_MARGIN }
     : { ...NO_INSETS, bottom: panelSize.height + 2 * PANEL_MARGIN }
+  // The banner is centred over the open map, clear of a side panel open over its left edge, so its right edge is half
+  // its width past the middle of what's open. The key moves just under it where they don't fit side by side (Todd, 16
+  // Nov 2026), and the camera keeps the plane clear of both (latest event design §2).
+  const openLeft = panelInsets.left
+  const layout = latest ? bannerLayout(openLeft + (width - openLeft + bannerSize.width) / 2, bannerSize, keySize, width) : null
+  const insets: Insets = layout ? { ...panelInsets, top: layout.inset } : panelInsets
 
   // Night moves about a degree every four minutes. Live it's redrawn each minute. In replay it's drawn at the very time
   // shown, every frame, as the planes are: a 3-minute step made its edge jump about 11 px on a trip, and over half the
@@ -141,8 +155,13 @@ export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, 
         <AppleTripMap map={map} t={t} width={width} height={height} focus={focus} land={land} nightStep={nightStep} insets={insets}
           mapStyle={mapStyle} interactive recenter={recenter} onUserMove={() => setMoved(true)} isReplay={isReplay}
           planeWords={(leg, plane) => planePopupWords(leg, plane, t, isReplay, viewerTz, h24)} />
+        {latest && (
+          <div class="latest-event-place" style={{ left: `${openLeft}px` }}>
+            <LatestEventBanner event={latest} isFullMap boxRef={setBanner} />
+          </div>
+        )}
         {/* The key to the real plane and its ghost, while both show: now, not in a replay (which plane design §2). */}
-        {!isReplay && showsPlaneKey(tripMapDrawing(map, t)) && <PlaneKey />}
+        {!isReplay && showsPlaneKey(tripMapDrawing(map, t)) && <PlaneKey boxRef={setKey} top={layout?.keyTop} />}
       </div>
       <section ref={panel} class={`trip-map-panel ${side ? 'side' : 'bottom'}${showsFacts ? ' open' : ''}`}
         aria-label={facts ? 'Trip facts and timeline' : 'Timeline'}>

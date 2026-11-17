@@ -243,9 +243,12 @@ export function latestEvent(facts: TripFacts, t: number): LatestEvent | null {
 /** True once a recap's trip is over at `t`. */
 export const isRecapOver = (facts: TripFacts, t: number) => facts.map.mode.kind === 'recap' && t >= facts.map.span.end
 
-/** The panel's first line: the headline in flight, "Home from 4 days away" after a recap's trip, else Stage 1B's. */
+/**
+ * The panel's first line: the headline in flight, "Home from 4 days away" after a recap's trip, else Stage 1B's. The
+ * latest event's banner is on the map above it, so the headline here leaves events out (latest event design §2).
+ */
 export function sheetHeadline(facts: TripFacts, t: number): string {
-  const inFlight = headline(facts, t)
+  const inFlight = headline(facts, t, false)
   if (inFlight) return inFlight
   if (isRecapOver(facts, t)) return recapChip(dayCount(facts.map, facts.viewerTz))
   return panelHeadline(facts.map, t, facts.viewerTz, facts.h24)

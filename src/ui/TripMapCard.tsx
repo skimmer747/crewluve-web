@@ -1,6 +1,6 @@
 import type { Ref } from 'preact'
 import { useRef, useState } from 'preact/hooks'
-import { cardSummary, headline, recapLongestLine, recapTiles, type TripFacts } from '../facts/tripFacts'
+import { cardSummary, headline, latestEvent, recapLongestLine, recapTiles, type TripFacts } from '../facts/tripFacts'
 import { delayBannerText, spokenDelayBanner } from '../copy/flight'
 import { arrivalLocalTime, cardChips, cardHeading, flightStatus, landsAt, statsItems, tripMapSummary } from '../copy/tripMap'
 import type { GeoPoint } from '../map/greatCircle'
@@ -10,8 +10,10 @@ import { showsPlaneKey, tripMapDrawing } from '../map/tripMapDrawing'
 import { AppleTripMap } from './AppleTripMap'
 import { useHeightOf } from './hooks/useHeightOf'
 import { useMapStyle } from './hooks/useMapStyle'
+import { useSizeOf } from './hooks/useSizeOf'
 import { useWidth } from './hooks/useWidth'
 import { Icon } from './Icon'
+import { BANNER_EDGE, bannerLayout, LatestEventBanner } from './LatestEventBanner'
 import { PlaneKey } from './PlaneKey'
 import { TripRecapBar } from './TripRecapBar'
 
@@ -27,7 +29,10 @@ export interface TripMapCardProps {
   /** The departure's delay when it's 15 minutes or more, shown under the map in flight, as the in-flight card did. */
   delayMinutes: number | null
   land: GeoPoint[][] | null
-  /** The facts (Stage 2 spec §6.4, §6.5): the headline on the chip in flight, the recap's numbers and the spoken summary. */
+  /**
+   * The facts (Stage 2 spec §6.4, §6.5): the headline on the chip in flight, the recap's numbers and the spoken summary,
+   * and the latest event's banner (latest event design §1).
+   */
   facts?: TripFacts | null
   /** Opens the full map from the card's map. The status page remounts, so focus finds the map again by `data-trip-map-open`. */
   onOpenMap: () => void
@@ -66,17 +71,25 @@ export function TripMapCard(p: TripMapCardProps) {
   const leg = currentLeg(p.map)
   const isRecap = p.map.mode.kind === 'recap'
   const chips = cardChips(p.map, p.now, p.viewerTz, p.h24)
-  // In flight the bottom chip is the facts' headline, which falls back to the landing countdown (§6.4).
-  const bottom = (leg && p.facts ? headline(p.facts, p.now) : null) ?? chips.bottom
+  // In flight, the newest event, large in the map's top corner, where the top chip would be (latest event design §2).
+  const latest = p.facts ? latestEvent(p.facts, p.now) : null
+  // In flight the bottom chip is the facts' headline, which falls back to the landing countdown (§6.4). The banner says
+  // the event, so the chip leaves events out.
+  const bottom = (leg && p.facts ? headline(p.facts, p.now, false) : null) ?? chips.bottom
   const summary = p.facts ? cardSummary(p.facts, p.now, p.name) : tripMapSummary(p.map, p.now, p.name, p.viewerTz, p.h24)
   // The key to the real plane and its ghost, while both show (which plane design §2), at the map's top right.
   const showsKey = showsPlaneKey(tripMapDrawing(p.map, p.now))
   // The camera keeps the trip in the band between the chips, so neither covers the pilot's marker or a route. The key
-  // is kept clear as the top chip is.
+  // is kept clear as the top chip is, and the banner as the top chip, with the key under it where it has moved there.
   const [topChip, setTopChip] = useState<HTMLElement | null>(null)
   const [bottomChip, setBottomChip] = useState<HTMLElement | null>(null)
   const [key, setKey] = useState<HTMLElement | null>(null)
-  const insets = chipInsets(Math.max(useHeightOf(topChip), useHeightOf(key)), useHeightOf(bottomChip))
+  const [banner, setBanner] = useState<HTMLElement | null>(null)
+  const keySize = useSizeOf(key)
+  const bannerSize = useSizeOf(banner)
+  const chipped = chipInsets(Math.max(useHeightOf(topChip), keySize.height), useHeightOf(bottomChip))
+  const layout = latest ? bannerLayout(BANNER_EDGE + bannerSize.width, bannerSize, keySize, width) : null
+  const insets = layout ? { ...chipped, top: layout.inset } : chipped
   return (
     <section class="card glass trip-map-card">
       <h2 ref={p.headingRef} class="sr-only" tabIndex={-1}>{cardHeading(p.map, p.now)}</h2>
@@ -85,8 +98,9 @@ export function TripMapCard(p: TripMapCardProps) {
           <AppleTripMap map={p.map} t={p.now} width={width} height={MAP_HEIGHT} focus={leg} land={p.land} nightStep={60_000} insets={insets}
             mapStyle={mapStyle} interactive={false} />
         </span>
-        {chips.top && <span ref={setTopChip} class="trip-map-chip top" aria-hidden="true">{chips.top}</span>}
-        {showsKey && <PlaneKey boxRef={setKey} />}
+        {latest ? <LatestEventBanner event={latest} boxRef={setBanner} />
+          : chips.top && <span ref={setTopChip} class="trip-map-chip top" aria-hidden="true">{chips.top}</span>}
+        {showsKey && <PlaneKey boxRef={setKey} top={layout?.keyTop} />}
         {bottom && (
           <span ref={setBottomChip} class="trip-map-chip bottom" aria-hidden="true">
             {isRecap && <PlayMark />}
