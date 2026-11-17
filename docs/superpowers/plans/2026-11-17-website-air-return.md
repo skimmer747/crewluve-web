@@ -2538,8 +2538,8 @@ git commit -m "The website's air return plan, with its record"
 
 This plan goes live. Pushing to `main` publishes the site: `.github/workflows` tests and builds every push to `main` in UTC, then publishes it to Pages. **Nothing here runs without Todd's yes in the conversation, asked when this task is reached.**
 
-- [ ] **Step 1: Ask Todd** whether to go live now. If not, stop: the branch stays as it is, and this task waits.
-- [ ] **Step 2: Bring the branch up to `main`.**
+- [x] **Step 1: Ask Todd** whether to go live now. If not, stop: the branch stays as it is, and this task waits.
+- [x] **Step 2: Bring the branch up to `main`.**
 
 ```bash
 cd "/Users/toddanderson/Dev/Crewluve Website/.claude/worktrees/trip-map-live-598046" && git fetch origin && git merge-base --is-ancestor origin/main HEAD && echo "fast-forward"
@@ -2552,7 +2552,7 @@ If it isn't, `main` has moved on from `74acf06`, where it was when this plan was
 2. If any file conflicts, STOP and tell Todd.
 3. Then run `npm test && npm run build`.
 
-- [ ] **Step 3: The suite as GitHub runs it,** in UTC, on the branch as it will go live:
+- [x] **Step 3: The suite as GitHub runs it,** in UTC, on the branch as it will go live:
 
 ```bash
 TZ=UTC npx vitest run
@@ -2560,18 +2560,18 @@ TZ=UTC npx vitest run
 
 Expected: every test file and test passes, the same counts as `npm test`. If any fails, STOP: fix it here, tests first, before anything is pushed.
 
-- [ ] **Step 4: Todd runs everything** on the branch as it will go live. That's Task 5 Step 5's command.
-- [ ] **Step 5: Push the branch to `main`, on Todd's yes.** A fast-forward only; never force.
+- [x] **Step 4: Todd runs everything** on the branch as it will go live. That's Task 5 Step 5's command.
+- [x] **Step 5: Push the branch to `main`, on Todd's yes.** A fast-forward only; never force.
 
 ```bash
 git push origin claude/trip-map-live-598046:main
 ```
 
-- [ ] **Step 6: Watch the deploy** (`gh run watch` on the run the push started) until it succeeds. If it fails, tell Todd at once with its log: the site stays as it was until a deploy succeeds.
-- [ ] **Step 7: Look at the live site** with Todd:
+- [x] **Step 6: Watch the deploy** (`gh run watch` on the run the push started) until it succeeds. If it fails, tell Todd at once with its log: the site stays as it was until a deploy succeeds.
+- [x] **Step 7: Look at the live site** with Todd:
   - `https://crewluve.crewlu.net/?demo=1&scene=live-returned` and `…&scene=live-returned#map`: "Returned to Rockford" on the bar, the chip, the first row and under the timeline, and "has returned to Rockford" in the status sentence.
   - `…scene=live-on-ground-late#map` and `…scene=live-ahead#map`: unchanged.
-- [ ] **Step 8: The record.** Under "Changes made during execution":
+- [x] **Step 8: The record.** Under "Changes made during execution":
   - the push's commit;
   - the deploy's run and time;
   - what Todd saw.
@@ -2617,6 +2617,12 @@ The same rule and words (the design's §2 to §4), as the website has them:
   - "2,788 mi to go", no sky row, the flight left out of the list, and no ghost;
   - `live-on-ground-late` unchanged ("Still on the ground · 20 min behind").
 - **Task 7, the review:** the review before the plan (above, in "How this plan was checked") read every source file these commits hold, byte for byte. After it, only two test files changed. A check found every committed file the same as the tested copy, and every source file in the diff it reviewed. So no second review was dispatched: it would have read the same code. Nothing was found to fix.
+- **Task 8, gone live on Todd's "Go live: run it, then push":**
+  - The branch was a fast-forward of `main`, and `TZ=UTC npx vitest run` passed 3,853 tests.
+  - Todd's run passed 3,853 tests at 5:44 PM EST and again in UTC, and built.
+  - Pushed `74acf06..2df0ab8`, a fast-forward.
+  - **Deployed:** run `44193156197`, build and deploy succeeded, 5:47 PM EST (22:47 UTC).
+  - **The live site** read as planned: `…scene=live-returned` showed "Returned to Rockford" on the bar, the chip, the pill and the first row, and "Tue 5:47 PM · Returned to Rockford" under the timeline; the status said "Alex has returned to Rockford on UPS flight 2963 to Anchorage — landing in 5h 14m which is about 11:02pm EST". Todd: "Looks good".
 
 ## Self-review
 
