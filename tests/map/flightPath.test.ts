@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { FIRST_POINT_RADIUS, makeFlightPath, OWN_SPEED_LEAST_MS, pointAtDistance, UNSEEN_GAP_MS, type FlightPath, type StretchKind } from '../../src/map/flightPath'
+import {
+  FIRST_POINT_RADIUS, makeFlightPath, OWN_SPEED_LEAST_MS, pointAtDistance, RESTART_GAP_MS, RETURN_CLIMB_FEET, UNSEEN_GAP_MS, type FlightPath,
+  type StretchKind,
+} from '../../src/map/flightPath'
 import { distanceMeters, METERS_PER_NM } from '../../src/map/greatCircle'
 import type { LiveFix, LiveFlight, LiveState, TrailPoint } from '../../src/map/liveFlight'
 import { airport, expectNear, knots, LIVE_CASES, made, NEAR, nm } from './liveCases'
@@ -40,6 +43,8 @@ describe('the path (Stage 3 spec §6.1)', () => {
     expect(UNSEEN_GAP_MS).toBe(c.unseenGapMinutes * MINUTE)
     expect(FIRST_POINT_RADIUS).toBe(c.firstPointRadiusNm * METERS_PER_NM)
     expect(OWN_SPEED_LEAST_MS).toBe(c.ownSpeedLeastMinutes * MINUTE)
+    expect(RETURN_CLIMB_FEET).toBe(c.returnClimbFeet)
+    expect(RESTART_GAP_MS).toBe(c.restartGapMinutes * MINUTE)
   })
 
   it.each(LIVE_CASES.flights)('matches the shared case: $name', (c) => {

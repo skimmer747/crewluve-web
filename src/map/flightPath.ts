@@ -1,7 +1,7 @@
 import { MINUTE } from '../time/zoned'
 import { DESCENT_DISTANCE } from './flightPlan'
 import { distanceMeters, METERS_PER_NM, pointAlong, type GeoPoint } from './greatCircle'
-import type { LiveFlight } from './liveFlight'
+import type { LiveFlight, TrailPoint } from './liveFlight'
 
 /**
  * The path a flight is drawn and measured along (Stage 3 spec §6.1), as the app's FlightPath. With no live data it's
@@ -38,6 +38,19 @@ export const UNSEEN_GAP_MS = 10 * MINUTE
 export const FIRST_POINT_RADIUS = 30 * METERS_PER_NM
 /** A plane has a speed of its own once this much of its cruise has been seen: 10 minutes. */
 export const OWN_SPEED_LEAST_MS = 10 * MINUTE
+/** On the ground this close to the departure airport is at it: 10 nautical miles. */
+export const AIRPORT_RADIUS = 10 * METERS_PER_NM
+/**
+ * A trail whose highest point is this much above its lowest has flown: 1,000 ft (air return design §2). Heights are from
+ * sea level, and a plane taxiing at Denver reads 5,400 ft, so it's a climb, not a height.
+ */
+export const RETURN_CLIMB_FEET = 1000
+/**
+ * A point near the departure airport this long after the one before it, which was near it too, starts the trail again:
+ * 10 minutes (air return design §4). Points come every 2 minutes in the air, so a hold near the airport never leaves
+ * this gap.
+ */
+export const RESTART_GAP_MS = 10 * MINUTE
 
 export interface FlightPath {
   origin: GeoPoint
@@ -72,9 +85,12 @@ interface Sighting {
   time: number
 }
 
-/** The path of a flight from `origin` to `destination`: the real one when `flight` has been seen in the air. */
+/**
+ * The path of a flight from `origin` to `destination`: the real one when `flight` has been seen in the air on its latest
+ * try (air return design §4).
+ */
 export function makeFlightPath(origin: GeoPoint, destination: GeoPoint, flight: LiveFlight | null = null): FlightPath {
-  const seen = sightings(flight)
+  const seen = sightings(flight, origin)
   const first = seen[0]
   const last = seen[seen.length - 1]
   if (!first || !last) {
@@ -138,17 +154,61 @@ function cruiseSpeed(seen: Sighting[], knots: Knot[], origin: GeoPoint, destinat
 }
 
 /**
- * Each place `flight` was seen in the air, oldest first: its trail's points, with two of one time in the order they
- * came, and then its fix, when that's in the air and newer than the last of them.
+ * Each place `flight` from `origin` was seen in the air on its latest try, oldest first: that try's trail points
+ * (`latestTry`), and then its fix, when that's in the air and newer than the last of them. An air return and the wait
+ * after it aren't the flight's path (air return design §4).
  */
-function sightings(flight: LiveFlight | null): Sighting[] {
-  const seen: Sighting[] = (flight?.trail ?? [])
-    .map((point, order) => ({ point, order }))
-    .sort((a, b) => a.point.time - b.point.time || a.order - b.order)
-    .map(({ point }) => ({ place: point.place, time: point.time }))
+function sightings(flight: LiveFlight | null, origin: GeoPoint): Sighting[] {
+  const seen: Sighting[] = latestTry(flight, origin).map((point) => ({ place: point.place, time: point.time }))
   const fix = flight?.fix
   if (fix && !fix.onGround && fix.seenAt > (seen[seen.length - 1]?.time ?? -Infinity)) seen.push({ place: fix.place, time: fix.seenAt })
   return seen
+}
+
+/** The trail of `flight`, oldest first, with two points of one time in the order they came. */
+const sortedTrail = (flight: LiveFlight): TrailPoint[] =>
+  flight.trail
+    .map((point, order) => ({ point, order }))
+    .sort((a, b) => a.point.time - b.point.time || a.order - b.order)
+    .map(({ point }) => point)
+
+/** Whether the highest of `points` is RETURN_CLIMB_FEET or more above the lowest. Points with no height don't count. */
+function hasClimbed(points: TrailPoint[]): boolean {
+  const feet = points.flatMap((p) => (p.altitudeFt == null ? [] : [p.altitudeFt]))
+  return feet.length > 0 && Math.max(...feet) - Math.min(...feet) >= RETURN_CLIMB_FEET
+}
+
+/**
+ * Whether the plane of `flight` is back on the ground at its departure airport, at `origin`, after flying (air return
+ * design §2): on the ground by Crewlu Cloud's state, its fix within AIRPORT_RADIUS of the airport, and its whole trail
+ * climbed RETURN_CLIMB_FEET. How old the fix is isn't asked: `liveProgress` asks that.
+ */
+export function isBack(flight: LiveFlight | null, origin: GeoPoint): boolean {
+  const fix = flight?.fix
+  if (!flight || flight.state !== 'ground' || !fix) return false
+  return distanceMeters(fix.place, origin) <= AIRPORT_RADIUS && hasClimbed(flight.trail)
+}
+
+/**
+ * The trail of the flight's latest try, oldest first (air return design §4). A try starts again at a place seen in the
+ * air within FIRST_POINT_RADIUS of `origin` more than RESTART_GAP_MS after the point before it, which was within
+ * AIRPORT_RADIUS, once the try before had climbed RETURN_CLIMB_FEET. The fix in the air, when it's newer than the trail,
+ * can start one too, with no trail points yet. None while the plane is back on the ground there.
+ */
+export function latestTry(flight: LiveFlight | null, origin: GeoPoint): TrailPoint[] {
+  if (!flight || isBack(flight, origin)) return []
+  const points = sortedTrail(flight)
+  const places = points.map((p) => ({ time: p.time, place: p.place }))
+  const fix = flight.fix
+  if (fix && !fix.onGround && fix.seenAt > (points[points.length - 1]?.time ?? -Infinity)) places.push({ time: fix.seenAt, place: fix.place })
+  let start = 0
+  for (let i = 1; i < places.length; i++) {
+    const earlier = places[i - 1]
+    const later = places[i]
+    if (later.time - earlier.time > RESTART_GAP_MS && distanceMeters(earlier.place, origin) <= AIRPORT_RADIUS
+      && distanceMeters(later.place, origin) <= FIRST_POINT_RADIUS && hasClimbed(points.slice(start, i))) start = i
+  }
+  return points.slice(start)
 }
 
 /** The place `distance` meters along `path`. Before its start that's the departure airport, and past its end the arrival airport. */

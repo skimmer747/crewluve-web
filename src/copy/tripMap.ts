@@ -92,6 +92,9 @@ export function liveLabelText(label: LiveLabel): string {
       return `${label.isEstimated ? 'About ' : ''}${minutesText(label.minutes)} behind`
     case 'stillOnGround':
       return label.minutesBehind == null ? 'Still on the ground' : `Still on the ground · ${minutesText(label.minutesBehind)} behind`
+    case 'returned':
+      // The bar names the airport: "Returned to Rockford" (`flightStatus`, air return design §3).
+      return 'Returned'
     case 'landedOnTime':
       return 'Landed on time'
     case 'landedEarly':
@@ -122,6 +125,8 @@ export function spokenLiveLabel(label: LiveLabel): string {
       return `${label.isEstimated ? 'about ' : ''}${spokenMinutes(label.minutes)} behind schedule`
     case 'stillOnGround':
       return label.minutesBehind == null ? 'still on the ground' : `still on the ground, ${spokenMinutes(label.minutesBehind)} behind schedule`
+    case 'returned':
+      return 'returned'
     case 'landedOnTime':
       return 'landed on time'
     case 'landedEarly':

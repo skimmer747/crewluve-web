@@ -40,6 +40,7 @@ export function planePopupWords(leg: MapLeg, plane: PlaneKind, t: number, isRepl
       }
     }
     case 'onGround':
+    case 'returned':
     case 'inAir':
       return { title, lines: [...(label ? [label] : []), landsAt(leg, viewerTz, h24)] }
     case 'landed':

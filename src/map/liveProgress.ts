@@ -1,8 +1,8 @@
 import { MINUTE } from '../time/zoned'
-import { pointAtDistance, type FlightPath } from './flightPath'
+import { AIRPORT_RADIUS, isBack, pointAtDistance, type FlightPath } from './flightPath'
 import { distanceLeft, flownPlan, taxiIn, taxiOut, timeInAir, timeToFly, type FlightPlan } from './flightPlan'
 import type { FlightRecord } from './flightRecord'
-import { distanceMeters, METERS_PER_NM, type GeoPoint } from './greatCircle'
+import { distanceMeters, type GeoPoint } from './greatCircle'
 import { liveLabel, type LiveLabel } from './liveLabel'
 import type { LiveFix, LiveFlight } from './liveFlight'
 
@@ -19,14 +19,15 @@ import type { LiveFix, LiveFlight } from './liveFlight'
  * - estimated: last seen in the air too long ago: the real plane flies the plan on from there, at the plane's own
  *   speed once that's known;
  * - landed;
- * - elsewhere: on the ground anywhere else: a diversion.
+ * - elsewhere: on the ground anywhere else: a diversion;
+ * - returned: seen on the ground at the departure airport again, after flying: an air return (air return design §2).
  */
-export type LivePhase = 'notLive' | 'onGround' | 'inAir' | 'estimated' | 'landed' | 'elsewhere'
+export type LivePhase = 'notLive' | 'onGround' | 'inAir' | 'estimated' | 'landed' | 'elsewhere' | 'returned'
 
 /** A fix this old or newer is live, by Crewlu Cloud's clock: 3 minutes. Crewlu Cloud asks for one a minute, so this outlasts a single answer that didn't come. */
 export const FRESH_FOR_MS = 3 * MINUTE
-/** On the ground this close to the departure airport is at it: 10 nautical miles. */
-export const AIRPORT_RADIUS = 10 * METERS_PER_NM
+/** On the ground this close to the departure airport is at it: 10 nautical miles. Kept with the path, which asks it too. */
+export { AIRPORT_RADIUS }
 
 export interface LiveProgress {
   phase: LivePhase
@@ -103,7 +104,9 @@ function touchdownOf(phase: LivePhase, plan: FlightPlan, path: FlightPath, recor
       return fix ? fix.seenAt + timeToFly(plan, distanceMeters(fix.place, path.destination)) : null
     }
     case 'onGround':
-      // Past the plan's takeoff, it's as if the plane took off this moment.
+    case 'returned':
+      // Past the plan's takeoff, it's as if the plane, still or again at the departure airport, took off this moment
+      // (air return design §3).
       return now >= plan.takeoff ? now + timeInAir(plan) : null
     case 'landed':
       // The record's landing, where there is one, so the two can't disagree.
@@ -136,6 +139,7 @@ function planeOf(
     case 'landed':
       return { distance: path.length, place: path.destination }
     case 'onGround':
+    case 'returned':
       return { distance: 0, place: fix?.place ?? null }
     case 'elsewhere':
       return { distance: null, place: fix?.place ?? null }
@@ -154,8 +158,11 @@ function ghostDistanceOf(phase: LivePhase, plan: FlightPlan, path: FlightPath, n
       if (now < plan.takeoff) return 0
       return Math.max(0, path.length - distanceLeft(plan, plan.touchdown - now))
     case 'landed':
+    case 'returned':
     case 'elsewhere':
     case 'notLive':
+      // A plane back at its departure airport after an air return has no schedule left to be measured against (air
+      // return design §3).
       return null
   }
 }
@@ -174,6 +181,7 @@ function phaseOf(flight: LiveFlight | null, origin: GeoPoint, now: number): Live
       return isFresh ? 'inAir' : 'estimated'
     case 'ground':
       if (!isFresh) return 'notLive'
-      return distanceMeters(fix.place, origin) <= AIRPORT_RADIUS ? 'onGround' : 'elsewhere'
+      if (distanceMeters(fix.place, origin) > AIRPORT_RADIUS) return 'elsewhere'
+      return isBack(flight, origin) ? 'returned' : 'onGround'
   }
 }

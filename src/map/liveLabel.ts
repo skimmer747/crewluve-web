@@ -5,12 +5,15 @@ import type { LivePhase } from './liveProgress'
  * `liveLabelText` in src/copy/tripMap.ts writes it.
  * - ahead, behind: `isEstimated` once the plane hasn't been seen for a while, and the words gain "About";
  * - stillOnGround: past the plan's takeoff and not off the ground. `minutesBehind` is null for the first few minutes.
+ * - returned: back on the ground at the departure airport after an air return, whatever the gap (air return design §3).
+ *   Its words name the airport.
  */
 export type LiveLabel =
   | { kind: 'onSchedule' }
   | { kind: 'ahead'; minutes: number; isEstimated: boolean }
   | { kind: 'behind'; minutes: number; isEstimated: boolean }
   | { kind: 'stillOnGround'; minutesBehind: number | null }
+  | { kind: 'returned' }
   | { kind: 'landedOnTime' }
   | { kind: 'landedEarly'; minutes: number }
   | { kind: 'landedLate'; minutes: number }
@@ -20,9 +23,11 @@ export const ON_SCHEDULE_WITHIN = 5
 
 /**
  * The label for a flight in `phase`, `gapMinutes` ahead of the plan (behind when negative). Null where there's no gap
- * to tell, and for a flight that isn't live or is somewhere else.
+ * to tell, and for a flight that isn't live or is somewhere else. A plane back at its departure airport is `returned`,
+ * gap or none.
  */
 export function liveLabel(phase: LivePhase, gapMinutes: number | null): LiveLabel | null {
+  if (phase === 'returned') return { kind: 'returned' }
   if (gapMinutes == null) return null
   const minutes = Math.abs(gapMinutes)
   const isOnSchedule = minutes <= ON_SCHEDULE_WITHIN

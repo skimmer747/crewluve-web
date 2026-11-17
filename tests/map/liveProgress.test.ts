@@ -41,7 +41,7 @@ describe('the real plane at a moment (Stage 3 spec §5, §7.1)', () => {
 
   it('has a moment in every phase among the shared cases', () => {
     const phases = new Set(LIVE_CASES.flights.flatMap((c) => c.moments.map((m) => m.phase)))
-    expect([...phases].sort()).toEqual(['elsewhere', 'estimated', 'inAir', 'landed', 'notLive', 'onGround'])
+    expect([...phases].sort()).toEqual(['elsewhere', 'estimated', 'inAir', 'landed', 'notLive', 'onGround', 'returned'])
   })
 
   it('agrees with the record wherever the plane is estimated', () => {
