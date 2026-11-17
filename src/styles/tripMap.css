@@ -160,7 +160,19 @@
   pointer-events: none;
 }
 .trip-map-open .latest-event { position: absolute; top: 10px; left: 10px; }
-.latest-event-title { font-size: 1.0625rem; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+.latest-event-title {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  /* At most two lines, cut with "…": a long title ("Crossed into the Democratic Republic of the Congo") left a phone's
+     card no room for the plane (Todd, 17 Nov 2026). The banner's sentence still says it all. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
 .latest-event-when { color: var(--text-2); font-size: 0.75rem; }
 .latest-event-widest { position: absolute; top: 0; left: 0; visibility: hidden; white-space: nowrap; }
 .latest-event-place {

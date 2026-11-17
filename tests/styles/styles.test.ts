@@ -829,6 +829,17 @@ describe('tripMap.css: the latest event’s banner, as it’s measured (the revi
     expect(widest.get('white-space')).toBe('nowrap')
   })
 
+  it('holds the title to two lines, cut with "…", on the card and the full map (Todd, 17 Nov 2026)', () => {
+    // A long title ("Crossed into the Democratic Republic of the Congo") wrapped to three lines on a phone's card and
+    // left the plane almost no room. The whole title is still heard: the banner's sentence carries it.
+    const title = declared('.latest-event-title')
+    expect(title.get('display')).toBe('-webkit-box')
+    expect(title.get('-webkit-box-orient')).toBe('vertical')
+    expect(title.get('-webkit-line-clamp')).toBe('2')
+    expect(title.get('line-clamp')).toBe('2')
+    expect(title.get('overflow')).toBe('hidden')
+  })
+
   it('makes each of the banner’s lines as wide as its words, so the title is measured on its own, and holds the widest', () => {
     const banner = declared('.latest-event')
     expect(banner.get('align-items')).toBe('flex-start')
