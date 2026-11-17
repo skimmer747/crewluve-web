@@ -31,6 +31,7 @@ const EXPECTED: Record<DemoScene, StatusKind> = {
   'live-ahead': 'inFlight',
   'live-ocean-gap': 'inFlight',
   'live-on-ground-late': 'inFlight',
+  'live-landed': 'inFlight',
 }
 
 function sceneSnapshot(scene: DemoScene) {
@@ -86,6 +87,7 @@ describe('demo trip cards (slice 2A)', () => {
     'live-ahead': { progress: { day: 1, days: 2, upcoming: ['ANC', 'SDF'] } },
     'live-ocean-gap': { progress: { day: 1, days: 2, upcoming: ['SDF'] } },
     'live-on-ground-late': { progress: { day: 1, days: 2, upcoming: ['SDF'] } },
+    'live-landed': { progress: { day: 1, days: 2, upcoming: ['SDF'] } },
   }
 
   it.each(Object.keys(CARDS) as DemoScene[])('%s shows the right trip card', (scene) => {

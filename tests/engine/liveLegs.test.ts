@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { buildLegs, type Leg } from '../../src/engine/legs'
-import { estimatedArrival, isEstimatedArrival, liveMapFlights, stillOnGroundFlight, watchedFlights, withLiveTimes } from '../../src/engine/liveLegs'
+import {
+  estimatedArrival, isEstimatedArrival, landedFlight, liveMapFlights, stillOnGroundFlight, watchedFlights, withLiveTimes,
+} from '../../src/engine/liveLegs'
 import { resolveStatus } from '../../src/engine/status'
 import type { Schedule } from '../../src/engine/types'
 import type { GeoPoint } from '../../src/map/greatCircle'
@@ -297,5 +299,28 @@ describe('a real plane still on the ground at its departure airport (the website
     expect(onGroundAt(IN_THE_AIR, 52)).toBeNull()
     expect(onGroundAt(OFF_EARLY_LANDED, 103)).toBeNull()
     expect(onGroundAt(null, 25)).toBeNull()
+  })
+})
+
+describe('a real plane down, not yet at the gate (the landed, not yet at the gate design §2, Todd, 17 Nov 2026)', () => {
+  const landedAt = (live: LiveFlight | null, minutes: number) => {
+    const schedule = scheduleOf(TURN_TRIP)
+    const now = START + minutes * MINUTE
+    const flights = live ? flightsFor(schedule, live) : new Map()
+    return landedFlight(buildLegs(withLiveTimes(schedule, flights, now)), flights, now)
+  }
+
+  it('is the flight between its gates whose plane has landed, by its id: the narrative says so', () => {
+    // Down at 1:40, 20 minutes early, and at the gate at 1:47.
+    expect(landedAt(OFF_EARLY_LANDED, 100)).toBe('f1')
+    expect(landedAt(OFF_EARLY_LANDED, 106)).toBe('f1')
+  })
+
+  it('is nothing at the gate, in the air, still at its departure airport, and with no live data', () => {
+    const atTheGate = liveFlight([], { legId: 'f1', state: 'ground', fix: fix(25 - 1 / 3, airport('SDF').lat, airport('SDF').lng, { onGround: true }) })
+    expect(landedAt(OFF_EARLY_LANDED, 107)).toBeNull()
+    expect(landedAt(IN_THE_AIR, 52)).toBeNull()
+    expect(landedAt(atTheGate, 25)).toBeNull()
+    expect(landedAt(null, 103)).toBeNull()
   })
 })

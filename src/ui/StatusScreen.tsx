@@ -72,6 +72,11 @@ export interface StatusScreenProps {
    * narrative says so in place of "flying" (the website's own, Todd, 16 Nov 2026).
    */
   stillOnGroundFlight?: string | null
+  /**
+   * The flight under way, by its leg's id, while its real plane is down and not yet at the gate: the narrative says it
+   * has landed (the landed, not yet at the gate design §3, Todd, 17 Nov 2026).
+   */
+  landedFlight?: string | null
 }
 
 /** The link into the schedule named `name`, or none when the page has no way into it. */
@@ -98,6 +103,7 @@ export function StatusScreen(p: StatusScreenProps) {
   const inTheirPlace = () => [inFlightHeading.current, locationHeading.current, titleHeading.current].find((el) => el?.isConnected) ?? null
   const spans = safeNarrative(snap, {
     now: p.now, viewerTz: p.viewerTz, h24: p.h24, airports: p.airports, estimatedArrival: p.estimatedArrival, stillOnGroundFlight: p.stillOnGroundFlight,
+    landedFlight: p.landedFlight,
   })
   const airport = snap.status.airport
   // The place, worked out once for the card, the popup and when the popup may be open: the card's rule for its dial.

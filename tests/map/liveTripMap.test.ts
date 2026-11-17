@@ -4,7 +4,7 @@ import { liveMapFlights, withLiveTimes } from '../../src/engine/liveLegs'
 import { pathPoints } from '../../src/map/flightPathDrawing'
 import { pointsAlong } from '../../src/map/greatCircle'
 import { fitRect } from '../../src/map/mapFit'
-import { stillOnGroundIn } from '../../src/map/tripActivity'
+import { landedIn, stillOnGroundIn } from '../../src/map/tripActivity'
 import { framingPoints, isArrivalEstimated, legLandedBeforeGate, legStillOnGround, makeTripMap, type TripMap } from '../../src/map/tripMap'
 import { atTheGate, FLYING, LANDED_EARLY, LIVE_AIRPORTS as AIRPORTS, liveTripMap, PHL, placeOf, SCHEDULE, SDF, SDF_PHL as F1 } from './liveTrip'
 import { fix, liveFlight, MINUTE, point, START } from './madeUpFlights'
@@ -140,6 +140,15 @@ describe('a real plane down, not yet at the gate (the landed, not yet at the gat
     for (const [live, minutes] of [[FLYING, 59], [atTheGate(25), 25], [elsewhere, 25], [null, 103]] as const) {
       const now = START + minutes * MINUTE
       expect(legLandedBeforeGate(flightOf(liveTripMap(now, live)), now)).toBe(false)
+    }
+  })
+
+  it('names the airport it’s down at, which the line under the timeline names in place of "Flying to", and none otherwise', () => {
+    const now = START + 103 * MINUTE
+    expect(landedIn(liveTripMap(now, LANDED_EARLY), now)).toMatchObject({ code: 'PHL', city: 'Philadelphia' })
+    for (const [live, minutes] of [[LANDED_EARLY, 107], [FLYING, 59], [atTheGate(25), 25], [null, 103]] as const) {
+      const then = START + minutes * MINUTE
+      expect(landedIn(liveTripMap(then, live), then)).toBeNull()
     }
   })
 })

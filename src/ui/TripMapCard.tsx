@@ -2,7 +2,7 @@ import type { Ref } from 'preact'
 import { useRef, useState } from 'preact/hooks'
 import { cardSummary, headline, latestEvent, recapLongestLine, recapTiles, type TripFacts } from '../facts/tripFacts'
 import { delayBannerText, spokenDelayBanner } from '../copy/flight'
-import { arrivalLocalTime, cardChips, cardHeading, flightStatus, landsAt, statsItems, tripMapSummary } from '../copy/tripMap'
+import { arrivalLocalTime, barArrival, cardChips, cardHeading, flightStatus, statsItems, tripMapSummary } from '../copy/tripMap'
 import type { GeoPoint } from '../map/greatCircle'
 import { NO_INSETS, type Insets } from '../map/mapFit'
 import { currentLeg, type MapLeg, type TripMap } from '../map/tripMap'
@@ -136,7 +136,8 @@ function InFlightBar({ leg, now, viewerTz, h24, onOpenTracking }: TripMapCardPro
         <span class="inflight-status">{flightStatus(leg, now)}</span>
       </div>
       <div class="inflight-arrival">
-        <p class="inflight-time">{landsAt(leg, viewerTz, h24)}</p>
+        {/* "Lands 3:30 PM", or "At the gate 8:47 AM" once the real plane is down (Todd, 17 Nov 2026). */}
+        <p class="inflight-time">{barArrival(leg, now, viewerTz, h24)}</p>
         {local && <span class="inflight-code">{local}</span>}
       </div>
     </div>

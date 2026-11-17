@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { landsText } from '../../src/copy/facts'
 import { Sentence } from '../../src/copy/narrative'
 import {
-  cardHeading, flightStatus, gateLine, landedText, landingCountdown, landingLine, landsAt, liveSummary, spokenLiveLabel, spokenMinutes, topPill,
-  tripMapSummary,
+  barArrival, cardHeading, flightStatus, gateLine, landedText, landingCountdown, landingLine, landsAt, liveSummary, spokenLiveLabel, spokenMinutes,
+  topPill, tripMapSummary,
 } from '../../src/copy/tripMap'
 import type { AirportIndex } from '../../src/data/airports'
 import { makeMapFlight } from '../../src/map/mapFlight'
@@ -182,6 +182,13 @@ describe("the map card's heading for screen readers (the website's own, Todd, 16
     expect(cardHeading(mapOf(scheduleOnly(late.leg)), late.t)).toBe('In flight')
   })
 
+  it('is "Landed" while the real plane is down, not yet at the gate (the landed, not yet at the gate design §3, Todd, 17 Nov 2026)', () => {
+    // Down at 13:14:51, and at the gate 7 minutes later.
+    const { leg } = caseLeg('landed, seen all the way')
+    expect(cardHeading(mapOf(leg), leg.end - 3 * 60_000)).toBe('Landed')
+    expect(cardHeading(mapOf(scheduleOnly(leg)), leg.end - 3 * 60_000)).toBe('In flight')
+  })
+
   it('is "Trip recap" or "Trip map" with no flight in the air, as before', () => {
     const { leg, t } = caseLeg('still on the ground twenty minutes after')
     expect(cardHeading(mapOf(leg, { kind: 'recap' }), t)).toBe('Trip recap')
@@ -201,6 +208,19 @@ describe('the words for a real plane down, not yet at the gate (the landed, not 
     expect(gateLine(leg, NY, false)).toMatch(/^Reaches the gate at 8:21\sAM$/)
     expect(gateLine(leg, 'America/Los_Angeles', false)).toMatch(/^Reaches the gate at 8:21\sAM · 5:21\sAM your time$/)
     expect(gateLine(leg, NY, true)).toBe('Reaches the gate at 08:21')
+  })
+
+  it('say on the card’s bar when it reaches the gate, and "Lands" otherwise, as before (Todd, 17 Nov 2026)', () => {
+    // Down at 13:14:51, and at the gate 7 minutes later, at 8:21 AM in Louisville.
+    const { leg } = caseLeg('landed, seen all the way')
+    expect(barArrival(leg, leg.end - 3 * 60_000, NY, false)).toMatch(/^At the gate 8:21\sAM$/)
+    // At the gate, and with no live data.
+    expect(barArrival(leg, leg.end, NY, false)).toMatch(/^Lands 8:21\sAM$/)
+    expect(barArrival(scheduleOnly(leg), leg.end - 3 * 60_000, NY, false)).toMatch(/^Lands 8:21\sAM$/)
+    // In the air, with "about" the real plane's estimate.
+    const flying = caseLeg('ahead, in the air')
+    expect(barArrival(flying.leg, flying.t, NY, false)).toBe(landsAt(flying.leg, NY, false))
+    expect(barArrival(flying.leg, flying.t, NY, false)).toMatch(/^Lands about /)
   })
 
   it('say "about" where the time is the real plane’s estimate, and "at" where it’s the schedule’s', () => {

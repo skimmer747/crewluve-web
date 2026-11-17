@@ -2,8 +2,8 @@ import type { AppleMapStyle } from '../map/appleMapStyle'
 import type { LiveLabel } from '../map/liveLabel'
 import { mapFlightProgress } from '../map/mapFlight'
 import {
-  dayCount, destinationsOf, isArrivalEstimated, legInMotion, legStillOnGround, nextFlight, pilotLocation, currentLeg, type AirportMark, type MapLeg,
-  type TripMap,
+  dayCount, destinationsOf, isArrivalEstimated, legInMotion, legLandedBeforeGate, legStillOnGround, nextFlight, pilotLocation, currentLeg,
+  type AirportMark, type MapLeg, type TripMap,
 } from '../map/tripMap'
 import { milesFlown, totalMiles } from '../facts/tripTotals'
 import { calendarDay, MONTHS, WEEKDAYS, zoneOffsetMinutes, zonedParts } from '../time/zoned'
@@ -195,6 +195,14 @@ export const landedText = (city: string) => `Landed in ${city}`
 /** "Lands 3:30 PM", for the card's bar. With the real plane's estimate, "Lands about 3:18 PM". */
 export const landsAt = (leg: MapLeg, viewerTz: string, h24: boolean) => `Lands ${about(leg)}${shortTimeText(leg.end, viewerTz, h24)}`
 
+/**
+ * The card's bar's arrival: "Lands 3:30 PM" (`landsAt`), or "At the gate 8:47 AM" while the real plane is down and not
+ * yet at the gate, with no "about" (Todd, 17 Nov 2026, the landed, not yet at the gate design §3). The card is always now.
+ */
+export function barArrival(leg: MapLeg, now: number, viewerTz: string, h24: boolean): string {
+  return legLandedBeforeGate(leg, now) ? `At the gate ${shortTimeText(leg.end, viewerTz, h24)}` : landsAt(leg, viewerTz, h24)
+}
+
 /** "9:30 PM in Cologne", or null when the destination keeps the family's time. */
 export function arrivalLocalTime(leg: MapLeg, viewerTz: string, h24: boolean): string | null {
   const there = thereAtLanding(leg, viewerTz, h24)
@@ -282,43 +290,50 @@ export function activityWords({ kind, place }: TripActivity): string {
 
 /**
  * The words under the timeline: the activity's, or "On the ground in Rockford" where the flight's real plane is still on
- * the ground at its departure airport, `stillOnGroundIn` (the website's own, Todd, 16 Nov 2026).
+ * the ground at its departure airport, `stillOnGroundIn` (the website's own, Todd, 16 Nov 2026), or "Landed in
+ * Anchorage" where it's down at its arrival airport and not yet at the gate, `landedIn` (the landed, not yet at the gate
+ * design §3, Todd, 17 Nov 2026).
  */
-function lineWords(activity: TripActivity | null, stillOnGroundIn: AirportMark | null): string | null {
+function lineWords(activity: TripActivity | null, stillOnGroundIn: AirportMark | null, landedIn: AirportMark | null): string | null {
   if (stillOnGroundIn) return `On the ground in ${stillOnGroundIn.city}`
+  if (landedIn) return landedText(landedIn.city)
   return activity ? activityWords(activity) : null
 }
 
 /**
  * "Sat 1:40 PM · Layover in Denver": the line under the timeline, when and what (activity markers design §4.2). While
  * the flight's real plane is still on the ground at its departure airport, `stillOnGroundIn`, "Mon 12:21 PM · On the
- * ground in Rockford" (the website's own, Todd, 16 Nov 2026).
+ * ground in Rockford" (the website's own, Todd, 16 Nov 2026); while it's down and not yet at the gate, `landedIn`, "Mon
+ * 7:45 PM · Landed in Anchorage" (the landed, not yet at the gate design §3, Todd, 17 Nov 2026).
  */
 export function timelineLine(
   ms: number, activity: TripActivity | null, viewerTz: string, h24: boolean, stillOnGroundIn: AirportMark | null = null,
+  landedIn: AirportMark | null = null,
 ): string {
   const time = timelineTime(ms, viewerTz, h24)
-  const words = lineWords(activity, stillOnGroundIn)
+  const words = lineWords(activity, stillOnGroundIn, landedIn)
   return words ? `${time} · ${words}` : time
 }
 
 /** "Saturday 1:40 PM, layover in Denver": the timeline's value for screen readers (activity markers design §4.3), as the line under it. */
 export function timelineSpokenValue(
   ms: number, activity: TripActivity | null, viewerTz: string, h24: boolean, stillOnGroundIn: AirportMark | null = null,
+  landedIn: AirportMark | null = null,
 ): string {
   const time = `${WEEKDAYS[zonedParts(ms, viewerTz).weekday]} ${shortTimeText(ms, viewerTz, h24)}`
-  const words = lineWords(activity, stillOnGroundIn)
+  const words = lineWords(activity, stillOnGroundIn, landedIn)
   if (!words) return time
   return `${time}, ${words.charAt(0).toLowerCase()}${words.slice(1)}`
 }
 
 /**
  * The map card's heading, for screen readers: "In flight", or "On the ground" while the flight's real plane is still
- * on the ground at its departure airport (the website's own, Todd, 16 Nov 2026); else "Trip recap" or "Trip map".
+ * on the ground at its departure airport (the website's own, Todd, 16 Nov 2026), or "Landed" while it's down and not yet
+ * at the gate (the landed, not yet at the gate design §3, Todd, 17 Nov 2026); else "Trip recap" or "Trip map".
  */
 export function cardHeading(map: TripMap, now: number): string {
   const leg = currentLeg(map)
-  if (leg) return legStillOnGround(leg, now) ? 'On the ground' : 'In flight'
+  if (leg) return legStillOnGround(leg, now) ? 'On the ground' : legLandedBeforeGate(leg, now) ? 'Landed' : 'In flight'
   return map.mode.kind === 'recap' ? 'Trip recap' : 'Trip map'
 }
 

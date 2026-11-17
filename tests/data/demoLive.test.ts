@@ -50,6 +50,16 @@ describe("the demo's made-up real planes (Stage 3 spec §12)", () => {
     expect(scene.label).toBe('Still on the ground · 20 min behind')
   })
 
+  it('live-landed: down in Anchorage 8 minutes early, a minute ago, and at the gate 6 minutes on (the landed, not yet at the gate design)', () => {
+    const scene = sceneAt('live-landed')!
+    expect(scene.progress.phase).toBe('landed')
+    expect(scene.label).toBe('Landed 8 min early')
+    expect(scene.flight.live?.callsign).toBe('UPS2963')
+    expect(Math.round((NOW - scene.progress.touchdown!) / MINUTE)).toBe(1)
+    expect(Math.round((scene.progress.end - NOW) / MINUTE)).toBe(6)
+    expect(scene.flight.path.stretches.every((s) => s.kind !== 'unseen')).toBe(true)
+  })
+
   it('stays itself while the page is open', () => {
     expect(sceneAt('live-ahead', 20)?.label).toBe('10 min ahead')
     expect(sceneAt('live-ocean-gap', 60)?.progress.phase).toBe('estimated')

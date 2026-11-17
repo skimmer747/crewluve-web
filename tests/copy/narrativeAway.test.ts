@@ -322,3 +322,53 @@ describe('narrative while the real plane is still on the ground at its departure
     expect(plain(narrative(snapAt(driver, 100), { ...ctx(100), stillOnGroundFlight: null }))).toBe(flying)
   })
 })
+
+describe('narrative while the real plane is down, not yet at the gate (the landed, not yet at the gate design §3, Todd, 17 Nov 2026)', () => {
+  const driver = engineFor(demoRaw('driver', A))
+  const snapAt = (e: ReturnType<typeof engineFor>, minutes: number) => makeSnapshot(e.schedule, e.legs, at(minutes), NY)
+  /** The sentence at `minutes`, with the flight under way's real plane down at its arrival airport. */
+  const landed = (e: ReturnType<typeof engineFor>, minutes: number, more: Partial<NarrativeCtx> = {}) => {
+    const snap = snapAt(e, minutes)
+    return narrative(snap, { ...ctx(minutes), landedFlight: (snap.status.current as MoveLeg).id, ...more })
+  }
+  const tripWith = (flight: Partial<FlightSpec>) =>
+    engineFor(
+      new RawBuilder(A).pilot('Alex', 'SDF', 'LEX').trip('t1', {
+        dutyPeriods: [{ start: 0, end: 400, flights: [{ dep: 'SDF', arr: 'ANC', out: 30, in: 330, ...flight }] }],
+      }).build(),
+    )
+
+  it('says it has landed, and counts down to the gate, with the time as before', () => {
+    expect(plain(landed(driver, 145))).toBe('Alex has landed in Rockford on UPS flight 2961 — at the gate in 5m which is 8:00am EDT.')
+  })
+
+  it('says "about" of a gate time that’s the real plane’s estimate, as before', () => {
+    const end = (snapAt(driver, 145).status.current as MoveLeg).end
+    expect(plain(landed(driver, 145, { estimatedArrival: end })))
+      .toBe('Alex has landed in Rockford on UPS flight 2961 — at the gate in 5m which is about 8:00am EDT.')
+  })
+
+  it('bolds the place and the times, and colors the countdown with the status color', () => {
+    const spans = landed(driver, 145)
+    expect(spans.filter((s) => s.bold).map((s) => s.text)).toEqual(['Rockford', '5m', '8:00am EDT'])
+    expect(coloredSpans(spans)).toEqual(['5m:status'])
+    expect(spans.find((s) => s.text === '5m')?.spoken).toBe('5 minutes')
+  })
+
+  it('takes the place of a delayed flight’s words too, keeping its red countdown', () => {
+    const spans = landed(driver, 1890)
+    expect(plain(spans)).toBe('Alex has landed in Louisville on UPS flight 2962 — at the gate in 10m which is 1:10pm EDT.')
+    expect(coloredSpans(spans)).toEqual(['10m:red'])
+  })
+
+  it('reads the same for a deadhead, and says "on the flight" when it has no usable number', () => {
+    expect(plain(landed(tripWith({ dh: true }), 320))).toBe('Alex has landed in Anchorage on UPS flight 1000 — at the gate in 10m which is 11:00am EDT.')
+    expect(plain(landed(tripWith({ number: null }), 320))).toBe('Alex has landed in Anchorage on the flight — at the gate in 10m which is 11:00am EDT.')
+  })
+
+  it('says flying, as before, when the plane down is another flight’s, or none is', () => {
+    const flying = 'Alex is flying to Rockford on UPS flight 2961 from Louisville — landing in 5m which is 8:00am EDT.'
+    expect(plain(narrative(snapAt(driver, 145), { ...ctx(145), landedFlight: 'another flight' }))).toBe(flying)
+    expect(plain(narrative(snapAt(driver, 145), { ...ctx(145), landedFlight: null }))).toBe(flying)
+  })
+})

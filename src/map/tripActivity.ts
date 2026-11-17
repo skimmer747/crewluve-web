@@ -1,5 +1,7 @@
 import { HOUR } from '../time/zoned'
-import { isMoving, legInMotion, legStillOnGround, pilotLocation, type AirportMark, type GroundStop, type TripMap } from './tripMap'
+import {
+  isMoving, legInMotion, legLandedBeforeGate, legStillOnGround, pilotLocation, type AirportMark, type GroundStop, type TripMap,
+} from './tripMap'
 
 /**
  * What the pilot is doing at a moment of the trip map, and where (the app's activity markers design §2.2), as the app's
@@ -65,6 +67,16 @@ export function activityAt(map: TripMap, t: number): TripActivity | null {
 export function stillOnGroundIn(map: TripMap, now: number): AirportMark | null {
   const flight = map.legs.find((l) => l.kind === 'flight' && isMoving(l, now))
   return flight && legStillOnGround(flight, now) ? flight.origin : null
+}
+
+/**
+ * Where the pilot's flight is down at `now`, while it's between its gates and its real plane has landed: its arrival
+ * airport, which the line under the timeline names in place of "Flying to" (the landed, not yet at the gate design §3,
+ * Todd, 17 Nov 2026). Null otherwise. Now only, as `stillOnGroundIn` is.
+ */
+export function landedIn(map: TripMap, now: number): AirportMark | null {
+  const flight = map.legs.find((l) => l.kind === 'flight' && isMoving(l, now))
+  return flight && legLandedBeforeGate(flight, now) ? flight.destination : null
 }
 
 /**

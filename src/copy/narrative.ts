@@ -30,6 +30,11 @@ export interface NarrativeCtx {
    * sentence says so in place of "flying" (the website's own, Todd, 16 Nov 2026).
    */
   stillOnGroundFlight?: string | null
+  /**
+   * The flight under way, by its leg's id, while its real plane is down at its arrival airport and not yet at the gate:
+   * the sentence says it has landed (the landed, not yet at the gate design §3, Todd, 17 Nov 2026).
+   */
+  landedFlight?: string | null
 }
 
 /** Builds one sentence out of plain, bold, and countdown spans. */
@@ -113,6 +118,12 @@ export function narrative(s: Snapshot, ctx: NarrativeCtx): Span[] {
       if (ctx.stillOnGroundFlight === f.id) {
         return n.t(`${name} is still on the ground in `).b(city(f.dep)).t(`${fl || ' on the flight'} to `).b(city(f.arr))
           .t(' — landing in ').cd(f.end, delay ? changed : 'status').t(' which is ').time(f.end).t('.').spans
+      }
+      // Down, and on its way to the gate: "Alex has landed in Anchorage on UPS flight 2963 — at the gate in 8m which is
+      // 7:52pm EST." (the landed, not yet at the gate design §3, Todd, 17 Nov 2026).
+      if (ctx.landedFlight === f.id) {
+        return n.t(`${name} has landed in `).b(city(f.arr)).t(`${fl || ' on the flight'} — at the gate in `)
+          .cd(f.end, delay ? changed : 'status').t(' which is ').time(f.end).t('.').spans
       }
       if (delay) {
         return n.t(`${name} ${early ? 'pushed early' : 'was delayed'} in `).b(city(f.dep)).t(` and is ${verb} to `).b(city(f.arr))

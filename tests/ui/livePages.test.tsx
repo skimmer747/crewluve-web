@@ -3,7 +3,7 @@ import { act, cleanup, render } from '@testing-library/preact'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ScheduleHandle } from '../../src/ui/hooks/useSchedule'
 import { PilotPages } from '../../src/ui/PilotPages'
-import { atTheGate, FLYING, LIVE_AIRPORTS, SCHEDULE, SDF } from '../map/liveTrip'
+import { atTheGate, FLYING, LANDED_EARLY, LIVE_AIRPORTS, SCHEDULE, SDF } from '../map/liveTrip'
 import { fix, liveFlight, MINUTE, START } from '../map/madeUpFlights'
 
 const NOW = START + 59 * MINUTE
@@ -103,6 +103,39 @@ describe('the status page with a real plane still on the ground at its departure
     cleanup()
     vi.setSystemTime(LATE)
     expect(page(null).querySelector('.narrative-text')?.textContent).toMatch(/^Alex is flying to Philadelphia on UPS flight 1234 from Louisville — /)
+  })
+})
+
+describe('the status page with a real plane down, not yet at the gate (the landed, not yet at the gate design §3, Todd, 17 Nov 2026)', () => {
+  /** Three minutes after it landed in Philadelphia, 13 minutes early, and four before it reaches the gate. */
+  const DOWN = START + 103 * MINUTE
+  const LANDED = { flights: new Map([['f1', LANDED_EARLY]]), clockOffset: 0 }
+
+  it('says so in the narrative, counting down to the gate, and on the card’s heading and its chip', () => {
+    vi.setSystemTime(DOWN)
+    const container = page(LANDED)
+    expect(container.querySelector('.narrative-text')?.textContent)
+      // The countdown's digits, then its words for screen readers.
+      .toMatch(/^Alex has landed in Philadelphia on UPS flight 1234 — at the gate in 4m4 minutes which is 8:47am EST\.$/)
+    expect(container.querySelector('.trip-map-card h2')?.textContent).toBe('Landed')
+    expect(container.querySelector('.trip-map-chip.bottom')?.textContent).toBe('Landed in Philadelphia')
+  })
+
+  it('keeps the bar’s label and the card’s sentence as they were, and the bar says when it reaches the gate (Todd, 17 Nov 2026)', () => {
+    vi.setSystemTime(DOWN)
+    const container = page(LANDED)
+    expect(container.querySelector('.inflight-status')?.textContent).toBe('Landed 13 min early')
+    expect(container.querySelector('.inflight-time')?.textContent).toMatch(/^At the gate 8:47\sAM$/)
+    expect(container.querySelector('.trip-map-open')?.getAttribute('aria-label'))
+      .toMatch(/^UPS1234 to Philadelphia, landed 13 minutes early\. Reaches the gate at 8:47\sAM your time\. (.+\. )?Opens the full map\.$/)
+  })
+
+  it('says flying, as before, with no live data', () => {
+    vi.setSystemTime(DOWN)
+    const container = page(null)
+    expect(container.querySelector('.narrative-text')?.textContent).toMatch(/^Alex is flying to Philadelphia on UPS flight 1234 from Louisville — /)
+    expect(container.querySelector('.trip-map-card h2')?.textContent).toBe('In flight')
+    expect(container.querySelector('.inflight-time')?.textContent).toMatch(/^Lands 9:00\sAM$/)
   })
 })
 

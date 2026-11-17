@@ -2,7 +2,9 @@
 
 Status: approved by Todd on 17 Nov 2026, from a sketch of three wordings ("A: 'Landed in Anchorage'"). It's the other end of
 the website's "Still on the ground in Rockford" (plan 3C-3, Todd, 16 Nov 2026), and it settles an item that plans 3C-3 and
-3C-4 left for later. The app gets the same words, by its own plan.
+3C-4 left for later. The app gets the same words, by its own plan. Todd settled two details on 17 Nov 2026, from the
+website's plan: "at", not "about", once the plane is down, as the card's sentence and the popup say it; and the bar's right
+side, "At the gate 8:47 AM".
 
 ## 1. Why
 
@@ -27,10 +29,11 @@ family reading two of them at once gets two stories.
 | The facts' headline, their first row, and the card's bottom chip | "Over Alaska" | **Landed in Anchorage** |
 | The distance row | "2,788 mi flown · 0 to go" | **2,788 mi flown** (its comparison line as before) |
 | The sky row | shown | **left out**, as at the gate |
-| The landing row | "Lands Anchorage about 3:52 PM · 7:52 PM your time" | **Reaches the gate about 3:52 PM · 7:52 PM your time** ("at" where the time is the schedule's, "about" where it's the real plane's estimate, as the card's sentence); the weather line under it as before |
+| The landing row | "Lands Anchorage about 3:52 PM · 7:52 PM your time" | **Reaches the gate at 3:52 PM · 7:52 PM your time** ("at", as the card's sentence and the popup say it once the plane is down); the weather line under it as before |
+| The card's bar, its right side | "Lands 8:47 AM" | **At the gate 8:47 AM** (the city's own time under it as before) |
 | The list's tag on the flight | "In the air now" | **Landed** (its border kept) |
 | The line under the timeline (and the slider's spoken value) | "Flying to Anchorage" | **Landed in Anchorage** |
-| The status page's sentence | "Alex is flying to Anchorage on UPS flight 2963 from Rockford — landing in 8m which is about 7:52pm EST." | **Alex has landed in Anchorage on UPS flight 2963 — at the gate in 8m which is about 7:52pm EST.** (with no flight number, "on the flight") |
+| The status page's sentence | "Alex is flying to Anchorage on UPS flight 2963 from Rockford — landing in 8m which is about 7:52pm EST." | **Alex has landed in Anchorage on UPS flight 2963 — at the gate in 8m which is 7:52pm EST.** (with no flight number, "on the flight") |
 | The card's heading for screen readers | "In flight" | **Landed** |
 
 "Anchorage" is the arrival airport's city, as everywhere else. The first row's other lines (where the plane was last
@@ -38,7 +41,7 @@ tracked, the closest point to home) are left out with what's below, as "Still on
 
 ## 4. Unchanged
 
-- The flight's bar ("Landed 8 min early", "Landed on time", "Landed 8 min late").
+- The flight's bar's left side ("Landed 8 min early", "Landed on time", "Landed 8 min late").
 - The card's sentence for screen readers ("…, landed 8 minutes early. Reaches the gate at 7:52 PM your time.").
 - The plane's popup ("Reaches the gate at …").
 - The latest event's banner, which the latest event design keeps until the gate.

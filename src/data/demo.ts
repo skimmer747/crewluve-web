@@ -4,7 +4,7 @@ import type { RawSchedule } from './rows'
 export type DemoScene =
   | 'home' | 'driving-to-work' | 'base' | 'flying' | 'turn' | 'layover' | 'delayed'
   | 'last-leg' | 'driving-home' | 'commuting-home' | 'reserve' | 'training' | 'nothing-ahead' | 'recap'
-  | 'live-ahead' | 'live-ocean-gap' | 'live-on-ground-late'
+  | 'live-ahead' | 'live-ocean-gap' | 'live-on-ground-late' | 'live-landed'
 
 export type DemoVariant = 'driver' | 'jumpseater'
 
@@ -27,11 +27,12 @@ export const DEMO_SCENES: Record<DemoScene, { variant: DemoVariant; offset: numb
   // Home the evening after the main trip, which lands at 1900 and is recapped for a day (Stage 2 spec §8.1).
   recap: { variant: 'driver', offset: 2400 },
   // The real plane (Stage 3 spec §12), made up in demoLive.ts: ahead on the way to Rockford, the moment `flying` shows;
-  // faded past a stretch nobody saw on the way to Anchorage; and still at Rockford's gate 20 minutes after the plan's
-  // takeoff. `flying` stays the schedule's alone.
+  // faded past a stretch nobody saw on the way to Anchorage; still at Rockford's gate 20 minutes after the plan's
+  // takeoff; and down in Anchorage a minute ago, not yet at the gate. `flying` stays the schedule's alone.
   'live-ahead': { variant: 'driver', offset: 100 },
   'live-ocean-gap': { variant: 'driver', offset: 460 },
   'live-on-ground-late': { variant: 'driver', offset: 260 },
+  'live-landed': { variant: 'driver', offset: 541 },
 }
 
 export const DEFAULT_SCENE: DemoScene = 'flying'

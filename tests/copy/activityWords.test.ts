@@ -38,6 +38,14 @@ describe('the words for what the pilot is doing (activity markers design §4.2, 
     expect(timelineLine(at(12), flying, 'America/New_York', false, null)).toMatch(/^Fri 7:00\sPM · Flying to Cologne$/)
     expect(timelineSpokenValue(at(12), flying, 'America/New_York', false, null)).toMatch(/^Friday 7:00\sPM, flying to Cologne$/)
   })
+
+  it('says where a flight’s real plane is down, not yet at the gate, in place of flying (the landed, not yet at the gate design §3, Todd, 17 Nov 2026)', () => {
+    const flying = { kind: 'flying', place: cologne } as const
+    expect(timelineLine(at(12), flying, 'America/New_York', false, null, cologne)).toMatch(/^Fri 7:00\sPM · Landed in Cologne$/)
+    expect(timelineSpokenValue(at(12), flying, 'America/New_York', false, null, cologne)).toMatch(/^Friday 7:00\sPM, landed in Cologne$/)
+    // Without it, flying, as before.
+    expect(timelineLine(at(12), flying, 'America/New_York', false, null, null)).toMatch(/^Fri 7:00\sPM · Flying to Cologne$/)
+  })
 })
 
 describe('the next trip’s chip (the app’s base waits design §3)', () => {
