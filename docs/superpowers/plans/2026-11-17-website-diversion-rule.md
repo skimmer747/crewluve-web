@@ -31,11 +31,12 @@
 
 ### Task 2: Going live, on Todd's yes
 
-- [ ] **Step 1:** Push the branch to `main`, a fast-forward only, on Todd's yes.
-- [ ] **Step 2:** Watch the deploy until it succeeds; if it fails, tell Todd at once with its log.
-- [ ] **Step 3:** The record below, committed and pushed the same way.
+- [x] **Step 1:** Push the branch to `main`, a fast-forward only, on Todd's yes.
+- [x] **Step 2:** Watch the deploy until it succeeds; if it fails, tell Todd at once with its log.
+- [x] **Step 3:** The record below, committed and pushed the same way.
 
 ## Changes made during execution
 
 - **Task 1, Steps 1 to 4** done in session `68f03a67` on 17 Nov 2026, as above.
 - **Todd chose "Run it, commit, go live":** his run, `npm test && TZ=UTC npm test && npm run build`, passed 178 test files and 3,786 tests in Eastern time and in UTC, and built.
+- **Commit `4ccb260`;** pushed `b64eaad..4ccb260`, a fast-forward. **Deployed:** run `44165083382`, build and deploy succeeded, 3:03 PM EST (20:03 UTC).
