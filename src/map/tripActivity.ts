@@ -1,6 +1,6 @@
 import { HOUR } from '../time/zoned'
 import {
-  isMoving, legInMotion, legLandedBeforeGate, legStillOnGround, pilotLocation, type AirportMark, type GroundStop, type TripMap,
+  isMoving, legInMotion, legLandedBeforeGate, legReturned, legStillOnGround, pilotLocation, type AirportMark, type GroundStop, type TripMap,
 } from './tripMap'
 
 /**
@@ -77,6 +77,31 @@ export function stillOnGroundIn(map: TripMap, now: number): AirportMark | null {
 export function landedIn(map: TripMap, now: number): AirportMark | null {
   const flight = map.legs.find((l) => l.kind === 'flight' && isMoving(l, now))
   return flight && legLandedBeforeGate(flight, now) ? flight.destination : null
+}
+
+/**
+ * A flight between its gates whose real plane is on the ground now, as the line under the timeline names it in place of
+ * "Flying to", as the app's FlightOnGround: still at its departure airport after the plan's takeoff time, `stillIn`
+ * ("On the ground in Rockford"); back there after an air return, `returnedTo` ("Returned to Rockford", air return
+ * design §3); or down at its arrival airport before the gate, `landedIn` ("Landed in Anchorage").
+ */
+export interface FlightOnGround {
+  kind: 'stillIn' | 'returnedTo' | 'landedIn'
+  /** The airport it's on the ground at. */
+  airport: AirportMark
+}
+
+/**
+ * Where the flight between its gates at `now` has its real plane on the ground, as the line under the timeline names it.
+ * Null otherwise. Now only, as `stillOnGroundIn` and `landedIn` are.
+ */
+export function flightOnGround(map: TripMap, now: number): FlightOnGround | null {
+  const arrival = landedIn(map, now)
+  if (arrival) return { kind: 'landedIn', airport: arrival }
+  const departure = stillOnGroundIn(map, now)
+  if (!departure) return null
+  const flight = map.legs.find((l) => l.kind === 'flight' && isMoving(l, now))
+  return { kind: flight && legReturned(flight, now) ? 'returnedTo' : 'stillIn', airport: departure }
 }
 
 /**

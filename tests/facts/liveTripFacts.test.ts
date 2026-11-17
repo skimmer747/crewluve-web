@@ -535,6 +535,53 @@ describe('a real plane still at its departure airport: nothing passed, and its t
   })
 })
 
+// An air return (air return design §3)
+
+/** The real plane back on the ground at its gate at `seenAt`, having flown out 0.6° E, climbing to 9,000 ft, and back. */
+function backOnTheGround(seenAt: number): LiveFlight {
+  const point = (hhmm: string, lng: number, altitudeFt: number) => ({ time: at(hhmm), place: { lat: 0, lng }, altitudeFt })
+  return { ...onTheGround(seenAt), trail: [point('10:18', 0.3, 2_000), point('10:24', 0.6, 9_000), point('10:30', 0.2, 3_000)] }
+}
+
+/** The facts with the real plane back at its gate at `now`, its leg having begun at 10:00 and the plan's takeoff at 10:15. */
+const backAtTheGate = (now: string, options: { geography?: Geography; isReplay?: boolean } = {}) => {
+  const leg = fromRockford(backOnTheGround(at(now)), now)
+  return makeTripFacts(flightMap(leg, HOME_BY_THE_EQUATOR), {
+    geography: options.geography ?? EQUATOR, comparisons: appComparisons(), viewerTz: NY, h24: false, day: 1, days: 1, isReplay: options.isReplay,
+  })
+}
+
+describe('a real plane back at its departure airport after an air return (air return design §3)', () => {
+  /** A border 1° E along: the plane flew over it and back, and the schedule's times have it cross at 10:24. */
+  const border = makeGeography([box('Alpha', 'country', -1, 1), box('Bravo', 'country', 1, 21)], [])
+
+  it('heads the facts "Returned to Rockford", and reads otherwise as a plane still at the gate', () => {
+    const theFacts = backAtTheGate('10:35')
+    expect(headline(theFacts, at('10:35'))).toBe('Returned to Rockford')
+    const rows = rowsAt(theFacts, '10:35')
+    expect(rows.map((r) => r.kind)).toEqual(['below', 'plane', 'distance', 'headed'])
+    expect(row('below', rows).title).toBe('Returned to Rockford')
+    expect(row('distance', rows).title).toBe('1,382 mi to go')
+  })
+
+  it('leaves the flight out of the trip so far, with no latest event, as a plane still at the gate', () => {
+    const theFacts = backAtTheGate('10:35', { geography: border })
+    expect(tripSoFar(theFacts, at('10:35')).flights).toEqual([])
+    expect(latestEvent(theFacts, at('10:35'))).toBeNull()
+  })
+
+  it('has a sentence for screen readers that says it has returned there, and when it lands', () => {
+    expect(cardSummary(backAtTheGate('10:35'), at('10:35'), 'Alex'))
+      .toBe(`TST1 to E20, returned to Rockford. Lands about 9:42${AM} your time. Opens the full map.`)
+  })
+
+  it('in a replay, reads where the map has the plane: the schedule’s, as the way out and back isn’t its path', () => {
+    const theFacts = backAtTheGate('10:35', { isReplay: true })
+    expect(headline(theFacts, at('10:35'))).toBe('Over Alpha')
+    expect(row('distance', rowsAt(theFacts, '10:35')).title).toBe('138 mi flown · 1,244 to go')
+  })
+})
+
 // The landed, not yet at the gate design (Todd, 17 Nov 2026)
 
 /**

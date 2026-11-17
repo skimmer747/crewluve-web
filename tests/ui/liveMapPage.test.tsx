@@ -6,7 +6,7 @@ import { currentLeg } from '../../src/map/tripMap'
 import { resetAppleMapKit } from '../../src/ui/hooks/useAppleMapKit'
 import { TripMapCard } from '../../src/ui/TripMapCard'
 import { TripMapPage } from '../../src/ui/TripMapPage'
-import { atTheGate, FLYING, LANDED_EARLY, liveTripMap } from '../map/liveTrip'
+import { atTheGate, backAtTheGate, FLYING, LANDED_EARLY, liveTripMap } from '../map/liveTrip'
 import { fix, MINUTE, START } from '../map/madeUpFlights'
 
 afterEach(() => {
@@ -133,6 +133,33 @@ describe('a real plane still on the ground at its departure airport (the website
     expect(line()).toMatch(/ · Flying to Philadelphia$/)
     cleanup()
     render(page(LATE, null))
+    expect(line()).toMatch(/ · Flying to Philadelphia$/)
+  })
+})
+
+describe('a real plane back at its departure airport after an air return (air return design §3)', () => {
+  /** Off on time, out and back, and on the ground in Louisville again at 44 minutes. */
+  const BACK = START + 45 * MINUTE
+  const page = (t: number, live: Parameters<typeof liveTripMap>[1]) =>
+    <TripMapPage map={liveTripMap(t, live)} now={t} viewerTz={NY} h24={false} day={1} days={1} land={null} onBack={() => {}} />
+  const line = () => document.querySelector('.trip-timeline-time')?.textContent
+  const slider = () => screen.getByRole('slider', { name: 'Trip time' }) as HTMLInputElement
+
+  it('says so on the card’s bar, and heads the card "On the ground" for screen readers', () => {
+    card(BACK, backAtTheGate(45))
+    expect(document.querySelector('.inflight-status')?.textContent).toBe('Returned to Louisville')
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('On the ground')
+  })
+
+  it('says under the full map’s timeline that it has returned there, now', () => {
+    render(page(BACK, backAtTheGate(45)))
+    expect(line()).toMatch(/^Fri 7:45\sAM · Returned to Louisville$/)
+    expect(slider().getAttribute('aria-valuetext')).toMatch(/^Friday 7:45\sAM, returned to Louisville$/)
+  })
+
+  it('says "Flying to" in a replay, which reads where the map has the plane', () => {
+    render(page(BACK, backAtTheGate(45)))
+    fireEvent.input(slider(), { target: { value: String(Number(slider().max) / 2) } })
     expect(line()).toMatch(/ · Flying to Philadelphia$/)
   })
 })

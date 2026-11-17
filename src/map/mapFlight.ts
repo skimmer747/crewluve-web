@@ -44,12 +44,19 @@ export const mapFlightProgress = (flight: MapFlight, now: number): LiveProgress 
  * Whether the real plane is still on the ground at its departure airport after the plan's takeoff time, when this
  * browser's clock says `now`: seen there lately, not yet in the air (spec §5.1's `onGround`), and late leaving, as its
  * bar says "Still on the ground". Before the plan's takeoff it's taxiing as the schedule has it, and nothing says so
- * (the website's own, Todd, 16 Nov 2026).
+ * (the website's own, Todd, 16 Nov 2026). A plane back there after an air return is at it too, at any time (air return
+ * design §3).
  */
 export function isAtDeparture(flight: MapFlight, now: number): boolean {
   const { phase, label } = mapFlightProgress(flight, now)
-  return phase === 'onGround' && label?.kind === 'stillOnGround'
+  return phase === 'returned' || (phase === 'onGround' && label?.kind === 'stillOnGround')
 }
+
+/**
+ * Whether the real plane is back on the ground at its departure airport after flying, when this browser's clock says
+ * `now` (air return design §2): the words say "Returned to Rockford" in place of "Still on the ground".
+ */
+export const hasReturned = (flight: MapFlight, now: number): boolean => mapFlightProgress(flight, now).phase === 'returned'
 
 /**
  * Whether the real plane has landed, when this browser's clock says `now`: Crewlu Cloud's state for the flight is

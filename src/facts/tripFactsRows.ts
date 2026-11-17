@@ -1,6 +1,6 @@
 import {
   aircraftText, allFlownText, averageSpeedText, chaseText, closestToHomeText, cockpitEventText, flownText, flyingInto, groundSunText,
-  halfwayText, heightAndSpeedText, landsText, midLine, moonText, stillOnGroundText, timeDifferenceText, toGoText,
+  halfwayText, heightAndSpeedText, landsText, midLine, moonText, timeDifferenceText, toGoText,
 } from '../copy/facts'
 import { longestText, milesText, onTheWayText, soFarText } from '../copy/factsTrip'
 import { daysText, shortTimeText } from '../copy/format'
@@ -17,7 +17,8 @@ import { roundedMiles } from './milestone'
 import { legPlane, type PlanePosition } from './planePosition'
 import { chase, cockpitHorizonOnLeg, moonSight, nextGroundSunEvent, sunAltitudeOnLeg } from './sky'
 import {
-  belowText, forecastFor, isLandedBeforeGate, isRecapOver, isStillOnGround, lastSeenText, latestEvent, sheetHeadline, showsLiveData, tripSoFar,
+  atDepartureText, belowText, forecastFor, isLandedBeforeGate, isRecapOver, isStillOnGround, lastSeenText, latestEvent, sheetHeadline, showsLiveData,
+  tripSoFar,
   type TripFacts,
 } from './tripFacts'
 import { longestFlight, totalsSoFar, wholeTotals, type TripTotals } from './tripTotals'
@@ -46,12 +47,12 @@ function flightRows(facts: TripFacts, leg: MapLeg, t: number, now: number): Fact
 /**
  * What's below, then where a plane that's out of sight was last seen, then the closest point to home. The first of them
  * that there is leads the row. A real plane still at its departure airport says so in place of what's below (the
- * website's own, Todd, 16 Nov 2026). One down, not yet at the gate, says "Landed in Anchorage", alone: the rest goes
+ * website's own, Todd, 16 Nov 2026), or that it has returned there after an air return (air return design §3). One down, not yet at the gate, says "Landed in Anchorage", alone: the rest goes
  * with what's below (the landed, not yet at the gate design §3, Todd, 17 Nov 2026).
  */
 function belowRow(facts: TripFacts, leg: MapLeg, t: number): FactRow | null {
   if (isLandedBeforeGate(facts, leg, t)) return factRow('below', 'MapPin', landedText(leg.destination.city))
-  const where = isStillOnGround(facts, leg, t) ? stillOnGroundText(leg.origin.city) : belowText(facts, leg, t)
+  const where = isStillOnGround(facts, leg, t) ? atDepartureText(leg, t) : belowText(facts, leg, t)
   const lines = [where, lastSeenText(facts, leg, t), closestToHomeLine(facts, leg, t)].filter(notNull)
   return lines.length > 0 ? factRow('below', 'MapPin', lines[0], lines.slice(1)) : null
 }

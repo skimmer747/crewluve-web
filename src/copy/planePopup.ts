@@ -1,7 +1,7 @@
 import { mapFlightProgress } from '../map/mapFlight'
 import type { MapLeg } from '../map/tripMap'
 import { shortTimeText } from './format'
-import { about, landsAt, liveLabelText } from './tripMap'
+import { about, landsAt, liveLabelText, returnedText } from './tripMap'
 
 /** Which of a flight's two planes: the real one, or the ghost where an on-schedule plane would be. */
 export type PlaneKind = 'realPlane' | 'ghost'
@@ -40,9 +40,11 @@ export function planePopupWords(leg: MapLeg, plane: PlaneKind, t: number, isRepl
       }
     }
     case 'onGround':
-    case 'returned':
     case 'inAir':
       return { title, lines: [...(label ? [label] : []), landsAt(leg, viewerTz, h24)] }
+    case 'returned':
+      // Back at its departure airport after an air return, which it names (air return design §3).
+      return { title, lines: [returnedText(leg.origin.city), landsAt(leg, viewerTz, h24)] }
     case 'landed':
       // "at" the gate, as the card's sentence says once the plane is down, or "about" while that's still an estimate.
       return { title, lines: [...(label ? [label] : []), `Reaches the gate ${about(leg) || 'at '}${time(leg.end)}`] }

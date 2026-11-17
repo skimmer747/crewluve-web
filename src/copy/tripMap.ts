@@ -7,7 +7,7 @@ import {
 } from '../map/tripMap'
 import { milesFlown, totalMiles } from '../facts/tripTotals'
 import { calendarDay, MONTHS, WEEKDAYS, zoneOffsetMinutes, zonedParts } from '../time/zoned'
-import type { TripActivity } from '../map/tripActivity'
+import type { FlightOnGround, TripActivity } from '../map/tripActivity'
 import { recapChip } from './factsTrip'
 import { shortTimeText } from './format'
 
@@ -63,10 +63,12 @@ export const about = (leg: MapLeg) => (isArrivalEstimated(leg) ? 'about ' : '')
 
 /**
  * What the card's bar and the full map's pill say of a flight between its gates (Stage 3 spec §9): the real plane's
- * label, or "In flight" when it has none. A moment of the replay is always "In flight" (§7.3).
+ * label, or "In flight" when it has none. A moment of the replay is always "In flight" (§7.3). A plane back at its
+ * departure airport after an air return names it: "Returned to Rockford" (air return design §3).
  */
 export function flightStatus(leg: MapLeg, now: number, isReplay = false): string {
   const label = !isReplay && leg.flight ? mapFlightProgress(leg.flight, now).label : null
+  if (label?.kind === 'returned') return returnedText(leg.origin.city)
   return label ? liveLabelText(label) : 'In flight'
 }
 
@@ -139,7 +141,9 @@ export function spokenLiveLabel(label: LiveLabel): string {
 /**
  * The card's sentence for a flight with a real plane (Stage 3 spec §9, §15): "UPS207 to Cologne, 12 minutes ahead of
  * schedule, over Québec. Lands about 3:18 PM your time." Once it's down, "…, landed 8 minutes early. Reaches the gate at
- * 3:18 PM your time." Null when the plane has no label, and the schedule's sentence stands.
+ * 3:18 PM your time." Back at its departure airport after an air return, "UPS2963 to Anchorage, returned to Rockford.
+ * Lands about 9:11 AM your time." (air return design §3). Null when the plane has no label, and the schedule's sentence
+ * stands.
  * - `over` is what's below.
  * - `lastSeen` is where a plane that's out of tracking range was last seen, as `spokenLastSeen` words it: "near
  *   Montréal", "over Québec" or "2 hours ago". It follows what's below, which is then a best guess: "…, about 14 minutes
@@ -158,7 +162,9 @@ export function liveSummary(
   // It's down and on its way in: "landed 8 minutes early. Lands at 3:18 PM" would say so twice.
   const arrival = isDown ? `Reaches the gate at ${time} your time.` : `Lands ${isArrivalEstimated(leg) ? 'about' : 'at'} ${time} your time.`
   const where = isFlying ? `${over ? `, over ${over}` : ''}${lastSeen ? `, last tracked ${lastSeen}` : ''}` : ''
-  return `${lead} ${leg.destination.city}, ${spokenLiveLabel(label)}${where}. ${arrival}`
+  // A plane back at its departure airport after an air return names it (air return design §3).
+  const spoken = label.kind === 'returned' ? `returned to ${leg.origin.city}` : spokenLiveLabel(label)
+  return `${lead} ${leg.destination.city}, ${spoken}${where}. ${arrival}`
 }
 
 /** The destination's own time at landing, or null when it keeps the family's. */
@@ -196,6 +202,12 @@ export function gateLine(leg: MapLeg, viewerTz: string, h24: boolean): string {
  * landed, not yet at the gate design §3, Todd, 17 Nov 2026).
  */
 export const landedText = (city: string) => `Landed in ${city}`
+
+/**
+ * "Returned to Rockford": a real plane back on the ground at its departure airport after an air return, on the card's
+ * bar, the plane's popup, at the head of the facts and under the timeline (air return design §3).
+ */
+export const returnedText = (city: string) => `Returned to ${city}`
 
 /** "Lands 3:30 PM", for the card's bar. With the real plane's estimate, "Lands about 3:18 PM". */
 export const landsAt = (leg: MapLeg, viewerTz: string, h24: boolean) => `Lands ${about(leg)}${shortTimeText(leg.end, viewerTz, h24)}`
@@ -294,39 +306,40 @@ export function activityWords({ kind, place }: TripActivity): string {
 }
 
 /**
- * The words under the timeline: the activity's, or "On the ground in Rockford" where the flight's real plane is still on
- * the ground at its departure airport, `stillOnGroundIn` (the website's own, Todd, 16 Nov 2026), or "Landed in
- * Anchorage" where it's down at its arrival airport and not yet at the gate, `landedIn` (the landed, not yet at the gate
- * design §3, Todd, 17 Nov 2026).
+ * The words under the timeline: the activity's, or where the flight's real plane is on the ground, `onGround`: "On the
+ * ground in Rockford" while it's still at its departure airport (the website's own, Todd, 16 Nov 2026), "Returned to
+ * Rockford" once it's back there after an air return (air return design §3), or "Landed in Anchorage" where it's down at
+ * its arrival airport and not yet at the gate (the landed, not yet at the gate design §3, Todd, 17 Nov 2026).
  */
-function lineWords(activity: TripActivity | null, stillOnGroundIn: AirportMark | null, landedIn: AirportMark | null): string | null {
-  if (stillOnGroundIn) return `On the ground in ${stillOnGroundIn.city}`
-  if (landedIn) return landedText(landedIn.city)
-  return activity ? activityWords(activity) : null
+function lineWords(activity: TripActivity | null, onGround: FlightOnGround | null): string | null {
+  switch (onGround?.kind) {
+    case 'stillIn': return `On the ground in ${onGround.airport.city}`
+    case 'returnedTo': return returnedText(onGround.airport.city)
+    case 'landedIn': return landedText(onGround.airport.city)
+    case undefined: return activity ? activityWords(activity) : null
+  }
 }
 
 /**
  * "Sat 1:40 PM · Layover in Denver": the line under the timeline, when and what (activity markers design §4.2). While
- * the flight's real plane is still on the ground at its departure airport, `stillOnGroundIn`, "Mon 12:21 PM · On the
- * ground in Rockford" (the website's own, Todd, 16 Nov 2026); while it's down and not yet at the gate, `landedIn`, "Mon
- * 7:45 PM · Landed in Anchorage" (the landed, not yet at the gate design §3, Todd, 17 Nov 2026).
+ * the flight's real plane is on the ground, `onGround`: "Mon 12:21 PM · On the ground in Rockford" (the website's own,
+ * Todd, 16 Nov 2026), "Mon 12:21 PM · Returned to Rockford" (air return design §3), or "Mon 7:45 PM · Landed in
+ * Anchorage" (the landed, not yet at the gate design §3, Todd, 17 Nov 2026).
  */
 export function timelineLine(
-  ms: number, activity: TripActivity | null, viewerTz: string, h24: boolean, stillOnGroundIn: AirportMark | null = null,
-  landedIn: AirportMark | null = null,
+  ms: number, activity: TripActivity | null, viewerTz: string, h24: boolean, onGround: FlightOnGround | null = null,
 ): string {
   const time = timelineTime(ms, viewerTz, h24)
-  const words = lineWords(activity, stillOnGroundIn, landedIn)
+  const words = lineWords(activity, onGround)
   return words ? `${time} · ${words}` : time
 }
 
 /** "Saturday 1:40 PM, layover in Denver": the timeline's value for screen readers (activity markers design §4.3), as the line under it. */
 export function timelineSpokenValue(
-  ms: number, activity: TripActivity | null, viewerTz: string, h24: boolean, stillOnGroundIn: AirportMark | null = null,
-  landedIn: AirportMark | null = null,
+  ms: number, activity: TripActivity | null, viewerTz: string, h24: boolean, onGround: FlightOnGround | null = null,
 ): string {
   const time = `${WEEKDAYS[zonedParts(ms, viewerTz).weekday]} ${shortTimeText(ms, viewerTz, h24)}`
-  const words = lineWords(activity, stillOnGroundIn, landedIn)
+  const words = lineWords(activity, onGround)
   if (!words) return time
   return `${time}, ${words.charAt(0).toLowerCase()}${words.slice(1)}`
 }

@@ -4,9 +4,11 @@ import { liveMapFlights, withLiveTimes } from '../../src/engine/liveLegs'
 import { pathPoints } from '../../src/map/flightPathDrawing'
 import { pointsAlong } from '../../src/map/greatCircle'
 import { fitRect } from '../../src/map/mapFit'
-import { landedIn, stillOnGroundIn } from '../../src/map/tripActivity'
-import { framingPoints, isArrivalEstimated, legLandedBeforeGate, legStillOnGround, makeTripMap, type TripMap } from '../../src/map/tripMap'
-import { atTheGate, FLYING, LANDED_EARLY, LIVE_AIRPORTS as AIRPORTS, liveTripMap, PHL, placeOf, SCHEDULE, SDF, SDF_PHL as F1 } from './liveTrip'
+import { flightOnGround, landedIn, stillOnGroundIn } from '../../src/map/tripActivity'
+import { framingPoints, isArrivalEstimated, legLandedBeforeGate, legReturned, legStillOnGround, makeTripMap, type TripMap } from '../../src/map/tripMap'
+import {
+  atTheGate, backAtTheGate, FLYING, LANDED_EARLY, LIVE_AIRPORTS as AIRPORTS, liveTripMap, PHL, placeOf, SCHEDULE, SDF, SDF_PHL as F1,
+} from './liveTrip'
 import { fix, liveFlight, MINUTE, point, START } from './madeUpFlights'
 
 /** Seen north of the line, then far north of it, 40 minutes in: still in the air. */
@@ -167,5 +169,30 @@ describe('a real plane down, not yet at the gate (the landed, not yet at the gat
       const then = START + minutes * MINUTE
       expect(landedIn(liveTripMap(then, live), then)).toBeNull()
     }
+  })
+})
+
+describe('a real plane back at its departure airport after an air return (air return design §2, §3)', () => {
+  const flightOf = (map: TripMap) => map.legs.find((l) => l.kind === 'flight')!
+
+  it('is told, as a plane at the airport is: the words say it has returned there', () => {
+    // Off on time, out and back, and on the ground in Louisville at 44 minutes.
+    const now = START + 45 * MINUTE
+    const map = liveTripMap(now, backAtTheGate(45))
+    expect(legReturned(flightOf(map), now)).toBe(true)
+    expect(legStillOnGround(flightOf(map), now)).toBe(true)
+    expect(flightOnGround(map, now)).toMatchObject({ kind: 'returnedTo', airport: { code: 'SDF', city: 'Louisville' } })
+  })
+
+  it('isn’t told of a plane that never left, in the air, or down at its arrival airport, which are told as before', () => {
+    const late = START + 25 * MINUTE
+    expect(legReturned(flightOf(liveTripMap(late, atTheGate(25))), late)).toBe(false)
+    expect(flightOnGround(liveTripMap(late, atTheGate(25)), late)).toMatchObject({ kind: 'stillIn', airport: { code: 'SDF' } })
+    const down = START + 103 * MINUTE
+    expect(flightOnGround(liveTripMap(down, LANDED_EARLY), down)).toMatchObject({ kind: 'landedIn', airport: { code: 'PHL' } })
+    const flying = START + 59 * MINUTE
+    expect(legReturned(flightOf(liveTripMap(flying, FLYING)), flying)).toBe(false)
+    expect(flightOnGround(liveTripMap(flying, FLYING), flying)).toBeNull()
+    expect(flightOnGround(liveTripMap(late, null), late)).toBeNull()
   })
 })

@@ -30,6 +30,15 @@ export const atTheGate = (minutes: number) =>
   liveFlight([], { legId: 'f1', state: 'ground', fix: fix(minutes - 1 / 3, SDF.lat, SDF.lng, { onGround: true }) })
 
 /**
+ * Off from Louisville on time, out 40 nm east climbing to 9,000 ft and straight back, and on the ground there again, seen
+ * 20 seconds before `minutes` after START: an air return (air return design §2).
+ */
+export const backAtTheGate = (minutes: number) => liveFlight(
+  [{ ...point(17, 38.25, -85.55), altitudeFt: 2_000 }, { ...point(23, 38.45, -85.0), altitudeFt: 9_000 }, { ...point(29, 38.3, -85.4), altitudeFt: 3_000 }],
+  { legId: 'f1', state: 'ground', fix: fix(minutes - 1 / 3, SDF.lat, SDF.lng, { onGround: true }) },
+)
+
+/**
  * Seen from just after takeoff, and down in Philadelphia 100 minutes after START, 13 minutes early: it reaches the gate
  * 7 minutes later, at 107 (the landed, not yet at the gate design, Todd, 17 Nov 2026).
  */

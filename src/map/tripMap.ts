@@ -6,7 +6,7 @@ import { pathFramingPoints } from './flightPathDrawing'
 import { scheduledFraction, scheduledTime } from './flightProgress'
 import { distanceMeters, pointAlong, pointsAlong, type GeoPoint } from './greatCircle'
 import { calendarDay } from '../time/zoned'
-import { hasLanded, isAtDeparture, isEstimate, type MapFlight } from './mapFlight'
+import { hasLanded, hasReturned, isAtDeparture, isEstimate, type MapFlight } from './mapFlight'
 import { aimFractions, flatMapAngle } from './planeHeading'
 import type { GroundKind } from './tripActivity'
 
@@ -154,6 +154,14 @@ export const isMoving = (leg: MapLeg, t: number) => leg.start <= t && t < leg.en
  */
 export const legStillOnGround = (leg: MapLeg, now: number): boolean =>
   leg.flight != null && isMoving(leg, now) && isAtDeparture(leg.flight, now)
+
+/**
+ * Whether the leg is between its gates at `now` with its real plane back on the ground at its departure airport after an
+ * air return (`hasReturned`, air return design §2): `legStillOnGround` holds too, and the words say "Returned to
+ * Rockford" in place of "Still on the ground in Rockford". Now only, as `legStillOnGround` is.
+ */
+export const legReturned = (leg: MapLeg, now: number): boolean =>
+  leg.flight != null && isMoving(leg, now) && hasReturned(leg.flight, now)
 
 /**
  * Whether the leg is between its gates at `now` while its real plane has landed: down, not yet at the gate (`leg.end`,

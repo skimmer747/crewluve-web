@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { landsText } from '../../src/copy/facts'
 import { Sentence } from '../../src/copy/narrative'
 import {
-  barArrival, cardHeading, flightStatus, gateLine, landedText, landingCountdown, landingLine, landsAt, liveSummary, spokenLiveLabel, spokenMinutes,
-  topPill, tripMapSummary,
+  barArrival, cardHeading, flightStatus, gateLine, landedText, landingCountdown, landingLine, landsAt, liveSummary, returnedText, spokenLiveLabel,
+  spokenMinutes, topPill, tripMapSummary,
 } from '../../src/copy/tripMap'
 import type { AirportIndex } from '../../src/data/airports'
 import { makeMapFlight } from '../../src/map/mapFlight'
@@ -227,5 +227,35 @@ describe('the words for a real plane down, not yet at the gate (the landed, not 
     const { leg } = caseLeg('behind, with a late first point and an unseen ocean')
     expect(gateLine(leg, NY, false)).toMatch(/^Reaches the gate about \d{1,2}:\d\d\s[AP]M · \d{1,2}:\d\d\s[AP]M your time$/)
     expect(gateLine(scheduleOnly(leg), NY, false)).toMatch(/^Reaches the gate at \d{1,2}:\d\d\s[AP]M · \d{1,2}:\d\d\s[AP]M your time$/)
+  })
+})
+
+describe('the words for a real plane back at its departure airport after an air return (air return design §3)', () => {
+  // Back at Louisville at 12:40, and seen there at 12:41: it lands at 14:04 if it takes off now, and reaches the gate at
+  // 14:11, 9:11 AM in Louisville.
+  const back = () => caseLeg('an air return, back on the ground')
+  const mapOf = (leg: MapLeg): TripMap =>
+    ({ mode: { kind: 'inFlight', legId: leg.id }, legs: [leg], groundStops: [], home: null, base: null, isWaitingAtBase: false, span: { start: leg.start, end: leg.end }, days: null })
+
+  it('say it has returned to the departure airport’s city', () => {
+    expect(returnedText('Rockford')).toBe('Returned to Rockford')
+  })
+
+  it('put "Returned to Louisville" on the card’s bar and the full map’s pill, and "In flight" in a replay, as before', () => {
+    const { leg, t } = back()
+    expect(flightStatus(leg, t)).toBe('Returned to Louisville')
+    expect(flightStatus(leg, t, true)).toBe('In flight')
+    expect(spokenLiveLabel({ kind: 'returned' })).toBe('returned')
+  })
+
+  it('give the card’s sentence for screen readers its words, and when it lands', () => {
+    const { leg, t } = back()
+    expect(liveSummary(leg, t, NY, false, 'Indiana', 'near Indianapolis')).toMatch(/^UPS207 to Philadelphia, returned to Louisville\. Lands about 9:11\sAM your time\.$/)
+    expect(tripMapSummary(mapOf(leg), t, 'Alex', NY, false)).toMatch(/^UPS207 to Philadelphia, returned to Louisville\. Lands about 9:11\sAM your time\. Opens the full map\.$/)
+  })
+
+  it('head the map card "On the ground" for screen readers, as a plane at its departure airport', () => {
+    const { leg, t } = back()
+    expect(cardHeading(mapOf(leg), t)).toBe('On the ground')
   })
 })

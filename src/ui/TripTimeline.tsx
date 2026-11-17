@@ -6,7 +6,7 @@ import {
   setSpeed, tripTimeAtOffset, type ReplayClock, type ReplaySpeed,
 } from '../map/replayClock'
 import { timelineBlocks } from '../map/timelineBlocks'
-import { activityAt, landedIn, stillOnGroundIn } from '../map/tripActivity'
+import { activityAt, flightOnGround } from '../map/tripActivity'
 import type { TripMap } from '../map/tripMap'
 import { TripTimelineBlocks } from './TripTimelineBlocks'
 
@@ -51,12 +51,11 @@ export function TripTimeline({ map, clock, onChange, onQuickLayovers, now, viewe
   const whole = replayDuration(clock)
   const offset = Math.min(replayOffset(clock, t), whole)
   const activity = activityAt(map, t)
-  // Now, a late flight's real plane still at its departure airport is "On the ground" there. A replay's moment flies as
-  // the map has the plane (the website's own, Todd, 16 Nov 2026).
-  const waitingIn = isLive(clock) ? stillOnGroundIn(map, t) : null
-  // And down at the arrival airport before the gate, "Landed" there, now only (the landed, not yet at the gate design §3,
-  // Todd, 17 Nov 2026).
-  const downIn = isLive(clock) ? landedIn(map, t) : null
+  // Now, a late flight's real plane still at its departure airport is "On the ground" there (the website's own, Todd, 16
+  // Nov 2026), one back there after an air return has "Returned" there (air return design §3), and one down at the
+  // arrival airport before the gate has "Landed" there (the landed, not yet at the gate design §3, Todd, 17 Nov 2026). A
+  // replay's moment flies as the map has the plane.
+  const onGround = isLive(clock) ? flightOnGround(map, t) : null
   // The blocks follow the trip and the pace alone: the clock's span, legs and waits are the map's. Worked out once
   // rather than every frame of a replay, which on a trip of 30 legs would cost a phone most of a frame.
   const blocks = useMemo(() => timelineBlocks(map, clock), [map, clock.quickLayovers])
@@ -81,7 +80,7 @@ export function TripTimeline({ map, clock, onChange, onQuickLayovers, now, viewe
         </button>
         <div class="trip-timeline-bar">
           <TripTimelineBlocks blocks={blocks} progress={progressAt(clock, t)} />
-          <input type="range" class="trip-timeline-slider" aria-label="Trip time" aria-valuetext={timelineSpokenValue(t, activity, viewerTz, h24, waitingIn, downIn)}
+          <input type="range" class="trip-timeline-slider" aria-label="Trip time" aria-valuetext={timelineSpokenValue(t, activity, viewerTz, h24, onGround)}
             min={0} max={Math.max(whole, 1)} step="any" value={offset} onKeyDown={onKeyDown}
             onInput={(e) => moveTo(Number(e.currentTarget.value))} />
         </div>
@@ -89,7 +88,7 @@ export function TripTimeline({ map, clock, onChange, onQuickLayovers, now, viewe
           <button type="button" class="trip-timeline-live" onClick={() => onChange(goLive(clock))}>Live</button>
         )}
       </div>
-      <p class="trip-timeline-time" aria-hidden="true">{timelineLine(t, activity, viewerTz, h24, waitingIn, downIn)}</p>
+      <p class="trip-timeline-time" aria-hidden="true">{timelineLine(t, activity, viewerTz, h24, onGround)}</p>
       <div class="trip-timeline-row trip-timeline-settings">
         <label class="trip-timeline-quick">
           <input type="checkbox" role="switch" class="trip-timeline-switch" checked={clock.quickLayovers}

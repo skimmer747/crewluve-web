@@ -4,12 +4,12 @@ import {
 } from '../copy/facts'
 import { longestText, recapChip, recapSummary, soFarText, totalsTiles, type RecapTile } from '../copy/factsTrip'
 import { shortTimeText } from '../copy/format'
-import { landedText, landingCountdown, liveSummary, panelHeadline, tripMapSummary } from '../copy/tripMap'
+import { landedText, landingCountdown, liveSummary, panelHeadline, returnedText, tripMapSummary } from '../copy/tripMap'
 import type { LandingForecast } from '../data/weather'
 import { pointAtDistance } from '../map/flightPath'
 import type { GeoPoint } from '../map/greatCircle'
 import {
-  currentLeg, dayCount, isMoving, legInMotion, legLandedBeforeGate, legStillOnGround, type AirportMark, type MapLeg, type TripMap,
+  currentLeg, dayCount, isMoving, legInMotion, legLandedBeforeGate, legReturned, legStillOnGround, type AirportMark, type MapLeg, type TripMap,
 } from '../map/tripMap'
 import { MINUTE } from '../time/zoned'
 import type { Comparison } from './comparisons'
@@ -230,6 +230,14 @@ export function isStillOnGround(facts: TripFacts, leg: MapLeg, t: number): boole
 }
 
 /**
+ * What the facts say in place of what's below while `isStillOnGround` holds: "Still on the ground in Rockford" (the
+ * website's own, Todd, 16 Nov 2026), or "Returned to Rockford" once the plane is back there after an air return (air
+ * return design §3).
+ */
+export const atDepartureText = (leg: MapLeg, t: number): string =>
+  legReturned(leg, t) ? returnedText(leg.origin.city) : stillOnGroundText(leg.origin.city)
+
+/**
  * Whether the real plane of `leg`, the leg between its gates at `t`, has landed and isn't at the gate yet. The facts then
  * say "Landed in Anchorage" in place of what's below, and nothing to go (the landed, not yet at the gate design §2, §3,
  * Todd, 17 Nov 2026). Now only, as "Still on the ground" is: a replay reads where the map has the plane.
@@ -250,14 +258,15 @@ export const showsLiveData = (facts: TripFacts): boolean => facts.map.legs.some(
  * §2); the shared cases read the headline with them.
  *
  * The website's own (Todd, 16 Nov 2026): a real plane still on the ground at its departure airport is "Still on the
- * ground in Rockford", ahead of all of them. It has crossed nothing yet, whatever the schedule's times say. And at the
+ * ground in Rockford", ahead of all of them, or "Returned to Rockford" once it's back there after an air return (air
+ * return design §3). It has crossed nothing yet, whatever the schedule's times say. And at the
  * other end, down and not yet at the gate, "Landed in Anchorage", ahead of them too (the landed, not yet at the gate
  * design §3, Todd, 17 Nov 2026).
  */
 export function headline(facts: TripFacts, t: number, includesEvents = true): string | null {
   const leg = legInMotion(facts.map, t)
   if (!leg || leg.kind !== 'flight') return null
-  if (isStillOnGround(facts, leg, t)) return stillOnGroundText(leg.origin.city)
+  if (isStillOnGround(facts, leg, t)) return atDepartureText(leg, t)
   if (isLandedBeforeGate(facts, leg, t)) return landedText(leg.destination.city)
   const recent = includesEvents ? toldMilestones(facts, leg, t).filter((m) => m.time <= t && t - m.time < MILESTONE_HEADLINE_MS).pop() : null
   if (recent) return milestoneHeadline(recent)
