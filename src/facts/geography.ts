@@ -101,6 +101,15 @@ export function parseGeography(json: unknown): Geography {
 export const samePlace = (a: Place | null, b: Place | null) =>
   a != null && b != null && a.name === b.name && a.kind === b.kind && a.country === b.country
 
+/** The five oceans, by the names geography.json gives them. */
+export const OCEAN_NAMES: ReadonlySet<string> = new Set(['the Pacific', 'the Atlantic', 'the Indian Ocean', 'the Arctic Ocean', 'the Southern Ocean'])
+
+/**
+ * One of the five oceans: past 2 hours out of tracking range, the only places wide enough to be named under a guessed
+ * plane (long gap design §3).
+ */
+export const isOcean = (place: Place) => place.kind === 'water' && OCEAN_NAMES.has(place.name)
+
 const placeOf = (area: Area): Place => ({ name: area.name, kind: area.kind, country: area.kind === 'water' ? null : (area.country ?? area.name) })
 
 /** Even-odd ray casting on longitude and latitude, for rings that don't cross the date line: Natural Earth splits its shapes there. */

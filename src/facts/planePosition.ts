@@ -1,4 +1,5 @@
 import { pointAtDistance } from '../map/flightPath'
+import { OWN_SPEED_AHEAD_MS } from '../map/flightPlan'
 import { recordDistanceAt } from '../map/flightRecord'
 import type { GeoPoint } from '../map/greatCircle'
 import { mapFlightProgress, type MapFlight } from '../map/mapFlight'
@@ -28,6 +29,17 @@ export interface PlanePosition {
 
 const position = (distance: number, place: GeoPoint, unseenFor: number | null, isSeenInAir: boolean): PlanePosition =>
   ({ distance, place, unseenFor, isEstimated: unseenFor != null, isSeenInAir })
+
+/**
+ * How long out of tracking range the facts tell the plane's best guesses in full, in ms: the 2 hours its own speed is
+ * trusted for, deliberately the same. Past them, where it's guessed to be can be hundreds of miles from where it is, so
+ * the facts name only an ocean under it, and hold their events until it's tracked again or the flight is over (long gap
+ * design §3).
+ */
+export const GUESS_HORIZON_MS = OWN_SPEED_AHEAD_MS
+
+/** Whether the real plane has been out of tracking range for longer than `GUESS_HORIZON_MS`. */
+export const isPastGuessHorizon = (plane: PlanePosition) => plane.unseenFor != null && plane.unseenFor > GUESS_HORIZON_MS
 
 /**
  * The real plane at `t`, or null where the schedule's plane shows instead: the flight isn't live now, or has no record

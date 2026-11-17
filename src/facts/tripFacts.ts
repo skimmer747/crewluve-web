@@ -15,12 +15,12 @@ import { MINUTE } from '../time/zoned'
 import type { Comparison } from './comparisons'
 import type { LatestEvent, TripSoFar } from './factRow'
 import { forgetOldPaths, realPathFacts, type FactsStore } from './factsStore'
-import { cityNear, samePlace, type City, type Geography, type Place } from './geography'
+import { cityNear, isOcean, samePlace, type City, type Geography, type Place } from './geography'
 import { landsWithinHorizon } from './landingWeather'
 import { hasLiveData, legPath } from './legCourse'
 import { legStory, placeAtDistance, type LegStory } from './legStory'
 import { MILESTONE_HEADLINE_MS, milestones, type Milestone } from './milestone'
-import { legPlane } from './planePosition'
+import { isPastGuessHorizon, legPlane, type PlanePosition } from './planePosition'
 import { cockpitHorizonOnLeg, sunEvents, type SunEvent } from './sky'
 import { longestFlight, totalsSoFar, wholeTotals, type SunEventsByLeg } from './tripTotals'
 
@@ -159,14 +159,24 @@ export function factsMilestones(facts: TripFacts, leg: MapLeg): Milestone[] {
 /**
  * "Over Kansas", "Over Québec, near Montréal", from the flight's story, read where the plane is (Stage 3 spec §8). A real
  * plane that's out of sight is where the plan has it, flying on from the last place it was seen, and reads the same
- * (best guesses design §2).
+ * (best guesses design §2), but for one out of tracking range for more than 2 hours: only an ocean, with no city (long
+ * gap design §3).
  */
 export function belowText(facts: TripFacts, leg: MapLeg, t: number): string | null {
-  const story = facts.stories[leg.id]
   const plane = legPlane(leg, t, facts.isReplay)
-  const place = story ? placeAtDistance(story, plane.distance) : null
+  const place = placeBelow(facts, leg, plane)
   if (!place) return null
-  return belowWords(place, facts.geography ? cityNear(facts.geography, plane.place) : null)
+  return belowWords(place, facts.geography && !isPastGuessHorizon(plane) ? cityNear(facts.geography, plane.place) : null)
+}
+
+/**
+ * What's under `plane`. Past `GUESS_HORIZON_MS` out of tracking range, the guess can be hundreds of miles from the plane,
+ * and only an ocean is wide enough to be right (long gap design §3).
+ */
+function placeBelow(facts: TripFacts, leg: MapLeg, plane: PlanePosition): Place | null {
+  const story = facts.stories[leg.id]
+  const place = story ? placeAtDistance(story, plane.distance) : null
+  return place && (!isPastGuessHorizon(plane) || isOcean(place)) ? place : null
 }
 
 /** What was under the real plane where it was last seen, and the city by it. */
@@ -330,11 +340,11 @@ export function cardSummary(facts: TripFacts, now: number, name: string): string
     const latest = latestEvent(facts, now)
     const ending = latest ? `${latest.sentence} Opens the full map.` : 'Opens the full map.'
     const lead = leg.flightNumber ? `${leg.flightNumber} to` : 'Flying to'
-    const story = facts.stories[leg.id]
     const plane = legPlane(leg, now, facts.isReplay)
-    const place = story ? placeAtDistance(story, plane.distance) : null
+    const place = placeBelow(facts, leg, plane)
     // With a real plane the sentence says how it's doing against the schedule (Stage 3 spec §9), and while it's out of
-    // sight, where it was last seen (§15).
+    // sight, where it was last seen (§15). Past 2 hours out of sight, what's below is only an ocean, or left out (long
+    // gap design §3).
     const ago = plane.unseenFor
     const [seenPlace, seenCity] = ago == null ? [null, null] : lastSeenPlace(facts, leg)
     const lastSeen = ago == null ? null : spokenLastSeen(seenPlace, seenCity, ago)
