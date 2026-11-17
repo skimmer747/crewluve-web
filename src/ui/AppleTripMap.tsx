@@ -36,11 +36,11 @@ export function AppleTripMap(props: AppleTripMapProps) {
 }
 
 /** Each route style's look, as on the SVG map: colours come from the page's CSS, so dark mode follows. */
-const LINES: Record<SegmentStyle, { color: '--trip-route' | '--trip-flown' | '--trip-seen'; width: number; dash: number[] }> = {
+const LINES: Record<SegmentStyle, { color: '--trip-route' | '--trip-flown' | '--trip-drive' | '--trip-seen'; width: number; dash: number[] }> = {
   upcoming: { color: '--trip-route', width: 2, dash: [6, 6] },
   flying: { color: '--trip-route', width: 3, dash: [] },
   flown: { color: '--trip-flown', width: 2.5, dash: [] },
-  drive: { color: '--trip-flown', width: 3, dash: [1, 6] },
+  drive: { color: '--trip-drive', width: 3, dash: [1, 6] },
   seen: { color: '--trip-seen', width: 3, dash: [] },
   unseen: { color: '--trip-seen', width: 2.5, dash: [1, 6] },
 }

@@ -836,6 +836,40 @@ describe('tripMap.css: the latest event’s banner, as it’s measured (the revi
   })
 })
 
+describe('tripMap.css: the flown and drive lines show by day and under the night (Todd, 17 Nov 2026)', () => {
+  // On Apple's Map style the system gray flown line had about 1.1:1 contrast under the night's shade (Todd's screenshot,
+  // CRK): near-black reads there, about 3.5:1, and 8 to 12:1 by day. On the dark photographs (Hybrid, Satellite) the
+  // lines are light, as the app's TripMapPalette.onDarkMap has them: the flown line 82% white, a drive white.
+  const top = blocks(css('tripMap'))
+  const dark = blocks(find(top, '@media (prefers-color-scheme: dark)')?.body ?? '')
+  const lines = (list: Block[], head: string) => customProperties(find(list, head)?.body)
+  const rules = rulesIn(css('tripMap'))
+  const stroke = (head: string) => new Map(declarations(find(rules, head)?.body ?? '')).get('stroke')
+
+  it('draws flown flights and drives near-black on a light map', () => {
+    const light = lines(top, '.trip-map-card, .trip-map-page')
+    expect(normalize(light.get('--trip-flown'))).toBe('#2c2c2e')
+    expect(normalize(light.get('--trip-drive'))).toBe('#2c2c2e')
+  })
+
+  it('keeps them the light system gray on a dark map', () => {
+    const night = lines(dark, '.trip-map-card, .trip-map-page')
+    expect(night.get('--trip-flown')).toBe('var(--gray)')
+    expect(night.get('--trip-drive')).toBe('var(--gray)')
+  })
+
+  it('draws them light on the photographs, as the app does', () => {
+    const photos = lines(top, '.apple-trip-map.hybrid, .apple-trip-map.satellite')
+    expect(normalize(photos.get('--trip-flown'))).toBe('rgb(82%,82%,82%)')
+    expect(normalize(photos.get('--trip-drive'))).toBe('#ffffff')
+  })
+
+  it('draws a drive in its own colour on the site’s own map', () => {
+    expect(stroke('.trip-map-route.flown')).toBe('var(--trip-flown)')
+    expect(stroke('.trip-map-route.drive')).toBe('var(--trip-drive)')
+  })
+})
+
 describe('split.css', () => {
   // Read when each test runs, so a missing file fails the tests below and not the whole file.
   const rule = (head: string) => declarations(find(rulesIn(css('split')), head)!.body)

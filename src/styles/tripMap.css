@@ -9,7 +9,10 @@
   --trip-land-edge: rgb(80%, 78%, 70%);
   --trip-night: rgb(2%, 5%, 16%);
   --trip-route: var(--blue);
-  --trip-flown: var(--gray);
+  /* Flights flown and drives: near-black on a light map, so they show by day and under the night's shade too (Todd,
+     17 Nov 2026: the system gray had about 1.1:1 against the shaded map; this has about 3.5:1 there, 8 to 12:1 by day). */
+  --trip-flown: #2c2c2e;
+  --trip-drive: #2c2c2e;
   --trip-text: #000000;
   /* The real path where the plane was seen, or wasn't (Stage 3 spec §6.2), and the ghost's outline: white on a dark map,
      blue on a light one, where white wouldn't show. */
@@ -23,14 +26,21 @@
     --trip-land: rgb(17%, 21%, 29%);
     --trip-land-edge: rgb(28%, 32%, 40%);
     --trip-route: var(--cyan);
+    --trip-flown: var(--gray);
+    --trip-drive: var(--gray);
     --trip-text: #ffffff;
     --trip-seen: #ffffff;
   }
 }
 
-/* Apple's hybrid and satellite maps are photographs, dark in either scheme. */
+/* Apple's hybrid and satellite maps are photographs, dark in either scheme: their lines are light, as the app's
+   (TripMapPalette.onDarkMap: the flown line 82% white, a drive white). */
 .apple-trip-map.hybrid,
-.apple-trip-map.satellite { --trip-seen: #ffffff; }
+.apple-trip-map.satellite {
+  --trip-flown: rgb(82%, 82%, 82%);
+  --trip-drive: #ffffff;
+  --trip-seen: #ffffff;
+}
 
 .trip-map-open {
   position: relative;
@@ -63,7 +73,7 @@
 .trip-map-route.upcoming { stroke: var(--trip-route); stroke-width: 2; stroke-dasharray: 6 6; }
 .trip-map-route.flying { stroke: var(--trip-route); stroke-width: 3; }
 .trip-map-route.flown { stroke: var(--trip-flown); stroke-width: 2.5; }
-.trip-map-route.drive { stroke: var(--trip-flown); stroke-width: 3; stroke-dasharray: 0.5 6; }
+.trip-map-route.drive { stroke: var(--trip-drive); stroke-width: 3; stroke-dasharray: 0.5 6; }
 .trip-map-route.seen { stroke: var(--trip-seen); stroke-width: 3; }
 .trip-map-route.unseen { stroke: var(--trip-seen); stroke-width: 2.5; stroke-dasharray: 0.5 6; }
 /* The real plane: a filled blue circle with a white border and a white plane, faded while it's an estimate. The ghost: a

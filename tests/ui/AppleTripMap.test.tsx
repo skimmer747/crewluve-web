@@ -10,7 +10,7 @@ import { AppleTripMap } from '../../src/ui/AppleTripMap'
 import { resetAppleMapKit, startAppleMapKit } from '../../src/ui/hooks/useAppleMapKit'
 import { flightMap, mark } from '../facts/factsTestData'
 import { fakeMapKit } from '../fixtures/fakeMapKit'
-import { AIRPORTS, at, EUROPE, flight } from '../map/tripMapLegs'
+import { AIRPORTS, at, drive, EUROPE, flight } from '../map/tripMapLegs'
 
 afterEach(() => {
   cleanup()
@@ -121,6 +121,33 @@ describe('Apple’s map (Apple Maps spec §4, §5, §8)', () => {
     expect(['SDF', 'CGN', 'DXB'].map(priority)).toEqual([750, 750, 250])
     view.rerender(<AppleTripMap {...props} focus={map.legs[1]} />)
     expect(['SDF', 'CGN', 'DXB'].map(priority)).toEqual([250, 750, 750])
+  })
+
+  it('draws a drive in its own colour, apart from a flight flown (Todd, 17 Nov 2026)', async () => {
+    // happy-dom doesn't carry custom properties down to the map's box, so the page's two colours are handed in here.
+    const colours: Record<string, string> = { '--trip-flown': '#111111', '--trip-drive': '#222222' }
+    const real = window.getComputedStyle.bind(window)
+    const spy = vi.spyOn(window, 'getComputedStyle').mockImplementation((element) => {
+      const style = real(element)
+      return new Proxy(style, {
+        get: (target, prop) => (prop === 'getPropertyValue' ? (name: string) => colours[name] ?? target.getPropertyValue(name) : Reflect.get(target, prop)),
+      })
+    })
+    try {
+      const kit = await ready()
+      const trip = makeTripMap([flight('f1', 'SDF', 'CGN', 0, 8), drive('d1', 'LEX', 'SDF', 30, 2)], { isNextTrip: false, home: 'SDF', now: at(40), airports: AIRPORTS })!
+      render(<AppleTripMap {...props} map={trip} t={at(40)} focus={trip.legs[0]} mapStyle="standard" />)
+      await waitFor(() => expect(kit.maps).toHaveLength(1))
+      const styles = kit.maps[0].overlays.filter((o) => o instanceof kit.PolylineOverlay).map((o) => o.style as { strokeColor: string; lineDash: number[] })
+      const dotted = styles.filter((s) => s.lineDash.length > 0)
+      const solid = styles.filter((s) => s.lineDash.length === 0)
+      expect(dotted.length).toBeGreaterThan(0)
+      expect(solid.length).toBeGreaterThan(0)
+      for (const s of dotted) expect(s.strokeColor).toBe('#222222')
+      for (const s of solid) expect(s.strokeColor).toBe('#111111')
+    } finally {
+      spy.mockRestore()
+    }
   })
 
   it('follows a change to dark mode while the map is open: Apple’s tiles, the night and the lines', async () => {
