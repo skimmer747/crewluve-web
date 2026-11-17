@@ -4091,16 +4091,16 @@ cd "/Users/toddanderson/Dev/Crewluve Website/.claude/worktrees/trip-map-live-598
 
 Expected: `fast-forward`. If it isn't (`main` has moved on since `ed33ce5`), merge it in here: `git merge origin/main`. If any file conflicts, STOP and tell Todd. Then run `npm test && npm run build`.
 
-- [ ] **Step 3: Todd runs everything** (Task 6 Step 6's command) on the branch as it will go live.
-- [ ] **Step 4: Push the branch to `main`, on Todd's yes.** A fast-forward only; never force.
+- [x] **Step 3: Todd runs everything** (Task 6 Step 6's command) on the branch as it will go live.
+- [x] **Step 4: Push the branch to `main`, on Todd's yes.** A fast-forward only; never force.
 
 ```bash
 git push origin claude/trip-map-live-598046:main
 ```
 
-- [ ] **Step 5: Watch the deploy** (`gh run watch` on the run the push started) until it succeeds. If it fails, tell Todd at once with its log: the site stays as it was until a deploy succeeds.
-- [ ] **Step 6: Look at the live site** with Todd, at `https://crewluve.crewlu.net/?demo=1&scene=live-ocean-gap`, the same with `#map`, and `…scene=flying#map`: the banner and the key, the list newest first, and the schedule-only scene.
-- [ ] **Step 7: The record.** Under "Changes made during execution": the push's commit, the deploy's run and time, and what Todd saw. Commit the plan on his yes and push it (a fast-forward only), as Step 4.
+- [x] **Step 5: Watch the deploy** (`gh run watch` on the run the push started) until it succeeds. If it fails, tell Todd at once with its log: the site stays as it was until a deploy succeeds.
+- [x] **Step 6: Look at the live site** with Todd, at `https://crewluve.crewlu.net/?demo=1&scene=live-ocean-gap`, the same with `#map`, and `…scene=flying#map`: the banner and the key, the list newest first, and the schedule-only scene.
+- [x] **Step 7: The record.** Under "Changes made during execution": the push's commit, the deploy's run and time, and what Todd saw. Commit the plan on his yes and push it (a fast-forward only), as Step 4.
 
 ---
 
@@ -4143,6 +4143,11 @@ The app's own later plan gives it the key, the popup and the at-the-gate words (
 - **Task 8 Step 2, Todd's run** after the fix (he chose "Run it in my Terminal, then commit"): `npm test && npm run build` at 8:27 PM, 177 test files and 3,702 tests passed, `✓ built`. **The fix's commit:** `c392305`, its files the same as `stages/after-8`.
 - **This plan's commits:** Task 2 `4f8550a`, Task 3 `d5d5935`, Task 4 `4fde60e`, Task 5 `0de6618`, Task 6 `672f745` (amended twice), the whole-branch review's fix `c392305`.
 - **Task 9, going live:** Todd chose "Go live: run it, then push if it passes" (16 Nov 2026, about 8:30 PM). `origin/main` was still `ed33ce5`, so the branch is a fast-forward of it (no merge needed).
+  - **Plan committed:** `61c79f0`.
+  - **Todd's run on the branch as it went live** (Step 3, in his Terminal): `61c79f0`, `npm test && npm run build` at 8:28 PM, 177 test files and 3,702 tests passed, `✓ built`.
+  - **Pushed** (Step 4): `git push origin claude/trip-map-live-598046:main`, `ed33ce5..61c79f0`, a fast-forward.
+  - **Deployed** (Step 5): "Deploy to GitHub Pages" run `43995957692`, build and deploy succeeded, 8:30 PM EST (01:30 UTC, 17 Nov).
+  - **The live site** (Step 6): the session read `https://crewluve.crewlu.net/?demo=1&scene=live-ocean-gap` at 375 by 812 (the new bundle; the banner "Crossed into Northwest Territories / About now" in the card's top corner, the key under it, the plane and its ghost in the band, Apple's logo and Legal above the chip). **Todd: "Looks good."**
 
 ## Self-review
 
