@@ -1,5 +1,5 @@
 import {
-  belowWords, cockpitCountdown, flightTitle, lastSeenLine, milestoneHeadline, milestoneLine, spokenLastSeen, stillOnGroundText,
+  belowWords, cockpitCountdown, flightTitle, inTheAirTag, lastSeenLine, milestoneHeadline, milestoneLine, spokenLastSeen, stillOnGroundText,
 } from '../copy/facts'
 import { longestText, recapChip, recapSummary, soFarText, totalsTiles, type RecapTile } from '../copy/factsTrip'
 import { shortTimeText } from '../copy/format'
@@ -7,7 +7,7 @@ import { landingCountdown, liveSummary, panelHeadline, tripMapSummary } from '..
 import type { LandingForecast } from '../data/weather'
 import { pointAtDistance } from '../map/flightPath'
 import type { GeoPoint } from '../map/greatCircle'
-import { currentLeg, dayCount, legInMotion, legStillOnGround, type AirportMark, type MapLeg, type TripMap } from '../map/tripMap'
+import { currentLeg, dayCount, isMoving, legInMotion, legStillOnGround, type AirportMark, type MapLeg, type TripMap } from '../map/tripMap'
 import { MINUTE } from '../time/zoned'
 import type { Comparison } from './comparisons'
 import type { TripSoFar } from './factRow'
@@ -230,21 +230,41 @@ export function forecastFor(facts: TripFacts, leg: MapLeg, now: number): Landing
 }
 
 /**
- * Each started flight's milestones so far, newest flight first, then the totals: the trip so far, or the recap (§5.2,
- * §5.5). A real plane still on the ground at its departure airport has passed none of its flight's, whatever the
- * schedule's times say (the website's own, Todd, 16 Nov 2026).
+ * Whether the rows at `t` have a "Trip so far" row: on a drive, and on a layover, as `factRows` (tripFactsRows.ts) has
+ * them. The list under the rows then doesn't say it again (best guesses design §4).
+ */
+export function hasTripSoFarRow(facts: TripFacts, t: number): boolean {
+  const leg = legInMotion(facts.map, t)
+  if (leg) return leg.kind !== 'flight'
+  if (isRecapOver(facts, t)) return false
+  return !(facts.map.mode.kind === 'nextTrip' && t < facts.map.span.start)
+}
+
+/**
+ * The trip so far, or the recap (§5.2, §5.5; best guesses design §4): the flight between its gates, set apart and listed
+ * even before its first event, then each earlier flight with an event, newest first. Under each, its events, newest
+ * first, so the latest is at the top. Then the totals, unless the rows already have them.
+ *
+ * The website's own (Todd, 16 Nov 2026): a real plane still on the ground at its departure airport after the plan's
+ * takeoff time has passed none of its flight's events, whatever the schedule's times say, and its flight is left out
+ * until it takes off, with no "In the air now".
  */
 export function tripSoFar(facts: TripFacts, t: number): TripSoFar {
   const started = facts.map.legs.filter((l) => l.kind === 'flight' && l.start <= t && !isStillOnGround(facts, l, t)).reverse()
   const flights = started.flatMap((leg) => {
-    const lines = factsMilestones(facts, leg).filter((m) => m.time <= t).map((m) => milestoneLine(m, facts.viewerTz, facts.h24))
-    return lines.length > 0 ? [{ id: leg.id, title: flightTitle(leg), milestones: lines }] : []
+    const events = factsMilestones(facts, leg)
+      .filter((m) => m.time <= t)
+      .reverse()
+      .map((m) => ({ text: milestoneLine(m, facts.viewerTz, facts.h24), isEstimate: m.isEstimate === true }))
+    const tag = isMoving(leg, t) ? inTheAirTag(facts.isReplay) : null
+    return tag != null || events.length > 0 ? [{ id: leg.id, title: flightTitle(leg), tag, events }] : []
   })
   if (isRecapOver(facts, t)) {
     return { flights, totalsTitle: 'Trip recap', totals: soFarText(wholeTotals(facts.map, facts.sunEvents), null, null) }
   }
-  const totals = totalsSoFar(facts.map, t, facts.sunEvents, facts.isReplay)
-  return { flights, totalsTitle: 'Trip so far', totals: soFarText(totals, facts.day, facts.days) }
+  // Where the rows already have a "Trip so far" row, it isn't said again under the list.
+  const totals = hasTripSoFarRow(facts, t) ? null : soFarText(totalsSoFar(facts.map, t, facts.sunEvents, facts.isReplay), facts.day, facts.days)
+  return { flights, totalsTitle: 'Trip so far', totals }
 }
 
 /** The card as one sentence for screen readers, ending with what it opens (§6.4, §6.5). */

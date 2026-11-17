@@ -55,6 +55,12 @@ export function milestoneLine(milestone: Milestone, viewerTz: string, h24: boole
   }
 }
 
+/**
+ * The tag on the flight between its gates, in the list: "In the air now", or "In the air" at a moment of the replay
+ * (best guesses design §4).
+ */
+export const inTheAirTag = (isReplay: boolean) => (isReplay ? 'In the air' : 'In the air now')
+
 /** "UPS207 · Louisville → Cologne", or the cities alone without a flight number. */
 export function flightTitle(leg: MapLeg): string {
   const route = `${leg.origin.city} → ${leg.destination.city}`

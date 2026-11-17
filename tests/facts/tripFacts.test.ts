@@ -3,11 +3,12 @@ import type { LandingForecast } from '../../src/data/weather'
 import { makeGeography, type Geography } from '../../src/facts/geography'
 import { legPathLength } from '../../src/facts/legCourse'
 import {
-  cardSummary, forecastFor, headline, isRecapOver, makeTripFacts, recapLongestLine, recapTiles, sheetHeadline, tripSoFar,
+  cardSummary, forecastFor, hasTripSoFarRow, headline, isRecapOver, makeTripFacts, recapLongestLine, recapTiles, sheetHeadline, tripSoFar,
 } from '../../src/facts/tripFacts'
-import { airportMark, makeTripMap, type MapLeg } from '../../src/map/tripMap'
-import { AIRPORTS, at, EUROPE, HOUR } from '../map/tripMapLegs'
-import { box, EQUATOR, equatorFlight, flightMap, mark } from './factsTestData'
+import { factRows } from '../../src/facts/tripFactsRows'
+import { airportMark, makeTripMap, type MapLeg, type TripMap } from '../../src/map/tripMap'
+import { AIRPORTS, at, drive, EUROPE, HOUR } from '../map/tripMapLegs'
+import { appGeography, box, EQUATOR, equatorFlight, flightMap, mark } from './factsTestData'
 import { dogLeg, equatorLive, equatorLiveLeg, liveTime } from './liveFacts'
 
 /**
@@ -21,6 +22,9 @@ const t = (hhmm: string) => Date.parse(`2026-03-20T${hhmm}:00Z`)
 function equatorFacts(geography: Geography | null = EQUATOR, forecasts: Record<string, LandingForecast> = {}) {
   return makeTripFacts(flightMap(equatorFlight(0, 20), mark('HOME', 0.5, 14)), { geography, comparisons: null, forecasts, viewerTz: NY, h24: false, day: 1, days: 1 })
 }
+
+const europeMap = (now: number, options: { isNextTrip?: boolean; isRecap?: boolean } = {}) =>
+  makeTripMap(EUROPE, { isNextTrip: options.isNextTrip ?? false, isRecap: options.isRecap, home: 'SDF', now, airports: AIRPORTS })!
 
 const europeRecap = () =>
   makeTripFacts(makeTripMap(EUROPE, { isNextTrip: false, isRecap: true, home: 'SDF', now: at(0), airports: AIRPORTS })!, { geography: null, comparisons: null, viewerTz: NY, h24: false })
@@ -81,19 +85,75 @@ describe('weather’s window (Stage 2 spec §7.3)', () => {
   })
 })
 
-describe('the trip so far (Stage 2 spec §5.2, §5.5)', () => {
-  it('lists this flight’s milestones, then the totals', () => {
+describe('the trip so far (Stage 2 spec §5.2, §5.5; best guesses design §4)', () => {
+  it('lists this flight’s events newest first, as the flight in the air, then the totals', () => {
     const soFar = tripSoFar(equatorFacts(), t('12:30'))
     expect(soFar.flights.map((f) => f.title)).toEqual(['TST1 · E0 → E20'])
-    expect(soFar.flights[0].milestones).toEqual([
-      `Crossed into Bravo · 7:00${AM}`, `Halfway · 7:45${AM}`, `Out over the Test Sea · 8:03${AM}`, `Closest to home, 35 mi · 8:21${AM}`,
+    // Newest first, so the latest is at the top, and the flight is the one in the air.
+    expect(soFar.flights[0].events.map((e) => e.text)).toEqual([
+      `Closest to home, 35 mi · 8:21${AM}`, `Out over the Test Sea · 8:03${AM}`, `Halfway · 7:45${AM}`, `Crossed into Bravo · 7:00${AM}`,
     ])
+    // The schedule is told as it is.
+    expect(soFar.flights[0].events.map((e) => e.isEstimate)).toEqual([false, false, false, false])
+    expect(soFar.flights[0].tag).toBe('In the air now')
     expect(soFar.totalsTitle).toBe('Trip so far')
     expect(soFar.totals).toBe('Day 1 of 1 · 1,036 mi')
   })
 
-  it('lists only the milestones that have happened', () => {
-    expect(tripSoFar(equatorFacts(), t('11:50')).flights[0].milestones).toHaveLength(2)
+  it('lists only the events that have happened', () => {
+    expect(tripSoFar(equatorFacts(), t('11:50')).flights[0].events).toHaveLength(2)
+  })
+
+  it('lists the flight in the air before its first event, and an earlier flight only with an event', () => {
+    // The equator flight has left the gate at 10:00 and crosses into Bravo at 11:00.
+    expect(tripSoFar(equatorFacts(), t('10:30')).flights).toEqual([{ id: 'eq', title: 'TST1 · E0 → E20', tag: 'In the air now', events: [] }])
+    // On the ground in Cologne the first flight is done, and with no story it has no event.
+    const europe = makeTripFacts(europeMap(at(12)), { geography: null, comparisons: null, viewerTz: NY, h24: false })
+    expect(tripSoFar(europe, at(12)).flights).toEqual([])
+    expect(tripSoFar(europe, at(4)).flights.map((f) => [f.title, f.tag])).toEqual([['UPS201 · Louisville → Cologne', 'In the air now']])
+  })
+
+  it('lists earlier flights plain underneath the flight in the air, newest first', () => {
+    // On the way home from Dubai, with the site's own geography, so each earlier flight has crossed something.
+    const facts = makeTripFacts(europeMap(at(60)), { geography: appGeography(), comparisons: null, viewerTz: NY, h24: false })
+    const soFar = tripSoFar(facts, at(60))
+    expect(soFar.flights.map((f) => [f.title, f.tag])).toEqual([
+      ['UPS203 · Dubai → Louisville', 'In the air now'], ['UPS202 · Cologne → Dubai', null], ['UPS201 · Louisville → Cologne', null],
+    ])
+    expect(soFar.flights.slice(1).every((f) => f.events.length > 0)).toBe(true)
+  })
+
+  it('on a layover, says "Trip so far" once, in the rows', () => {
+    // The rows have "Trip so far" on a layover, so it isn't said again under the list (best guesses design §4).
+    const facts = makeTripFacts(europeMap(at(12)), { geography: null, comparisons: null, viewerTz: NY, h24: false, day: 1, days: 4 })
+    expect(factRows(facts, at(12), at(12)).some((r) => r.kind === 'tripSoFar')).toBe(true)
+    expect(hasTripSoFarRow(facts, at(12))).toBe(true)
+    expect(tripSoFar(facts, at(12)).totals).toBeNull()
+    // In flight the rows have none, so it's under the list.
+    expect(factRows(facts, at(4), at(4)).some((r) => r.kind === 'tripSoFar')).toBe(false)
+    expect(tripSoFar(facts, at(4)).totals).toMatch(/^Day 1 of 4 · [\d,]+ mi$/)
+  })
+
+  it('knows whether the rows have a "Trip so far" row, at every half hour of a trip, a trip ahead, a recap and a drive', () => {
+    const maps: TripMap[] = [
+      europeMap(at(0)),
+      europeMap(at(-24), { isNextTrip: true }),
+      europeMap(at(0), { isRecap: true }),
+      makeTripMap([drive('d', 'LEX', 'SDF', 0, 1)], { isNextTrip: false, home: null, now: at(0), airports: AIRPORTS })!,
+    ]
+    let checked = 0
+    for (const map of maps) {
+      // With a day to tell, a "Trip so far" row always has something to say where there is one.
+      const facts = makeTripFacts(map, { geography: EQUATOR, comparisons: null, viewerTz: NY, h24: false, day: 1, days: 4 })
+      for (let half = -60; half <= 200; half++) {
+        const moment = at(half / 2)
+        expect(hasTripSoFarRow(facts, moment), `${map.mode.kind} at ${half} half hours`).toBe(
+          factRows(facts, moment, moment).some((r) => r.kind === 'tripSoFar'),
+        )
+        checked++
+      }
+    }
+    expect(checked).toBe(4 * 261)
   })
 
   it('after a recap’s trip, is the recap', () => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   aircraftText, averageSpeedText, belowWords, chaseText, closestToHomeText, cockpitCountdown, cockpitEventText, flightTitle, flownText,
-  flyingInto, groundSunText, halfwayText, heightAndSpeedText, landsText, lastSeenLine, LIVE_CREDIT, midLine, milestoneHeadline, milestoneLine,
+  flyingInto, groundSunText, halfwayText, heightAndSpeedText, inTheAirTag, landsText, lastSeenLine, LIVE_CREDIT, midLine, milestoneHeadline, milestoneLine,
   moonText, SPOKEN_LIVE_CREDIT, spokenLastSeen, stillOnGroundText, timeDifferenceText, toGoText,
 } from '../../src/copy/facts'
 import { longestText, onTheWayText, recapChip, recapSummary, soFarText, totalsTiles } from '../../src/copy/factsTrip'
@@ -43,6 +43,11 @@ describe('milestones in words (Stage 2 spec §4.3)', () => {
   it('names a flight by its number and cities', () => {
     expect(flightTitle(toCologne)).toBe('UPS207 · Louisville → Cologne')
     expect(flightTitle(home)).toBe('Cologne → Louisville')
+  })
+
+  it('tags the flight between its gates "In the air now", but not in a replay (best guesses design §4)', () => {
+    expect(inTheAirTag(false)).toBe('In the air now')
+    expect(inTheAirTag(true)).toBe('In the air')
   })
 })
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { rowSentence, type FactRow, type FactRowKind } from '../../src/facts/factRow'
+import { rowSentence, type FactRow, type FactRowKind, type FactsAtMoment } from '../../src/facts/factRow'
 import { makeGeography, type Geography } from '../../src/facts/geography'
 import { COCKPIT_HORIZON, cockpitHorizonOnLeg, sunAltitudeOnLeg, sunEvents } from '../../src/facts/sky'
 import { cardSummary, headline, makeTripFacts, showsLiveData, tripSoFar, type TripFacts } from '../../src/facts/tripFacts'
@@ -257,22 +257,45 @@ describe('the rows with a real plane (Stage 3 spec §8)', () => {
   })
 })
 
-describe('the trip so far with a real plane, and whether to credit adsb.lol (Stage 3 spec §8)', () => {
+/** The text of each event the trip so far lists under its first flight. */
+const listed = (theFacts: TripFacts, t: string) => tripSoFar(theFacts, at(t)).flights[0]?.events.map((e) => e.text)
+
+describe('the trip so far with a real plane, and whether to credit adsb.lol (Stage 3 spec §8, best guesses design §4)', () => {
   it('counts the miles along the real path, and lists real times', () => {
     const soFar = tripSoFar(facts('11:10'), at('11:10'))
-    expect(soFar.flights[0]?.milestones).toEqual([`Crossed into Bravo · 6:55${AM}`])
+    expect(soFar.flights[0]?.events.map((e) => e.text)).toEqual([`Crossed into Bravo · 6:55${AM}`])
+    expect(soFar.flights[0]?.events.map((e) => e.isEstimate)).toEqual([false])
     expect(soFar.totals).toBe('Day 1 of 1 · 475 mi')
   })
 
-  it('in a replay, counts as far as the record has the plane', () => {
-    const soFar = tripSoFar(facts('11:10', { isReplay: true }), at('10:35'))
-    // At 10:35 it hadn't crossed into Bravo yet.
-    expect(soFar.flights).toEqual([])
-    expect(soFar.totals).toBe('Day 1 of 1 · 173 mi')
+  it('sets the flight in the air apart, even before its first event', () => {
+    const now = tripSoFar(facts('10:35'), at('10:35'))
+    expect(now.flights.map((f) => f.tag)).toEqual(['In the air now'])
+    // At 10:35 it hasn't crossed into Bravo yet.
+    expect(now.flights[0]?.events).toEqual([])
+
+    // A replay's moment isn't now. It counts as far as the record has the plane.
+    const replayed = tripSoFar(facts('11:10', { isReplay: true }), at('10:35'))
+    expect(replayed.flights.map((f) => f.tag)).toEqual(['In the air'])
+    expect(replayed.totals).toBe('Day 1 of 1 · 173 mi')
   })
 
-  it('lists a crossing nobody saw with "about"', () => {
-    expect(tripSoFar(facts('11:10', { unseen: [4, 6.5] }), at('11:10')).flights[0]?.milestones).toEqual([`Crossed into Bravo · about 6:55${AM}`])
+  it('lists the newest event first', () => {
+    expect(listed(facts('12:30'), '12:30')).toEqual([
+      `Closest to home, 35 mi · 8:07${AM}`, `Out over the Test Sea · 7:51${AM}`, `Halfway · 7:35${AM}`, `Crossed into Bravo · 6:55${AM}`,
+    ])
+  })
+
+  it('lists a crossing nobody saw as a best guess, with "about"', () => {
+    // Nobody saw it from 4° E to 6.5° E. On the straight join it crossed into Bravo at 10:55.
+    const events = tripSoFar(facts('11:10', { unseen: [4, 6.5] }), at('11:10')).flights[0]?.events
+    expect(events?.map((e) => e.text)).toEqual([`Crossed into Bravo · about 6:55${AM}`])
+    expect(events?.map((e) => e.isEstimate)).toEqual([true])
+  })
+
+  it('while it’s out of sight, lists what the plan has happened', () => {
+    // Last seen at 4.375° E at 10:50. By the plan it crossed into Bravo at 10:55.
+    expect(listed(facts('10:50', { now: '11:01' }), '11:01')).toEqual([`Crossed into Bravo · about 6:55${AM}`])
   })
 
   it('shows live data when a flight of the trip has it', () => {
@@ -404,15 +427,20 @@ describe('a real plane still at its departure airport: nothing passed, and its t
   /** A border 1° E along: the schedule's times have the plane cross it at 10:24, before the real one has left. */
   const border = makeGeography([box('Alpha', 'country', -1, 1), box('Bravo', 'country', 1, 21)], [])
 
-  it('lists none of the leg’s crossings in the trip so far, as nothing of it is flown', () => {
+  it('leaves the flight out of the trip so far until it takes off, as nothing of it is flown: no crossing, and no "In the air now"', () => {
     const soFar = tripSoFar(atTheGate('10:28', { geography: border }), at('10:28'))
     expect(soFar.flights).toEqual([])
     expect(soFar.totals).toBe('Day 1 of 1')
+    // Before the plan's takeoff it's the flight between its gates, as the app has it, and set apart.
+    expect(tripSoFar(atTheGate('10:05', { geography: border }), at('10:05')).flights.map((f) => f.tag)).toEqual(['In the air now'])
+    // Once it's seen in the air it's set apart, with what it has passed.
+    expect(tripSoFar(facts('10:35', { now: '10:35' }), at('10:35')).flights.map((f) => f.tag)).toEqual(['In the air now'])
   })
 
   it('in a replay, lists them where the map has the plane: the schedule’s, as it has no record', () => {
-    expect(tripSoFar(atTheGate('10:28', { geography: border, isReplay: true }), at('10:28')).flights[0]?.milestones)
-      .toEqual([`Crossed into Bravo · 6:24${AM}`])
+    const soFar = tripSoFar(atTheGate('10:28', { geography: border, isReplay: true }), at('10:28'))
+    expect(soFar.flights.map((f) => f.tag)).toEqual(['In the air'])
+    expect(soFar.flights[0]?.events.map((e) => e.text)).toEqual([`Crossed into Bravo · 6:24${AM}`])
   })
 
   it('says "about" of the leg’s halfway and closest-to-home times, worked out from a takeoff that hasn’t happened', () => {
@@ -460,10 +488,15 @@ describe('the full map’s facts at a moment, with and without live data (Stage 
     expect(factsAtMoment(gate, at('10:35'), at('10:35')).showsLiveCredit).toBe(true)
   })
 
-  it('of a flight with no live data, are the same in a replay as they were', () => {
+  it('of a flight with no live data, are the same in a replay as they were, but for the tag that says it’s now', () => {
+    // The flight in the air is "In the air now", and in a replay "In the air" (best guesses design §4).
+    const asReplay = (moment: FactsAtMoment): FactsAtMoment => ({
+      ...moment,
+      tripSoFar: { ...moment.tripSoFar, flights: moment.tripSoFar.flights.map((f) => ({ ...f, tag: f.tag && 'In the air' })) },
+    })
     for (const leg of [equatorFlight(0, 20), equatorLiveLeg(null, at('11:10'))]) {
       for (const t of ['10:05', '10:35', '11:10', '12:07', '13:20']) {
-        expect(factsAtMoment(factsOf(leg, { isReplay: true }), at(t), at('11:10'))).toEqual(factsAtMoment(factsOf(leg), at(t), at('11:10')))
+        expect(factsAtMoment(factsOf(leg, { isReplay: true }), at(t), at('11:10'))).toEqual(asReplay(factsAtMoment(factsOf(leg), at(t), at('11:10'))))
       }
     }
   })

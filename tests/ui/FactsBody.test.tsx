@@ -9,7 +9,10 @@ afterEach(cleanup)
 const below = factRow('below', 'MapPin', 'Over Bravo, near Testville', ['Passes 35 mi from home at 8:21 AM'])
 const headed = factRow('headed', 'AirplaneLanding', 'Lands Cologne 9:30 PM', [null, '6 hours ahead of you'])
 const soFar: TripSoFar = {
-  flights: [{ id: 'f1', title: 'UPS201 · Louisville → Cologne', milestones: ['Crossed into Canada · 1:12 PM', 'Halfway · 4:12 PM'] }],
+  flights: [{
+    id: 'f1', title: 'UPS201 · Louisville → Cologne', tag: null,
+    events: [{ text: 'Halfway · 4:12 PM', isEstimate: false }, { text: 'Crossed into Canada · 1:12 PM', isEstimate: false }],
+  }],
   totalsTitle: 'Trip so far',
   totals: 'Day 1 of 4 · 2,140 mi',
 }
@@ -92,5 +95,43 @@ describe('the credit to adsb.lol under the facts (Stage 3 spec §8, §15)', () =
     const none = render(<FactsBody rows={[below]} tripSoFar={soFar} showsLiveCredit={false} />)
     expect(footer(none.container).outerHTML).toBe(before)
     expect(screen.queryByText(/adsb\.lol/)).toBeNull()
+  })
+})
+
+describe('the trip so far’s list (best guesses design §3, §4)', () => {
+  const inTheAir: TripSoFar = {
+    flights: [
+      {
+        id: 'f2', title: 'UPS202 · Cologne → Dubai', tag: 'In the air now',
+        events: [{ text: 'Out over the Persian Gulf · about 9:05 AM', isEstimate: true }, { text: 'Crossed into Iran · 8:40 AM', isEstimate: false }],
+      },
+      { id: 'f1', title: 'UPS201 · Louisville → Cologne', tag: null, events: [{ text: 'Crossed into Canada · 1:12 PM', isEstimate: false }] },
+    ],
+    totalsTitle: 'Trip so far',
+    totals: 'Day 2 of 4 · 6,100 mi',
+  }
+
+  it('sets the flight in the air apart with a border, and its tag beside its name in its heading', () => {
+    const { container } = render(<FactsBody rows={[]} tripSoFar={inTheAir} />)
+    const sections = [...container.querySelectorAll('.trip-so-far-flight')]
+    expect(sections.map((s) => s.classList.contains('in-the-air'))).toEqual([true, false])
+    expect(sections[0].querySelector('.trip-so-far-tag')?.textContent).toBe('In the air now')
+    expect(screen.getByRole('heading', { name: 'UPS202 · Cologne → Dubai In the air now' })).toBeTruthy()
+    // An earlier flight sits plain underneath, with no tag.
+    expect(sections[1].querySelector('.trip-so-far-tag')).toBeNull()
+    expect(screen.getByRole('heading', { name: 'UPS201 · Louisville → Cologne' })).toBeTruthy()
+  })
+
+  it('lists each flight’s events in the order the facts give, newest first, a best guess drawn lighter and slanted', () => {
+    const { container } = render(<FactsBody rows={[]} tripSoFar={inTheAir} />)
+    const lines = [...container.querySelectorAll('.trip-so-far-flight li')]
+    expect(lines.map((li) => li.textContent)).toEqual(['Out over the Persian Gulf · about 9:05 AM', 'Crossed into Iran · 8:40 AM', 'Crossed into Canada · 1:12 PM'])
+    expect(lines.map((li) => li.classList.contains('estimate'))).toEqual([true, false, false])
+  })
+
+  it('shows the flight in the air before its first event, with no empty list', () => {
+    const { container } = render(<FactsBody rows={[]} tripSoFar={{ ...inTheAir, flights: [{ ...inTheAir.flights[0], events: [] }] }} />)
+    expect(container.querySelector('.trip-so-far-flight.in-the-air .trip-so-far-tag')?.textContent).toBe('In the air now')
+    expect(container.querySelector('.trip-so-far-flight ul')).toBeNull()
   })
 })

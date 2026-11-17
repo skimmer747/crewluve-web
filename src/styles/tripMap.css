@@ -381,8 +381,24 @@
 .fact-row-detail { color: var(--text-2); font-size: 0.9rem; }
 .trip-so-far { display: flex; flex-direction: column; gap: 12px; }
 .trip-so-far h3 { margin: 0 0 4px; font-size: 0.95rem; font-weight: 600; }
-.trip-so-far ul { margin: 0; padding: 0; list-style: none; color: var(--text-2); font-size: 0.9rem; }
-.trip-so-far p { margin: 0; color: var(--text-2); font-size: 0.9rem; }
+/* The events and the totals in the text's own color, as the app's, so a best guess can be drawn lighter, and slanted
+   (best guesses design §3). */
+.trip-so-far ul { margin: 0; padding: 0; list-style: none; font-size: 0.9rem; }
+.trip-so-far p { margin: 0; font-size: 0.9rem; }
+.trip-so-far li.estimate { color: var(--text-2); font-style: italic; }
+/* The flight between its gates (best guesses design §4): a border round it, and its tag beside its name, or under it
+   where they don't fit on one line. */
+.trip-so-far-flight.in-the-air { padding: 12px 14px; border: 1.5px solid var(--blue); border-radius: 12px; }
+.trip-so-far-flight.in-the-air h3 { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 8px; }
+.trip-so-far-tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  /* A browser without color-mix (before Safari 16.2) shows the tag without its tint. */
+  background: color-mix(in srgb, var(--blue) 15%, transparent);
+  color: var(--blue);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
 .facts-footer { color: var(--text-2); font-size: 0.8rem; }
 .facts-footer p { margin: 0; }
 
