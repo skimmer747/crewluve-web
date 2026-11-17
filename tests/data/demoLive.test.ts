@@ -104,11 +104,23 @@ describe("the demo's made-up real planes (Stage 3 spec §12)", () => {
     expect(crossings(90)?.slice(0, 2)).toEqual(['Crossed into the United States', 'Crossed into Yukon'])
   })
 
+  it('live-returned: back at Rockford after an air return, 50 minutes after the plan’s takeoff (air return design §3)', () => {
+    const scene = sceneAt('live-returned')!
+    expect(scene.progress.phase).toBe('returned')
+    expect(scene.label).toBe('Returned')
+    expect(scene.flight.live?.callsign).toBe('UPS2963')
+    // The way out and back isn't the flight's path.
+    expect(scene.flight.path.isReal).toBe(false)
+    const { at, facts } = sceneFacts('live-returned')
+    expect(headline(facts, at)).toBe('Returned to Rockford')
+  })
+
   it('stays itself while the page is open', () => {
     expect(sceneAt('live-ahead', 20)?.label).toBe('10 min ahead')
     expect(sceneAt('live-ocean-gap', 60)?.progress.phase).toBe('estimated')
     expect(sceneAt('live-long-gap', 80)?.progress.phase).toBe('estimated')
     expect(sceneAt('live-on-ground-late', 60)?.label).toBe('Still on the ground · 1 h 20 min behind')
+    expect(sceneAt('live-returned', 60)?.progress.phase).toBe('returned')
   })
 
   it('lands live-ahead when it is due, 10 minutes early', () => {

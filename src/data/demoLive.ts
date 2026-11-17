@@ -1,6 +1,6 @@
 import type { Move, Schedule } from '../engine/types'
 import { airborneWindow } from '../map/flightProgress'
-import { distanceMeters, pointAlong, type GeoPoint } from '../map/greatCircle'
+import { distanceMeters, METERS_PER_NM, pointAlong, type GeoPoint } from '../map/greatCircle'
 import type { LiveFix, LiveFlight, TrailPoint } from '../map/liveFlight'
 import { flatMapAngle } from '../map/planeHeading'
 import { MINUTE } from '../time/zoned'
@@ -11,7 +11,7 @@ import { MINUTE } from '../time/zoned'
  * itself for as long as the page is open: the plane flies on, and lands when it's due.
  */
 
-export type LiveDemoScene = 'live-ahead' | 'live-ocean-gap' | 'live-on-ground-late' | 'live-landed' | 'live-long-gap'
+export type LiveDemoScene = 'live-ahead' | 'live-ocean-gap' | 'live-on-ground-late' | 'live-landed' | 'live-long-gap' | 'live-returned'
 
 interface Story {
   /** The flight's number in the demo's trip. */
@@ -24,6 +24,11 @@ interface Story {
   unseen: [number, number][]
   /** Minutes after the takeoff it was last seen, or null when it's seen all the way. */
   lastSeen: number | null
+  /**
+   * Minutes after the takeoff it's down at its departure airport again, having flown out 40 nm and straight back,
+   * climbing to 9,000 ft at the turn: an air return (air return design §2). Absent for a flight that goes on.
+   */
+  backAfter?: number
 }
 
 const STORIES: Record<LiveDemoScene, Story> = {
@@ -41,6 +46,9 @@ const STORIES: Record<LiveDemoScene, Story> = {
   // never again: out of tracking range for more than 2 hours, so nothing below is named, and the crossings it's guessed
   // to make after them wait until it's at the gate (long gap design §3). The demo's trips cross no ocean.
   'live-long-gap': { number: '2963', bow: 1.5, takeoffLate: 0, unseen: [], lastSeen: 95 },
+  // Rockford to Anchorage, off on time, out 40 nm and back, and on the ground at Rockford again 30 minutes after it took
+  // off: "Returned to Rockford", 20 minutes on (air return design §3).
+  'live-returned': { number: '2963', bow: 0, takeoffLate: 0, unseen: [], lastSeen: null, backAfter: 30 },
 }
 
 export const isLiveDemoScene = (scene: string): scene is LiveDemoScene => Object.prototype.hasOwnProperty.call(STORIES, scene)
@@ -82,6 +90,7 @@ function madeUp(story: Story, move: Move, from: GeoPoint, to: GeoPoint, now: num
   const steps = Array.from({ length: 65 }, (_, i) => along(i / 64))
   const length = steps.slice(1).reduce((sum, p, i) => sum + distanceMeters(steps[i], p), 0)
   const takeoff = plan.start + story.takeoffLate * MINUTE
+  if (story.backAfter != null) return cameBack(base, from, to, takeoff, takeoff + story.backAfter * MINUTE, now)
   const inAir = (plan.end - plan.start) * (length / distanceMeters(from, to))
   const touchdown = takeoff + inAir
   const place = (t: number) => along(Math.min(Math.max((t - takeoff) / inAir, 0), 1))
@@ -101,4 +110,28 @@ function madeUp(story: Story, move: Move, from: GeoPoint, to: GeoPoint, now: num
   }
   const seenAt = Math.min(now - FIX_AGE_MS, lastSeen)
   return { ...base, state: 'airborne', fix: fixAt(place(seenAt), track(seenAt), seenAt, false), trail }
+}
+
+/** How far out an air return flies before it turns back: 40 nautical miles. */
+const RETURN_TURN_METERS = 40 * METERS_PER_NM
+
+/**
+ * A plane off from `from` at `takeoff`, out 40 nm toward `to` and straight back, climbing to 9,000 ft at the turn, and
+ * on the ground at `from` again at `back`: an air return (air return design §2). In the air before then, as its trail
+ * so far and its fix.
+ */
+function cameBack(
+  base: Pick<LiveFlight, 'legId' | 'callsign' | 'landedAt'>, from: GeoPoint, to: GeoPoint, takeoff: number, back: number, now: number,
+): LiveFlight {
+  // 0 at the takeoff and back at the airport, 1 at the turn.
+  const out = (t: number) => 1 - Math.abs((2 * (t - takeoff)) / (back - takeoff) - 1)
+  const turn = RETURN_TURN_METERS / distanceMeters(from, to)
+  const place = (t: number) => pointAlong(from, to, out(t) * turn)
+  const trail: TrailPoint[] = []
+  for (let t = takeoff + MINUTE; t < back && t <= now - MINUTE; t += MINUTE) {
+    trail.push({ time: t, place: place(t), altitudeFt: Math.round(1_000 + 8_000 * out(t)) })
+  }
+  const seenAt = now - FIX_AGE_MS
+  if (seenAt >= back) return { ...base, state: 'ground', fix: fixAt(from, null, seenAt, true), trail }
+  return { ...base, state: 'airborne', fix: fixAt(place(seenAt), null, seenAt, false), trail }
 }
