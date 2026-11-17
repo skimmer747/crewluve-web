@@ -683,16 +683,16 @@ cd "/Users/toddanderson/Dev/Crewluve Website/.claude/worktrees/trip-map-live-598
 
 Expected: `fast-forward`. If it isn't (`main` has moved on since `b3e3c15`), merge it in here: `git merge origin/main`. If any file conflicts, STOP and tell Todd. Then run `npm test && npm run build`.
 
-- [ ] **Step 3: Todd runs everything** (Task 2 Step 5's command) on the branch as it will go live.
-- [ ] **Step 4: Push the branch to `main`, on Todd's yes.** A fast-forward only; never force.
+- [x] **Step 3: Todd runs everything** (Task 2 Step 5's command) on the branch as it will go live.
+- [x] **Step 4: Push the branch to `main`, on Todd's yes.** A fast-forward only; never force.
 
 ```bash
 git push origin claude/trip-map-live-598046:main
 ```
 
-- [ ] **Step 5: Watch the deploy** (`gh run watch` on the run the push started) until it succeeds. If it fails, tell Todd at once with its log: the site stays as it was until a deploy succeeds.
-- [ ] **Step 6: Look at the live site** with Todd, at `https://crewluve.crewlu.net/?demo=1&scene=live-ocean-gap#map`: the faded plane's popup, "More facts" and the card's sentence; and `…scene=flying#map`, unchanged.
-- [ ] **Step 7: The record.** Under "Changes made during execution": the push's commit, the deploy's run and time, and what Todd saw. Commit the plan on his yes and push it (a fast-forward only), as Step 4.
+- [x] **Step 5: Watch the deploy** (`gh run watch` on the run the push started) until it succeeds. If it fails, tell Todd at once with its log: the site stays as it was until a deploy succeeds.
+- [x] **Step 6: Look at the live site** with Todd, at `https://crewluve.crewlu.net/?demo=1&scene=live-ocean-gap#map`: the faded plane's popup, "More facts" and the card's sentence; and `…scene=flying#map`, unchanged.
+- [x] **Step 7: The record.** Under "Changes made during execution": the push's commit, the deploy's run and time, and what Todd saw. Commit the plan on his yes and push it (a fast-forward only), as Step 4.
 
 ---
 
@@ -710,6 +710,9 @@ git push origin claude/trip-map-live-598046:main
 - **Task 3, Todd's look:** the session read the worktree's site first (`live-ocean-gap`): the facts' "Last tracked over Alberta · 45 min ago"; the card's sentence "…, over Northwest Territories, last tracked over Alberta." (two places, both said); no "seen" on the page. **Todd: "Looks good."**
 - **Task 4, the review** (`superpowers:code-reviewer`, sonnet, on `bbb0061`): nothing critical, important or minor. It found no user-facing "seen" left in `src/` (the popup, the facts, the card's and the status sentences, the full map's screen-reader text, the design); the words exact; the place said once only for the same place with no city near the last fix, never while the plane is tracked, and both said for a state and a country that share a name; the shared cases untouched. **No change made,** so Step 2's run wasn't needed.
 - **Task 5, going live:** Todd chose "Go live: run it, then push if it passes" (about 11:30 PM). `origin/main` was still `b3e3c15`, a fast-forward (no merge needed).
+  - **Plan committed:** `84aeaea`. **Todd's run on the branch as it went live:** `npm test && npm run build` at 11:25 PM, 177 test files and 3,704 tests passed, `✓ built`.
+  - **Pushed:** `b3e3c15..84aeaea`, a fast-forward. **Deployed:** "Deploy to GitHub Pages" run `44017164598`, succeeded at 11:27 PM EST (04:27 UTC, 17 Nov).
+  - **The live site:** the session read `https://crewluve.crewlu.net/?demo=1&scene=live-ocean-gap` (the new bundle; "Last tracked over Alberta · 45 min ago"; the card's sentence "…, over Northwest Territories, last tracked over Alberta."; no "seen" on the page). **Todd: "Looks good."**
 
 ## Self-review
 
