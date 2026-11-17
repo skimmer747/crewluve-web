@@ -166,9 +166,17 @@ export function toldMilestones(facts: TripFacts, leg: MapLeg, t: number): Milest
   const all = factsMilestones(facts, leg)
   const knots = leg.flight?.path.knots ?? []
   const lastSeen = knots[knots.length - 1]
-  if (t >= leg.end || !lastSeen) return all
-  return all.filter((m) => m.time - lastSeen.time <= GUESS_HORIZON_MS)
+  if (!lastSeen) return all
+  return all.filter((m) => isToldAt(m.time, lastSeen.time, leg.end, t))
 }
+
+/**
+ * Whether a milestone at `time` is told at `t`, the plane last seen at `lastSeen` and the flight over at `end`: from the
+ * flight's end, always; before it, if it's guessed no more than 2 hours after the last sighting (long gap design §3).
+ * Both edges count as told.
+ */
+export const isToldAt = (time: number, lastSeen: number, end: number, t: number): boolean =>
+  t >= end || time - lastSeen <= GUESS_HORIZON_MS
 
 /**
  * "Over Kansas", "Over Québec, near Montréal", from the flight's story, read where the plane is (Stage 3 spec §8). A real

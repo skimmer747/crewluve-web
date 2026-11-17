@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { FactRow } from '../../src/facts/factRow'
 import { isOcean, makeGeography, OCEAN_NAMES } from '../../src/facts/geography'
 import { GUESS_HORIZON_MS, isPastGuessHorizon, type PlanePosition } from '../../src/facts/planePosition'
-import { belowText, cardSummary, headline, latestEvent, makeTripFacts, tripSoFar, type TripFacts } from '../../src/facts/tripFacts'
+import { belowText, cardSummary, headline, isToldAt, latestEvent, makeTripFacts, tripSoFar, type TripFacts } from '../../src/facts/tripFacts'
 import { factRows } from '../../src/facts/tripFactsRows'
 import { OWN_SPEED_AHEAD_MS } from '../../src/map/flightPlan'
 import { appGeography, box, flightMap } from './factsTestData'
@@ -165,6 +165,26 @@ describe('events, past 2 hours out of tracking range (long gap design §3)', () 
     expect(events(over, '13:45')).toHaveLength(5)
     // Not before: at 13:30 it's past the schedule's 13:22 at the gate, but in the air by its estimate.
     expect(events(facts({ now: '13:30' }), '13:30')?.[0]).toBe('Closest to home, 35 mi · about 8:05 AM')
+  })
+
+  it('are told at exactly 2 hours after the last sighting, and held a moment past it (the review of the long gap plan)', () => {
+    const lastSeen = at('10:45')
+    const end = at('13:40')
+    expect(isToldAt(lastSeen + GUESS_HORIZON_MS, lastSeen, end, at('13:10'))).toBe(true)
+    expect(isToldAt(lastSeen + GUESS_HORIZON_MS + 1, lastSeen, end, at('13:10'))).toBe(false)
+  })
+
+  it('are all told from the very moment the flight is over, and not a moment before', () => {
+    const lastSeen = at('10:45')
+    const end = at('13:40')
+    const held = lastSeen + GUESS_HORIZON_MS + 60_000
+    expect(isToldAt(held, lastSeen, end, end)).toBe(true)
+    expect(isToldAt(held, lastSeen, end, end - 1)).toBe(false)
+  })
+
+  it('are held in a replay too, until the replay reaches the flight’s end', () => {
+    expect(events(facts({ now: '13:10', isReplay: true }), '13:10')?.[0]).toBe('Closest to home, 35 mi · about 8:05 AM')
+    expect(events(facts({ now: '13:45', isReplay: true }), '13:45')?.[0]).toBe('Crossed into Delta · about 8:59 AM')
   })
 
   it('are told on the straight join once the plane is tracked again', () => {
