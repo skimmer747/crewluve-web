@@ -82,17 +82,31 @@ export interface Insets {
 
 export const NO_INSETS: Insets = { top: 0, right: 0, bottom: 0, left: 0 }
 
-/** With less clear map than this either way, the insets are ignored and the trip fills the whole view. */
+/** With less clear map than this either way, the insets are left out (`insetsThatFit`). */
 export const MIN_CLEAR_PX = 120
 
 /**
- * The rectangle a `width` × `height` view shows so that `rect`, grown to the clear part's shape, fills the part the
- * insets leave clear: a panel over the map then hides no route (Stage 2 spec §10). Without room for that, `toAspect`.
+ * The insets the camera frames inside: all of them where they leave `MIN_CLEAR_PX` clear each way. Where they don't,
+ * as under the latest event's banner and over the card's bottom chip, the bottom one alone where it does: Apple's logo
+ * and Legal link stay above the bottom chip, as Apple requires (Apple Maps spec §4.2; the review's fixes), and the slide
+ * keeps the plane in the band between them. Else none, and the trip fills the whole view.
  */
-export function fitClear(rect: WorldRect, width: number, height: number, insets: Insets = NO_INSETS): WorldRect {
+export function insetsThatFit(insets: Insets, width: number, height: number): Insets {
+  const fits = ({ top, right, bottom, left }: Insets) => width - left - right >= MIN_CLEAR_PX && height - top - bottom >= MIN_CLEAR_PX
+  if (fits(insets)) return insets
+  const bottom = { ...NO_INSETS, bottom: insets.bottom }
+  return fits(bottom) ? bottom : NO_INSETS
+}
+
+/**
+ * The rectangle a `width` × `height` view shows so that `rect`, grown to the clear part's shape, fills the part the
+ * insets that fit (`insetsThatFit`) leave clear: a panel over the map then hides no route (Stage 2 spec §10), nor the
+ * card's bottom chip. With none that fit, `toAspect`.
+ */
+export function fitClear(rect: WorldRect, width: number, height: number, all: Insets = NO_INSETS): WorldRect {
+  const insets = insetsThatFit(all, width, height)
   const clearWidth = width - insets.left - insets.right
   const clearHeight = height - insets.top - insets.bottom
-  if (clearWidth < MIN_CLEAR_PX || clearHeight < MIN_CLEAR_PX) return toAspect(rect, width / height)
   const clear = toAspect(rect, clearWidth / clearHeight)
   const perPixel = clear.width / clearWidth
   return normalized({

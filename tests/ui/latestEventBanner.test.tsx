@@ -271,10 +271,13 @@ describe('the plane under the card’s banner (the review’s fixes)', () => {
     measure(sizes)
     const plane = card()
     await waitFor(() => expect(kit.maps).toHaveLength(1))
-    // Too thin a band to frame in, so MapKit is given the whole card, and the plane sits in the band.
-    await waitFor(() => expect(kit.maps[0].padding).toMatchObject({ top: 0, bottom: 0 }))
+    // Too thin a band to frame in, so the leg is framed above the bottom chip, and the plane slid into the band. MapKit
+    // keeps the chip's cover, 37 px, as its padding, so its logo and Legal link stay above the chip, as Apple requires.
+    await waitFor(() => expect(kit.maps[0].padding).toMatchObject({ top: 0, bottom: 37 }))
     const { rect } = kit.maps[0].rects.at(-1)!
-    inTheBand(placeAt(plane, { rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height }, width: 342, height: 220 }).y)
+    // The whole card, the rectangle MapKit is asked for grown by that padding below it.
+    const card342 = { x: rect.x, y: rect.y, width: rect.width, height: (rect.width / 342) * 220 }
+    inTheBand(placeAt(plane, { rect: card342, width: 342, height: 220 }).y)
   })
 })
 

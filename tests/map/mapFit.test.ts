@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fitClear, fitRect, MIN_SIDE, NO_INSETS, slideToShow, toAspect, type WorldRect } from '../../src/map/mapFit'
+import { fitClear, fitRect, insetsThatFit, MIN_SIDE, NO_INSETS, slideToShow, toAspect, type WorldRect } from '../../src/map/mapFit'
 import { toWorld } from '../../src/map/mercator'
 
 const SDF = { lat: 38.1744, lng: -85.736 }
@@ -80,6 +80,35 @@ describe('fitClear (Stage 2 spec §10)', () => {
     const clear = fitClear(rect, 400, 400, { top: 0, right: 0, bottom: 0, left: 300 })
     expect(clear.x).toBeCloseTo(plain.x, 12)
     expect(clear.width).toBeCloseTo(plain.width, 12)
+  })
+
+  it('keeps the bottom chip clear where the banner and the chip leave too little, but the chip alone doesn’t', () => {
+    // The card's 343 × 220 map under a banner 65 px deep, over a chip 38 px deep: 117 px between, and 182 px above the chip.
+    const card = { top: 65, right: 0, bottom: 38, left: 0 }
+    const above = fitClear(rect, 343, 220, { ...NO_INSETS, bottom: 38 })
+    expect(fitClear(rect, 343, 220, card)).toEqual(above)
+    // The trip's centre lands in the middle of the part above the chip: 91 px down.
+    expect((0.45 - above.y) / (above.height / 220)).toBeCloseTo(91, 6)
+  })
+})
+
+describe('the insets the camera frames inside (Apple Maps spec §4.2; the review’s fixes)', () => {
+  it('are all of them where they leave 120 px clear each way', () => {
+    expect(insetsThatFit({ top: 40, right: 0, bottom: 40, left: 0 }, 343, 220)).toEqual({ top: 40, right: 0, bottom: 40, left: 0 })
+    expect(insetsThatFit({ top: 0, right: 0, bottom: 0, left: 412 }, 1280, 740)).toEqual({ top: 0, right: 0, bottom: 0, left: 412 })
+    // Exactly 120 px is enough.
+    expect(insetsThatFit({ top: 50, right: 0, bottom: 50, left: 0 }, 343, 220)).toEqual({ top: 50, right: 0, bottom: 50, left: 0 })
+    expect(insetsThatFit({ top: 65, right: 0, bottom: 100, left: 0 }, 343, 220)).toEqual({ top: 0, right: 0, bottom: 100, left: 0 })
+  })
+
+  it('are the bottom one alone where they don’t, but it does: Apple’s logo and Legal link stay above the bottom chip', () => {
+    expect(insetsThatFit({ top: 65, right: 0, bottom: 38, left: 0 }, 343, 220)).toEqual({ top: 0, right: 0, bottom: 38, left: 0 })
+    expect(insetsThatFit({ top: 93, right: 0, bottom: 37, left: 0 }, 342, 220)).toEqual({ top: 0, right: 0, bottom: 37, left: 0 })
+  })
+
+  it('are none where even the bottom one alone leaves too little', () => {
+    expect(insetsThatFit({ top: 65, right: 0, bottom: 110, left: 0 }, 343, 220)).toEqual(NO_INSETS)
+    expect(insetsThatFit({ top: 0, right: 0, bottom: 0, left: 300 }, 400, 400)).toEqual(NO_INSETS)
   })
 })
 

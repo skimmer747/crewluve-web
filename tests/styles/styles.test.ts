@@ -817,6 +817,25 @@ describe('main.tsx', () => {
   })
 })
 
+describe('tripMap.css: the latest event’s banner, as it’s measured (the review’s fixes)', () => {
+  // Every layout test stubs the sizes, and happy-dom lays nothing out: these lines are what make the measures right.
+  const rules = rulesIn(css('tripMap'))
+  const declared = (head: string) => new Map(declarations(find(rules, head)?.body ?? ''))
+
+  it('lays the widest "when" out unseen, out of the banner’s flow, on one line', () => {
+    const widest = declared('.latest-event-widest')
+    expect(widest.get('position')).toBe('absolute')
+    expect(widest.get('visibility')).toBe('hidden')
+    expect(widest.get('white-space')).toBe('nowrap')
+  })
+
+  it('makes each of the banner’s lines as wide as its words, so the title is measured on its own, and holds the widest', () => {
+    const banner = declared('.latest-event')
+    expect(banner.get('align-items')).toBe('flex-start')
+    expect(banner.get('position')).toBe('relative')
+  })
+})
+
 describe('split.css', () => {
   // Read when each test runs, so a missing file fails the tests below and not the whole file.
   const rule = (head: string) => declarations(find(rulesIn(css('split')), head)!.body)

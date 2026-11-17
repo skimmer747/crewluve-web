@@ -268,16 +268,31 @@ describe('keeping the pilot’s marker in view when MapKit stops zooming out sho
     expect(m.rects.map((r) => r.animated)).toEqual([false, true, true])
   })
 
-  it('reads the padding MapKit has: none, when the chips leave too thin a band to frame in', async () => {
+  it('reads the padding MapKit has: none, when the chips leave too thin a band to frame in, even above the bottom one', async () => {
     const kit = await ready()
-    const thin = { top: 90, right: 0, bottom: 90, left: 0 }
+    // A 25 px band, and 115 px above the bottom chip.
+    const thin = { top: 90, right: 0, bottom: 105, left: 0 }
     render(<AppleTripMap {...card} insets={thin} />)
     await waitFor(() => expect(kit.maps).toHaveLength(1))
     const m = kit.maps[0]
     expect(m.padding).toMatchObject(NO_INSETS)
     settled(kit, atLimit(m.rects[0].rect))
     expect(m.rects).toHaveLength(2)
+    // The marker, larger than the band, is centred in it.
     const y = placeAt(home, { rect: wholeView(m.rects[1].rect, NO_INSETS), width: 343, height: 220 }).y
+    expect(Math.abs(y - 102.5)).toBeLessThanOrEqual(1)
+  })
+
+  it('reads the padding MapKit has: the bottom chip’s, where the chips leave too thin a band but the bottom one alone doesn’t', async () => {
+    const kit = await ready()
+    const chips = { top: 90, right: 0, bottom: 90, left: 0 }
+    render(<AppleTripMap {...card} insets={chips} />)
+    await waitFor(() => expect(kit.maps).toHaveLength(1))
+    const m = kit.maps[0]
+    expect(m.padding).toMatchObject({ ...NO_INSETS, bottom: 90 })
+    settled(kit, atLimit(m.rects[0].rect))
+    expect(m.rects).toHaveLength(2)
+    const y = placeAt(home, { rect: wholeView(m.rects[1].rect, m.padding!), width: 343, height: 220 }).y
     expect(y).toBeGreaterThanOrEqual(90)
     expect(y).toBeLessThanOrEqual(130)
   })
@@ -320,8 +335,11 @@ describe('keeping the plane in the card’s band as it flies on, on Apple’s ma
   const insets: Insets = { top: 93, right: 0, bottom: 37, left: 0 }
   const card = { map: hop, width: 342, height: 220, focus: north, land: null, nightStep: 60_000, mapStyle: 'hybrid' as const, interactive: false, insets }
   const plane = (t: number) => positionAt(north, legProgress(north, t))
-  /** Where the plane is at `t` in `rect`, the whole card: with a band this thin, MapKit has no padding. */
-  const yIn = (rect: WorldRect, t: number) => placeAt(plane(t), { rect, width: 342, height: 220 }).y
+  /**
+   * Where the plane is at `t` on the card MapKit shows for `rect`: with a band this thin, MapKit keeps only the bottom
+   * chip's padding, so the whole card is `rect` and the 37 px below it.
+   */
+  const yIn = (rect: WorldRect, t: number) => placeAt(plane(t), { rect: { ...rect, height: (rect.width / 342) * 220 }, width: 342, height: 220 }).y
   const framed = appleCamera(framingPoints(hop, north), [], 342, 220, insets).rect
   /** The first second the plane, unslid, is above `y` px. */
   const firstAbove = (y: number) => {
@@ -433,13 +451,16 @@ describe('keeping the plane in the card’s band as it flies on, on Apple’s ma
 
   it('takes a late report on an earlier framing for what it is: the newer framing’s check once it settles waits for its own', async () => {
     const kit = await ready()
-    // No banner yet: the leg framed in the card's clear part. Then the banner shows, and the card frames again.
-    const view = render(<AppleTripMap {...card} insets={{ ...insets, top: 0 }} t={from} />)
+    // No banner or chip yet: the leg framed in the whole card, the plane high on it. Then the banner and the chip show,
+    // and the card frames again, above the chip, the plane slid into the band.
+    const view = render(<AppleTripMap {...card} insets={{ ...insets, top: 0, bottom: 0 }} t={to} />)
     await waitFor(() => expect(kit.maps).toHaveLength(1))
     const m = kit.maps[0]
-    view.rerender(<AppleTripMap {...card} t={from} />)
+    expect(yIn(m.rects[0].rect, to)).toBeLessThan(93 + 20)
+    view.rerender(<AppleTripMap {...card} t={to} />)
     expect(m.rects).toHaveLength(2)
-    // MapKit reports, late, that it settled on the first framing: nothing is asked of it.
+    // MapKit reports, late, that it settled on the first framing, where the plane is above the band: it's an earlier
+    // ask's report, so nothing is asked of it.
     settled(kit, m.rects[0].rect)
     expect(m.rects).toHaveLength(2)
     // Then it settles closer in than the second, on its lower part, where the plane is off the band: the check slides, at

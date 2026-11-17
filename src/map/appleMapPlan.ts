@@ -1,5 +1,5 @@
 import type { GeoPoint } from './greatCircle'
-import { fitClear, fitRect, MIN_CLEAR_PX, NO_INSETS, slideToShow, type Insets, type WorldRect } from './mapFit'
+import { fitClear, fitRect, insetsThatFit, slideToShow, type Insets, type WorldRect } from './mapFit'
 import { placeAt } from './svgPaths'
 import type { GroundKind } from './tripActivity'
 import type { MapLeg } from './tripMap'
@@ -156,10 +156,14 @@ export function keepInView(shown: AppleCamera, kept: readonly GeoPoint[], width:
   return slideIntoView(shown, kept, width, height, insets)
 }
 
-/** Whether MapKit shows `shown` where it was asked to show `asked`: the same view, give or take a pixel. */
-export function isSameView(shown: AppleCamera, asked: AppleCamera, width: number, height: number): boolean {
-  const [a, b] = [wholeView(shown, width, height), wholeView(asked, width, height)]
-  const pixel = SLIDE_TOLERANCE_PX * (b.width / width)
+/**
+ * Whether MapKit shows the rectangle `asked` asked for, give or take a pixel. Only the rectangles are compared, not the
+ * padding: a late report on an earlier ask can come once a newer one has set other padding, as when the banner and the
+ * card's chip frame the map again above the chip.
+ */
+export function isSameView(shown: AppleCamera, asked: AppleCamera, width: number): boolean {
+  const [a, b] = [shown.rect, asked.rect]
+  const pixel = SLIDE_TOLERANCE_PX * (b.width / (width - asked.padding.left - asked.padding.right))
   const x = a.x - b.x - Math.round(a.x - b.x)
   return Math.abs(x) < pixel && Math.abs(a.y - b.y) < pixel && Math.abs(a.width - b.width) < pixel && Math.abs(a.height - b.height) < pixel
 }
@@ -171,13 +175,14 @@ function wholeView({ rect, padding }: AppleCamera, width: number, height: number
 }
 
 /**
- * What MapKit is asked for to show `view`, the whole of a `width` × `height` view: the part the insets leave clear, with
- * the insets as its padding, or, when that part is too small to frame in, the whole view and no padding.
+ * What MapKit is asked for to show `view`, the whole of a `width` × `height` view: the part the insets that fit leave
+ * clear (`insetsThatFit`), with those insets as its padding, so its logo and Legal link keep above the bottom chip; with
+ * none that fit, the whole view and no padding.
  */
-function cameraFor(view: WorldRect, width: number, height: number, insets: Insets): AppleCamera {
+function cameraFor(view: WorldRect, width: number, height: number, all: Insets): AppleCamera {
+  const insets = insetsThatFit(all, width, height)
   const clearWidth = width - insets.left - insets.right
   const clearHeight = height - insets.top - insets.bottom
-  if (clearWidth < MIN_CLEAR_PX || clearHeight < MIN_CLEAR_PX) return { rect: view, padding: NO_INSETS }
   const perPixel = view.width / width
   return {
     rect: { x: view.x + insets.left * perPixel, y: view.y + insets.top * perPixel, width: clearWidth * perPixel, height: clearHeight * perPixel },

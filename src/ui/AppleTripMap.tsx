@@ -130,7 +130,7 @@ function slideToKept(mapkit: MapKitApi, state: Live, now: Latest | undefined) {
   // take leaves nothing to keep in, until it reports taking one.
   const newest = state.asks.at(-1)
   if (!newest) return
-  const taken = state.asks.map((a) => isSameView(shown, a.camera, now.width, now.height)).lastIndexOf(true)
+  const taken = state.asks.map((a) => isSameView(shown, a.camera, now.width)).lastIndexOf(true)
   if (taken === state.asks.length - 1) state.view = newest.camera
   else if (taken >= 0) return
   else state.view = newest.isFraming ? shown : null

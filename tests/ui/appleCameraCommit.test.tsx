@@ -42,9 +42,10 @@ it('keeps up only after the commit that frames, so the framing’s settle check 
   const m = kit.maps[0]
   // The framing alone, with nothing asked after it in its commit.
   expect(m.rects).toHaveLength(1)
-  // MapKit settles closer in than asked: the settle check slides, at MapKit's zoom.
+  // MapKit settles closer in than asked, on the lower part, where the plane is off the band: the settle check slides, at
+  // MapKit's zoom.
   const r: WorldRect = m.rects[0].rect
-  m.visibleMapRect = new kit.MapRect(r.x + r.width * 0.2, r.y + r.height * 0.2, r.width * 0.6, r.height * 0.6)
+  m.visibleMapRect = new kit.MapRect(r.x + r.width * 0.2, r.y + r.height * 0.4, r.width * 0.6, r.height * 0.6)
   vi.mocked(keepInView).mockImplementation(() => null)
   act(() => m.fire('region-change-end'))
   expect(m.rects).toHaveLength(2)

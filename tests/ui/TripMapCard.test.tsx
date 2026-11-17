@@ -86,6 +86,20 @@ describe('the card on Apple’s map (Apple Maps spec §4.2)', () => {
     expect(document.querySelector('.trip-map-chip.bottom')).toBeTruthy()
     expect(kit.maps[0].padding).toMatchObject({ top: 0, bottom: 40 })
   })
+
+  it('on the ground, keeps the trip clear of both chips, as Apple’s padding', async () => {
+    const kit = fakeMapKit()
+    startAppleMapKit(async () => kit as unknown as MapKitApi)
+    const measured = HTMLElement.prototype.getBoundingClientRect
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      return this.classList.contains('trip-map-chip') ? DOMRect.fromRect({ width: 200, height: 26 }) : measured.call(this)
+    })
+    // On the layover in Cologne: where they are at the top, the next flight at the bottom.
+    card(at(12))
+    await waitFor(() => expect(kit.maps).toHaveLength(1))
+    expect(document.querySelector('.trip-map-chip.top')).toBeTruthy()
+    expect(kit.maps[0].padding).toMatchObject({ top: 40, bottom: 40 })
+  })
 })
 
 describe('the card’s facts (Stage 2 spec §6.4, §6.5)', () => {
