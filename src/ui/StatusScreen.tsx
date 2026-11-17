@@ -73,6 +73,11 @@ export interface StatusScreenProps {
    */
   stillOnGroundFlight?: string | null
   /**
+   * That flight, by its leg's id, while its real plane is back at its departure airport after an air return: the
+   * narrative says "has returned to" (air return design §3).
+   */
+  returnedFlight?: string | null
+  /**
    * The flight under way, by its leg's id, while its real plane is down and not yet at the gate: the narrative says it
    * has landed (the landed, not yet at the gate design §3, Todd, 17 Nov 2026).
    */
@@ -103,7 +108,7 @@ export function StatusScreen(p: StatusScreenProps) {
   const inTheirPlace = () => [inFlightHeading.current, locationHeading.current, titleHeading.current].find((el) => el?.isConnected) ?? null
   const spans = safeNarrative(snap, {
     now: p.now, viewerTz: p.viewerTz, h24: p.h24, airports: p.airports, estimatedArrival: p.estimatedArrival, stillOnGroundFlight: p.stillOnGroundFlight,
-    landedFlight: p.landedFlight,
+    returnedFlight: p.returnedFlight, landedFlight: p.landedFlight,
   })
   const airport = snap.status.airport
   // The place, worked out once for the card, the popup and when the popup may be open: the card's rule for its dial.

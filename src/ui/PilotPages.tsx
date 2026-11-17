@@ -9,7 +9,7 @@ import { makeFactsStore } from '../facts/factsStore'
 import { makeTripFacts, type FactsOptions, type TripFacts } from '../facts/tripFacts'
 import { factsAtMoment } from '../facts/tripFactsRows'
 import { buildLegs, type Leg } from '../engine/legs'
-import { estimatedArrival, landedFlight, liveMapFlights, stillOnGroundFlight, withLiveTimes } from '../engine/liveLegs'
+import { estimatedArrival, landedFlight, liveMapFlights, returnedFlight, stillOnGroundFlight, withLiveTimes } from '../engine/liveLegs'
 import { safeSnapshot, type Snapshot } from '../engine/snapshot'
 import type { Schedule } from '../engine/types'
 import type { MapFlight } from '../map/mapFlight'
@@ -164,12 +164,14 @@ export function PilotPages({
   // The flight under way while its real plane is still at its departure airport: the narrative says "still on the
   // ground" (the website's own, Todd, 16 Nov 2026).
   const onGround = ready ? stillOnGroundFlight(ready.legs, ready.flights, now) : null
+  // Of which one back there after an air return: "has returned to" (air return design §3).
+  const returned = ready ? returnedFlight(ready.legs, ready.flights, now) : null
   // And the flight under way while its real plane is down, not yet at the gate: the narrative says it has landed (the
   // landed, not yet at the gate design §3, Todd, 17 Nov 2026).
   const down = ready ? landedFlight(ready.legs, ready.flights, now) : null
   const status = {
     snap, now, viewerTz, homeTz, h24, airports, weather, demo, celebrateKey, footer, notice, quickStatus, tripMap, land, facts,
-    onOpenMap: mapPage.show, estimatedArrival: estimated, stillOnGroundFlight: onGround, landedFlight: down,
+    onOpenMap: mapPage.show, estimatedArrival: estimated, stillOnGroundFlight: onGround, returnedFlight: returned, landedFlight: down,
   }
   // A #map address with no trip to draw falls through to the status page (moving map spec §6).
   if (mapPage.open && tripMap) {

@@ -263,6 +263,31 @@ describe('safeNarrative logging', () => {
   })
 })
 
+describe('narrative while the real plane is back at its departure airport after an air return (air return design §3)', () => {
+  const driver = engineFor(demoRaw('driver', A))
+  /** The sentence at `minutes`, with the flight under way's real plane back at its gate, or `returned` another flight's. */
+  const back = (minutes: number, more: Partial<NarrativeCtx> = {}) => {
+    const snap = makeSnapshot(driver.schedule, driver.legs, at(minutes), NY)
+    const id = (snap.status.current as MoveLeg).id
+    return narrative(snap, { ...ctx(minutes), stillOnGroundFlight: id, returnedFlight: id, ...more })
+  }
+
+  it('says it has returned there, with the countdown and the time as before', () => {
+    expect(plain(back(100))).toBe('Alex has returned to Louisville on UPS flight 2961 to Rockford — landing in 50m which is 8:00am EDT.')
+  })
+
+  it('says "about" of a landing time that’s the real plane’s estimate, as before', () => {
+    const end = (makeSnapshot(driver.schedule, driver.legs, at(100), NY).status.current as MoveLeg).end
+    expect(plain(back(100, { estimatedArrival: end })))
+      .toBe('Alex has returned to Louisville on UPS flight 2961 to Rockford — landing in 50m which is about 8:00am EDT.')
+  })
+
+  it('says still on the ground, as before, when the flight back is another', () => {
+    expect(plain(back(100, { returnedFlight: 'another flight' })))
+      .toBe('Alex is still on the ground in Louisville on UPS flight 2961 to Rockford — landing in 50m which is 8:00am EDT.')
+  })
+})
+
 describe('countdowns for screen readers', () => {
   it('gives each countdown its words, so "50m" is never read as meters', () => {
     const spans = sentenceAt(engineFor(demoRaw('driver', A)), 100)

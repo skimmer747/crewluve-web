@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildLegs, type Leg } from '../../src/engine/legs'
 import {
-  estimatedArrival, isEstimatedArrival, landedFlight, liveMapFlights, stillOnGroundFlight, watchedFlights, withLiveTimes,
+  estimatedArrival, isEstimatedArrival, landedFlight, liveMapFlights, returnedFlight, stillOnGroundFlight, watchedFlights, withLiveTimes,
 } from '../../src/engine/liveLegs'
 import { resolveStatus } from '../../src/engine/status'
 import type { Schedule } from '../../src/engine/types'
@@ -11,6 +11,7 @@ import { mapFlightProgress } from '../../src/map/mapFlight'
 import { toSchedule } from '../../src/partner/convert'
 import type { PartnerSummary, SummaryLeg } from '../../src/partner/summary'
 import { airport, at, LIVE_CASES, made } from '../map/liveCases'
+import { backAtTheGate } from '../map/liveTrip'
 import { fix, liveFlight, MINUTE, point, START } from '../map/madeUpFlights'
 
 /** Where an airport is: the shared cases' airports, and no others. */
@@ -299,6 +300,27 @@ describe('a real plane still on the ground at its departure airport (the website
     expect(onGroundAt(IN_THE_AIR, 52)).toBeNull()
     expect(onGroundAt(OFF_EARLY_LANDED, 103)).toBeNull()
     expect(onGroundAt(null, 25)).toBeNull()
+  })
+})
+
+describe('a real plane back at its departure airport after an air return (air return design §3)', () => {
+  const at = (live: LiveFlight | null, minutes: number) => {
+    const schedule = scheduleOf(TURN_TRIP)
+    const now = START + minutes * MINUTE
+    const flights = live ? flightsFor(schedule, live) : new Map()
+    const legs = buildLegs(withLiveTimes(schedule, flights, now))
+    return { returned: returnedFlight(legs, flights, now), stillOnGround: stillOnGroundFlight(legs, flights, now) }
+  }
+
+  it('is the flight between its gates whose plane is back, by its id, which is still on the ground there too', () => {
+    expect(at(backAtTheGate(45), 45)).toEqual({ returned: 'f1', stillOnGround: 'f1' })
+  })
+
+  it('is nothing for a plane that never left, in the air, and with no live data', () => {
+    expect(at(liveFlight([], { legId: 'f1', state: 'ground', fix: fix(25 - 1 / 3, airport('SDF').lat, airport('SDF').lng, { onGround: true }) }), 25))
+      .toEqual({ returned: null, stillOnGround: 'f1' })
+    expect(at(IN_THE_AIR, 52).returned).toBeNull()
+    expect(at(null, 45).returned).toBeNull()
   })
 })
 

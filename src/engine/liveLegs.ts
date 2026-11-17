@@ -1,6 +1,6 @@
 import type { GeoPoint } from '../map/greatCircle'
 import type { LiveFlight } from '../map/liveFlight'
-import { hasLanded, isAtDeparture, isEstimate, makeMapFlight, mapFlightProgress, type MapFlight } from '../map/mapFlight'
+import { hasLanded, hasReturned, isAtDeparture, isEstimate, makeMapFlight, mapFlightProgress, type MapFlight } from '../map/mapFlight'
 import { isMove, type Leg } from './legs'
 import type { DutyPeriod, Iata, Move, Schedule, Trip } from './types'
 
@@ -175,6 +175,17 @@ export function stillOnGroundFlight(legs: Leg[], flights: ReadonlyMap<string, Ma
     return flight != null && isAtDeparture(flight, now)
   })
   return leg ? leg.id : null
+}
+
+/**
+ * The flight between its gates at `now` whose real plane is back on the ground at its departure airport after an air
+ * return, by its leg's id: `stillOnGroundFlight` names it too, and the narrative says "has returned to" in place of "is
+ * still on the ground in" (air return design §3). Null with no such flight.
+ */
+export function returnedFlight(legs: Leg[], flights: ReadonlyMap<string, MapFlight>, now: number): string | null {
+  const id = stillOnGroundFlight(legs, flights, now)
+  const flight = id == null ? undefined : flights.get(id)
+  return flight != null && hasReturned(flight, now) ? id : null
 }
 
 /**

@@ -31,6 +31,11 @@ export interface NarrativeCtx {
    */
   stillOnGroundFlight?: string | null
   /**
+   * That flight, by its leg's id, while its real plane is back at its departure airport after an air return: the
+   * sentence says "has returned to" in place of "is still on the ground in" (air return design §3).
+   */
+  returnedFlight?: string | null
+  /**
    * The flight under way, by its leg's id, while its real plane is down at its arrival airport and not yet at the gate:
    * the sentence says it has landed (the landed, not yet at the gate design §3, Todd, 17 Nov 2026).
    */
@@ -115,8 +120,11 @@ export function narrative(s: Snapshot, ctx: NarrativeCtx): Span[] {
       const fl = flightPhrase(f.airline, f.number)
       // A late flight whose real plane hasn't left yet, delayed or not: "Alex is still on the ground in Rockford on UPS
       // flight 2963 to Anchorage — landing in 5h 37m which is about 6:58pm EST." (the website's own, Todd, 16 Nov 2026).
+      // Back there after an air return: "Alex has returned to Rockford on UPS flight 2963 to Anchorage — …" (air return
+      // design §3).
       if (ctx.stillOnGroundFlight === f.id) {
-        return n.t(`${name} is still on the ground in `).b(city(f.dep)).t(`${fl || ' on the flight'} to `).b(city(f.arr))
+        const where = ctx.returnedFlight === f.id ? 'has returned to' : 'is still on the ground in'
+        return n.t(`${name} ${where} `).b(city(f.dep)).t(`${fl || ' on the flight'} to `).b(city(f.arr))
           .t(' — landing in ').cd(f.end, delay ? changed : 'status').t(' which is ').time(f.end).t('.').spans
       }
       // Down, and on its way to the gate: "Alex has landed in Anchorage on UPS flight 2963 — at the gate in 8m which is

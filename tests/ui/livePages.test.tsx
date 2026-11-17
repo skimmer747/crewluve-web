@@ -3,7 +3,7 @@ import { act, cleanup, render } from '@testing-library/preact'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ScheduleHandle } from '../../src/ui/hooks/useSchedule'
 import { PilotPages } from '../../src/ui/PilotPages'
-import { atTheGate, FLYING, LANDED_EARLY, LIVE_AIRPORTS, SCHEDULE, SDF } from '../map/liveTrip'
+import { atTheGate, backAtTheGate, FLYING, LANDED_EARLY, LIVE_AIRPORTS, SCHEDULE, SDF } from '../map/liveTrip'
 import { fix, liveFlight, MINUTE, START } from '../map/madeUpFlights'
 
 const NOW = START + 59 * MINUTE
@@ -103,6 +103,22 @@ describe('the status page with a real plane still on the ground at its departure
     cleanup()
     vi.setSystemTime(LATE)
     expect(page(null).querySelector('.narrative-text')?.textContent).toMatch(/^Alex is flying to Philadelphia on UPS flight 1234 from Louisville — /)
+  })
+})
+
+describe('the status page with a real plane back at its departure airport after an air return (air return design §3)', () => {
+  /** Off on time, out and back, and on the ground in Louisville again at 44 minutes. */
+  const BACK = START + 45 * MINUTE
+
+  it('says so in the narrative, on the card’s bar and its chip, with "about" the landing time', () => {
+    vi.setSystemTime(BACK)
+    const container = page({ flights: new Map([['f1', backAtTheGate(45)]]), clockOffset: 0 })
+    expect(container.querySelector('.narrative-text')?.textContent)
+      // The countdown's digits, then its words for screen readers; the time in the zone the tests run in, whatever its name.
+      .toMatch(/^Alex has returned to Louisville on UPS flight 1234 to Philadelphia — landing in \d+h \d+m\d.* which is about \d{1,2}:\d\d[ap]m \S+\.$/)
+    expect(container.querySelector('.inflight-status')?.textContent).toBe('Returned to Louisville')
+    expect(container.querySelector('.trip-map-chip.bottom')?.textContent).toBe('Returned to Louisville')
+    expect(container.querySelector('.trip-map-card h2')?.textContent).toBe('On the ground')
   })
 })
 
