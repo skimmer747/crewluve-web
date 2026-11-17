@@ -1425,7 +1425,7 @@ cd "/Users/toddanderson/Dev/Crewluve Website/.claude/worktrees/trip-map-live-598
 
 Expected: `fast-forward`. If it isn't (`main`, at `3c93b48` when this plan was written, has moved on), merge it in here: `git merge origin/main`. If any file conflicts, STOP and tell Todd. Then run `npm test && npm run build`.
 
-- [ ] **Step 3: The suite as GitHub runs it,** in UTC, on the branch as it will go live:
+- [x] **Step 3: The suite as GitHub runs it,** in UTC, on the branch as it will go live:
 
 ```bash
 TZ=UTC npx vitest run
@@ -1433,16 +1433,16 @@ TZ=UTC npx vitest run
 
 Expected: every test file and test passes, the same counts as `npm test`. If any fails, STOP: fix it here, tests first, before anything is pushed.
 
-- [ ] **Step 4: Todd runs everything** (Task 5 Step 5's command) on the branch as it will go live.
-- [ ] **Step 5: Push the branch to `main`, on Todd's yes.** A fast-forward only; never force.
+- [x] **Step 4: Todd runs everything** (Task 5 Step 5's command) on the branch as it will go live.
+- [x] **Step 5: Push the branch to `main`, on Todd's yes.** A fast-forward only; never force.
 
 ```bash
 git push origin claude/trip-map-live-598046:main
 ```
 
-- [ ] **Step 6: Watch the deploy** (`gh run watch` on the run the push started) until it succeeds. If it fails, tell Todd at once with its log: the site stays as it was until a deploy succeeds.
-- [ ] **Step 7: Look at the live site** with Todd, at `https://crewluve.crewlu.net/?demo=1&scene=live-long-gap` and `…&scene=live-long-gap#map` (reload to start the scene again): the chip's countdown, the card's sentence without a place, "Last tracked over Saskatchewan", the list without Yukon; and `…scene=live-ocean-gap#map`, `…scene=live-ahead#map` and `…scene=flying#map`, unchanged.
-- [ ] **Step 8: The record.** Under "Changes made during execution": the push's commit, the deploy's run and time, and what Todd saw. Commit the plan on his yes and push it (a fast-forward only), as Step 5.
+- [x] **Step 6: Watch the deploy** (`gh run watch` on the run the push started) until it succeeds. If it fails, tell Todd at once with its log: the site stays as it was until a deploy succeeds.
+- [x] **Step 7: Look at the live site** with Todd, at `https://crewluve.crewlu.net/?demo=1&scene=live-long-gap` and `…&scene=live-long-gap#map` (reload to start the scene again): the chip's countdown, the card's sentence without a place, "Last tracked over Saskatchewan", the list without Yukon; and `…scene=live-ocean-gap#map`, `…scene=live-ahead#map` and `…scene=flying#map`, unchanged.
+- [x] **Step 8: The record.** Under "Changes made during execution": the push's commit, the deploy's run and time, and what Todd saw. Commit the plan on his yes and push it (a fast-forward only), as Step 5.
 
 ---
 
@@ -1468,6 +1468,9 @@ The same two rules (the design's §4), as the website has them:
 - **Task 7, the review** (`superpowers:code-reviewer`, sonnet, on `3c93b48..d78316e`): nothing critical or important. **No change made.** It found `flownPlan` and `cruiseSpeed` the reference model's line for line; the shared cases byte-identical to the app's; both 2-hour edges strict, as the design has them; held events kept out of every surface (they all go through `toldMilestones` and `placeBelow`); the website's own rules untouched; the tests passing in Pacific/Auckland too.
   - Minor, left for later: no test puts an event exactly 2 hours after the last sighting, or a moment exactly at the leg's end (a `<=`/`<` slip there would pass); the held rule reads the last knot's time and the name rule the fix's age, which agree whenever the last knot is the fix; a second `cruiseSpeed` beside `flightPath.ts`'s private one of another meaning; a replay test of held events (only names are tested in a replay).
 - **Task 8, going live:** Todd chose "Go live: run it, then push if it passes". `origin/main` was `3c93b48`, a fast-forward (no merge needed).
+  - **Plan committed:** `1f20e42`. **Todd's run on the branch as it went live** (Steps 3 and 4 together): `npm test && TZ=UTC npm test && npm run build`, 178 test files and 3,785 tests passed in Eastern time and in UTC, built.
+  - **Pushed:** `3c93b48..1f20e42`, a fast-forward. **Deployed:** run `44163876328`, build and deploy succeeded, 2:57 PM EST (19:57 UTC).
+  - **The live site:** the session read `https://crewluve.crewlu.net/?demo=1&scene=live-long-gap` (the new bundle; the card's chip "Landing in 1 h 28 min"; its sentence "…on schedule, last tracked over Saskatchewan. Lands about 4:24 PM your time. Latest: crossed into British Columbia, about 41 minutes ago."). **Todd: "Looks good."**
 
 ## Self-review
 
