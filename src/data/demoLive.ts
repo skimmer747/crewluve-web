@@ -11,7 +11,7 @@ import { MINUTE } from '../time/zoned'
  * itself for as long as the page is open: the plane flies on, and lands when it's due.
  */
 
-export type LiveDemoScene = 'live-ahead' | 'live-ocean-gap' | 'live-on-ground-late' | 'live-landed'
+export type LiveDemoScene = 'live-ahead' | 'live-ocean-gap' | 'live-on-ground-late' | 'live-landed' | 'live-long-gap'
 
 interface Story {
   /** The flight's number in the demo's trip. */
@@ -37,6 +37,10 @@ const STORIES: Record<LiveDemoScene, Story> = {
   // Rockford to Anchorage, off 8 minutes early and seen all the way: down a minute ago, "Landed 8 min early", and at the
   // gate 6 minutes on (the landed, not yet at the gate design, Todd, 17 Nov 2026).
   'live-landed': { number: '2963', bow: 0, takeoffLate: -8, unseen: [], lastSeen: null },
+  // Rockford to Anchorage, off on time, last tracked over Saskatchewan an hour and 35 minutes after it took off, and
+  // never again: out of tracking range for more than 2 hours, so nothing below is named, and the crossings it's guessed
+  // to make after them wait until it's at the gate (long gap design §3). The demo's trips cross no ocean.
+  'live-long-gap': { number: '2963', bow: 1.5, takeoffLate: 0, unseen: [], lastSeen: 95 },
 }
 
 export const isLiveDemoScene = (scene: string): scene is LiveDemoScene => Object.prototype.hasOwnProperty.call(STORIES, scene)
