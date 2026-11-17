@@ -1,14 +1,16 @@
 import {
-  belowWords, cockpitCountdown, eventTitle, eventWhen, flightTitle, inTheAirTag, lastSeenLine, milestoneHeadline, milestoneLine, spokenLastSeen,
-  spokenLatestEvent, stillOnGroundText,
+  belowWords, cockpitCountdown, eventTitle, eventWhen, flightTitle, inTheAirTag, LANDED_TAG, lastSeenLine, milestoneHeadline, milestoneLine,
+  spokenLastSeen, spokenLatestEvent, stillOnGroundText,
 } from '../copy/facts'
 import { longestText, recapChip, recapSummary, soFarText, totalsTiles, type RecapTile } from '../copy/factsTrip'
 import { shortTimeText } from '../copy/format'
-import { landingCountdown, liveSummary, panelHeadline, tripMapSummary } from '../copy/tripMap'
+import { landedText, landingCountdown, liveSummary, panelHeadline, tripMapSummary } from '../copy/tripMap'
 import type { LandingForecast } from '../data/weather'
 import { pointAtDistance } from '../map/flightPath'
 import type { GeoPoint } from '../map/greatCircle'
-import { currentLeg, dayCount, isMoving, legInMotion, legStillOnGround, type AirportMark, type MapLeg, type TripMap } from '../map/tripMap'
+import {
+  currentLeg, dayCount, isMoving, legInMotion, legLandedBeforeGate, legStillOnGround, type AirportMark, type MapLeg, type TripMap,
+} from '../map/tripMap'
 import { MINUTE } from '../time/zoned'
 import type { Comparison } from './comparisons'
 import type { LatestEvent, TripSoFar } from './factRow'
@@ -195,6 +197,15 @@ export function isStillOnGround(facts: TripFacts, leg: MapLeg, t: number): boole
   return !facts.isReplay && legStillOnGround(leg, t)
 }
 
+/**
+ * Whether the real plane of `leg`, the leg between its gates at `t`, has landed and isn't at the gate yet. The facts then
+ * say "Landed in Anchorage" in place of what's below, and nothing to go (the landed, not yet at the gate design §2, §3,
+ * Todd, 17 Nov 2026). Now only, as "Still on the ground" is: a replay reads where the map has the plane.
+ */
+export function isLandedBeforeGate(facts: TripFacts, leg: MapLeg, t: number): boolean {
+  return !facts.isReplay && legLandedBeforeGate(leg, t)
+}
+
 /** Whether a flight with live data shows, which adsb.lol is credited for (Stage 3 spec §8). */
 export const showsLiveData = (facts: TripFacts): boolean => facts.map.legs.some(hasLiveData)
 
@@ -206,12 +217,15 @@ export const showsLiveData = (facts: TripFacts): boolean => facts.map.legs.some(
  * cases read the headline with them.
  *
  * The website's own (Todd, 16 Nov 2026): a real plane still on the ground at its departure airport is "Still on the
- * ground in Rockford", ahead of all of them. It has crossed nothing yet, whatever the schedule's times say.
+ * ground in Rockford", ahead of all of them. It has crossed nothing yet, whatever the schedule's times say. And at the
+ * other end, down and not yet at the gate, "Landed in Anchorage", ahead of them too (the landed, not yet at the gate
+ * design §3, Todd, 17 Nov 2026).
  */
 export function headline(facts: TripFacts, t: number, includesEvents = true): string | null {
   const leg = legInMotion(facts.map, t)
   if (!leg || leg.kind !== 'flight') return null
   if (isStillOnGround(facts, leg, t)) return stillOnGroundText(leg.origin.city)
+  if (isLandedBeforeGate(facts, leg, t)) return landedText(leg.destination.city)
   const recent = includesEvents ? factsMilestones(facts, leg).filter((m) => m.time <= t && t - m.time < MILESTONE_HEADLINE_MS).pop() : null
   if (recent) return milestoneHeadline(recent)
   const soon = (facts.sunEvents[leg.id] ?? []).find((e) => e.time > t && e.time - t <= SUN_HEADLINE_MS)
@@ -280,7 +294,8 @@ export function hasTripSoFarRow(facts: TripFacts, t: number): boolean {
  *
  * The website's own (Todd, 16 Nov 2026): a real plane still on the ground at its departure airport after the plan's
  * takeoff time has passed none of its flight's events, whatever the schedule's times say, and its flight is left out
- * until it takes off, with no "In the air now".
+ * until it takes off, with no "In the air now". Down and not yet at the gate, it's tagged "Landed" (the landed, not yet
+ * at the gate design §3, Todd, 17 Nov 2026).
  */
 export function tripSoFar(facts: TripFacts, t: number): TripSoFar {
   const started = facts.map.legs.filter((l) => l.kind === 'flight' && l.start <= t && !isStillOnGround(facts, l, t)).reverse()
@@ -289,7 +304,7 @@ export function tripSoFar(facts: TripFacts, t: number): TripSoFar {
       .filter((m) => m.time <= t)
       .reverse()
       .map((m) => ({ text: milestoneLine(m, facts.viewerTz, facts.h24), isEstimate: m.isEstimate === true }))
-    const tag = isMoving(leg, t) ? inTheAirTag(facts.isReplay) : null
+    const tag = !isMoving(leg, t) ? null : isLandedBeforeGate(facts, leg, t) ? LANDED_TAG : inTheAirTag(facts.isReplay)
     return tag != null || events.length > 0 ? [{ id: leg.id, title: flightTitle(leg), tag, events }] : []
   })
   if (isRecapOver(facts, t)) {

@@ -52,6 +52,13 @@ export function isAtDeparture(flight: MapFlight, now: number): boolean {
 }
 
 /**
+ * Whether the real plane has landed, when this browser's clock says `now`: Crewlu Cloud's state for the flight is
+ * "landed" (spec §5.1's `landed`). Until the gate the words say "Landed in Anchorage" (the landed, not yet at the gate
+ * design §2, Todd, 17 Nov 2026).
+ */
+export const hasLanded = (flight: MapFlight, now: number): boolean => mapFlightProgress(flight, now).phase === 'landed'
+
+/**
  * Whether `arrival`, the leg's gate arrival as it's shown, is the real plane's estimate, which the words mark with
  * "about" (spec §9): it isn't the plan's, by a second or more, and the plane hasn't landed.
  */

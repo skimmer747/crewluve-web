@@ -4,6 +4,7 @@ import { makeGeography, type Geography } from '../../src/facts/geography'
 import { COCKPIT_HORIZON, cockpitHorizonOnLeg, sunAltitudeOnLeg, sunEvents } from '../../src/facts/sky'
 import { cardSummary, headline, latestEvent, makeTripFacts, showsLiveData, tripSoFar, type TripFacts } from '../../src/facts/tripFacts'
 import { factRows, factsAtMoment } from '../../src/facts/tripFactsRows'
+import type { LandingForecast } from '../../src/data/weather'
 import type { GeoPoint } from '../../src/map/greatCircle'
 import type { LiveFlight } from '../../src/map/liveFlight'
 import { makeMapFlight, mapFlightProgress } from '../../src/map/mapFlight'
@@ -471,11 +472,11 @@ describe('a real plane still on the ground at its departure airport (the website
     expect(row('distance', rowsAt(theFacts, '10:35')).title).toBe('0 mi flown · 1,382 to go')
   })
 
-  it('landed, follows the app: what’s below the arrival airport, all of it flown', () => {
+  it('landed, says so: down, and not yet at the gate (the landed, not yet at the gate design, Todd, 17 Nov 2026)', () => {
     // Down at 12:55, and at the gate 7 minutes later.
     const theFacts = facts('12:53', { now: '12:58', landed: true })
-    expect(headline(theFacts, at('12:58'))).toBe('Over the Test Sea')
-    expect(row('distance', rowsAt(theFacts, '12:58')).title).toBe('1,382 mi flown · 0 to go')
+    expect(headline(theFacts, at('12:58'))).toBe('Landed in E20')
+    expect(row('distance', rowsAt(theFacts, '12:58')).title).toBe('1,382 mi flown')
   })
 })
 
@@ -531,6 +532,103 @@ describe('a real plane still at its departure airport: nothing passed, and its t
     const elsewhere = factsOf(equatorLiveLeg(onTheGround(at('10:35'), { lat: 0, lng: 3 }), at('10:35')))
     expect(row('below', rowsAt(elsewhere, '10:35')).detail).toMatch(/^Passes 35 mi from home at \d/)
     expect(row('distance', rowsAt(elsewhere, '10:35')).detail).toMatch(/^Halfway at \d/)
+  })
+})
+
+// The landed, not yet at the gate design (Todd, 17 Nov 2026)
+
+/**
+ * The equator flight to Anchorage, in Anchorage's time, with its real plane down at 20° E at 12:55, twenty minutes
+ * early: at the gate at 13:02, 5:02 AM there and 9:02 AM in Louisville. Its facts as the status page makes them at
+ * `now`, all of it `later` ms on.
+ */
+function landedIn(
+  now: string,
+  { isReplay = false, geography = EQUATOR, forecasts = {}, later = 0 }:
+    { isReplay?: boolean; geography?: Geography; forecasts?: Record<string, LandingForecast>; later?: number } = {},
+): TripFacts {
+  const scheduled = equatorFlight(0, 20, EQUINOX + later)
+  const live = movedOn(equatorLive(at('12:53'), { landedAt: liveTime(20) }), later)
+  const flight = makeMapFlight(scheduled.start, scheduled.end, scheduled.origin.place, scheduled.destination.place, live)
+  if (!flight) throw new Error('The equator flight has no plan')
+  const progress = mapFlightProgress(flight, at(now) + later)
+  const destination = { ...scheduled.destination, city: 'Anchorage', timeZone: 'America/Anchorage' }
+  return makeTripFacts(flightMap({ ...scheduled, start: progress.start, end: progress.end, destination, flight }, HOME_BY_THE_EQUATOR), {
+    geography, comparisons: appComparisons(), forecasts, viewerTz: NY, h24: false, day: 1, days: 1, isReplay,
+  })
+}
+
+describe('a real plane down, not yet at the gate (the landed, not yet at the gate design §2, §3, Todd, 17 Nov 2026)', () => {
+  it('heads the facts "Landed in Anchorage", alone on its row: nothing of what’s below, where it was last tracked or home', () => {
+    const theFacts = landedIn('12:58')
+    expect(headline(theFacts, at('12:58'))).toBe('Landed in Anchorage')
+    const rows = rowsAt(theFacts, '12:58')
+    expect(rows.map((r) => r.kind)).toEqual(['below', 'plane', 'distance', 'headed'])
+    expect(row('below', rows)).toMatchObject({ title: 'Landed in Anchorage', detail: null })
+    // The plane's row as before: the aircraft's name, with no height or speed.
+    expect(row('plane', rows)).toMatchObject({ title: 'Boeing 767-300 · N370UP', detail: null })
+  })
+
+  it('leads the headline before a crossing of the last five minutes, which the banner still shows', () => {
+    // A border 19.6° E along, crossed at 12:51:48, three minutes before the landing.
+    const border = makeGeography([box('Alpha', 'country', -1, 19.6), box('Bravo', 'country', 19.6, 21)], [])
+    const theFacts = landedIn('12:56', { geography: border })
+    expect(headline(theFacts, at('12:56'))).toBe('Landed in Anchorage')
+    expect(latestEvent(theFacts, at('12:56'))?.title).toBe('Crossed into Bravo')
+  })
+
+  it('says all of it flown, with nothing to go, and its comparison as before', () => {
+    expect(row('distance', rowsAt(landedIn('12:58'), '12:58'))).toMatchObject({ title: '1,382 mi flown', detail: 'like driving the Alaska Highway' })
+  })
+
+  it('leaves out the sky’s row, as at the gate', () => {
+    // Five hours later, at 17:58, the moon is up: a replay of the same moment has the sky's row.
+    const later = 5 * 3_600_000
+    const t = at('12:58') + later
+    expect(row('sky', factRows(landedIn('12:58', { later, isReplay: true }), t, t)).title).toBe('Waxing crescent moon, up')
+    expect(factRows(landedIn('12:58', { later }), t, t).map((r) => r.kind)).toEqual(['below', 'plane', 'distance', 'headed'])
+  })
+
+  it('says when it reaches the gate, "at" as the card’s sentence says it, with the weather and the time there under it as before', () => {
+    const forecasts: Record<string, LandingForecast> = { eq: { temperature: 28, unit: 'fahrenheit', code: 71 } }
+    expect(row('headed', rowsAt(landedIn('12:58', { forecasts }), '12:58'))).toMatchObject({
+      title: `Reaches the gate at 5:02${AM} · 9:02${AM} your time`, detail: '28°F and flurries on landing · 4 hours behind you', hasWeather: true,
+    })
+  })
+
+  it('tags the flight "Landed" in the trip so far, with what it passed as before', () => {
+    const soFar = tripSoFar(landedIn('12:58'), at('12:58'))
+    expect(soFar.flights.map((f) => f.tag)).toEqual(['Landed'])
+    expect(soFar.flights[0]?.events.map((e) => e.text))
+      .toEqual([`Closest to home, 35 mi · 8:07${AM}`, `Out over the Test Sea · 7:51${AM}`, `Halfway · 7:35${AM}`, `Crossed into Bravo · 6:55${AM}`])
+  })
+
+  it('keeps the card’s sentence as it was: how it landed, and when it reaches the gate', () => {
+    expect(cardSummary(landedIn('12:58'), at('12:58'), 'Alex')).toBe(
+      `TST1 to Anchorage, landed 20 minutes early. Reaches the gate at 9:02${AM} your time. Latest: closest to home, 35 miles, 51 minutes ago. Opens the full map.`,
+    )
+  })
+
+  it('in a replay, reads where the map has the plane, as before', () => {
+    const theFacts = landedIn('12:58', { isReplay: true })
+    expect(headline(theFacts, at('12:58'))).toBe('Over the Test Sea')
+    const rows = rowsAt(theFacts, '12:58')
+    expect(row('distance', rows).title).toBe('1,382 mi flown · 0 to go')
+    expect(row('headed', rows).title).toBe(`Lands Anchorage 5:02${AM} · 9:02${AM} your time`)
+    expect(tripSoFar(theFacts, at('12:58')).flights.map((f) => f.tag)).toEqual(['In the air'])
+  })
+
+  it('says none of it at the gate, where the flight is over', () => {
+    expect(headline(landedIn('13:02'), at('13:02'))).toBeNull()
+    expect(tripSoFar(landedIn('13:02'), at('13:02')).flights.map((f) => f.tag)).toEqual([null])
+  })
+
+  it('of a flight with no live data, reads as it always has: it never knows its touchdown', () => {
+    // 13:18, after the schedule's touchdown at 13:15 and before its gate at 13:22.
+    const theFacts = factsOf(equatorFlight(0, 20))
+    expect(headline(theFacts, at('13:18'))).toBe('Over the Test Sea')
+    expect(row('distance', rowsAt(theFacts, '13:18')).title).toBe('1,382 mi flown · 0 to go')
+    expect(tripSoFar(theFacts, at('13:18')).flights.map((f) => f.tag)).toEqual(['In the air now'])
   })
 })
 

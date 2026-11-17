@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { landsText } from '../../src/copy/facts'
 import { Sentence } from '../../src/copy/narrative'
 import {
-  cardHeading, flightStatus, landingCountdown, landingLine, landsAt, liveSummary, spokenLiveLabel, spokenMinutes, topPill, tripMapSummary,
+  cardHeading, flightStatus, gateLine, landedText, landingCountdown, landingLine, landsAt, liveSummary, spokenLiveLabel, spokenMinutes, topPill,
+  tripMapSummary,
 } from '../../src/copy/tripMap'
 import type { AirportIndex } from '../../src/data/airports'
 import { makeMapFlight } from '../../src/map/mapFlight'
@@ -186,5 +187,25 @@ describe("the map card's heading for screen readers (the website's own, Todd, 16
     expect(cardHeading(mapOf(leg, { kind: 'recap' }), t)).toBe('Trip recap')
     expect(cardHeading(mapOf(leg, { kind: 'onTrip' }), t)).toBe('Trip map')
     expect(cardHeading(mapOf(leg, { kind: 'nextTrip' }), t)).toBe('Trip map')
+  })
+})
+
+describe('the words for a real plane down, not yet at the gate (the landed, not yet at the gate design §3, Todd, 17 Nov 2026)', () => {
+  it('say it has landed in the arrival airport’s city', () => {
+    expect(landedText('Anchorage')).toBe('Landed in Anchorage')
+  })
+
+  it('say when it reaches the gate, there and in the family’s time, "at" as the card’s sentence and the popup say it once it’s down', () => {
+    // The gate at 13:21:51 UTC: 8:21 AM in Philadelphia and Louisville, 5:21 AM in Los Angeles.
+    const { leg } = caseLeg('landed, seen all the way')
+    expect(gateLine(leg, NY, false)).toMatch(/^Reaches the gate at 8:21\sAM$/)
+    expect(gateLine(leg, 'America/Los_Angeles', false)).toMatch(/^Reaches the gate at 8:21\sAM · 5:21\sAM your time$/)
+    expect(gateLine(leg, NY, true)).toBe('Reaches the gate at 08:21')
+  })
+
+  it('say "about" where the time is the real plane’s estimate, and "at" where it’s the schedule’s', () => {
+    const { leg } = caseLeg('behind, with a late first point and an unseen ocean')
+    expect(gateLine(leg, NY, false)).toMatch(/^Reaches the gate about \d{1,2}:\d\d\s[AP]M · \d{1,2}:\d\d\s[AP]M your time$/)
+    expect(gateLine(scheduleOnly(leg), NY, false)).toMatch(/^Reaches the gate at \d{1,2}:\d\d\s[AP]M · \d{1,2}:\d\d\s[AP]M your time$/)
   })
 })

@@ -112,6 +112,12 @@ export function spokenLatestEvent(milestone: Milestone, t: number, viewerTz: str
  */
 export const inTheAirTag = (isReplay: boolean) => (isReplay ? 'In the air' : 'In the air now')
 
+/**
+ * The tag on that flight while its real plane is down and not yet at the gate: "Landed", its border kept (the landed,
+ * not yet at the gate design §3, Todd, 17 Nov 2026).
+ */
+export const LANDED_TAG = 'Landed'
+
 /** "UPS207 · Louisville → Cologne", or the cities alone without a flight number. */
 export function flightTitle(leg: MapLeg): string {
   const route = `${leg.origin.city} → ${leg.destination.city}`
@@ -264,6 +270,12 @@ export const flownText = (flown: number, toGo: number) => `${numberText(flown)} 
 
 /** "2,788 mi to go": a real plane still at its departure airport has flown nothing yet (the website's own, Todd, 16 Nov 2026). */
 export const toGoText = (toGo: number) => `${numberText(toGo)} mi to go`
+
+/**
+ * "2,788 mi flown": a real plane down and not yet at the gate has nothing to go (the landed, not yet at the gate design
+ * §3, Todd, 17 Nov 2026).
+ */
+export const allFlownText = (flown: number) => `${numberText(flown)} mi flown`
 
 /** "Halfway at 4:12 PM", or with the real plane's estimate "Halfway at about 12:05 PM" (Stage 3 spec §8). */
 export const halfwayText = (time: number, viewerTz: string, h24: boolean, isEstimate = false) =>

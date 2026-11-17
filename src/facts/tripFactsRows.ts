@@ -1,10 +1,10 @@
 import {
-  aircraftText, averageSpeedText, chaseText, closestToHomeText, cockpitEventText, flownText, flyingInto, groundSunText, halfwayText,
-  heightAndSpeedText, landsText, midLine, moonText, stillOnGroundText, timeDifferenceText, toGoText,
+  aircraftText, allFlownText, averageSpeedText, chaseText, closestToHomeText, cockpitEventText, flownText, flyingInto, groundSunText,
+  halfwayText, heightAndSpeedText, landsText, midLine, moonText, stillOnGroundText, timeDifferenceText, toGoText,
 } from '../copy/facts'
 import { longestText, milesText, onTheWayText, soFarText } from '../copy/factsTrip'
 import { daysText, shortTimeText } from '../copy/format'
-import { dayPhrase, landingLine, nextDepartureChip } from '../copy/tripMap'
+import { dayPhrase, gateLine, landedText, landingLine, nextDepartureChip } from '../copy/tripMap'
 import { landingWeatherText } from '../copy/weather'
 import { airborneWindow } from '../map/flightProgress'
 import { METERS_PER_MILE } from '../map/greatCircle'
@@ -17,7 +17,8 @@ import { roundedMiles } from './milestone'
 import { legPlane, type PlanePosition } from './planePosition'
 import { chase, cockpitHorizonOnLeg, moonSight, nextGroundSunEvent, sunAltitudeOnLeg } from './sky'
 import {
-  belowText, forecastFor, isRecapOver, isStillOnGround, lastSeenText, latestEvent, sheetHeadline, showsLiveData, tripSoFar, type TripFacts,
+  belowText, forecastFor, isLandedBeforeGate, isRecapOver, isStillOnGround, lastSeenText, latestEvent, sheetHeadline, showsLiveData, tripSoFar,
+  type TripFacts,
 } from './tripFacts'
 import { longestFlight, totalsSoFar, wholeTotals, type TripTotals } from './tripTotals'
 
@@ -38,16 +39,18 @@ const compared = (facts: TripFacts, distance: number) => {
 
 function flightRows(facts: TripFacts, leg: MapLeg, t: number, now: number): FactRow[] {
   const plane = legPlane(leg, t, facts.isReplay)
-  return [belowRow(facts, leg, t), planeRow(leg, plane), skyRow(facts, leg, t), distanceRow(facts, leg, plane, t), headedRow(facts, leg, now)]
+  return [belowRow(facts, leg, t), planeRow(leg, plane), skyRow(facts, leg, t), distanceRow(facts, leg, plane, t), headedRow(facts, leg, t, now)]
     .filter(notNull)
 }
 
 /**
  * What's below, then where a plane that's out of sight was last seen, then the closest point to home. The first of them
  * that there is leads the row. A real plane still at its departure airport says so in place of what's below (the
- * website's own, Todd, 16 Nov 2026).
+ * website's own, Todd, 16 Nov 2026). One down, not yet at the gate, says "Landed in Anchorage", alone: the rest goes
+ * with what's below (the landed, not yet at the gate design §3, Todd, 17 Nov 2026).
  */
 function belowRow(facts: TripFacts, leg: MapLeg, t: number): FactRow | null {
+  if (isLandedBeforeGate(facts, leg, t)) return factRow('below', 'MapPin', landedText(leg.destination.city))
   const where = isStillOnGround(facts, leg, t) ? stillOnGroundText(leg.origin.city) : belowText(facts, leg, t)
   const lines = [where, lastSeenText(facts, leg, t), closestToHomeLine(facts, leg, t)].filter(notNull)
   return lines.length > 0 ? factRow('below', 'MapPin', lines[0], lines.slice(1)) : null
@@ -89,10 +92,11 @@ function planeRow(leg: MapLeg, plane: PlanePosition): FactRow | null {
 /**
  * The sky from the cockpit: the next sunrise or sunset, chasing the sun, the moon. Left out while the real plane is still
  * at its departure airport after the plan's takeoff time, as nothing says "flying" then (the website's own, Todd, 16
- * Nov 2026): its times would be the schedule's, for a plane that hasn't left.
+ * Nov 2026): its times would be the schedule's, for a plane that hasn't left. And once it's down, until the gate, as at
+ * the gate (the landed, not yet at the gate design §3, Todd, 17 Nov 2026).
  */
 function skyRow(facts: TripFacts, leg: MapLeg, t: number): FactRow | null {
-  if (isStillOnGround(facts, leg, t)) return null
+  if (isStillOnGround(facts, leg, t) || isLandedBeforeGate(facts, leg, t)) return null
   const next = (facts.sunEvents[leg.id] ?? []).find((e) => e.time > t) ?? null
   const chasing = chase(leg, t)
   const moon = moonSight(leg, t)
@@ -111,7 +115,8 @@ function skyRow(facts: TripFacts, leg: MapLeg, t: number): FactRow | null {
  * "1,140 mi flown · 3,010 to go": flown along the path so far, and to go along the rest of it, which for a real plane is
  * the great circle from where it is to the arrival airport (Stage 3 spec §8). A real plane still at its departure airport
  * has flown nothing yet: "2,788 mi to go", and its halfway time is a guess from a takeoff that hasn't happened, "about"
- * (the website's own, Todd, 16 Nov 2026).
+ * (the website's own, Todd, 16 Nov 2026). One down, not yet at the gate, has nothing to go: "2,788 mi flown" (the landed,
+ * not yet at the gate design §3, Todd, 17 Nov 2026).
  */
 function distanceRow(facts: TripFacts, leg: MapLeg, plane: PlanePosition, t: number): FactRow {
   const length = legPathLength(leg)
@@ -121,7 +126,9 @@ function distanceRow(facts: TripFacts, leg: MapLeg, plane: PlanePosition, t: num
   // The schedule's speed is told only of a flight with no live data: a real plane's row has its own.
   const window = hasLiveData(leg) ? null : airborneWindow(leg.start, leg.end)
   const onGround = isStillOnGround(facts, leg, t)
-  const title = onGround ? toGoText(Math.round(total)) : flownText(flown, Math.round(total) - flown)
+  const title = onGround ? toGoText(Math.round(total))
+    : isLandedBeforeGate(facts, leg, t) ? allFlownText(flown)
+    : flownText(flown, Math.round(total) - flown)
   return factRow('distance', 'Path', title, [
     halfwayAt != null && halfwayAt > t ? halfwayText(halfwayAt, facts.viewerTz, facts.h24, onGround || !isSeenAt(leg, length / 2)) : null,
     window ? averageSpeedText(total / ((window.end - window.start) / HOUR)) : null,
@@ -129,10 +136,15 @@ function distanceRow(facts: TripFacts, leg: MapLeg, plane: PlanePosition, t: num
   ])
 }
 
-function headedRow(facts: TripFacts, leg: MapLeg, now: number): FactRow {
+/**
+ * When it lands, then the weather there and its time. Down, not yet at the gate, when it reaches the gate: "Reaches the
+ * gate at 3:52 PM · 7:52 PM your time" (the landed, not yet at the gate design §3, Todd, 17 Nov 2026).
+ */
+function headedRow(facts: TripFacts, leg: MapLeg, t: number, now: number): FactRow {
   const forecast = forecastFor(facts, leg, now)
   const zone = leg.destination.timeZone
-  return factRow('headed', 'AirplaneLanding', landingLine(leg, facts.viewerTz, facts.h24), [
+  const title = isLandedBeforeGate(facts, leg, t) ? gateLine(leg, facts.viewerTz, facts.h24) : landingLine(leg, facts.viewerTz, facts.h24)
+  return factRow('headed', 'AirplaneLanding', title, [
     forecast ? landingWeatherText(forecast) : null,
     zone ? timeDifferenceText(zone, facts.viewerTz, leg.end) : null,
   ], forecast != null)

@@ -29,6 +29,13 @@ export const FLYING = liveFlight(TRAIL, { legId: 'f1', fix: fix(58, 39.66, -79.7
 export const atTheGate = (minutes: number) =>
   liveFlight([], { legId: 'f1', state: 'ground', fix: fix(minutes - 1 / 3, SDF.lat, SDF.lng, { onGround: true }) })
 
+/**
+ * Seen from just after takeoff, and down in Philadelphia 100 minutes after START, 13 minutes early: it reaches the gate
+ * 7 minutes later, at 107 (the landed, not yet at the gate design, Todd, 17 Nov 2026).
+ */
+export const LANDED_EARLY = liveFlight([...TRAIL, point(90, 39.8, -75.8)],
+  { legId: 'f1', state: 'landed', landedAt: START + 100 * MINUTE, fix: fix(100, PHL.lat, PHL.lng, { onGround: true }) })
+
 /** The flight as the trip's leg, at its gate times. */
 export const SDF_PHL: MoveLeg = {
   kind: 'flight', id: 'f1', tripId: 'T1', dep: 'SDF', arr: 'PHL', start: START, end: START + 120 * MINUTE, schedStart: START,

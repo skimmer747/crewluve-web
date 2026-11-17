@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
-  aircraftText, averageSpeedText, belowWords, chaseText, closestToHomeText, cockpitCountdown, cockpitEventText, eventTitle, eventWhen, flightTitle,
-  flownText, flyingInto, groundSunText, halfwayText, heightAndSpeedText, inTheAirTag, landsText, lastSeenLine, LIVE_CREDIT, midLine, milestoneHeadline,
-  milestoneLine, moonText, SPOKEN_LIVE_CREDIT, spokenLastSeen, spokenLatestEvent, stillOnGroundText, timeDifferenceText, toGoText, WIDEST_EVENT_WHEN,
+  aircraftText, allFlownText, averageSpeedText, belowWords, chaseText, closestToHomeText, cockpitCountdown, cockpitEventText, eventTitle, eventWhen,
+  flightTitle, flownText, flyingInto, groundSunText, halfwayText, heightAndSpeedText, inTheAirTag, LANDED_TAG, landsText, lastSeenLine, LIVE_CREDIT,
+  midLine, milestoneHeadline, milestoneLine, moonText, SPOKEN_LIVE_CREDIT, spokenLastSeen, spokenLatestEvent, stillOnGroundText, timeDifferenceText,
+  toGoText, WIDEST_EVENT_WHEN,
 } from '../../src/copy/facts'
 import { longestText, onTheWayText, recapChip, recapSummary, soFarText, totalsTiles } from '../../src/copy/factsTrip'
 import type { Milestone } from '../../src/facts/milestone'
@@ -108,6 +109,11 @@ describe('below, the sky and the distance in words (Stage 2 spec §4.1, §4.5, �
   it('says where a real plane still at its departure airport is, and only what’s to go (the website’s own, Todd, 16 Nov 2026)', () => {
     expect(stillOnGroundText('Rockford')).toBe('Still on the ground in Rockford')
     expect(toGoText(2_788)).toBe('2,788 mi to go')
+  })
+
+  it('says a real plane down, not yet at the gate, has flown it all, and tags it "Landed" (the landed, not yet at the gate design §3, Todd, 17 Nov 2026)', () => {
+    expect(allFlownText(2_788)).toBe('2,788 mi flown')
+    expect(LANDED_TAG).toBe('Landed')
   })
 
   it('says "about" before the halfway time that’s the real plane’s estimate (Stage 3 spec §8)', () => {

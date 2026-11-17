@@ -6,7 +6,7 @@ import { pathFramingPoints } from './flightPathDrawing'
 import { scheduledFraction, scheduledTime } from './flightProgress'
 import { distanceMeters, pointAlong, pointsAlong, type GeoPoint } from './greatCircle'
 import { calendarDay } from '../time/zoned'
-import { isAtDeparture, isEstimate, type MapFlight } from './mapFlight'
+import { hasLanded, isAtDeparture, isEstimate, type MapFlight } from './mapFlight'
 import { aimFractions, flatMapAngle } from './planeHeading'
 import type { GroundKind } from './tripActivity'
 
@@ -154,6 +154,14 @@ export const isMoving = (leg: MapLeg, t: number) => leg.start <= t && t < leg.en
  */
 export const legStillOnGround = (leg: MapLeg, now: number): boolean =>
   leg.flight != null && isMoving(leg, now) && isAtDeparture(leg.flight, now)
+
+/**
+ * Whether the leg is between its gates at `now` while its real plane has landed: down, not yet at the gate (`leg.end`,
+ * the real plane's estimate), and the words say "Landed in Anchorage" in place of "flying" (the landed, not yet at the
+ * gate design §2, Todd, 17 Nov 2026). It reads the live data at `now`, so it's for now only, as `legStillOnGround` is.
+ */
+export const legLandedBeforeGate = (leg: MapLeg, now: number): boolean =>
+  leg.flight != null && isMoving(leg, now) && hasLanded(leg.flight, now)
 
 /** How far along the leg the schedule has the pilot, 0…1: a flight with the taxi allowances, a drive steadily. */
 export function legProgress(leg: MapLeg, t: number): number {

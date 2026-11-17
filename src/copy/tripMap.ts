@@ -174,6 +174,24 @@ export function landingLine(leg: MapLeg, viewerTz: string, h24: boolean): string
   return there ? `${city}${there} · ${yours} your time` : `${city}${yours}`
 }
 
+/**
+ * "Reaches the gate at 3:52 PM · 7:52 PM your time", or "Reaches the gate at 3:30 PM": the landing line once the real
+ * plane is down and not yet at the gate (the landed, not yet at the gate design §3, Todd, 17 Nov 2026). "about" where the
+ * time is the real plane's estimate, else "at", as the plane's popup says it.
+ */
+export function gateLine(leg: MapLeg, viewerTz: string, h24: boolean): string {
+  const yours = shortTimeText(leg.end, viewerTz, h24)
+  const there = thereAtLanding(leg, viewerTz, h24)
+  const lead = `Reaches the gate ${about(leg) || 'at '}`
+  return there ? `${lead}${there} · ${yours} your time` : `${lead}${yours}`
+}
+
+/**
+ * "Landed in Anchorage": a real plane down at its arrival airport and not yet at the gate, at the head of the facts (the
+ * landed, not yet at the gate design §3, Todd, 17 Nov 2026).
+ */
+export const landedText = (city: string) => `Landed in ${city}`
+
 /** "Lands 3:30 PM", for the card's bar. With the real plane's estimate, "Lands about 3:18 PM". */
 export const landsAt = (leg: MapLeg, viewerTz: string, h24: boolean) => `Lands ${about(leg)}${shortTimeText(leg.end, viewerTz, h24)}`
 

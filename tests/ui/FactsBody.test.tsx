@@ -152,4 +152,10 @@ describe('the trip so far’s list (best guesses design §3, §4)', () => {
     expect(container.querySelector('.trip-so-far-flight.in-the-air .trip-so-far-tag')?.textContent).toBe('In the air now')
     expect(container.querySelector('.trip-so-far-flight ul')).toBeNull()
   })
+
+  it('keeps the border on a flight down, not yet at the gate, its tag "Landed" (the landed, not yet at the gate design §3, Todd, 17 Nov 2026)', () => {
+    const { container } = render(<FactsBody rows={[]} tripSoFar={{ ...inTheAir, flights: [{ ...inTheAir.flights[0], tag: 'Landed' }] }} />)
+    expect(container.querySelector('.trip-so-far-flight.in-the-air .trip-so-far-tag')?.textContent).toBe('Landed')
+    expect(screen.getByRole('heading', { name: 'UPS202 · Cologne → Dubai Landed' })).toBeTruthy()
+  })
 })
