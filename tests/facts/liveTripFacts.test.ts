@@ -32,19 +32,26 @@ interface FactsOptions {
   isReplay?: boolean
   typeCode?: string | null
   registration?: string | null
+  /** The places along the equator: EQUATOR's, unless they're given. */
+  geography?: Geography
 }
 
 /** The facts of a map of `leg` alone, with home by the equator. */
-function factsOf(leg: MapLeg, { hasStory = true, isReplay = false }: { hasStory?: boolean; isReplay?: boolean } = {}): TripFacts {
+function factsOf(
+  leg: MapLeg, { hasStory = true, isReplay = false, geography = EQUATOR }: { hasStory?: boolean; isReplay?: boolean; geography?: Geography } = {},
+): TripFacts {
   return makeTripFacts(flightMap(leg, HOME_BY_THE_EQUATOR), {
-    geography: hasStory ? EQUATOR : null, comparisons: appComparisons(), viewerTz: NY, h24: false, day: 1, days: 1, isReplay,
+    geography: hasStory ? geography : null, comparisons: appComparisons(), viewerTz: NY, h24: false, day: 1, days: 1, isReplay,
   })
 }
 
 /** The facts of a map of the one flight, with the real plane last seen at `seenUntil` and the map made at `now`. */
-function facts(seenUntil: string, { now, unseen, landed = false, hasStory = true, isReplay = false, typeCode = 'B763', registration = 'N370UP' }: FactsOptions = {}): TripFacts {
+function facts(
+  seenUntil: string,
+  { now, unseen, landed = false, hasStory = true, isReplay = false, typeCode = 'B763', registration = 'N370UP', geography }: FactsOptions = {},
+): TripFacts {
   const live = equatorLive(at(seenUntil), { unseen, landedAt: landed ? liveTime(20) : undefined, typeCode, registration })
-  return factsOf(equatorLiveLeg(live, at(now ?? seenUntil)), { hasStory, isReplay })
+  return factsOf(equatorLiveLeg(live, at(now ?? seenUntil)), { hasStory, isReplay, geography })
 }
 
 const rowsAt = (theFacts: TripFacts, t: string, now = t) => factRows(theFacts, at(t), at(now))
@@ -153,19 +160,19 @@ describe('the rows with a real plane (Stage 3 spec §8)', () => {
     expect(row('headed', rows).title).toBe(`Lands E20 about 9:11${AM}`)
   })
 
-  it('while it’s out of sight, say where it was last seen under what’s below, and leave out its height and speed', () => {
+  it('while it’s out of sight, say where it was last tracked under what’s below, and leave out its height and speed', () => {
     const rows = rowsAt(facts('11:10', { now: '11:20' }), '11:20')
     expect(row('below', rows)).toMatchObject({
-      title: 'Over Bravo', detail: `Last seen over Bravo · 10 min ago · Passes 35 mi from home at about 8:07${AM}`,
+      title: 'Over Bravo', detail: `Last tracked over Bravo · 10 min ago · Passes 35 mi from home at about 8:07${AM}`,
     })
 
     // Last seen at 6° E, 21 mi from Testville.
     const byACity = rowsAt(facts('11:03', { now: '11:13' }), '11:13')
-    expect(row('below', byACity).detail).toBe(`Last seen near Testville · 10 min ago · Passes 35 mi from home at about 8:07${AM}`)
+    expect(row('below', byACity).detail).toBe(`Last tracked near Testville · 10 min ago · Passes 35 mi from home at about 8:07${AM}`)
 
-    // With no place known, when it was last seen leads the row.
+    // With no place known, when it was last tracked leads the row.
     const noPlace = rowsAt(facts('11:10', { now: '11:20', hasStory: false }), '11:20')
-    expect(row('below', noPlace)).toMatchObject({ title: 'Last seen 10 min ago', detail: null })
+    expect(row('below', noPlace)).toMatchObject({ title: 'Last tracked 10 min ago', detail: null })
 
     expect(row('plane', rows)).toMatchObject({ title: 'Boeing 767-300 · N370UP', detail: null })
 
@@ -314,17 +321,37 @@ describe('the card’s sentence for screen readers with a real plane (Stage 3 sp
     )
   })
 
-  it('while it’s out of sight, says "about", what’s below by the plan, and where it was last seen', () => {
+  it('while it’s out of sight, says "about", what’s below by the plan, and where it was last tracked', () => {
     expect(cardSummary(facts('10:50', { now: '11:01' }), at('11:01'), 'Alex')).toBe(
-      `TST1 to E20, about 10 minutes ahead of schedule, over Bravo, last seen over Alpha. Lands about 9:11${AM} your time. ` +
+      `TST1 to E20, about 10 minutes ahead of schedule, over Bravo, last tracked over Alpha. Lands about 9:11${AM} your time. ` +
         'Latest: crossed into Bravo, about 6 minutes ago. Opens the full map.',
     )
+    // Last tracked at 6° E, by Testville, and still over Bravo: by a city, both are said.
     expect(cardSummary(facts('11:03', { now: '11:13' }), at('11:13'), 'Alex')).toBe(
-      `TST1 to E20, about 10 minutes ahead of schedule, over Bravo, last seen near Testville. Lands about 9:11${AM} your time. ` +
+      `TST1 to E20, about 10 minutes ahead of schedule, over Bravo, last tracked near Testville. Lands about 9:11${AM} your time. ` +
         'Latest: crossed into Bravo, 18 minutes ago. Opens the full map.',
     )
     expect(cardSummary(facts('11:10', { now: '11:20', hasStory: false }), at('11:20'), 'Alex')).toBe(
-      `TST1 to E20, about 10 minutes ahead of schedule, last seen 10 minutes ago. Lands about 9:11${AM} your time. Opens the full map.`,
+      `TST1 to E20, about 10 minutes ahead of schedule, last tracked 10 minutes ago. Lands about 9:11${AM} your time. Opens the full map.`,
+    )
+  })
+
+  it('while it’s out of sight over where it was last tracked, says the place once', () => {
+    // Last tracked over Bravo at 6.875° E at 11:10, and by the plan still over Bravo at 8.125° E at 11:20, with no city
+    // near either: "over Bravo, last tracked over Bravo" would say it twice.
+    expect(cardSummary(facts('11:10', { now: '11:20' }), at('11:20'), 'Alex')).toBe(
+      `TST1 to E20, about 10 minutes ahead of schedule, last tracked over Bravo. Lands about 9:11${AM} your time. ` +
+        'Latest: crossed into Bravo, 25 minutes ago. Opens the full map.',
+    )
+  })
+
+  it('while it’s out of sight, says both of two places that share a name, as Georgia the state and Georgia the country', () => {
+    // A state named Bravo, in Alpha, from 5° E to 7.5° E, before the country Bravo: last tracked over the state at
+    // 6.875° E at 11:10, and by the plan over the country at 8.125° E at 11:20.
+    const twoBravos = makeGeography([box('Bravo', 'state', 5, 7.5, 'Alpha'), ...EQUATOR.areas], EQUATOR.cities)
+    expect(cardSummary(facts('11:10', { now: '11:20', geography: twoBravos }), at('11:20'), 'Alex')).toBe(
+      `TST1 to E20, about 10 minutes ahead of schedule, over Bravo, last tracked over Bravo. Lands about 9:11${AM} your time. ` +
+        'Latest: crossed into Bravo, about 5 minutes ago. Opens the full map.',
     )
   })
 })

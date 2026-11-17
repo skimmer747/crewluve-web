@@ -36,7 +36,7 @@ In the demo scene `live-on-ground-late`, the full map showed the real plane at t
 | The ghost | On schedule | Where {flight} was scheduled to be |
 | The real plane, on the ground at its departure airport | {flight} · real plane | {label} / Lands {about}{landing} |
 | The real plane, in the air | {flight} · real plane | {label} / Lands {about}{landing} |
-| The real plane, estimated (faded) | {flight} · best guess | Not seen since {seen}, so it's drawn where it should be by now / {label} · lands {about}{landing} |
+| The real plane, estimated (faded) | {flight} · best guess | Out of tracking range since {seen}, so it's shown where it should be by now / {label} · lands {about}{landing} |
 | The real plane, landed | {flight} · real plane | {label} / Reaches the gate {at}{landing} |
 | The real plane, down somewhere else | {flight} · real plane | nothing more: it has no label, and no landing time |
 | The real plane in a replay | {flight} · real plane | Where it was at {moment} |
@@ -46,7 +46,7 @@ In the demo scene `live-on-ground-late`, the full map showed the real plane at t
   - `{about}` is "about " when the landing time is the real plane's estimate (`about(leg)`, spec §9), and nothing otherwise.
   - `{at}` is "at ", as the card's sentence says once the plane is down, or "about " while the gate time is still an estimate.
   - `{landing}` is the leg's real end (`MapLeg.end`).
-  - `{seen}` is the time of the real plane's last fix.
+  - `{seen}` is the time of the real plane's last fix. ("Out of tracking range since …, so it's shown where …" since 16 Nov 2026, in place of "Not seen since …, so it's drawn where …", which Todd found could make a family fear the plane was missing. It's the receivers that lose it, not air traffic control.)
   - `{moment}` is the replay's moment.
   - Times are in the viewer's time zone and clock (12- or 24-hour), as on the bar.
 
@@ -80,5 +80,5 @@ The app gets the same key and popup, with the same words, in its own small plan 
 
 ## 7. Not in this design
 
-- The plane's height and speed, and "last seen near …": plan 3C-3's row about the plane.
+- The plane's height and speed, and "last tracked near …": plan 3C-3's row about the plane.
 - A popup on an airport, the pilot's marker, or the schedule's own plane.

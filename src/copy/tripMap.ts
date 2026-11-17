@@ -136,9 +136,9 @@ export function spokenLiveLabel(label: LiveLabel): string {
  * schedule, over Québec. Lands about 3:18 PM your time." Once it's down, "…, landed 8 minutes early. Reaches the gate at
  * 3:18 PM your time." Null when the plane has no label, and the schedule's sentence stands.
  * - `over` is what's below.
- * - `lastSeen` is where a plane that's out of sight was last seen, as `spokenLastSeen` words it: "near Montréal", "over
- *   Québec" or "2 hours ago". It follows what's below, which is then a best guess: "…, about 14 minutes ahead of
- *   schedule, over Ohio, last seen near Columbus." (Stage 3 spec §15, best guesses design §2).
+ * - `lastSeen` is where a plane that's out of tracking range was last seen, as `spokenLastSeen` words it: "near
+ *   Montréal", "over Québec" or "2 hours ago". It follows what's below, which is then a best guess: "…, about 14 minutes
+ *   ahead of schedule, over Ohio, last tracked near Columbus." (Stage 3 spec §15, best guesses design §2).
  * Both are said only of a plane in the air: one on the ground or landed is over nothing, and out of sight of nothing.
  */
 export function liveSummary(
@@ -152,7 +152,7 @@ export function liveSummary(
   const isFlying = label.kind === 'onSchedule' || label.kind === 'ahead' || label.kind === 'behind'
   // It's down and on its way in: "landed 8 minutes early. Lands at 3:18 PM" would say so twice.
   const arrival = isDown ? `Reaches the gate at ${time} your time.` : `Lands ${isArrivalEstimated(leg) ? 'about' : 'at'} ${time} your time.`
-  const where = isFlying ? `${over ? `, over ${over}` : ''}${lastSeen ? `, last seen ${lastSeen}` : ''}` : ''
+  const where = isFlying ? `${over ? `, over ${over}` : ''}${lastSeen ? `, last tracked ${lastSeen}` : ''}` : ''
   return `${lead} ${leg.destination.city}, ${spokenLiveLabel(label)}${where}. ${arrival}`
 }
 

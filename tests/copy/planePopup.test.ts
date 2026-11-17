@@ -44,12 +44,12 @@ describe("a plane's popup (which plane design §3)", () => {
     expect(words).toEqual({ title: 'UPS207 · real plane', lines: ['Still on the ground · 20 min behind', landsAt(leg, NY, false)] })
   })
 
-  it('calls a faded plane a best guess, says when it was last seen, and lands it about its estimate', () => {
+  it('calls a faded plane a best guess, says when it went out of tracking range, and lands it about its estimate', () => {
     const { leg, words } = realPlane('ahead, in the air', 2)
     const seen = leg.flight!.live!.fix!.seenAt
     expect(words).toEqual({
       title: 'UPS207 · best guess',
-      lines: [`Not seen since ${time(seen)}, so it's drawn where it should be by now`, `About 14 min ahead · lands about ${time(leg.end)}`],
+      lines: [`Out of tracking range since ${time(seen)}, so it's shown where it should be by now`, `About 14 min ahead · lands about ${time(leg.end)}`],
     })
   })
 

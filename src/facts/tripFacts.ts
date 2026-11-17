@@ -13,7 +13,7 @@ import { MINUTE } from '../time/zoned'
 import type { Comparison } from './comparisons'
 import type { LatestEvent, TripSoFar } from './factRow'
 import { forgetOldPaths, realPathFacts, type FactsStore } from './factsStore'
-import { cityNear, type City, type Geography, type Place } from './geography'
+import { cityNear, samePlace, type City, type Geography, type Place } from './geography'
 import { landsWithinHorizon } from './landingWeather'
 import { hasLiveData, legPath } from './legCourse'
 import { legStory, placeAtDistance, type LegStory } from './legStory'
@@ -177,7 +177,10 @@ function lastSeenPlace(facts: TripFacts, leg: MapLeg): [place: Place | null, cit
   ]
 }
 
-/** "Last seen near Montréal · 12 min ago", while the real plane is out of sight, or null while it's seen (best guesses design §2). */
+/**
+ * "Last tracked near Montréal · 12 min ago", while the real plane is out of tracking range, or null while it's seen (best
+ * guesses design §2).
+ */
 export function lastSeenText(facts: TripFacts, leg: MapLeg, t: number): string | null {
   const { unseenFor } = legPlane(leg, t, facts.isReplay)
   return unseenFor == null ? null : lastSeenLine(...lastSeenPlace(facts, leg), unseenFor)
@@ -318,8 +321,12 @@ export function cardSummary(facts: TripFacts, now: number, name: string): string
     // With a real plane the sentence says how it's doing against the schedule (Stage 3 spec §9), and while it's out of
     // sight, where it was last seen (§15).
     const ago = plane.unseenFor
-    const lastSeen = ago == null ? null : spokenLastSeen(...lastSeenPlace(facts, leg), ago)
-    const live = liveSummary(leg, now, viewerTz, h24, place?.name ?? null, lastSeen)
+    const [seenPlace, seenCity] = ago == null ? [null, null] : lastSeenPlace(facts, leg)
+    const lastSeen = ago == null ? null : spokenLastSeen(seenPlace, seenCity, ago)
+    // "Over Québec, last tracked over Québec" says one place twice: the second says it all. It compares the places, not
+    // their names, so a state and a country that share a name are both said.
+    const isOverWhereLastTracked = seenCity == null && samePlace(seenPlace, place)
+    const live = liveSummary(leg, now, viewerTz, h24, isOverWhereLastTracked ? null : (place?.name ?? null), lastSeen)
     if (live) return `${live} ${ending}`
     const over = place ? `, over ${place.name}` : ''
     return `${lead} ${leg.destination.city}${over}. Lands at ${shortTimeText(leg.end, viewerTz, h24)} your time. Estimated from the schedule. ${ending}`

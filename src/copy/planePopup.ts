@@ -34,7 +34,7 @@ export function planePopupWords(leg: MapLeg, plane: PlaneKind, t: number, isRepl
       return {
         title: `${capitalized(name)} · best guess`,
         lines: [
-          ...(seen != null ? [`Not seen since ${time(seen)}, so it's drawn where it should be by now`] : []),
+          ...(seen != null ? [`Out of tracking range since ${time(seen)}, so it's shown where it should be by now`] : []),
           label ? `${label} · ${lands}` : capitalized(lands),
         ],
       }

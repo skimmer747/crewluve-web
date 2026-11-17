@@ -120,10 +120,10 @@ describe('the real plane in words (Stage 3 spec §8, best guesses design §2)', 
   const quebec = { name: 'Québec', kind: 'province' as const, country: 'Canada' }
   const montreal = { name: 'Montréal', lat: 45.5, lon: -73.57 }
 
-  it('says where it was last seen, by the city near it, else the place under it, and how long ago', () => {
-    expect(lastSeenLine(quebec, montreal, 10 * MIN)).toBe('Last seen near Montréal · 10 min ago')
-    expect(lastSeenLine(quebec, null, 130 * MIN)).toBe('Last seen over Québec · 2 h 10 min ago')
-    expect(lastSeenLine(null, null, 120 * MIN)).toBe('Last seen 2 h ago')
+  it('says where it was last tracked, by the city near it, else the place under it, and how long ago', () => {
+    expect(lastSeenLine(quebec, montreal, 10 * MIN)).toBe('Last tracked near Montréal · 10 min ago')
+    expect(lastSeenLine(quebec, null, 130 * MIN)).toBe('Last tracked over Québec · 2 h 10 min ago')
+    expect(lastSeenLine(null, null, 120 * MIN)).toBe('Last tracked 2 h ago')
   })
 
   it('says it for a screen reader, by the city near it, else the place under it, else how long ago', () => {
@@ -134,16 +134,16 @@ describe('the real plane in words (Stage 3 spec §8, best guesses design §2)', 
   })
 
   it('holds a time that can’t be right from a minute to a year', () => {
-    expect(lastSeenLine(null, null, 20_000)).toBe('Last seen 1 min ago')
-    expect(lastSeenLine(null, null, -500_000)).toBe('Last seen 1 min ago')
-    expect(lastSeenLine(null, null, Infinity)).toBe('Last seen 8760 h ago')
-    expect(lastSeenLine(null, null, NaN)).toBe('Last seen 1 min ago')
+    expect(lastSeenLine(null, null, 20_000)).toBe('Last tracked 1 min ago')
+    expect(lastSeenLine(null, null, -500_000)).toBe('Last tracked 1 min ago')
+    expect(lastSeenLine(null, null, Infinity)).toBe('Last tracked 8760 h ago')
+    expect(lastSeenLine(null, null, NaN)).toBe('Last tracked 1 min ago')
     expect(spokenLastSeen(null, null, NaN)).toBe('1 minute ago')
   })
 
   it('says how long ago to the nearest minute', () => {
-    expect(lastSeenLine(null, null, 10 * MIN + 29_000)).toBe('Last seen 10 min ago')
-    expect(lastSeenLine(null, null, 10 * MIN + 31_000)).toBe('Last seen 11 min ago')
+    expect(lastSeenLine(null, null, 10 * MIN + 29_000)).toBe('Last tracked 10 min ago')
+    expect(lastSeenLine(null, null, 10 * MIN + 31_000)).toBe('Last tracked 11 min ago')
     expect(spokenLastSeen(null, null, 10 * MIN + 31_000)).toBe('11 minutes ago')
   })
 

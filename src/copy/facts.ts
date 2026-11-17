@@ -147,15 +147,17 @@ function minutesAgo(ago: number): number {
 }
 
 /**
- * Under what's below, while the real plane is out of sight, `ago` ms after it was last seen: "Last seen near Montréal ·
- * 12 min ago" by a city of a million or more, else "Last seen over Québec · 12 min ago", else "Last seen 12 min ago".
- * It's the one line that says the place above it is worked out, not seen (best guesses design §2).
+ * Under what's below, while the real plane is out of tracking range, `ago` ms after it was last seen: "Last tracked near
+ * Montréal · 12 min ago" by a city of a million or more, else "Last tracked over Québec · 12 min ago", else "Last tracked
+ * 12 min ago". It's the one line that says the place above it is worked out (best guesses design §2). "Tracked", never
+ * "seen" (Todd, 16 Nov 2026): it's the receivers that lose the plane, not air traffic control, and a family shouldn't
+ * fear it's missing.
  */
 export function lastSeenLine(place: Place | null, city: City | null, ago: number): string {
   const time = `${minutesText(minutesAgo(ago))} ago`
-  if (city) return `Last seen near ${city.name} · ${time}`
-  if (place) return `Last seen over ${place.name} · ${time}`
-  return `Last seen ${time}`
+  if (city) return `Last tracked near ${city.name} · ${time}`
+  if (place) return `Last tracked over ${place.name} · ${time}`
+  return `Last tracked ${time}`
 }
 
 /**
