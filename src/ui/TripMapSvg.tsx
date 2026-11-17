@@ -7,7 +7,7 @@ import { LAYER_ALPHA, nightLayers } from '../map/nightShade'
 import { linePath, placeAt, polygonsPath, type Viewport } from '../map/svgPaths'
 import type { GroundKind } from '../map/tripActivity'
 import { framingPoints, framingSubject, type MapLeg, type TripMap } from '../map/tripMap'
-import { nightTime, PILOT_RADIUS, routePoints, tripMapDrawing, type PlaneMark } from '../map/tripMapDrawing'
+import { keptInView, nightTime, PILOT_RADIUS, routePoints, tripMapDrawing, type PlaneMark } from '../map/tripMapDrawing'
 import { useSteadyFraming } from './hooks/useSteadyFraming'
 import { PlanePopup, popupPlacement } from './PlanePopup'
 
@@ -23,8 +23,9 @@ export interface TripMapSvgProps {
   /** How often the night is redrawn, in ms of trip time (`nightTime`). */
   nightStep: number
   /**
-   * Room to keep clear for what lies over the map: the full map's panel (Stage 2 spec §10), or the card's chips. The
-   * trip is framed in the rest when there's room, and the pilot's marker is always kept there (`slideToShow`).
+   * Room to keep clear for what lies over the map: the full map's panel (Stage 2 spec §10), or the card's chips and the
+   * latest event's banner. The trip is framed in the rest when there's room, and the pilot's marker, or in flight the
+   * plane and its ghost, are always kept there (`keptInView`, `slideToShow`).
    */
   insets?: Insets
   /** `t` is a moment of the replay, not now: a flight with a record shows its real plane alone (Stage 3 spec §7.3). */
@@ -127,10 +128,11 @@ export function TripMapSvg({ map, t, width, height, focus, land, nightStep, inse
   const drawing = tripMapDrawing(map, t, isReplay)
   // The real path where the plane was seen goes over every other line.
   const segments = [...drawing.segments.filter((s) => s.style !== 'seen'), ...drawing.segments.filter((s) => s.style === 'seen')]
-  // The trip is framed in the clear part when there's room. Then, if the pilot's marker still lies outside it (the
-  // card's chips at large text sizes), the view slides the shortest way that shows it (the app's card framing §4.2).
-  const pilot = drawing.pilot ? placeAt(drawing.pilot.place.place, { rect: framed, width, height }) : null
-  const rect = pilot ? slideToShow(framed, width, height, pilot, PILOT_RADIUS, { top, right, bottom, left }) : framed
+  // The trip is framed in the clear part when there's room. Then, if the pilot's marker, or in flight the plane, still
+  // lies outside it (the card's chips at large text sizes, or the banner with the key under it), the view slides the
+  // shortest way that shows it, and the ghost too where both fit (the app's card framing §4.2; latest event design §2).
+  const kept = keptInView(drawing).map((place) => placeAt(place, { rect: framed, width, height }))
+  const rect = slideToShow(framed, width, height, kept, PILOT_RADIUS, { top, right, bottom, left })
   const view: Viewport = { rect, width, height }
   // Keyed on the rect's numbers: the map is a new object every second, and so is the rect fitted to it.
   const { x, y, width: rectWidth, height: rectHeight } = rect

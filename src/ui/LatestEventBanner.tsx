@@ -1,6 +1,9 @@
 import type { Ref } from 'preact'
+import { useState } from 'preact/hooks'
+import { WIDEST_EVENT_WHEN } from '../copy/facts'
 import type { LatestEvent } from '../facts/factRow'
 import type { Size } from './hooks/useSize'
+import { useSizeOf } from './hooks/useSizeOf'
 
 /** How far the banner sits in from the map's edges, as the card's chips do (`.latest-event` in tripMap.css). */
 export const BANNER_EDGE = 10
@@ -31,6 +34,31 @@ export function bannerLayout(bannerRight: number, banner: Size, key: Size, mapWi
   return { keyTop: BANNER_EDGE + banner.height + KEY_GAP, inset: reach(banner.height + KEY_GAP + key.height) }
 }
 
+/** The banner's padding at each side (`.latest-event` in tripMap.css). */
+const BANNER_PADDING = 12
+
+/** The banner, its title and its hidden widest "when", each kept from a callback ref to be measured. */
+export interface BannerRefs {
+  box: Ref<HTMLSpanElement>
+  title: Ref<HTMLSpanElement>
+  widest: Ref<HTMLSpanElement>
+}
+
+/**
+ * The banner's size as the key and the camera go by it. Its height is the banner's own. Its width is its title's or its
+ * widest "when", whichever is wider, and its padding: the width it has with the widest "when" it could show. So where
+ * the key goes doesn't change while the same event shows, as "Just now" grows to "About 1 h 5 min ago", or a replay's
+ * clock time changes, and the camera doesn't frame again with it (the review's fixes). Nothing measured, it's 0 wide.
+ */
+export function useBannerSize(): { size: Size; refs: BannerRefs } {
+  const [box, setBox] = useState<HTMLSpanElement | null>(null)
+  const [title, setTitle] = useState<HTMLSpanElement | null>(null)
+  const [widest, setWidest] = useState<HTMLSpanElement | null>(null)
+  const height = useSizeOf(box).height
+  const words = Math.max(useSizeOf(title).width, useSizeOf(widest).width)
+  return { size: { width: words > 0 ? words + 2 * BANNER_PADDING : 0, height }, refs: { box: setBox, title: setTitle, widest: setWidest } }
+}
+
 export interface LatestEventBannerProps {
   event: LatestEvent
   /**
@@ -38,19 +66,21 @@ export interface LatestEventBannerProps {
    * map's top corner, and the card's sentence has it.
    */
   isFullMap?: boolean
-  /** The banner itself, measured for the key and the camera. */
-  boxRef?: Ref<HTMLSpanElement>
+  /** The banner's parts, measured for the key and the camera (`useBannerSize`). */
+  refs?: BannerRefs
 }
 
 /**
  * The newest event of the flight in the air, shown large until the next (latest event design §1, §2): what it was, and
- * under it, smaller, how long ago, in the chips' glass. Spans, as the card's map is inside its button.
+ * under it, smaller, how long ago, in the chips' glass. Spans, as the card's map is inside its button. The widest "when"
+ * it could show is laid out unseen beside it, out of its flow, only to be measured.
  */
-export function LatestEventBanner({ event, isFullMap = false, boxRef }: LatestEventBannerProps) {
+export function LatestEventBanner({ event, isFullMap = false, refs }: LatestEventBannerProps) {
   return (
-    <span ref={boxRef} class={isFullMap ? 'latest-event centred' : 'latest-event'} aria-hidden={isFullMap ? undefined : 'true'}>
-      <span class="latest-event-title" aria-hidden="true">{event.title}</span>
+    <span ref={refs?.box} class={isFullMap ? 'latest-event centred' : 'latest-event'} aria-hidden={isFullMap ? undefined : 'true'}>
+      <span ref={refs?.title} class="latest-event-title" aria-hidden="true">{event.title}</span>
       <span class="latest-event-when" aria-hidden="true">{event.when}</span>
+      <span ref={refs?.widest} class="latest-event-when latest-event-widest" aria-hidden="true">{WIDEST_EVENT_WHEN}</span>
       {isFullMap && <span class="sr-only">{event.sentence}</span>}
     </span>
   )

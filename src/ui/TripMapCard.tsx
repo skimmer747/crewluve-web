@@ -13,7 +13,7 @@ import { useMapStyle } from './hooks/useMapStyle'
 import { useSizeOf } from './hooks/useSizeOf'
 import { useWidth } from './hooks/useWidth'
 import { Icon } from './Icon'
-import { BANNER_EDGE, bannerLayout, LatestEventBanner } from './LatestEventBanner'
+import { BANNER_EDGE, bannerLayout, LatestEventBanner, useBannerSize } from './LatestEventBanner'
 import { PlaneKey } from './PlaneKey'
 import { TripRecapBar } from './TripRecapBar'
 
@@ -84,11 +84,10 @@ export function TripMapCard(p: TripMapCardProps) {
   const [topChip, setTopChip] = useState<HTMLElement | null>(null)
   const [bottomChip, setBottomChip] = useState<HTMLElement | null>(null)
   const [key, setKey] = useState<HTMLElement | null>(null)
-  const [banner, setBanner] = useState<HTMLElement | null>(null)
   const keySize = useSizeOf(key)
-  const bannerSize = useSizeOf(banner)
+  const banner = useBannerSize()
   const chipped = chipInsets(Math.max(useHeightOf(topChip), keySize.height), useHeightOf(bottomChip))
-  const layout = latest ? bannerLayout(BANNER_EDGE + bannerSize.width, bannerSize, keySize, width) : null
+  const layout = latest ? bannerLayout(BANNER_EDGE + banner.size.width, banner.size, keySize, width) : null
   const insets = layout ? { ...chipped, top: layout.inset } : chipped
   return (
     <section class="card glass trip-map-card">
@@ -98,7 +97,7 @@ export function TripMapCard(p: TripMapCardProps) {
           <AppleTripMap map={p.map} t={p.now} width={width} height={MAP_HEIGHT} focus={leg} land={p.land} nightStep={60_000} insets={insets}
             mapStyle={mapStyle} interactive={false} />
         </span>
-        {latest ? <LatestEventBanner event={latest} boxRef={setBanner} />
+        {latest ? <LatestEventBanner event={latest} refs={banner.refs} />
           : chips.top && <span ref={setTopChip} class="trip-map-chip top" aria-hidden="true">{chips.top}</span>}
         {showsKey && <PlaneKey boxRef={setKey} top={layout?.keyTop} />}
         {bottom && (

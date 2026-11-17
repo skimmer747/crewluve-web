@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { appleCamera, appleMapPlan, laidOut, offDateLine, slideIntoView, type AppleCamera } from '../../src/map/appleMapPlan'
+import { appleCamera, appleMapPlan, keepInView, laidOut, offDateLine, slideIntoView, type AppleCamera } from '../../src/map/appleMapPlan'
 import { fitClear, fitRect, NO_INSETS, type Insets, type WorldRect } from '../../src/map/mapFit'
 import { toWorld } from '../../src/map/mercator'
 import { placeAt } from '../../src/map/svgPaths'
-import { makeTripMap } from '../../src/map/tripMap'
+import type { GeoPoint } from '../../src/map/greatCircle'
+import { framingPoints, legProgress, makeTripMap, positionAt } from '../../src/map/tripMap'
 import { tripMapDrawing } from '../../src/map/tripMapDrawing'
 import { AIRPORTS, at, drive, EUROPE, flight } from '../map/tripMapLegs'
 
@@ -67,13 +68,13 @@ describe('the camera on Apple’s map (Apple Maps spec §5; the app’s card fra
   const places = map.legs.flatMap((l) => [l.origin.place, l.destination.place])
 
   it('takes the view the SVG map takes, with nothing to keep clear', () => {
-    const camera = appleCamera(places, null, 390, 520, NO_INSETS)
+    const camera = appleCamera(places, [], 390, 520, NO_INSETS)
     expect(camera).toEqual({ rect: fitClear(fitRect(places)!, 390, 520), padding: NO_INSETS })
   })
 
   it('gives MapKit the part of the view beside the panel, and the panel as padding, so the trip and Apple’s logo keep clear of it', () => {
     const insets = { top: 0, right: 0, bottom: 0, left: 400 }
-    const camera = appleCamera(places, null, 1000, 500, insets)
+    const camera = appleCamera(places, [], 1000, 500, insets)
     expect(camera.padding).toEqual(insets)
     // The whole view, rebuilt from the clear part: the same one the SVG map draws.
     const perPixel = camera.rect.width / 600
@@ -88,14 +89,14 @@ describe('the camera on Apple’s map (Apple Maps spec §5; the app’s card fra
     const insets = { top: 90, right: 0, bottom: 90, left: 0 }
     // Cologne, the trip's northernmost airport, lies near the top of the view.
     const pilot = map.legs[0].destination.place
-    const camera = appleCamera(places, pilot, 343, 220, insets)
+    const camera = appleCamera(places, [pilot], 343, 220, insets)
     // Too thin to frame in, so MapKit gets the whole view and no padding, and the marker sits in the band.
     expect(camera.padding).toEqual(NO_INSETS)
     const y = placeAt(pilot, { rect: camera.rect, width: 343, height: 220 }).y
     expect(y).toBeGreaterThanOrEqual(90)
     expect(y).toBeLessThanOrEqual(130)
     // Without the slide the marker would lie outside the band.
-    const unslid = placeAt(pilot, { rect: appleCamera(places, null, 343, 220, insets).rect, width: 343, height: 220 }).y
+    const unslid = placeAt(pilot, { rect: appleCamera(places, [], 343, 220, insets).rect, width: 343, height: 220 }).y
     expect(unslid < 90 || unslid > 130).toBe(true)
   })
 
@@ -103,7 +104,7 @@ describe('the camera on Apple’s map (Apple Maps spec §5; the app’s card fra
     const pacific = makeTripMap([flight('p1', 'ANC', 'NRT', 0, 7)], { isNextTrip: false, home: 'ANC', now: at(1), airports: AIRPORTS })!
     const ends = [pacific.legs[0].origin.place, pacific.legs[0].destination.place]
     const insets = { top: 0, right: 0, bottom: 0, left: 400 }
-    const camera = appleCamera(ends, null, 1000, 500, insets)
+    const camera = appleCamera(ends, [], 1000, 500, insets)
     // The North Pacific, the short way round: 70° and its margins, where the long way would be over three quarters of the world.
     expect(camera.rect.width).toBeLessThan(0.5)
     const perPixel = camera.rect.width / 600
@@ -113,6 +114,71 @@ describe('the camera on Apple’s map (Apple Maps spec §5; the app’s card fra
       expect(x).toBeGreaterThanOrEqual(400)
       expect(x).toBeLessThanOrEqual(1000)
     }
+  })
+})
+
+describe('keeping the plane and its ghost in the card’s band under the latest event (latest event design §2)', () => {
+  // Louisville to Anchorage, five hours into six: the plane is near Anchorage, at the top of the card's view of the leg,
+  // and its ghost a little behind it. Todd's measures of the card at phone width: 342 × 220, the banner 50 px tall with
+  // the key under it, 23 px, and the bottom chip 23 px: the camera keeps 93 px at the top and 37 at the bottom, a band
+  // too thin to frame the leg in.
+  const map = makeTripMap([flight('a1', 'SDF', 'ANC', 0, 6)], { isNextTrip: false, home: 'SDF', now: at(5), airports: AIRPORTS })!
+  const leg = map.legs[0]
+  const framing = framingPoints(map, leg)
+  const plane = positionAt(leg, legProgress(leg, at(5)))
+  const ghost = positionAt(leg, legProgress(leg, at(4.8)))
+  const banner: Insets = { top: 93, right: 0, bottom: 37, left: 0 }
+  const yOf = (place: GeoPoint, camera: AppleCamera) => placeAt(place, { rect: camera.rect, width: 342, height: 220 }).y
+
+  it('slides the whole view so both sit in the band, their marks and margins clear of the banner, the key and the chip', () => {
+    const camera = appleCamera(framing, [plane, ghost], 342, 220, banner)
+    expect(camera.padding).toEqual(NO_INSETS)
+    for (const place of [plane, ghost]) {
+      expect(yOf(place, camera)).toBeGreaterThanOrEqual(93 + 20)
+      expect(yOf(place, camera)).toBeLessThanOrEqual(220 - 37 - 20)
+    }
+    // Without them, as before, the plane sat under the banner.
+    expect(yOf(plane, appleCamera(framing, [], 342, 220, banner))).toBeLessThan(93)
+  })
+
+  it('lets a ghost off the view as framed move it not at all: after a deviation, the real plane alone is kept', () => {
+    // The ghost 15° north of the plane, far off the card's view of the leg.
+    const astray = { lat: plane.lat + 15, lng: plane.lng }
+    expect(appleCamera(framing, [plane, astray], 342, 220, banner)).toEqual(appleCamera(framing, [plane], 342, 220, banner))
+  })
+
+  it('between framings, slides again only once the plane’s marker pokes out of the band, then back to its margin', () => {
+    const asked = appleCamera(framing, [plane], 342, 220, banner)
+    expect(yOf(plane, asked)).toBeGreaterThanOrEqual(113)
+    expect(yOf(plane, asked)).toBeLessThan(114)
+    // The view as MapKit shows it once the plane has flown `px` further north.
+    const perPixel = asked.rect.width / 342
+    const flown = (px: number): AppleCamera => ({ ...asked, rect: { ...asked.rect, y: asked.rect.y + px * perPixel } })
+    // 7 px into its 8 px margin, its marker still clear of the banner and the key: left alone, wherever its ghost is.
+    expect(keepInView(flown(7), [plane, ghost], 342, 220, banner)).toBeNull()
+    const ahead = { lat: plane.lat + 1, lng: plane.lng }
+    expect(yOf(ahead, flown(7))).toBeLessThan(93 + 12)
+    expect(keepInView(flown(7), [plane, ahead], 342, 220, banner)).toBeNull()
+    // 10 px on, its marker a pixel past the band's edge: slid back so it and its margin are in, at the same zoom.
+    const slid = keepInView(flown(10), [plane, ghost], 342, 220, banner)!
+    expect(slid.rect.width).toBeCloseTo(asked.rect.width, 12)
+    expect(yOf(plane, slid)).toBeGreaterThanOrEqual(113)
+    expect(yOf(plane, slid)).toBeLessThanOrEqual(163)
+    expect(keepInView(flown(10), [], 342, 220, banner)).toBeNull()
+  })
+
+  it('between framings, slides across too, once the plane’s marker pokes out of the card’s side', () => {
+    const asked = appleCamera(framing, [plane], 342, 220, banner)
+    const perPixel = asked.rect.width / 342
+    const x = placeAt(plane, { rect: asked.rect, width: 342, height: 220 }).x
+    // The view as MapKit shows it with the plane 5 px from the card's left edge: its 12 px marker pokes out.
+    const atTheSide: AppleCamera = { ...asked, rect: { ...asked.rect, x: asked.rect.x + (x - 5) * perPixel } }
+    const slid = keepInView(atTheSide, [plane], 342, 220, banner)!
+    expect(placeAt(plane, { rect: slid.rect, width: 342, height: 220 }).x).toBeGreaterThanOrEqual(20)
+  })
+
+  it('once MapKit shows what it was asked for, slides no more', () => {
+    expect(slideIntoView(appleCamera(framing, [plane, ghost], 342, 220, banner), [plane, ghost], 342, 220, banner)).toBeNull()
   })
 })
 
@@ -137,17 +203,17 @@ describe('keeping the pilot’s marker in view when MapKit won’t zoom out far 
     padding,
   })
   const marker = (shown: AppleCamera) => placeAt(home, { rect: wholeView(shown), width, height })
-  const asked = appleCamera(places, home, width, height, insets)
+  const asked = appleCamera(places, [home], width, height, insets)
 
   it('leaves the view alone when MapKit shows what it was asked for: the marker is in view', () => {
-    expect(slideIntoView(asked, home, width, height, insets)).toBeNull()
+    expect(slideIntoView(asked, [home], width, height, insets)).toBeNull()
   })
 
   it('slides MapKit’s closer view the shortest way, without zooming, to show the marker below the chip', () => {
     const shown = atLimit(asked, 0.6)
     // At MapKit's limit, Louisville, at the trip's edge, falls off the card.
     expect(marker(shown).x > width || marker(shown).y > height).toBe(true)
-    const slid = slideIntoView(shown, home, width, height, insets)!
+    const slid = slideIntoView(shown, [home], width, height, insets)!
     expect(slid.padding).toEqual(insets)
     // The same zoom MapKit settled on: asking for any wider would be held back again.
     expect(slid.rect.width).toBeCloseTo(shown.rect.width, 12)
@@ -168,7 +234,7 @@ describe('keeping the pilot’s marker in view when MapKit won’t zoom out far 
     const nudged = { rect: { ...shown.rect, x: shown.rect.x + (was.x - width / 2) * perPixel, y: shown.rect.y + (was.y - 47) * perPixel }, padding: insets }
     expect(marker(nudged).x).toBeCloseTo(width / 2, 0)
     expect(marker(nudged).y).toBeCloseTo(47, 0)
-    const slid = slideIntoView(nudged, home, width, height, insets)!
+    const slid = slideIntoView(nudged, [home], width, height, insets)!
     expect(marker(slid).x).toBeCloseTo(width / 2, 0)
     expect(marker(slid).y).toBeCloseTo(37 + 20, 0)
   })
@@ -176,9 +242,9 @@ describe('keeping the pilot’s marker in view when MapKit won’t zoom out far 
   it('keeps the marker in the band when the chips leave too thin a part to frame in, where MapKit has no padding', () => {
     // Chips 90 px deep top and bottom leave a 40 px band, too thin to frame in: MapKit is given the whole card.
     const thin = { top: 90, right: 0, bottom: 90, left: 0 }
-    const camera = appleCamera(places, home, width, height, thin)
+    const camera = appleCamera(places, [home], width, height, thin)
     expect(camera.padding).toEqual(NO_INSETS)
-    const slid = slideIntoView(atLimit(camera, 0.6), home, width, height, thin)!
+    const slid = slideIntoView(atLimit(camera, 0.6), [home], width, height, thin)!
     expect(slid.padding).toEqual(NO_INSETS)
     expect(marker(slid).y).toBeGreaterThanOrEqual(90)
     expect(marker(slid).y).toBeLessThanOrEqual(130)
@@ -198,7 +264,7 @@ describe('keeping the pilot’s marker in view when MapKit won’t zoom out far 
 
     it('slides the short way, the marker 5 px from the left edge coming in, not round the world', () => {
       const { place, view } = scene(10, 5)
-      const slid = slideIntoView(shownOf(view), place, width, height, insets)!
+      const slid = slideIntoView(shownOf(view), [place], width, height, insets)!
       expect(wholeView(slid).width).toBeCloseTo(view.width, 12)
       expect(placeAt(place, { rect: wholeView(slid), width, height }).x).toBeCloseTo(20, 0)
     })
@@ -208,12 +274,12 @@ describe('keeping the pilot’s marker in view when MapKit won’t zoom out far 
       const { place, view } = scene(19.85, 19.7)
       expect(view.x).toBeGreaterThan(0)
       expect(view.x - 0.3 * perPixel).toBeLessThan(0)
-      expect(slideIntoView(shownOf(view), place, width, height, insets)).toBeNull()
+      expect(slideIntoView(shownOf(view), [place], width, height, insets)).toBeNull()
     })
   })
 
   it('takes a marker already slid into view as in view, so a second check never chases rounding', () => {
-    const slid = slideIntoView(atLimit(asked, 0.6), home, width, height, insets)!
-    expect(slideIntoView(slid, home, width, height, insets)).toBeNull()
+    const slid = slideIntoView(atLimit(asked, 0.6), [home], width, height, insets)!
+    expect(slideIntoView(slid, [home], width, height, insets)).toBeNull()
   })
 })

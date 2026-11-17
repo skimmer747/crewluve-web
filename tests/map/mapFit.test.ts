@@ -91,25 +91,92 @@ describe('sliding the view to show the pilot’s marker (the app’s card framin
   const chips = { ...NO_INSETS, top: 40, bottom: 40 }
 
   it('leaves the view alone when the marker shows in the clear part', () => {
-    expect(slideToShow(rect, 400, 200, { x: 200, y: 100 }, 12, chips)).toBe(rect)
+    expect(slideToShow(rect, 400, 200, [{ x: 200, y: 100 }], 12, chips)).toBe(rect)
   })
 
   it('slides up just far enough to lift the marker out of the bottom chip’s band', () => {
     // The band ends 40 px from the bottom, at 160 px: the marker's centre goes to 140 px, 45 px up.
-    const slid = slideToShow(rect, 400, 200, { x: 100, y: 185 }, 12, chips)
+    const slid = slideToShow(rect, 400, 200, [{ x: 100, y: 185 }], 12, chips)
     expect(slid.x).toBe(rect.x)
     expect(slid.y).toBeCloseTo(rect.y + 45 * perPixel, 12)
   })
 
   it('slides each axis on its own: in from the right edge and down from the top', () => {
-    const slid = slideToShow(rect, 400, 200, { x: 395, y: 5 }, 12)
+    const slid = slideToShow(rect, 400, 200, [{ x: 395, y: 5 }], 12)
     expect(slid.x).toBeCloseTo(rect.x + 15 * perPixel, 12)
     expect(slid.y).toBeCloseTo(rect.y - 15 * perPixel, 12)
   })
 
   it('centres a marker larger than the clear part in it', () => {
     // 20 px clear between 90 and 110 px, less than the marker's 40: its centre goes to 100 px.
-    const slid = slideToShow(rect, 400, 200, { x: 200, y: 150 }, 12, { ...NO_INSETS, top: 90, bottom: 90 })
+    const slid = slideToShow(rect, 400, 200, [{ x: 200, y: 150 }], 12, { ...NO_INSETS, top: 90, bottom: 90 })
     expect(slid.y).toBeCloseTo(rect.y + 50 * perPixel, 12)
+  })
+
+  // A band from 60 px down to 160 px, under the latest event's banner and over the bottom chip (latest event design §2).
+  const band = { ...NO_INSETS, top: 60, bottom: 40 }
+
+  /** How far the view slid down, in px, to a millionth: what's on it moved down by as much. */
+  const slidDown = (slid: WorldRect) => Math.round(((rect.y - slid.y) / perPixel) * 1e6) / 1e6
+
+  it('shows the ghost beside the real plane where a little more slide shows it', () => {
+    // Both above the band, the ghost 10 px higher: the real plane alone would come down 50 px, to 80; the ghost 10 more
+    // shows it too, 20 px inside the band's top.
+    const slid = slideToShow(rect, 400, 200, [{ x: 200, y: 30 }, { x: 210, y: 20 }], 12, band)
+    expect(slid.x).toBe(rect.x)
+    expect(slid.y).toBeCloseTo(rect.y - 60 * perPixel, 12)
+  })
+
+  it('keeps the real plane in the band whatever its ghost asks: here the ghost is left above', () => {
+    // 180 px apart in a 100 px band: the real plane, below it, comes up to 140 px, the most the ghost can pull it.
+    const slid = slideToShow(rect, 400, 200, [{ x: 200, y: 190 }, { x: 200, y: 10 }], 12, band)
+    expect(slid.y).toBeCloseTo(rect.y + 50 * perPixel, 12)
+  })
+
+  it('lets a ghost off the view as framed move it not at all: after a deviation the real plane alone is kept', () => {
+    // The real path 300 px east of the planned arc: the real plane near the view's left, its ghost off it, 250 px further
+    // left. Across, the two would fit in the 400 px view, and once the view slid 270 px to show them.
+    expect(slideToShow(rect, 400, 200, [{ x: 50, y: 100 }, { x: -250, y: 100 }], 12, band)).toBe(rect)
+    // Off the view above, the same: the real plane above the band comes just inside it, 40 px down, as it would alone.
+    expect(slidDown(slideToShow(rect, 400, 200, [{ x: 200, y: 40 }, { x: 200, y: -200 }], 12, band))).toBeCloseTo(40, 9)
+  })
+
+  it('pulls toward showing all the other marks together, their nearer end first', () => {
+    // The real plane at 90 px needs nothing. The others, at 70 and 75 px, all show 10 px down: 10 px to bring the higher in.
+    expect(slidDown(slideToShow(rect, 400, 200, [{ x: 200, y: 90 }, { x: 200, y: 70 }, { x: 200, y: 75 }], 12, band))).toBeCloseTo(10, 9)
+  })
+
+  it('lets a ghost on the view pull it no further than a marker and its margin, 20 px', () => {
+    // The real plane in the band at 100 px, its ghost 90 px above, which 70 px of slide would show: the view goes 20.
+    expect(slidDown(slideToShow(rect, 400, 200, [{ x: 200, y: 100 }, { x: 200, y: 10 }], 12, band))).toBeCloseTo(20, 9)
+  })
+
+  it('moves the view smoothly as the ghost draws away, with no jump where the two stop fitting together', () => {
+    // The real plane at 100 px, in the band, needs no slide. Its ghost goes from beside it to the view's top, a pixel at a
+    // time. Showing both once took up to 40 px of slide, and none the pixel after they stopped fitting together.
+    const slides = Array.from({ length: 101 }, (_, i) => slidDown(slideToShow(rect, 400, 200, [{ x: 200, y: 100 }, { x: 200, y: 100 - i }], 12, band)))
+    slides.forEach((slide, i) => {
+      if (i > 0) expect(Math.abs(slide - slides[i - 1])).toBeLessThanOrEqual(1 + 1e-9)
+      // The real plane stays in the band, its marker and margin with it, and the view never goes more than 20 px for the ghost.
+      expect(100 + slide).toBeGreaterThanOrEqual(80)
+      expect(100 + slide).toBeLessThanOrEqual(140)
+      expect(Math.abs(slide)).toBeLessThanOrEqual(20)
+    })
+    expect(Math.max(...slides)).toBe(20)
+  })
+
+  it('with nothing to keep in view, as on a drive, leaves the view alone, however thin the band', () => {
+    expect(slideToShow(rect, 400, 200, [], 12, band)).toBe(rect)
+    expect(slideToShow(rect, 400, 200, [], 12, { ...NO_INSETS, top: 90, bottom: 90 })).toBe(rect)
+  })
+
+  it('slides by whole pixels, so a plane moving a little each second moves the camera only once it has moved a pixel', () => {
+    // 35.1 or 35.9 px below where the band lets it be: it slides 36, so all of it is in.
+    expect(slideToShow(rect, 400, 200, [{ x: 200, y: 175.1 }], 12, band).y).toBeCloseTo(rect.y + 36 * perPixel, 12)
+    expect(slideToShow(rect, 400, 200, [{ x: 200, y: 175.9 }], 12, band).y).toBeCloseTo(rect.y + 36 * perPixel, 12)
+    expect(slideToShow(rect, 400, 200, [{ x: 200, y: 24.6 }], 12, band).y).toBeCloseTo(rect.y - 56 * perPixel, 12)
+    // Under half a pixel out, as a hair of rounding, is no slide at all; half a pixel is one.
+    expect(slideToShow(rect, 400, 200, [{ x: 200, y: 140.3 }], 12, band)).toBe(rect)
+    expect(slideToShow(rect, 400, 200, [{ x: 200, y: 140.5 }], 12, band).y).toBeCloseTo(rect.y + perPixel, 12)
   })
 })

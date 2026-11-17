@@ -107,19 +107,40 @@ export function fitClear(rect: WorldRect, width: number, height: number, insets:
 export const SLIDE_MARGIN = 8
 
 /**
- * The view `rect` slid the shortest way, along each axis on its own, that shows a marker of `radius` px at `at`, where
- * `rect` puts it, with `SLIDE_MARGIN` round it, inside the part of the view `insets` leave clear: between the card's
- * chips, or beside the full map's panel. The camera frames the trip there first when there's room; this keeps the
- * marker in view when there isn't. It never zooms, and a marker larger than the clear part is centred in it.
+ * The view `rect` slid the shortest way, along each axis on its own, that shows a marker of `radius` px at the first of
+ * `marks`, where `rect` puts it, with `margin` round it, inside the part of the view `insets` leave clear: between the
+ * card's chips and under the latest event's banner, or beside the full map's panel. The camera frames the trip there
+ * first when there's room; this keeps the marker in view when there isn't. It never zooms, and a marker larger than the
+ * clear part is centred in it.
+ *
+ * The other marks, the real plane's ghost, pull the view on toward showing them too, but no further than a marker and
+ * its margin, and never so far that the first leaves the clear part: the view moves smoothly as a ghost draws away, and
+ * one off the view as framed, as after the real plane left the planned arc, doesn't move it at all (the review's fixes).
+ *
+ * It slides by whole pixels, rounded up so the marker is fully in, so a plane moving a little each second moves the
+ * camera only once it has moved a pixel; under half a pixel, as a hair of rounding, it doesn't slide at all.
  */
 export function slideToShow(
-  rect: WorldRect, width: number, height: number, at: { x: number; y: number }, radius: number, insets: Insets = NO_INSETS,
+  rect: WorldRect, width: number, height: number, marks: readonly { x: number; y: number }[], radius: number, insets: Insets = NO_INSETS,
+  margin = SLIDE_MARGIN,
 ): WorldRect {
-  const r = radius + SLIDE_MARGIN
-  const along = (p: number, low: number, high: number) =>
-    high - low < 2 * r ? (low + high) / 2 - p : Math.max(low + r - p, Math.min(0, high - r - p))
-  const dx = along(at.x, insets.left, width - insets.right)
-  const dy = along(at.y, insets.top, height - insets.bottom)
+  if (marks.length === 0) return rect
+  const r = radius + margin
+  const [first, ...rest] = marks
+  const others = rest.filter((m) => m.x >= 0 && m.x <= width && m.y >= 0 && m.y <= height)
+  const along = (at: number, more: number[], low: number, high: number) => {
+    if (high - low < 2 * r) return (low + high) / 2 - at
+    // Any slide from `least` to `most` shows the first mark. Its own is the shortest.
+    const [least, most] = [low + r - at, high - r - at]
+    const own = Math.max(least, Math.min(0, most))
+    if (more.length === 0) return own
+    // The slide nearest its own that shows the others, which they pull it toward by a marker and its margin at most.
+    const theirs = Math.max(low + r - Math.min(...more), Math.min(own, high - r - Math.max(...more)))
+    return Math.max(least, Math.min(most, own + Math.max(-r, Math.min(r, theirs - own))))
+  }
+  const whole = (px: number) => (Math.abs(px) < 0.5 ? 0 : px > 0 ? Math.ceil(px) : Math.floor(px))
+  const dx = whole(along(first.x, others.map((m) => m.x), insets.left, width - insets.right))
+  const dy = whole(along(first.y, others.map((m) => m.y), insets.top, height - insets.bottom))
   if (dx === 0 && dy === 0) return rect
   const perPixel = rect.width / width
   return normalized({ ...rect, x: rect.x - dx * perPixel, y: rect.y - dy * perPixel })

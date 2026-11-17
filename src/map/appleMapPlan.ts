@@ -106,14 +106,15 @@ export interface AppleCamera {
 
 /**
  * The camera on Apple's map (Apple Maps spec §5): the very view the SVG map takes. The trip is framed in the part of the
- * view the insets leave clear (beside the full map's panel, between the card's chips), then the view slides the shortest
- * way that shows the pilot's marker (the app's card framing design §4). MapKit is given the clear part's rectangle, with
+ * view the insets leave clear (beside the full map's panel, between the card's chips and under the latest event's
+ * banner), then the view slides the shortest way that shows what's kept in view (`keptInView`): the pilot's marker (the
+ * app's card framing design §4), or in flight the plane and its ghost. MapKit is given the clear part's rectangle, with
  * the insets as its padding, so its logo and controls keep clear too. When the clear part is too small to frame in,
- * MapKit gets the whole view and no padding.
+ * MapKit gets the whole view and no padding, and the slide alone keeps them in the clear part.
  */
-export function appleCamera(framing: GeoPoint[], pilot: GeoPoint | null, width: number, height: number, insets: Insets): AppleCamera {
+export function appleCamera(framing: GeoPoint[], kept: readonly GeoPoint[], width: number, height: number, insets: Insets): AppleCamera {
   const framed = fitClear(fitRect(framing) ?? { x: 0, y: 0, width: 1, height: 1 }, width, height, insets)
-  const view = pilot ? slideToShow(framed, width, height, placeAt(pilot, { rect: framed, width, height }), PILOT_RADIUS, insets) : framed
+  const view = slideToShow(framed, width, height, kept.map((p) => placeAt(p, { rect: framed, width, height })), PILOT_RADIUS, insets)
   return cameraFor(view, width, height, insets)
 }
 
@@ -124,18 +125,43 @@ const SLIDE_TOLERANCE_PX = 1
  * MapKit won't zoom out past its own limit, which a small view such as the card reaches on a wide trip: it then shows the
  * middle of what it was asked for, closer in, and the pilot's marker near the trip's edge can fall outside. Given
  * `shown`, what MapKit settled on (its visible rectangle, which is only the part inside its padding, and that padding),
- * this is what to ask for next: the same view, at the same zoom, slid the shortest way that shows the marker in the
- * clear part (as the app's TripMapSlide), or null when it's in view already.
+ * this is what to ask for next: the same view, at the same zoom, slid the shortest way that shows what's kept in view
+ * (the pilot's marker, or the plane and its ghost) in the clear part (as the app's TripMapSlide), or null when it's in
+ * view already.
  */
-export function slideIntoView(shown: AppleCamera, pilot: GeoPoint, width: number, height: number, insets: Insets): AppleCamera | null {
+export function slideIntoView(shown: AppleCamera, kept: readonly GeoPoint[], width: number, height: number, insets: Insets): AppleCamera | null {
   const view = wholeView(shown, width, height)
-  const slid = slideToShow(view, width, height, placeAt(pilot, { rect: view, width, height }), PILOT_RADIUS, insets)
+  const slid = slideToShow(view, width, height, kept.map((p) => placeAt(p, { rect: view, width, height })), PILOT_RADIUS, insets)
   const perPixel = view.width / width
   // A slide is far less than a world, so a whole world between the two is only the date line, not a move.
   const dx = slid.x - view.x - Math.round(slid.x - view.x)
   const dy = slid.y - view.y
   if (Math.abs(dx) < SLIDE_TOLERANCE_PX * perPixel && Math.abs(dy) < SLIDE_TOLERANCE_PX * perPixel) return null
   return cameraFor(slid, width, height, insets)
+}
+
+/**
+ * Between framings, what's kept in view moves: the plane flies on. Given `shown`, the view MapKit has, this slides it again
+ * only once the first mark's marker, without its margin, would leave the clear part, and then back so it has its margin,
+ * at the same zoom, as `slideIntoView` does; or null while it's still in. So a plane at the band's edge slides the view
+ * about once every `SLIDE_MARGIN` px it flies, not every pixel, and MapKit is never asked again for a view it couldn't
+ * show (the review's fixes).
+ */
+export function keepInView(shown: AppleCamera, kept: readonly GeoPoint[], width: number, height: number, insets: Insets): AppleCamera | null {
+  if (kept.length === 0) return null
+  const view = wholeView(shown, width, height)
+  const nudged = slideToShow(view, width, height, [placeAt(kept[0], { rect: view, width, height })], PILOT_RADIUS, insets, 0)
+  // Still in while it needs no slide, a whole world across the date line being none.
+  if (nudged.x - view.x - Math.round(nudged.x - view.x) === 0 && nudged.y === view.y) return null
+  return slideIntoView(shown, kept, width, height, insets)
+}
+
+/** Whether MapKit shows `shown` where it was asked to show `asked`: the same view, give or take a pixel. */
+export function isSameView(shown: AppleCamera, asked: AppleCamera, width: number, height: number): boolean {
+  const [a, b] = [wholeView(shown, width, height), wholeView(asked, width, height)]
+  const pixel = SLIDE_TOLERANCE_PX * (b.width / width)
+  const x = a.x - b.x - Math.round(a.x - b.x)
+  return Math.abs(x) < pixel && Math.abs(a.y - b.y) < pixel && Math.abs(a.width - b.width) < pixel && Math.abs(a.height - b.height) < pixel
 }
 
 /** The whole `width` × `height` view MapKit shows for `camera`: its rectangle, grown by its padding. */

@@ -85,6 +85,13 @@ export function eventWhen(milestone: Milestone, t: number, viewerTz: string, h24
 }
 
 /**
+ * The widest "when" of a flight in the air: a best guess two-digit hours ago, in eights, as wide as any digit. A replay's
+ * clock time, "About 10:37 AM", is narrower. The banner keeps room for it when it decides where the key goes, so the key
+ * doesn't move while the same event shows.
+ */
+export const WIDEST_EVENT_WHEN = 'About 88 h 88 min ago'
+
+/**
  * The banner as a screen reader reads it, as its own sentence (latest event design §3): "Latest: crossed into Canada, 12
  * minutes ago.", "Latest: halfway, about 40 minutes ago.", or at a moment of the replay "Latest: crossed into Canada, at
  * 10:37 AM." The card's sentence has it too.

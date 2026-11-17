@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { Leg } from '../../src/engine/legs'
 import { currentLeg, legProgress, makeTripMap, positionAt } from '../../src/map/tripMap'
-import { nightTime, tripMapDrawing } from '../../src/map/tripMapDrawing'
+import { keptInView, nightTime, tripMapDrawing } from '../../src/map/tripMapDrawing'
+import { liveTripMap } from './liveTrip'
+import { MINUTE, START } from './madeUpFlights'
 import { AIRPORTS, at, drive, EUROPE, HOUR } from './tripMapLegs'
 
 const make = (legs: Leg[] = EUROPE, now = at(12)) => makeTripMap(legs, { isNextTrip: false, home: 'SDF', now, airports: AIRPORTS })!
@@ -51,5 +53,27 @@ describe('what the trip map draws (moving map spec §7.1, §7.2)', () => {
   it('redraws the night only once it has moved enough to see', () => {
     expect(nightTime(1_000_059_000, 60_000)).toBe(1_000_020_000)
     expect(nightTime(1_000_059_000, 0)).toBe(1_000_059_000)
+  })
+})
+
+describe('what the camera keeps in view, the first above all (latest event design §2)', () => {
+  it('is the pilot’s marker while nothing moves, and the schedule’s plane in flight', () => {
+    const ground = tripMapDrawing(make(EUROPE, at(12)), at(12))
+    expect(keptInView(ground)).toEqual([ground.pilot!.place.place])
+    const flying = tripMapDrawing(make(EUROPE, at(4)), at(4))
+    expect(keptInView(flying)).toEqual([flying.plane!.place])
+  })
+
+  it('is the real plane, then its ghost, now, and the real plane alone in a replay', () => {
+    const t = START + 59 * MINUTE
+    const now = tripMapDrawing(liveTripMap(t), t)
+    expect(keptInView(now)).toEqual([now.realPlane!.place, now.ghost!.place])
+    const replay = tripMapDrawing(liveTripMap(t), t, true)
+    expect(replay.ghost).toBeNull()
+    expect(keptInView(replay)).toEqual([replay.realPlane!.place])
+  })
+
+  it('is nothing on a drive', () => {
+    expect(keptInView(tripMapDrawing(make([drive('d', 'LEX', 'SDF', 0, 1)], at(0.5)), at(0.5)))).toEqual([])
   })
 })

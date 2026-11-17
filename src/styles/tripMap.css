@@ -131,10 +131,14 @@
 /* The newest event of the flight in the air (latest event design §1, §2): the event large, and how long ago under it,
    smaller and muted, in the chips' glass. On the card at the map's top left, in the top chip's place; on the full map
    centred under the pill, over the open part of the map (TripMapPage sets where that starts). While it shows, the key
-   moves just under it where they don't fit side by side (LatestEventBanner's bannerLayout sets its top). */
+   moves just under it where they don't fit side by side (LatestEventBanner's bannerLayout sets its top), going by the
+   title and the widest "when", laid out unseen out of the banner's flow. Its lines are as wide as their words, so the
+   title can be measured on its own. */
 .latest-event {
+  position: relative;
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 1px;
   box-sizing: border-box;
   max-width: calc(100% - 20px);
@@ -148,6 +152,7 @@
 .trip-map-open .latest-event { position: absolute; top: 10px; left: 10px; }
 .latest-event-title { font-size: 1.0625rem; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
 .latest-event-when { color: var(--text-2); font-size: 0.75rem; }
+.latest-event-widest { position: absolute; top: 0; left: 0; visibility: hidden; white-space: nowrap; }
 .latest-event-place {
   position: absolute;
   top: 10px;

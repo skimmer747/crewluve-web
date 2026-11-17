@@ -21,7 +21,7 @@ import { useSidePanel } from './hooks/useSidePanel'
 import { useSize } from './hooks/useSize'
 import { useSizeOf } from './hooks/useSizeOf'
 import { Icon } from './Icon'
-import { bannerLayout, LatestEventBanner } from './LatestEventBanner'
+import { bannerLayout, LatestEventBanner, useBannerSize } from './LatestEventBanner'
 import { PlaneKey } from './PlaneKey'
 import { TripTimeline } from './TripTimeline'
 
@@ -96,9 +96,8 @@ export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, 
   const showsFacts = facts != null && open
   // The newest event of the flight in the air, large under the pill until the next (latest event design §1, §2).
   const latest = facts?.latestEvent ?? null
-  const [banner, setBanner] = useState<HTMLElement | null>(null)
+  const banner = useBannerSize()
   const [key, setKey] = useState<HTMLElement | null>(null)
-  const bannerSize = useSizeOf(banner)
   const keySize = useSizeOf(key)
 
   // Focus the heading once, as the page opens. The page re-renders every second, so this must not depend on onBack.
@@ -123,7 +122,7 @@ export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, 
   // its width past the middle of what's open. The key moves just under it where they don't fit side by side (Todd, 16
   // Nov 2026), and the camera keeps the plane clear of both (latest event design §2).
   const openLeft = panelInsets.left
-  const layout = latest ? bannerLayout(openLeft + (width - openLeft + bannerSize.width) / 2, bannerSize, keySize, width) : null
+  const layout = latest ? bannerLayout(openLeft + (width - openLeft + banner.size.width) / 2, banner.size, keySize, width) : null
   const insets: Insets = layout ? { ...panelInsets, top: layout.inset } : panelInsets
 
   // Night moves about a degree every four minutes. Live it's redrawn each minute. In replay it's drawn at the very time
@@ -157,7 +156,7 @@ export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, 
           planeWords={(leg, plane) => planePopupWords(leg, plane, t, isReplay, viewerTz, h24)} />
         {latest && (
           <div class="latest-event-place" style={{ left: `${openLeft}px` }}>
-            <LatestEventBanner event={latest} isFullMap boxRef={setBanner} />
+            <LatestEventBanner event={latest} isFullMap refs={banner.refs} />
           </div>
         )}
         {/* The key to the real plane and its ghost, while both show: now, not in a replay (which plane design §2). */}

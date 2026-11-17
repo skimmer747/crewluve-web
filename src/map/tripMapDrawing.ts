@@ -36,6 +36,18 @@ export interface TripMapDrawing {
   pilot: GroundActivity | null
 }
 
+/**
+ * What the camera keeps in the clear part of the map, the first above all: the pilot's marker while nothing moves (the
+ * app's card framing design §4.2), and in flight the real plane, then its ghost, or the schedule's plane. On the card the
+ * latest event's banner, the key under it and the bottom chip can leave a band too thin to frame the trip in (latest
+ * event design §2): the view then slides to show these in it.
+ */
+export function keptInView(drawing: TripMapDrawing): GeoPoint[] {
+  if (drawing.pilot) return [drawing.pilot.place.place]
+  if (drawing.realPlane) return [drawing.realPlane.place, ...(drawing.ghost ? [drawing.ghost.place] : [])]
+  return drawing.plane ? [drawing.plane.place] : []
+}
+
 /** Whether the map shows the key to its two planes: while it draws a real plane and its ghost (which plane design §2). */
 export const showsPlaneKey = (drawing: TripMapDrawing) => drawing.realPlane != null && drawing.ghost != null
 

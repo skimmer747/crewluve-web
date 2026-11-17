@@ -5,9 +5,10 @@ import { appleCamera } from '../../src/map/appleMapPlan'
 import { NO_INSETS, type Insets, type WorldRect } from '../../src/map/mapFit'
 import type { MapKitApi } from '../../src/map/mapkitApi'
 import { placeAt } from '../../src/map/svgPaths'
-import { framingPoints, makeTripMap } from '../../src/map/tripMap'
+import { framingPoints, legProgress, makeTripMap, positionAt, type MapLeg } from '../../src/map/tripMap'
 import { AppleTripMap } from '../../src/ui/AppleTripMap'
 import { resetAppleMapKit, startAppleMapKit } from '../../src/ui/hooks/useAppleMapKit'
+import { flightMap, mark } from '../facts/factsTestData'
 import { fakeMapKit } from '../fixtures/fakeMapKit'
 import { AIRPORTS, at, EUROPE, flight } from '../map/tripMapLegs'
 
@@ -66,7 +67,7 @@ describe('Apple’s map (Apple Maps spec §4, §5, §8)', () => {
     expect(m.rects).toHaveLength(1)
     // The same view the SVG map takes of the leg in focus.
     const leg = [map.legs[0].origin.place, map.legs[0].destination.place]
-    expect(m.rects[0].rect).toMatchObject(appleCamera(framingPoints(map, map.legs[0]), null, 390, 520, NO_INSETS).rect)
+    expect(m.rects[0].rect).toMatchObject(appleCamera(framingPoints(map, map.legs[0]), [], 390, 520, NO_INSETS).rect)
     expect(leg).toHaveLength(2)
   })
 
@@ -76,7 +77,7 @@ describe('Apple’s map (Apple Maps spec §4, §5, §8)', () => {
     render(<AppleTripMap {...props} insets={insets} />)
     await waitFor(() => expect(kit.maps).toHaveLength(1))
     expect(kit.maps[0].padding).toMatchObject(insets)
-    expect(kit.maps[0].rects[0].rect).toMatchObject(appleCamera(framingPoints(map, map.legs[0]), null, 390, 520, insets).rect)
+    expect(kit.maps[0].rects[0].rect).toMatchObject(appleCamera(framingPoints(map, map.legs[0]), [], 390, 520, insets).rect)
   })
 
   it('swaps the pilot’s marker when what they’re doing changes, leaving one marker', async () => {
@@ -281,7 +282,7 @@ describe('keeping the pilot’s marker in view when MapKit stops zooming out sho
     expect(y).toBeLessThanOrEqual(130)
   })
 
-  it('leaves the view alone in flight, with no marker on the ground to keep in view', async () => {
+  it('leaves the view alone in flight while the plane is in view', async () => {
     const kit = await ready()
     render(<AppleTripMap {...card} t={at(3)} />)
     await waitFor(() => expect(kit.maps).toHaveLength(1))
@@ -307,4 +308,192 @@ describe('keeping the pilot’s marker in view when MapKit stops zooming out sho
     settled(kit, atLimit(m.rects[0].rect))
     expect(m.rects).toHaveLength(1)
   })
+})
+
+describe('keeping the plane in the card’s band as it flies on, on Apple’s map (the review’s fixes)', () => {
+  // A hop due north, 20° in 40 minutes, on the 342 × 220 card under the banner, the key and the bottom chip: a band from
+  // 93 px down to 183, too thin to frame the leg in, so the view slides to keep the plane in it as it flies north.
+  const T0 = Date.UTC(2026, 2, 20, 10)
+  const MIN = 60_000
+  const north: MapLeg = { id: 'n', kind: 'flight', origin: mark('S0', 0, 0), destination: mark('N20', 20, 0), start: T0, end: T0 + 40 * MIN, flightNumber: 'TST2' }
+  const hop = flightMap(north, null)
+  const insets: Insets = { top: 93, right: 0, bottom: 37, left: 0 }
+  const card = { map: hop, width: 342, height: 220, focus: north, land: null, nightStep: 60_000, mapStyle: 'hybrid' as const, interactive: false, insets }
+  const plane = (t: number) => positionAt(north, legProgress(north, t))
+  /** Where the plane is at `t` in `rect`, the whole card: with a band this thin, MapKit has no padding. */
+  const yIn = (rect: WorldRect, t: number) => placeAt(plane(t), { rect, width: 342, height: 220 }).y
+  const framed = appleCamera(framingPoints(hop, north), [], 342, 220, insets).rect
+  /** The first second the plane, unslid, is above `y` px. */
+  const firstAbove = (y: number) => {
+    for (let t = T0; t < north.end; t += 1000) if (yIn(framed, t) < y) return t
+    throw new Error(`never above ${y} px`)
+  }
+  // From just past the band's top, with its 20 px of marker and margin, until it's 40 px further north.
+  const from = firstAbove(112)
+  const to = firstAbove(72)
+
+  /** The card's map at each second from `from` to `to`, re-rendered as the status page does. */
+  async function fly(kit: Awaited<ReturnType<typeof ready>>, between?: (second: number) => void, more: { isReplay?: boolean } = {}) {
+    const view = render(<AppleTripMap {...card} {...more} t={from} />)
+    await waitFor(() => expect(kit.maps).toHaveLength(1))
+    for (let t = from + 1000, second = 1; t <= to; t += 1000, second++) {
+      between?.(second)
+      view.rerender(<AppleTripMap {...card} {...more} t={t} />)
+    }
+    return kit.maps[0]
+  }
+
+  it('asks MapKit again about once every 8 px the plane flies past the band’s edge, not every pixel', async () => {
+    const kit = await ready()
+    const m = await fly(kit)
+    const flown = yIn(framed, from) - yIn(framed, to)
+    expect(flown).toBeGreaterThan(38)
+    // The first framing has the plane in the band already, with its margin.
+    expect(yIn(m.rects[0].rect, from)).toBeGreaterThanOrEqual(93 + 20)
+    // Then a slide each time the plane's marker reaches the band's edge, its margin used up.
+    expect(m.rects.length).toBeLessThanOrEqual(1 + Math.ceil(flown / 8))
+    expect(m.rects.length).toBeGreaterThan(2)
+    // And the plane is in the band of the last view asked for, its marker clear of the banner.
+    const last = m.rects.at(-1)!.rect
+    expect(yIn(last, to)).toBeGreaterThanOrEqual(93 + 12)
+    expect(yIn(last, to)).toBeLessThanOrEqual(183 - 12)
+  })
+
+  /** MapKit settles on `shown` and says so. */
+  function settled(kit: Awaited<ReturnType<typeof ready>>, shown: WorldRect) {
+    const m = kit.maps[0]
+    m.visibleMapRect = new kit.MapRect(shown.x, shown.y, shown.width, shown.height)
+    act(() => m.fire('region-change-end'))
+  }
+  /** MapKit at its limit: the middle of what it was asked for, 60% as wide and as high. */
+  const atLimit = (r: WorldRect): WorldRect => ({ x: r.x + r.width * 0.2, y: r.y + r.height * 0.2, width: r.width * 0.6, height: r.height * 0.6 })
+
+  it('once MapKit has settled closer in than asked, slides at its zoom, never asking again for the view it couldn’t show', async () => {
+    const kit = await ready()
+    const m = await fly(kit, (second) => {
+      if (second === 1) settled(kit, atLimit(m0(kit).rects[0].rect))
+    })
+    const widths = m.rects.slice(1).map((r) => r.rect.width)
+    expect(widths.length).toBeGreaterThan(1)
+    for (const width of widths) expect(width).toBeCloseTo(m.rects[0].rect.width * 0.6, 12)
+  })
+
+  it('keeps up as MapKit takes each slide', async () => {
+    const kit = await ready()
+    let settledOn = 0
+    const m = await fly(kit, () => {
+      const rects = m0(kit).rects
+      if (rects.length > settledOn) {
+        settledOn = rects.length
+        settled(kit, rects.at(-1)!.rect)
+      }
+    })
+    expect(m.rects.length).toBeGreaterThan(2)
+    expect(yIn(m.rects.at(-1)!.rect, to)).toBeGreaterThanOrEqual(93 + 12)
+  })
+
+  it('keeps up from the view MapKit chose when it couldn’t show the framing, even with no slide to make then', async () => {
+    const kit = await ready()
+    const m = await fly(kit, (second) => {
+      // A little closer in than asked, about the plane, which stays in the band: nothing to slide yet.
+      if (second === 1) {
+        const r = m0(kit).rects[0].rect
+        settled(kit, { x: r.x + r.width * 0.025, y: r.y + r.height * 0.025, width: r.width * 0.95, height: r.height * 0.95 })
+        expect(m0(kit).rects).toHaveLength(1)
+      }
+    })
+    const widths = m.rects.slice(1).map((r) => r.rect.width)
+    expect(widths.length).toBeGreaterThan(1)
+    for (const width of widths) expect(width).toBeCloseTo(m.rects[0].rect.width * 0.95, 12)
+  })
+
+  it('leaves the view to the person once they move the map, as the plane flies on', async () => {
+    const kit = await ready()
+    const m = await fly(kit, (second) => {
+      if (second === 1) act(() => m0(kit).fire('scroll-start'))
+    })
+    expect(m.rects).toHaveLength(1)
+  })
+
+  it('keeps following when MapKit reports late on the view before the one last asked for', async () => {
+    const kit = await ready()
+    let reported = false
+    const m = await fly(kit, () => {
+      const rects = m0(kit).rects
+      // Once a slide has been asked for, MapKit reports, late, that it settled on the framing before it.
+      if (!reported && rects.length === 2) {
+        reported = true
+        settled(kit, rects[0].rect)
+      }
+    })
+    expect(reported).toBe(true)
+    expect(m.rects.length).toBeGreaterThan(3)
+    expect(yIn(m.rects.at(-1)!.rect, to)).toBeGreaterThanOrEqual(93 + 12)
+  })
+
+  it('takes a late report on an earlier framing for what it is: the newer framing’s check once it settles waits for its own', async () => {
+    const kit = await ready()
+    // No banner yet: the leg framed in the card's clear part. Then the banner shows, and the card frames again.
+    const view = render(<AppleTripMap {...card} insets={{ ...insets, top: 0 }} t={from} />)
+    await waitFor(() => expect(kit.maps).toHaveLength(1))
+    const m = kit.maps[0]
+    view.rerender(<AppleTripMap {...card} t={from} />)
+    expect(m.rects).toHaveLength(2)
+    // MapKit reports, late, that it settled on the first framing: nothing is asked of it.
+    settled(kit, m.rects[0].rect)
+    expect(m.rects).toHaveLength(2)
+    // Then it settles closer in than the second, on its lower part, where the plane is off the band: the check slides, at
+    // its zoom.
+    const r = m.rects[1].rect
+    settled(kit, { x: r.x + r.width * 0.2, y: r.y + r.height * 0.4, width: r.width * 0.6, height: r.height * 0.6 })
+    expect(m.rects).toHaveLength(3)
+    expect(m.rects[2].rect.width).toBeCloseTo(r.width * 0.6, 12)
+  })
+
+  it('follows again once MapKit reports the slide it was asked for, after reporting a view of its own', async () => {
+    const kit = await ready()
+    let step = 0
+    const m = await fly(kit, () => {
+      const rects = m0(kit).rects
+      if (step === 0 && rects.length === 2) {
+        step = 1
+        const r = rects[1].rect
+        settled(kit, { ...r, y: r.y + r.height * 0.1 })
+      } else if (step === 1) {
+        step = 2
+        settled(kit, rects[1].rect)
+      }
+    })
+    expect(step).toBe(2)
+    expect(m.rects.length).toBeGreaterThan(2)
+    expect(yIn(m.rects.at(-1)!.rect, to)).toBeGreaterThanOrEqual(93 + 12)
+  })
+
+  it('slides without animation in a replay, which can outrun an animated slide, and with one now', async () => {
+    const replay = await fly(await ready(), undefined, { isReplay: true })
+    expect(replay.rects.length).toBeGreaterThan(2)
+    expect(replay.rects.slice(1).some((r) => r.animated)).toBe(false)
+    cleanup()
+    resetAppleMapKit()
+    const now = await fly(await ready())
+    expect(now.rects.length).toBeGreaterThan(2)
+    expect(now.rects.slice(1).every((r) => r.animated)).toBe(true)
+  })
+
+  it('never chases a view: once MapKit hasn’t taken a slide, it slides no more until it frames again', async () => {
+    const kit = await ready()
+    let slides = 0
+    const m = await fly(kit, () => {
+      const map = m0(kit)
+      // MapKit takes the first view, and then settles away from the first slide it's asked for.
+      if (map.rects.length === 2 && slides === 0) {
+        slides = 1
+        const r = map.rects[1].rect
+        settled(kit, { ...r, y: r.y + r.height * 0.1 })
+      }
+    })
+    expect(m.rects).toHaveLength(2)
+  })
+
+  const m0 = (kit: Awaited<ReturnType<typeof ready>>) => kit.maps[0]
 })

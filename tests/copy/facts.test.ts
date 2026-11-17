@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   aircraftText, averageSpeedText, belowWords, chaseText, closestToHomeText, cockpitCountdown, cockpitEventText, eventTitle, eventWhen, flightTitle,
   flownText, flyingInto, groundSunText, halfwayText, heightAndSpeedText, inTheAirTag, landsText, lastSeenLine, LIVE_CREDIT, midLine, milestoneHeadline,
-  milestoneLine, moonText, SPOKEN_LIVE_CREDIT, spokenLastSeen, spokenLatestEvent, stillOnGroundText, timeDifferenceText, toGoText,
+  milestoneLine, moonText, SPOKEN_LIVE_CREDIT, spokenLastSeen, spokenLatestEvent, stillOnGroundText, timeDifferenceText, toGoText, WIDEST_EVENT_WHEN,
 } from '../../src/copy/facts'
 import { longestText, onTheWayText, recapChip, recapSummary, soFarText, totalsTiles } from '../../src/copy/factsTrip'
 import type { Milestone } from '../../src/facts/milestone'
@@ -235,6 +235,20 @@ describe('the latest event in words (latest event design §1, §3)', () => {
     expect(eventWhen(crossed, later, NY, false, true)).toBe(`3:14${PM}`)
     expect(eventWhen({ ...crossed, isEstimate: true }, later, NY, false, true)).toBe(`About 3:14${PM}`)
     expect(eventWhen(crossed, later, NY, true, true)).toBe('15:14')
+  })
+
+  it('has a widest form, which the banner keeps room for: no "when" of a flight in the air is longer', () => {
+    expect(WIDEST_EVENT_WHEN).toBe('About 88 h 88 min ago')
+    // Any event of a flight up to 99 hours long, seen or a best guess, now or at a moment of the replay, 12- or 24-hour.
+    const guessed = { ...crossed, isEstimate: true }
+    for (let minutes = 0; minutes < 100 * 60; minutes++) {
+      const t = NOW + minutes * MIN
+      for (const event of [crossed, guessed]) {
+        expect(eventWhen(event, t, NY, false).length).toBeLessThanOrEqual(WIDEST_EVENT_WHEN.length)
+        expect(eventWhen({ ...event, time: t }, t + MIN, NY, false, true).length).toBeLessThanOrEqual(WIDEST_EVENT_WHEN.length)
+        expect(eventWhen({ ...event, time: t }, t + MIN, NY, true, true).length).toBeLessThanOrEqual(WIDEST_EVENT_WHEN.length)
+      }
+    }
   })
 
   it('is a sentence for screen readers', () => {
