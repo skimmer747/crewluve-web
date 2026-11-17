@@ -3,7 +3,8 @@ import type { LandingForecast } from '../../src/data/weather'
 import { makeGeography, type Geography } from '../../src/facts/geography'
 import { legPathLength } from '../../src/facts/legCourse'
 import {
-  cardSummary, forecastFor, hasTripSoFarRow, headline, isRecapOver, makeTripFacts, recapLongestLine, recapTiles, sheetHeadline, tripSoFar,
+  cardSummary, factsMilestones, forecastFor, hasTripSoFarRow, headline, isRecapOver, latestEvent, makeTripFacts, recapLongestLine, recapTiles,
+  sheetHeadline, tripSoFar,
 } from '../../src/facts/tripFacts'
 import { factRows } from '../../src/facts/tripFactsRows'
 import { airportMark, makeTripMap, type MapLeg, type TripMap } from '../../src/map/tripMap'
@@ -70,6 +71,64 @@ describe('the headline (Stage 2 spec §4.4)', () => {
     const facts = makeTripFacts(flightMap(real, null), { geography, comparisons: null, viewerTz: NY, h24: false })
     expect(facts.stories.eq.stretches.map((s) => s.place.name)).toEqual(['Alpha', 'Bravo', 'Charlie', 'Bravo', 'the Test Sea'])
     expect(facts.stories.eq.length).toBe(legPathLength(real))
+  })
+})
+
+describe('the latest event (latest event design §1)', () => {
+  it('is the newest event of the flight in the air, until the next, and none at the gate', () => {
+    const facts = equatorFacts()
+    // Before the first event.
+    expect(latestEvent(facts, t('10:59'))).toBeNull()
+    expect(latestEvent(facts, Date.parse('2026-03-20T11:00:30Z'))).toEqual({
+      title: 'Crossed into Bravo', when: 'Just now', sentence: 'Latest: crossed into Bravo, just now.',
+    })
+    expect(latestEvent(facts, t('11:12'))?.when).toBe('12 min ago')
+    // It stays until the next.
+    expect(latestEvent(facts, t('11:44'))?.title).toBe('Crossed into Bravo')
+    expect(latestEvent(facts, t('11:46'))?.title).toBe('Halfway')
+    expect(latestEvent(facts, t('12:10'))?.title).toBe('Out over the Test Sea')
+    expect(latestEvent(facts, t('12:40'))).toEqual({
+      title: 'Closest to home, 35 mi', when: '19 min ago', sentence: 'Latest: closest to home, 35 miles, 19 minutes ago.',
+    })
+    // It has reached the gate.
+    expect(latestEvent(facts, t('13:30'))).toBeNull()
+  })
+
+  it('before the story is ready, is none, and the card’s sentence says nothing of it', () => {
+    const facts = equatorFacts(null)
+    expect(latestEvent(facts, t('11:10'))).toBeNull()
+    expect(cardSummary(facts, t('11:10'), 'Alex')).toBe(`TST1 to E20. Lands at 9:22${AM} your time. Estimated from the schedule. Opens the full map.`)
+  })
+
+  it('in a replay, says its clock time', () => {
+    const facts = makeTripFacts(flightMap(equatorFlight(0, 20), mark('HOME', 0.5, 14)), {
+      geography: EQUATOR, comparisons: null, viewerTz: NY, h24: false, isReplay: true,
+    })
+    expect(latestEvent(facts, t('11:12'))?.when).toBe(`7:00${AM}`)
+    expect(latestEvent(facts, t('11:12'))?.sentence).toBe(`Latest: crossed into Bravo, at 7:00${AM}.`)
+  })
+
+  it('on the ground and on a drive, is none', () => {
+    // In Cologne, after a flight whose halfway, by the equator's story, has passed.
+    const europe = makeTripFacts(europeMap(at(12)), { geography: EQUATOR, comparisons: null, viewerTz: NY, h24: false })
+    expect(latestEvent(europe, at(6))?.title).toBe('Halfway')
+    expect(latestEvent(europe, at(12))).toBeNull()
+    const driving = makeTripMap([drive('d', 'LEX', 'SDF', 0, 1)], { isNextTrip: false, home: null, now: at(0.5), airports: AIRPORTS })!
+    const onTheRoad = makeTripFacts(driving, { geography: EQUATOR, comparisons: null, viewerTz: NY, h24: false })
+    expect(latestEvent(onTheRoad, at(0.5))).toBeNull()
+    // Even were a drive given a story, with its halfway passed: an event is a flight's.
+    const withAStory = { ...onTheRoad, stories: { d: equatorFacts().stories.eq } }
+    expect(factsMilestones(withAStory, driving.legs[0]).some((m) => m.time <= at(0.75))).toBe(true)
+    expect(latestEvent(withAStory, at(0.75))).toBeNull()
+  })
+
+  it('leaves events out of the headline beside it, which is otherwise as before', () => {
+    const facts = equatorFacts()
+    // As before, where the shared cases read it.
+    expect(headline(facts, t('11:02'))).toBe('Just crossed into Bravo')
+    expect(headline(facts, t('11:02'), false)).toBe('Over Bravo')
+    expect(headline(facts, t('11:46'), false)).toBe('Over Bravo')
+    expect(headline(facts, t('11:10'), false)).toBe('Over Bravo, near Testville')
   })
 })
 
@@ -165,9 +224,14 @@ describe('the trip so far (Stage 2 spec §5.2, §5.5; best guesses design §4)',
 })
 
 describe('the card’s words (Stage 2 spec §6.4, §6.5)', () => {
-  it('in flight, adds the place below to the spoken summary', () => {
+  it('in flight, adds the place below to the spoken summary, and the latest event', () => {
     expect(cardSummary(equatorFacts(), t('11:10'), 'Alex')).toBe(
-      `TST1 to E20, over Bravo. Lands at 9:22${AM} your time. Estimated from the schedule. Opens the full map.`,
+      `TST1 to E20, over Bravo. Lands at 9:22${AM} your time. Estimated from the schedule. Latest: crossed into Bravo, 10 minutes ago. ` +
+        'Opens the full map.',
+    )
+    // Before its first event.
+    expect(cardSummary(equatorFacts(), t('10:50'), 'Alex')).toBe(
+      `TST1 to E20, over Alpha. Lands at 9:22${AM} your time. Estimated from the schedule. Opens the full map.`,
     )
   })
 

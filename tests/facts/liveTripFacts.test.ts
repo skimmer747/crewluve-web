@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { rowSentence, type FactRow, type FactRowKind, type FactsAtMoment } from '../../src/facts/factRow'
 import { makeGeography, type Geography } from '../../src/facts/geography'
 import { COCKPIT_HORIZON, cockpitHorizonOnLeg, sunAltitudeOnLeg, sunEvents } from '../../src/facts/sky'
-import { cardSummary, headline, makeTripFacts, showsLiveData, tripSoFar, type TripFacts } from '../../src/facts/tripFacts'
+import { cardSummary, headline, latestEvent, makeTripFacts, showsLiveData, tripSoFar, type TripFacts } from '../../src/facts/tripFacts'
 import { factRows, factsAtMoment } from '../../src/facts/tripFactsRows'
 import type { GeoPoint } from '../../src/map/greatCircle'
 import type { LiveFlight } from '../../src/map/liveFlight'
@@ -306,22 +306,51 @@ describe('the trip so far with a real plane, and whether to credit adsb.lol (Sta
 })
 
 describe('the card’s sentence for screen readers with a real plane (Stage 3 spec §9, §15)', () => {
-  it('in the air, says what’s below the real plane', () => {
-    // It lands at 13:05 by its estimate, where the plan has 13:15.
-    expect(cardSummary(facts('11:10'), at('11:10'), 'Alex'))
-      .toBe(`TST1 to E20, 10 minutes ahead of schedule, over Bravo. Lands about 9:11${AM} your time. Opens the full map.`)
+  it('in the air, says what’s below the real plane, and the latest event', () => {
+    // It lands at 13:05 by its estimate, where the plan has 13:15. It crossed into Bravo at 10:55.
+    expect(cardSummary(facts('11:10'), at('11:10'), 'Alex')).toBe(
+      `TST1 to E20, 10 minutes ahead of schedule, over Bravo. Lands about 9:11${AM} your time. Latest: crossed into Bravo, 15 minutes ago. ` +
+        'Opens the full map.',
+    )
   })
 
   it('while it’s out of sight, says "about", what’s below by the plan, and where it was last seen', () => {
     expect(cardSummary(facts('10:50', { now: '11:01' }), at('11:01'), 'Alex')).toBe(
-      `TST1 to E20, about 10 minutes ahead of schedule, over Bravo, last seen over Alpha. Lands about 9:11${AM} your time. Opens the full map.`,
+      `TST1 to E20, about 10 minutes ahead of schedule, over Bravo, last seen over Alpha. Lands about 9:11${AM} your time. ` +
+        'Latest: crossed into Bravo, about 6 minutes ago. Opens the full map.',
     )
     expect(cardSummary(facts('11:03', { now: '11:13' }), at('11:13'), 'Alex')).toBe(
-      `TST1 to E20, about 10 minutes ahead of schedule, over Bravo, last seen near Testville. Lands about 9:11${AM} your time. Opens the full map.`,
+      `TST1 to E20, about 10 minutes ahead of schedule, over Bravo, last seen near Testville. Lands about 9:11${AM} your time. ` +
+        'Latest: crossed into Bravo, 18 minutes ago. Opens the full map.',
     )
     expect(cardSummary(facts('11:10', { now: '11:20', hasStory: false }), at('11:20'), 'Alex')).toBe(
       `TST1 to E20, about 10 minutes ahead of schedule, last seen 10 minutes ago. Lands about 9:11${AM} your time. Opens the full map.`,
     )
+  })
+})
+
+describe('the latest event with a real plane (latest event design §1)', () => {
+  it('while it’s out of sight, is a best guess, with "about"', () => {
+    // Last seen at 4.375° E at 10:50. By the plan it crossed into Bravo at 10:55.
+    expect(latestEvent(facts('10:50', { now: '11:01' }), at('11:01'))).toEqual({
+      title: 'Crossed into Bravo', when: 'About 6 min ago', sentence: 'Latest: crossed into Bravo, about 6 minutes ago.',
+    })
+  })
+
+  it('of a flight that landed early, goes at its real gate arrival', () => {
+    // Seen down at 20° E at 12:55, ten minutes ahead of the plan: it reaches the gate at 13:02.
+    const theFacts = facts('12:53', { now: '13:05', landed: true })
+    expect(latestEvent(theFacts, at('12:58'))?.title).toBe('Closest to home, 35 mi')
+    // At the gate.
+    expect(latestEvent(theFacts, at('13:03'))).toBeNull()
+  })
+
+  it('in a replay, is the record’s newest, at its clock time', () => {
+    const seen = facts('11:10', { isReplay: true })
+    expect(latestEvent(seen, at('11:25'))?.when).toBe(`6:55${AM}`)
+    // Before it crossed.
+    expect(latestEvent(seen, at('10:50'))).toBeNull()
+    expect(latestEvent(facts('10:50', { isReplay: true }), at('11:01'))?.when).toBe(`About 6:55${AM}`)
   })
 })
 
@@ -435,6 +464,16 @@ describe('a real plane still at its departure airport: nothing passed, and its t
     expect(tripSoFar(atTheGate('10:05', { geography: border }), at('10:05')).flights.map((f) => f.tag)).toEqual(['In the air now'])
     // Once it's seen in the air it's set apart, with what it has passed.
     expect(tripSoFar(facts('10:35', { now: '10:35' }), at('10:35')).flights.map((f) => f.tag)).toEqual(['In the air now'])
+  })
+
+  it('has no latest event, and the card’s sentence none, as it has passed nothing; in a replay, the schedule’s', () => {
+    // The schedule's times have it cross the border at 10:24.
+    const theFacts = atTheGate('10:28', { geography: border })
+    expect(latestEvent(theFacts, at('10:28'))).toBeNull()
+    expect(cardSummary(theFacts, at('10:28'), 'Alex')).not.toMatch(/Latest/)
+    expect(latestEvent(atTheGate('10:28', { geography: border, isReplay: true }), at('10:28'))).toEqual({
+      title: 'Crossed into Bravo', when: `6:24${AM}`, sentence: `Latest: crossed into Bravo, at 6:24${AM}.`,
+    })
   })
 
   it('in a replay, lists them where the map has the plane: the schedule’s, as it has no record', () => {

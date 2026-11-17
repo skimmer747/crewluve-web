@@ -41,18 +41,62 @@ const aboutIf = (isEstimate: boolean | undefined) => (isEstimate ? 'about ' : ''
  * The trip so far's list: "Crossed into Kansas · 1:12 PM". A best guess reads "about": "Out over the Pacific · about
  * 4:05 PM" (best guesses design §2).
  */
-export function milestoneLine(milestone: Milestone, viewerTz: string, h24: boolean): string {
-  const time = `${aboutIf(milestone.isEstimate)}${shortTimeText(milestone.time, viewerTz, h24)}`
+export const milestoneLine = (milestone: Milestone, viewerTz: string, h24: boolean) =>
+  `${eventTitle(milestone)} · ${aboutIf(milestone.isEstimate)}${shortTimeText(milestone.time, viewerTz, h24)}`
+
+/**
+ * What an event was, on its own: "Crossed into Kansas", "Out over the Atlantic", "Halfway", "Closest to home, 40 mi".
+ * The latest event's banner shows it large (latest event design §1).
+ */
+export function eventTitle(milestone: MilestoneKind): string {
   switch (milestone.kind) {
     case 'crossedInto':
-      return `Crossed into ${milestone.name} · ${time}`
+      return `Crossed into ${milestone.name}`
     case 'outOver':
-      return `Out over ${milestone.name} · ${time}`
+      return `Out over ${milestone.name}`
     case 'halfway':
-      return `Halfway · ${time}`
+      return 'Halfway'
     case 'closestToHome':
-      return `Closest to home, ${milestone.miles} mi · ${time}`
+      return `Closest to home, ${milestone.miles} mi`
   }
+}
+
+/**
+ * The whole minutes from `time` to `t`, to the nearest and held to a year, or null under a minute, and for a time that
+ * can't be right.
+ */
+function minutesSince(time: number, t: number): number | null {
+  const elapsed = t - time
+  if (!(elapsed >= MINUTE)) return null
+  return Math.min(Math.round(elapsed / MINUTE), 365 * 24 * 60)
+}
+
+/**
+ * When an event was, under it in the banner (latest event design §1): "Just now" in its first minute, then "12 min ago".
+ * A best guess says so: "About now", "About 12 min ago". At a moment of the replay, where "ago" means nothing, its clock
+ * time: "10:37 AM", "About 10:37 AM".
+ */
+export function eventWhen(milestone: Milestone, t: number, viewerTz: string, h24: boolean, isReplay = false): string {
+  const about = milestone.isEstimate ? 'About ' : ''
+  if (isReplay) return `${about}${shortTimeText(milestone.time, viewerTz, h24)}`
+  const minutes = minutesSince(milestone.time, t)
+  if (minutes == null) return milestone.isEstimate ? 'About now' : 'Just now'
+  return `${about}${minutesText(minutes)} ago`
+}
+
+/**
+ * The banner as a screen reader reads it, as its own sentence (latest event design §3): "Latest: crossed into Canada, 12
+ * minutes ago.", "Latest: halfway, about 40 minutes ago.", or at a moment of the replay "Latest: crossed into Canada, at
+ * 10:37 AM." The card's sentence has it too.
+ */
+export function spokenLatestEvent(milestone: Milestone, t: number, viewerTz: string, h24: boolean, isReplay = false): string {
+  const what = milestone.kind === 'closestToHome' ? `closest to home, ${milestone.miles} miles` : midLine(eventTitle(milestone))
+  const about = aboutIf(milestone.isEstimate)
+  const minutes = minutesSince(milestone.time, t)
+  const when = isReplay ? `at ${about}${shortTimeText(milestone.time, viewerTz, h24)}`
+    : minutes != null ? `${about}${spokenMinutes(minutes)} ago`
+    : milestone.isEstimate ? 'about now' : 'just now'
+  return `Latest: ${what}, ${when}.`
 }
 
 /**

@@ -1,5 +1,6 @@
 import {
-  belowWords, cockpitCountdown, flightTitle, inTheAirTag, lastSeenLine, milestoneHeadline, milestoneLine, spokenLastSeen, stillOnGroundText,
+  belowWords, cockpitCountdown, eventTitle, eventWhen, flightTitle, inTheAirTag, lastSeenLine, milestoneHeadline, milestoneLine, spokenLastSeen,
+  spokenLatestEvent, stillOnGroundText,
 } from '../copy/facts'
 import { longestText, recapChip, recapSummary, soFarText, totalsTiles, type RecapTile } from '../copy/factsTrip'
 import { shortTimeText } from '../copy/format'
@@ -10,7 +11,7 @@ import type { GeoPoint } from '../map/greatCircle'
 import { currentLeg, dayCount, isMoving, legInMotion, legStillOnGround, type AirportMark, type MapLeg, type TripMap } from '../map/tripMap'
 import { MINUTE } from '../time/zoned'
 import type { Comparison } from './comparisons'
-import type { TripSoFar } from './factRow'
+import type { LatestEvent, TripSoFar } from './factRow'
 import { forgetOldPaths, realPathFacts, type FactsStore } from './factsStore'
 import { cityNear, type City, type Geography, type Place } from './geography'
 import { landsWithinHorizon } from './landingWeather'
@@ -197,20 +198,46 @@ export const showsLiveData = (facts: TripFacts): boolean => facts.map.legs.some(
 /**
  * In flight: a milestone from the last 5 minutes, else a cockpit sunrise or sunset in the next 30, else the place below,
  * else the landing countdown (§4.4). While the real plane is out of sight they're its best guesses, in the same plain
- * words (best guesses design §2). Null on the ground and on a drive, where Stage 1B's words stay.
+ * words (best guesses design §2). Null on the ground and on a drive, where Stage 1B's words stay. `includesEvents` is
+ * false beside the latest event's banner, which shows the milestone already (latest event design §2); the shared
+ * cases read the headline with them.
  *
  * The website's own (Todd, 16 Nov 2026): a real plane still on the ground at its departure airport is "Still on the
  * ground in Rockford", ahead of all of them. It has crossed nothing yet, whatever the schedule's times say.
  */
-export function headline(facts: TripFacts, t: number): string | null {
+export function headline(facts: TripFacts, t: number, includesEvents = true): string | null {
   const leg = legInMotion(facts.map, t)
   if (!leg || leg.kind !== 'flight') return null
   if (isStillOnGround(facts, leg, t)) return stillOnGroundText(leg.origin.city)
-  const recent = factsMilestones(facts, leg).filter((m) => m.time <= t && t - m.time < MILESTONE_HEADLINE_MS).pop()
+  const recent = includesEvents ? factsMilestones(facts, leg).filter((m) => m.time <= t && t - m.time < MILESTONE_HEADLINE_MS).pop() : null
   if (recent) return milestoneHeadline(recent)
   const soon = (facts.sunEvents[leg.id] ?? []).find((e) => e.time > t && e.time - t <= SUN_HEADLINE_MS)
   if (soon) return cockpitCountdown(soon, t)
   return belowText(facts, leg, t) ?? landingCountdown(leg, t)
+}
+
+/**
+ * The newest event of the flight between its gates at `t`, for the banner (latest event design §1): what it was, how
+ * long ago, and its sentence for screen readers. It stays until the next. Null on the ground, on a drive, and before the
+ * flight's first event.
+ *
+ * The website's own (Todd, 16 Nov 2026): none for a real plane still on the ground at its departure airport after the
+ * plan's takeoff time, which has passed nothing yet, whatever the schedule's times say.
+ */
+export function latestEvent(facts: TripFacts, t: number): LatestEvent | null {
+  const leg = legInMotion(facts.map, t)
+  if (!leg || leg.kind !== 'flight' || isStillOnGround(facts, leg, t)) return null
+  // By time, not by the way along: a best guess and a sighting can disagree a little.
+  const newest = factsMilestones(facts, leg)
+    .filter((m) => m.time <= t)
+    .reduce<Milestone | null>((latest, m) => (latest == null || m.time > latest.time ? m : latest), null)
+  if (!newest) return null
+  const { viewerTz, h24, isReplay } = facts
+  return {
+    title: eventTitle(newest),
+    when: eventWhen(newest, t, viewerTz, h24, isReplay),
+    sentence: spokenLatestEvent(newest, t, viewerTz, h24, isReplay),
+  }
 }
 
 /** True once a recap's trip is over at `t`. */
@@ -267,7 +294,10 @@ export function tripSoFar(facts: TripFacts, t: number): TripSoFar {
   return { flights, totalsTitle: 'Trip so far', totals }
 }
 
-/** The card as one sentence for screen readers, ending with what it opens (§6.4, §6.5). */
+/**
+ * The card as one sentence for screen readers, ending with what it opens (§6.4, §6.5). In flight the latest event's
+ * banner comes after the flight's words, as its own sentence (latest event design §3).
+ */
 export function cardSummary(facts: TripFacts, now: number, name: string): string {
   const { map, viewerTz, h24 } = facts
   if (map.mode.kind === 'recap') {
@@ -276,6 +306,8 @@ export function cardSummary(facts: TripFacts, now: number, name: string): string
   }
   const leg = currentLeg(map)
   if (leg) {
+    const latest = latestEvent(facts, now)
+    const ending = latest ? `${latest.sentence} Opens the full map.` : 'Opens the full map.'
     const lead = leg.flightNumber ? `${leg.flightNumber} to` : 'Flying to'
     const story = facts.stories[leg.id]
     const plane = legPlane(leg, now, facts.isReplay)
@@ -285,9 +317,9 @@ export function cardSummary(facts: TripFacts, now: number, name: string): string
     const ago = plane.unseenFor
     const lastSeen = ago == null ? null : spokenLastSeen(...lastSeenPlace(facts, leg), ago)
     const live = liveSummary(leg, now, viewerTz, h24, place?.name ?? null, lastSeen)
-    if (live) return `${live} Opens the full map.`
+    if (live) return `${live} ${ending}`
     const over = place ? `, over ${place.name}` : ''
-    return `${lead} ${leg.destination.city}${over}. Lands at ${shortTimeText(leg.end, viewerTz, h24)} your time. Estimated from the schedule. Opens the full map.`
+    return `${lead} ${leg.destination.city}${over}. Lands at ${shortTimeText(leg.end, viewerTz, h24)} your time. Estimated from the schedule. ${ending}`
   }
   return tripMapSummary(map, now, name, viewerTz, h24)
 }

@@ -60,6 +60,19 @@ export interface TripSoFar {
   totals: string | null
 }
 
+/**
+ * The newest event of the flight in the air, as the banner shows it large on the card and the full map (latest event
+ * design §1): what it was, and how long ago.
+ */
+export interface LatestEvent {
+  /** "Crossed into Canada", "Out over the Pacific", "Halfway" or "Closest to home, 35 mi". */
+  title: string
+  /** "12 min ago", "Just now", or "About 12 min ago" for a best guess. In a replay, its clock time: "10:37 AM". */
+  when: string
+  /** The banner as a screen reader reads it, as its own sentence: "Latest: crossed into Canada, 12 minutes ago." */
+  sentence: string
+}
+
 /** Everything the full map's panel shows at one moment on the timeline. */
 export interface FactsAtMoment {
   headline: string

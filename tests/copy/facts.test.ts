@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
-  aircraftText, averageSpeedText, belowWords, chaseText, closestToHomeText, cockpitCountdown, cockpitEventText, flightTitle, flownText,
-  flyingInto, groundSunText, halfwayText, heightAndSpeedText, inTheAirTag, landsText, lastSeenLine, LIVE_CREDIT, midLine, milestoneHeadline, milestoneLine,
-  moonText, SPOKEN_LIVE_CREDIT, spokenLastSeen, stillOnGroundText, timeDifferenceText, toGoText,
+  aircraftText, averageSpeedText, belowWords, chaseText, closestToHomeText, cockpitCountdown, cockpitEventText, eventTitle, eventWhen, flightTitle,
+  flownText, flyingInto, groundSunText, halfwayText, heightAndSpeedText, inTheAirTag, landsText, lastSeenLine, LIVE_CREDIT, midLine, milestoneHeadline,
+  milestoneLine, moonText, SPOKEN_LIVE_CREDIT, spokenLastSeen, spokenLatestEvent, stillOnGroundText, timeDifferenceText, toGoText,
 } from '../../src/copy/facts'
 import { longestText, onTheWayText, recapChip, recapSummary, soFarText, totalsTiles } from '../../src/copy/factsTrip'
+import type { Milestone } from '../../src/facts/milestone'
 import type { MapLeg } from '../../src/map/tripMap'
 import { mark } from '../facts/factsTestData'
 
@@ -193,6 +194,58 @@ describe('the real plane in words (Stage 3 spec §8, best guesses design §2)', 
   it('credits adsb.lol', () => {
     expect(LIVE_CREDIT).toBe('Live position: adsb.lol')
     expect(SPOKEN_LIVE_CREDIT).toBe('Live position from adsb.lol.')
+  })
+})
+
+describe('the latest event in words (latest event design §1, §3)', () => {
+  const SEC = 1_000
+  const crossed: Milestone = { kind: 'crossedInto', name: 'Canada', time: NOW }
+
+  it('names each kind of event on its own', () => {
+    expect(eventTitle({ kind: 'crossedInto', name: 'Canada' })).toBe('Crossed into Canada')
+    expect(eventTitle({ kind: 'outOver', name: 'the Pacific' })).toBe('Out over the Pacific')
+    expect(eventTitle({ kind: 'halfway' })).toBe('Halfway')
+    expect(eventTitle({ kind: 'closestToHome', miles: 35 })).toBe('Closest to home, 35 mi')
+  })
+
+  it('says "Just now" in its first minute, then how many minutes ago, to the nearest', () => {
+    const when = (after: number) => eventWhen(crossed, NOW + after, NY, false)
+    expect(when(0)).toBe('Just now')
+    expect(when(59 * SEC)).toBe('Just now')
+    expect(when(60 * SEC)).toBe('1 min ago')
+    // To the nearest minute.
+    expect(when(12 * MIN - SEC)).toBe('12 min ago')
+    expect(when(89 * SEC)).toBe('1 min ago')
+    expect(when(90 * SEC)).toBe('2 min ago')
+    expect(when(130 * MIN)).toBe('2 h 10 min ago')
+    // Held to a year.
+    expect(when(2 * 365 * 24 * 60 * MIN)).toBe('8760 h ago')
+    // A time that can't be right is never a number on the screen.
+    expect(eventWhen(crossed, Number.NaN, NY, false)).toBe('Just now')
+  })
+
+  it('says "About" of a best guess', () => {
+    const guessed: Milestone = { kind: 'outOver', name: 'the Pacific', time: NOW, isEstimate: true }
+    expect(eventWhen(guessed, NOW + 20 * SEC, NY, false)).toBe('About now')
+    expect(eventWhen(guessed, NOW + 40 * MIN, NY, false)).toBe('About 40 min ago')
+  })
+
+  it('at a moment of the replay, says its clock time', () => {
+    const later = NOW + 10 * MIN
+    expect(eventWhen(crossed, later, NY, false, true)).toBe(`3:14${PM}`)
+    expect(eventWhen({ ...crossed, isEstimate: true }, later, NY, false, true)).toBe(`About 3:14${PM}`)
+    expect(eventWhen(crossed, later, NY, true, true)).toBe('15:14')
+  })
+
+  it('is a sentence for screen readers', () => {
+    expect(spokenLatestEvent(crossed, NOW + 12 * MIN, NY, false)).toBe('Latest: crossed into Canada, 12 minutes ago.')
+    expect(spokenLatestEvent(crossed, NOW, NY, false)).toBe('Latest: crossed into Canada, just now.')
+    const closest: Milestone = { kind: 'closestToHome', miles: 35, time: NOW, isEstimate: true }
+    expect(spokenLatestEvent(closest, NOW + 60 * MIN, NY, false)).toBe('Latest: closest to home, 35 miles, about 1 hour ago.')
+    expect(spokenLatestEvent(closest, NOW, NY, false)).toBe('Latest: closest to home, 35 miles, about now.')
+    expect(spokenLatestEvent({ kind: 'halfway', time: NOW }, NOW + 10 * MIN, NY, false, true)).toBe(`Latest: halfway, at 3:14${PM}.`)
+    expect(spokenLatestEvent({ kind: 'outOver', name: 'the Pacific', time: NOW, isEstimate: true }, NOW + 10 * MIN, NY, false, true))
+      .toBe(`Latest: out over the Pacific, at about 3:14${PM}.`)
   })
 })
 
