@@ -57,6 +57,24 @@ describe('the facts body (Stage 2 spec §5.2, §6.3)', () => {
     render(<FactsBody rows={[]} tripSoFar={{ flights: [], totalsTitle: 'Trip so far', totals: null }} />)
     expect(screen.queryByRole('heading', { name: 'Trip so far' })).toBeNull()
   })
+
+  it('leaves no empty space where the trip so far has nothing to list', () => {
+    // On a layover the rows have "Trip so far" (best guesses design §4): with no flight's event yet, as before the
+    // geography has loaded, the list has nothing to say, and the footer follows the rows one gap below.
+    const { container } = render(<FactsBody rows={[below]} tripSoFar={{ flights: [], totalsTitle: 'Trip so far', totals: null }} />)
+    expect(container.querySelector('.trip-so-far')).toBeNull()
+    expect([...container.querySelector('.facts-body')!.children].map((c) => c.className)).toEqual(['fact-rows', 'facts-footer'])
+  })
+
+  it('lists the flights alone where the rows have the totals, and the totals alone with no flight to list', () => {
+    const { container } = render(<FactsBody rows={[below]} tripSoFar={{ ...soFar, totals: null }} />)
+    expect(container.querySelector('.trip-so-far-flight h3')?.textContent).toBe('UPS201 · Louisville → Cologne')
+    expect(container.querySelector('.trip-so-far-totals')).toBeNull()
+    cleanup()
+    const totalsOnly = render(<FactsBody rows={[below]} tripSoFar={{ ...soFar, flights: [] }} />)
+    expect(totalsOnly.container.querySelector('.trip-so-far-flight')).toBeNull()
+    expect(screen.getByText('Day 1 of 4 · 2,140 mi')).toBeTruthy()
+  })
 })
 
 describe('the credit to adsb.lol under the facts (Stage 3 spec §8, §15)', () => {
