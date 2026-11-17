@@ -2163,16 +2163,16 @@ cd "/Users/toddanderson/Dev/Crewluve Website/.claude/worktrees/trip-map-live-598
 
 Expected: `fast-forward`. If it isn't (`main`, at `e5e054d` when this plan was written, has moved on), merge it in here: `git merge origin/main`. If any file conflicts, STOP and tell Todd. Then run `npm test && npm run build`.
 
-- [ ] **Step 3: Todd runs everything** (Task 3 Step 5's command) on the branch as it will go live.
-- [ ] **Step 4: Push the branch to `main`, on Todd's yes.** A fast-forward only; never force.
+- [x] **Step 3: Todd runs everything** (Task 3 Step 5's command) on the branch as it will go live.
+- [x] **Step 4: Push the branch to `main`, on Todd's yes.** A fast-forward only; never force.
 
 ```bash
 git push origin claude/trip-map-live-598046:main
 ```
 
-- [ ] **Step 5: Watch the deploy** (`gh run watch` on the run the push started) until it succeeds. If it fails, tell Todd at once with its log: the site stays as it was until a deploy succeeds.
-- [ ] **Step 6: Look at the live site** with Todd, at `https://crewluve.crewlu.net/?demo=1&scene=live-landed` and `…&scene=live-landed#map` (reload to start the scene again): the status sentence, the chip, the bar's "At the gate …", "More facts", the list's "Landed" and the line under the timeline; and `…scene=live-ahead#map` and `…scene=flying#map`, unchanged.
-- [ ] **Step 7: The record.** Under "Changes made during execution": the push's commit, the deploy's run and time, and what Todd saw. Commit the plan on his yes and push it (a fast-forward only), as Step 4.
+- [x] **Step 5: Watch the deploy** (`gh run watch` on the run the push started) until it succeeds. If it fails, tell Todd at once with its log: the site stays as it was until a deploy succeeds.
+- [x] **Step 6: Look at the live site** with Todd, at `https://crewluve.crewlu.net/?demo=1&scene=live-landed` and `…&scene=live-landed#map` (reload to start the scene again): the status sentence, the chip, the bar's "At the gate …", "More facts", the list's "Landed" and the line under the timeline; and `…scene=live-ahead#map` and `…scene=flying#map`, unchanged.
+- [x] **Step 7: The record.** Under "Changes made during execution": the push's commit, the deploy's run and time, and what Todd saw. Commit the plan on his yes and push it (a fast-forward only), as Step 4.
 
 ---
 
@@ -2203,6 +2203,10 @@ The design gives the app the same words, by its own plan. As the website has the
   - It found right: every surface asks both "landed" and "the leg under way", so nothing shows at or after the gate or on another leg; the engine's `landed` phase is the plane on the ground at its arrival airport (one down elsewhere is `elsewhere`); never in a replay; "at" everywhere once down; the banner kept; the status sentence's branch after "still on the ground" and before the delay's; the demo scene's timing pinned by its test; the shared cases untouched.
   - Minor, left: "Reaches the gate" is built in three places (the card's sentence says "at" outright; the facts' row and the popup ask `about(leg)`, which is empty once down), so a change to what counts as an estimate would have to touch all three; `LANDED_TAG` is a constant beside the function `inTheAirTag`; a deadhead reads "has landed", as the plan intends; a landed flight with no fix is the engine's `notLive`, unchanged.
 - **Task 6, going live:** Todd chose "Go live: run it, then push if it passes" (about 1 PM). `origin/main` was `e5e054d`, a fast-forward (no merge needed).
+  - **Plan committed:** `0dc94d5`. **Todd's run on the branch as it went live:** at 1:02 PM, 177 test files and 3,751 tests passed, built.
+  - **Pushed:** `e5e054d..0dc94d5`. **The deploy failed** (run `44143542325`): GitHub's build runs in UTC, and three of Task 3's tests in `tests/ui/livePages.test.tsx` wrote the gate's time as Eastern ("8:47 AM", "8:47am EST", "9:00 AM"); they passed on Todd's Mac and failed there. The live site stayed at `e5e054d`. The session reproduced it with `TZ=UTC npx vitest run` (only those three failed), and Todd chose "Commit and push the fix": the three tests match the hour and zone loosely and keep the minutes, as the still-on-the-ground tests beside them do; the whole suite passed in UTC and in Eastern time. **Fix:** `8d5bd2d`, pushed `0dc94d5..8d5bd2d`. **Deployed:** run `44144158414`, build and deploy succeeded, 1:07 PM EST (18:07 UTC).
+  - **The live site:** the session read `https://crewluve.crewlu.net/?demo=1&scene=live-landed` (the new bundle; "At the gate 1:13 PM", "Landed in Anchorage", "2,788 mi flown", "Reaches the gate at 9:13 AM · 1:13 PM your time", "Alex has landed in Anchorage on UPS flight 2963 — at the gate in 5m…"). **Todd: "Looks good."**
+  - Left for later: in a zone written "GMT+9" rather than letters, four tests of `tests/ui/livePages.test.tsx` (three older ones among them) don't match the zone's name; GitHub's build and Todd's Mac aren't such zones.
 
 ## Self-review
 
