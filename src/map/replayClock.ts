@@ -61,7 +61,7 @@ interface Piece extends Stretch {
 
 /**
  * The span cut at every leg's and wait's start and end. Each piece plays at the normal rate. While legs move through
- * it, it plays at the slowest of their rates, a leg's length over 3 s; a leg with no length covers no piece, so it adds
+ * it, it plays at the slowest of their rates, a leg's length over 6 s; a leg with no length covers no piece, so it adds
  * no time. Through a wait with Quick layovers on, it plays at the whole wait's quick rate.
  */
 function pace(c: ReplayClock): Piece[] {
