@@ -801,14 +801,14 @@ git commit -m "The website's replay pace plan, with its record"
 
 ### Task 5: Going live, on Todd's yes
 
-- [ ] **Step 1: Ask Todd** whether to go live now.
-- [ ] **Step 2:** `git fetch origin && git merge-base --is-ancestor origin/main HEAD && echo "fast-forward"`. If it isn't a fast-forward, STOP and tell Todd.
-- [ ] **Step 3:** `TZ=UTC npx vitest run`: everything passes.
-- [ ] **Step 4: Todd runs everything** (Task 2 Step 5's command).
-- [ ] **Step 5: Push on Todd's yes,** a fast-forward only: `git push origin claude/trip-map-live-598046:main`. This also takes the follow the plane plan's record, `92e811e`, live.
-- [ ] **Step 6: Watch the deploy** until it succeeds; if it fails, tell Todd at once with its log.
-- [ ] **Step 7: Look at the live site** with Todd: a replay at 1× in `…scene=live-ahead#map`.
-- [ ] **Step 8: The record,** committed and pushed the same way.
+- [x] **Step 1: Ask Todd** whether to go live now.
+- [x] **Step 2:** `git fetch origin && git merge-base --is-ancestor origin/main HEAD && echo "fast-forward"`. If it isn't a fast-forward, STOP and tell Todd.
+- [x] **Step 3:** `TZ=UTC npx vitest run`: everything passes.
+- [x] **Step 4: Todd runs everything** (Task 2 Step 5's command).
+- [x] **Step 5: Push on Todd's yes,** a fast-forward only: `git push origin claude/trip-map-live-598046:main`. This also takes the follow the plane plan's record, `92e811e`, live.
+- [x] **Step 6: Watch the deploy** until it succeeds; if it fails, tell Todd at once with its log.
+- [x] **Step 7: Look at the live site** with Todd: a replay at 1× in `…scene=live-ahead#map`.
+- [x] **Step 8: The record,** committed and pushed the same way.
 
 ---
 
@@ -822,6 +822,12 @@ git commit -m "The website's replay pace plan, with its record"
   - It found nothing Critical or Important. It confirmed the constants, the shared cases (byte for byte), and the reworked arithmetic, recomputed.
   - It confirmed that the new speed test fails if the speed doesn't stick.
   - **One minor:** `pace()`'s comment still said "a leg's length over 3 s". It now says 6 s. That's comment only, committed with this record.
+- **Task 5, gone live** on Todd's "Run it, commit, go live" and "Good: go live":
+  - The branch was a fast-forward of `main`, and `TZ=UTC npx vitest run` passed 3,905 tests.
+  - Todd's run passed 3,905 tests at 10:04 PM EST and again in UTC, and built.
+  - Pushed `d45b2af..4d9458c`, with the follow the plane plan's record.
+  - **Deployed:** run `44227897694`, succeeded, 10:06 PM EST.
+  - The live site serves the build Todd's run made (`index-DaONf-Gz.js`), with the speeds still 1×, 2×, 5× and 10×.
 
 ## Self-review
 
