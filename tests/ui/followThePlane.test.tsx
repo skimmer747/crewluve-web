@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { act, cleanup, render, waitFor } from '@testing-library/preact'
+import { render as renderInto } from 'preact'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { appleCamera, cameraFor, followView, wholeView } from '../../src/map/appleMapPlan'
 import { fitRect, NO_INSETS, type WorldRect } from '../../src/map/mapFit'
@@ -275,6 +276,25 @@ describe('following the plane on Apple’s map (follow the plane design §3, §4
     expect(frames.waiting).toBe(1)
     for (let i = 0; i < 300 && frames.waiting > 0; i++) frames.frame()
     expect(sameRect(m.rects.at(-1)!.rect, followed(at('13:10')).rect)).toBe(true)
+  })
+
+  it('places the marks as soon as the map is made, with no later drawing of the page to wait for', async () => {
+    const kit = await ready()
+    render(<AppleTripMap {...props} followsPlane />)
+    await waitFor(() => expect(kit.maps).toHaveLength(1))
+    expect(kit.maps[0].annotations.some((a) => a.element.classList.contains('plane'))).toBe(true)
+    expect(kit.maps[0].rects).toHaveLength(1)
+  })
+
+  it('moves the plane in the same task the map is drawn in, so the plane and a gliding camera move in one display frame (the jitter Todd saw)', async () => {
+    const kit = await ready()
+    const view = render(<AppleTripMap {...props} followsPlane />)
+    await waitFor(() => expect(kit.maps).toHaveLength(1))
+    const plane = () => kit.maps[0].annotations.find((a) => a.element.classList.contains('plane'))!.coordinate
+    const before = plane().longitude
+    // Drawn straight into the page, as the replay's clock draws a frame, with nothing to wait for what comes after it.
+    renderInto(<AppleTripMap {...props} t={at('12:45')} followsPlane />, view.container)
+    expect(plane().longitude).toBeGreaterThan(before + 1)
   })
 
   it('frames the whole flight again, animated, when the setting is turned off', async () => {

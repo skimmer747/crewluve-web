@@ -1,5 +1,5 @@
 import { render } from 'preact'
-import { useEffect, useRef, useState } from 'preact/hooks'
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks'
 import type { PlaneKind } from '../copy/planePopup'
 import {
   appleCamera, appleMapPlan, cameraFor, followView, isSameView, keepInView, offDateLine, slideIntoView, wholeView, type AppleCamera, type PlannedMark,
@@ -235,6 +235,9 @@ function AppleMapView({
     }
     frame.addEventListener('pointerdown', onPress, { capture: true })
     live.current = state
+    // The lines and marks are placed as the map is drawn (below), which the first drawing did before the map was made:
+    // draw it once more now, in this same task, before anything is painted.
+    repaint((n) => n + 1)
     return () => {
       scheme?.removeEventListener('change', onScheme)
       frame.removeEventListener('pointerdown', onPress, { capture: true })
@@ -257,8 +260,10 @@ function AppleMapView({
 
   const drawing = tripMapDrawing(map, t, isReplay)
 
-  // The trip at time t: lines, night and marks, in place.
-  useEffect(() => {
+  // The trip at time t: lines, night and marks, in place. In the same task the map is drawn in, not after the next
+  // display frame as an effect would be: a replay draws a frame each display frame, and while the camera glides with it,
+  // a plane moved a frame or two late, now one and now the other, jitters against the map (Todd, 17 Nov 2026).
+  useLayoutEffect(() => {
     const state = live.current
     if (!state) return
     const plan = appleMapPlan(drawing, focus)
