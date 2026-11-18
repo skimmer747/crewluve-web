@@ -2002,8 +2002,8 @@ git commit -m "The website's follow the plane plan, with its record"
 
 This plan goes live. Pushing to `main` publishes the site: `.github/workflows` tests and builds every push to `main` in UTC, then publishes it to Pages. **Nothing here runs without Todd's yes in the conversation, asked when this task is reached.**
 
-- [ ] **Step 1: Ask Todd** whether to go live now. If not, stop: the branch stays as it is, and this task waits.
-- [ ] **Step 2: Bring the branch up to `main`.**
+- [x] **Step 1: Ask Todd** whether to go live now. If not, stop: the branch stays as it is, and this task waits.
+- [x] **Step 2: Bring the branch up to `main`.**
 
 ```bash
 cd "/Users/toddanderson/Dev/Crewluve Website/.claude/worktrees/trip-map-live-598046" && git fetch origin && git merge-base --is-ancestor origin/main HEAD && echo "fast-forward"
@@ -2016,7 +2016,7 @@ If it isn't, `main` has moved on from `e9d8466`, where it was when this plan was
 2. If any file conflicts, STOP and tell Todd.
 3. Then run `npm test && npm run build`.
 
-- [ ] **Step 3: The suite as GitHub runs it,** in UTC, on the branch as it will go live:
+- [x] **Step 3: The suite as GitHub runs it,** in UTC, on the branch as it will go live:
 
 ```bash
 TZ=UTC npx vitest run
@@ -2024,16 +2024,16 @@ TZ=UTC npx vitest run
 
 Expected: every test file and test passes, the same counts as `npm test`. If any fails, STOP: fix it here, tests first, before anything is pushed.
 
-- [ ] **Step 4: Todd runs everything** on the branch as it will go live. That's Task 4 Step 5's command.
-- [ ] **Step 5: Push the branch to `main`, on Todd's yes.** A fast-forward only; never force.
+- [x] **Step 4: Todd runs everything** on the branch as it will go live. That's Task 4 Step 5's command.
+- [x] **Step 5: Push the branch to `main`, on Todd's yes.** A fast-forward only; never force.
 
 ```bash
 git push origin claude/trip-map-live-598046:main
 ```
 
-- [ ] **Step 6: Watch the deploy** (`gh run watch` on the run the push started) until it succeeds. If it fails, tell Todd at once with its log: the site stays as it was until a deploy succeeds.
-- [ ] **Step 7: Look at the live site** with Todd: `https://crewluve.crewlu.net/?demo=1&scene=live-ocean-gap#map` with the switch on, then off, and the card.
-- [ ] **Step 8: The record.** Under "Changes made during execution":
+- [x] **Step 6: Watch the deploy** (`gh run watch` on the run the push started) until it succeeds. If it fails, tell Todd at once with its log: the site stays as it was until a deploy succeeds.
+- [x] **Step 7: Look at the live site** with Todd: `https://crewluve.crewlu.net/?demo=1&scene=live-ocean-gap#map` with the switch on, then off, and the card.
+- [x] **Step 8: The record.** Under "Changes made during execution":
   - the push's commit;
   - the deploy's run and time;
   - what Todd saw.
@@ -2088,6 +2088,28 @@ The same frame and glide (the design's §3 and §4), as the website has them:
     - The SVG map redraws whole each glide frame.
     - Two tabs don't share the setting until a reload, as Quick layovers.
   - **Todd's run of the fix** passed 3,902 tests at 9:09 PM EST and again in UTC, and built. Commit `2753b02`, on his "Run it, then commit".
+- **Task 7, gone live on Todd's "Go live: run it, then push":**
+  - The branch was a fast-forward of `main`, and `TZ=UTC npx vitest run` passed 3,902 tests.
+  - Todd's run passed 3,902 tests at 9:11 PM EST and again in UTC, and built.
+  - Pushed `e9d8466..1260f82`, a fast-forward.
+  - **Deployed:** run `44221575138`, succeeded, 9:14 PM EST (02:14 UTC, 18 Nov).
+  - On the live site the switch and its caption read as planned. The browser pane was hidden, so it ran no display frames, and the glide could only be seen by Todd.
+- **Todd on the live site:** "The plane is jittery", in a replay with Follow on (his answer).
+  - **The cause** (systematic debugging):
+    - On Apple's map the plane's mark was moved in an effect.
+    - Preact runs effects in a timer after the next display frame is painted (`afterNextFrame`).
+    - The glide moves the camera within a display frame.
+    - So in a replay, which draws a frame each display frame, the plane trailed the camera by one frame or two, unevenly, and jittered against the moving map. With a still camera it hardly showed. The SVG map draws the plane and its view together, so it never did this.
+  - **The fix:**
+    - The lines, night and marks are placed in a layout effect, in the same task the map is drawn in.
+    - The map is still made, and first framed, in its ordinary effect. It then asks for one more drawing, so its marks are placed before anything is painted. The map-style effect already asks for one too.
+    - Making the map in a layout effect instead was tried first. It showed MapKit's whole-world view for a frame before the first framing, and 15 tests caught it.
+  - **Tests:**
+    - The plane moves as the map is drawn, straight into the page with nothing waited for. It failed before the fix.
+    - The marks are there as soon as the map is made.
+  - **Todd:** "Smooth now: run, commit, push". His run passed 3,904 tests at 9:29 PM EST and again in UTC, and built.
+  - **Commit** `d45b2af`, pushed `1260f82..d45b2af`. **Deployed:** run `44223809536`, succeeded, 9:32 PM EST.
+- **The replay's speeds,** Todd's next ask ("slow each one down by one half"), are the app's shared pace (`replay-cases.json`). On his "Both: the app leads", they went to the app's session. The website follows in a plan of its own once the app sends its cases.
 - **The app session's last note** (the banner at takeoff, its padding eased in with the glide, and a glide from the frame last asked for) needs no change here. The website's glide already starts from the whole view it last asked for. A change of padding asks for that same whole view, so nothing on screen moves until the glide eases it, which "glides from the view on screen when the latest event's banner comes" holds.
 
 ## Self-review
