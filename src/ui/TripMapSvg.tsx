@@ -7,7 +7,9 @@ import { LAYER_ALPHA, nightLayers } from '../map/nightShade'
 import { linePath, placeAt, polygonsPath, type Viewport } from '../map/svgPaths'
 import type { GroundKind } from '../map/tripActivity'
 import { framingPoints, framingSubject, type MapLeg, type TripMap } from '../map/tripMap'
+import { followingFrame } from '../map/tripMapFollow'
 import { keptInView, nightTime, PILOT_RADIUS, routePoints, tripMapDrawing, type PlaneMark } from '../map/tripMapDrawing'
+import { useGlide } from './hooks/useGlide'
 import { useSteadyFraming } from './hooks/useSteadyFraming'
 import { PlanePopup, popupPlacement } from './PlanePopup'
 
@@ -35,6 +37,11 @@ export interface TripMapSvgProps {
    * pointed at or tapped. The card's map has none, and its planes take no pointer.
    */
   planeWords?: (leg: MapLeg, plane: PlaneKind) => PopupWords
+  /**
+   * The map follows the plane (follow the plane design §3): while a flight between its gates has a plane that has left,
+   * the view frames the plane, a tail behind it and the way ahead, and glides there (§4). Else it frames as before.
+   */
+  followsPlane?: boolean
 }
 
 /** What a plane does with the pointer and taps on the full map (which plane design §3), with `setOpen` for its popup. */
@@ -118,13 +125,19 @@ function PlaneBadge({ plane, at, class: cls, ...pointing }: { plane: PlaneMark; 
  * The trip map (moving map spec §7.1, §11): ocean, land, night, routes, airports, cars, the pilot's marker and the plane,
  * drawn by the site in SVG. The card and the full map describe it in words, so to screen readers it's hidden.
  */
-export function TripMapSvg({ map, t, width, height, focus, land, nightStep, insets = NO_INSETS, isReplay = false, planeWords }: TripMapSvgProps) {
+export function TripMapSvg({
+  map, t, width, height, focus, land, nightStep, insets = NO_INSETS, isReplay = false, planeWords, followsPlane = false,
+}: TripMapSvgProps) {
   const { top, right, bottom, left } = insets
   const framing = useSteadyFraming(framingPoints(map, focus), framingSubject(map, focus))
-  const framed = useMemo(
+  const whole = useMemo(
     () => fitClear(fitRect(framing) ?? { x: 0, y: 0, width: 1, height: 1 }, width, height, { top, right, bottom, left }),
     [framing, width, height, top, right, bottom, left],
   )
+  // Following the plane, the view glides to the frame the setting gives it, the plane, its tail and the way ahead in the
+  // air, and between legs too (follow the plane design §3 to §5); else it's the leg's or the trip's, as before.
+  const follow = followsPlane ? followingFrame(map, t, isReplay) : null
+  const framed = useGlide(follow ? fitClear(follow, width, height, { top, right, bottom, left }) : whole, follow != null)
   const drawing = tripMapDrawing(map, t, isReplay)
   // The real path where the plane was seen goes over every other line.
   const segments = [...drawing.segments.filter((s) => s.style !== 'seen'), ...drawing.segments.filter((s) => s.style === 'seen')]

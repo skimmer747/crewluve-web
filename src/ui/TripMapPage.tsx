@@ -155,7 +155,7 @@ export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, 
       </header>
       <div ref={box} class="trip-map-full">
         <AppleTripMap map={map} t={t} width={width} height={height} focus={focus} land={land} nightStep={nightStep} insets={insets}
-          mapStyle={mapStyle} interactive recenter={recenter} onUserMove={() => setMoved(true)} isReplay={isReplay}
+          mapStyle={mapStyle} interactive recenter={recenter} onUserMove={() => setMoved(true)} isReplay={isReplay} followsPlane={followsPlane}
           planeWords={(leg, plane) => planePopupWords(leg, plane, t, isReplay, viewerTz, h24)} />
         {latest && (
           <div class="latest-event-place" style={{ left: `${openLeft}px` }}>

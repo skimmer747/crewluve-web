@@ -8,6 +8,7 @@ import { NO_INSETS, type Insets } from '../map/mapFit'
 import { currentLeg, type MapLeg, type TripMap } from '../map/tripMap'
 import { showsPlaneKey, tripMapDrawing } from '../map/tripMapDrawing'
 import { AppleTripMap } from './AppleTripMap'
+import { useFollowsPlane } from './hooks/useFollowsPlane'
 import { useHeightOf } from './hooks/useHeightOf'
 import { useMapStyle } from './hooks/useMapStyle'
 import { useSizeOf } from './hooks/useSizeOf'
@@ -68,6 +69,8 @@ export function TripMapCard(p: TripMapCardProps) {
   const box = useRef<HTMLSpanElement>(null)
   const width = useWidth(box, 343)
   const [mapStyle] = useMapStyle()
+  // The card follows the plane as the full map's switch says (follow the plane design §2).
+  const [followsPlane] = useFollowsPlane()
   const leg = currentLeg(p.map)
   const isRecap = p.map.mode.kind === 'recap'
   const chips = cardChips(p.map, p.now, p.viewerTz, p.h24)
@@ -95,7 +98,7 @@ export function TripMapCard(p: TripMapCardProps) {
       <button type="button" class="trip-map-open" data-trip-map-open aria-label={summary} onClick={() => p.onOpenMap()}>
         <span ref={box} class="trip-map-frame">
           <AppleTripMap map={p.map} t={p.now} width={width} height={MAP_HEIGHT} focus={leg} land={p.land} nightStep={60_000} insets={insets}
-            mapStyle={mapStyle} interactive={false} />
+            mapStyle={mapStyle} interactive={false} followsPlane={followsPlane} />
         </span>
         {latest ? <LatestEventBanner event={latest} refs={banner.refs} />
           : chips.top && <span ref={setTopChip} class="trip-map-chip top" aria-hidden="true">{chips.top}</span>}

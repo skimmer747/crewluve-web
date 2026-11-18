@@ -1,16 +1,21 @@
 import { render } from 'preact'
 import { useEffect, useRef, useState } from 'preact/hooks'
 import type { PlaneKind } from '../copy/planePopup'
-import { appleCamera, appleMapPlan, isSameView, keepInView, offDateLine, slideIntoView, type AppleCamera, type PlannedMark } from '../map/appleMapPlan'
+import {
+  appleCamera, appleMapPlan, cameraFor, followView, isSameView, keepInView, offDateLine, slideIntoView, wholeView, type AppleCamera, type PlannedMark,
+} from '../map/appleMapPlan'
 import type { AppleMapStyle } from '../map/appleMapStyle'
 import type { GeoPoint } from '../map/greatCircle'
-import { NO_INSETS, type Insets } from '../map/mapFit'
+import { NO_INSETS, type Insets, type WorldRect } from '../map/mapFit'
 import type { MapKitApi, MkAnnotation, MkMap, MkPolygon, MkPolyline } from '../map/mapkitApi'
 import { LAYER_ALPHA, nightLayers, SUN_DEPTHS } from '../map/nightShade'
 import { framingPoints, framingSubject } from '../map/tripMap'
 import { keptInView, nightTime, tripMapDrawing, type SegmentStyle } from '../map/tripMapDrawing'
+import { followingFrame } from '../map/tripMapFollow'
+import { glideStep, isThere } from '../map/tripMapGlide'
 import { markElement } from './appleMarks'
 import { useAppleMapKit } from './hooks/useAppleMapKit'
+import { prefersStill } from './hooks/useGlide'
 import { useSteadyFraming } from './hooks/useSteadyFraming'
 import { PlanePopup, popupPlacement } from './PlanePopup'
 import { isOnPlane, pointingAt, TripMapSvg, type TripMapSvgProps } from './TripMapSvg'
@@ -89,6 +94,13 @@ interface Live {
   moved: boolean
   /** The Recenter count the camera last framed for. */
   recenterSeen: number
+  /** The display frame the glide toward the frame that follows the plane waits for, or 0 while it isn't gliding. */
+  glide: number
+  /**
+   * The whole view the glide last asked MapKit for, while it follows the plane: the next glide starts from it, and MapKit
+   * isn't asked again while the frame is the same. None until it has asked, and again once the person moves the map.
+   */
+  followed: WorldRect | null
 }
 
 /** How many of the latest asks a late report from MapKit is matched against. */
@@ -144,12 +156,15 @@ function slideToKept(mapkit: MapKitApi, state: Live, now: Latest | undefined) {
 
 function AppleMapView({
   mapkit, map, t, width, height, focus, nightStep, insets = NO_INSETS, mapStyle, interactive, recenter = 0, onUserMove, isReplay = false, planeWords,
+  followsPlane = false,
 }: AppleTripMapProps & { mapkit: MapKitApi }) {
   const box = useRef<HTMLDivElement>(null)
   const live = useRef<Live | null>(null)
   const userMove = useRef(onUserMove)
   userMove.current = onUserMove
   const latest = useRef<Latest>()
+  /** The whole view that follows the plane, as of the latest render: the glide heads for it on every display frame. */
+  const following = useRef<WorldRect | null>(null)
   // Bumped when the system turns light or dark, to draw the lines again in the new colours.
   const [, repaint] = useState(0)
   // The plane whose popup is open (which plane design §3). It closes when its plane goes, and as a replay starts or stops.
@@ -182,7 +197,7 @@ function AppleMapView({
     })
     const state: Live = {
       map: m, lines: new Map(), night, nightAt: NaN, marks: new Map(), popup: null, framed: '', settling: null, asks: [], view: null,
-      justFramed: false, moved: false, recenterSeen: recenter,
+      justFramed: false, moved: false, recenterSeen: recenter, glide: 0, followed: null,
     }
     const moved = () => {
       if (state.moved) return
@@ -213,6 +228,7 @@ function AppleMapView({
       scheme?.removeEventListener('change', onScheme)
       frame.removeEventListener('pointerdown', onPress, { capture: true })
       if (state.popup) render(null, state.popup.element)
+      cancelAnimationFrame(state.glide)
       m.destroy()
       live.current = null
     }
@@ -360,8 +376,12 @@ function AppleMapView({
   // The framing is asked for again only when what it frames, the view's size or what lies over it changes, or on
   // Recenter: not as the plane moves, which would ask MapKit again for every pixel it flies (the review's fixes).
   const { rect, padding } = appleCamera(framing, [], width, height, insets)
-  const frame = `${rect.x},${rect.y},${rect.width},${rect.height}|${padding.top},${padding.right},${padding.bottom},${padding.left}|${recenter}`
-  const still = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+  // Following the plane, the view the setting gives the camera, in the air and between legs (follow the plane design §3
+  // to §5): the glide below makes every move to it, and the framing stands aside. Starting or stopping frames again.
+  const follow = followsPlane ? followingFrame(map, t, isReplay) : null
+  following.current = follow ? followView(follow, kept, width, height, insets) : null
+  const frame = `${rect.x},${rect.y},${rect.width},${rect.height}|${padding.top},${padding.right},${padding.bottom},${padding.left}|${recenter}|${follow ? 'follow' : ''}`
+  const still = prefersStill
   useEffect(() => {
     const state = live.current
     if (!state) return
@@ -371,6 +391,11 @@ function AppleMapView({
       state.recenterSeen = recenter
     }
     if (state.moved || state.framed === frame) return
+    if (following.current) {
+      state.framed = frame
+      state.settling = null
+      return
+    }
     const animated = state.framed !== '' && !still()
     state.framed = frame
     state.settling = { animated }
@@ -388,12 +413,72 @@ function AppleMapView({
       state.justFramed = false
       return
     }
-    if (state.moved || !state.view) return
+    // Following, the plane is in its frame already: the glide keeps it there.
+    if (state.moved || !state.view || following.current) return
     const slide = keepInView(state.view, kept, width, height, insets)
     if (!slide) return
     // The framing has settled by now: the camera is keeping up with the plane.
     state.settling = null
     ask(mapkit, state, slide, !isReplay && !still(), false)
+  })
+
+  // Following the plane (follow the plane design §4, §5): on every display frame the view closes part of the gap to the
+  // frame, until it's there; MapKit is asked for each step without its own animation, and moves its lines, night and
+  // marks with it. One loop glides at a time, reading the newest frame on every step, and from the view it last asked
+  // for, not the one MapKit reports, which can differ where MapKit won't zoom out so far: so MapKit is asked nothing while
+  // the frame is the same. Once there, MapKit's view is checked once for what's kept in view, as after a framing. Its
+  // first framing, a gap too small to see and reduced motion go straight there. A pan or a pinch stops it until
+  // Recenter, which glides on from where the map is.
+  useEffect(() => {
+    const state = live.current
+    if (!state) return
+    const target = following.current
+    if (!target || state.moved) {
+      cancelAnimationFrame(state.glide)
+      state.glide = 0
+      state.followed = null
+      return
+    }
+    if (state.glide) return
+    const followed = state.followed
+    if (followed && (['x', 'y', 'width', 'height'] as const).every((k) => followed[k] === target[k])) return
+    const m = state.map
+    const from = followed ?? (m.visibleMapRect && m.padding
+      ? wholeView({ rect: { x: m.visibleMapRect.origin.x, y: m.visibleMapRect.origin.y, width: m.visibleMapRect.size.width, height: m.visibleMapRect.size.height },
+        padding: { top: m.padding.top, right: m.padding.right, bottom: m.padding.bottom, left: m.padding.left } }, width, height)
+      : null)
+    const show = (view: WorldRect) => {
+      const at = latest.current!
+      ask(mapkit, state, cameraFor(view, at.width, at.height, at.insets), false, true)
+      state.followed = view
+    }
+    // Nothing asked of MapKit yet: its own first view is no place to glide from.
+    if (!from || state.asks.length === 0 || still() || isThere(from, target)) {
+      show(target)
+      state.settling = { animated: false }
+      return
+    }
+    // No check slides the view while it glides: the glide makes every move.
+    state.settling = null
+    let current = from
+    let last = performance.now()
+    const step = (now: number) => {
+      const heading = following.current
+      if (!heading || state.moved) {
+        state.glide = 0
+        return
+      }
+      current = glideStep(current, heading, now - last)
+      last = now
+      show(current)
+      if (current !== heading) {
+        state.glide = requestAnimationFrame(step)
+        return
+      }
+      state.glide = 0
+      state.settling = { animated: false }
+    }
+    state.glide = requestAnimationFrame(step)
   })
 
   // The card's map is a picture inside the card's button: it's kept from screen readers and out of the Tab order, so
