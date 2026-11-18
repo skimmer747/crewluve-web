@@ -1,11 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { appleCamera, appleMapPlan, isSameView, keepInView, laidOut, offDateLine, slideIntoView, type AppleCamera } from '../../src/map/appleMapPlan'
+import {
+  appleCamera, appleMapPlan, followView, isSameView, keepInView, laidOut, offDateLine, slideIntoView, type AppleCamera,
+} from '../../src/map/appleMapPlan'
 import { fitClear, fitRect, NO_INSETS, type Insets, type WorldRect } from '../../src/map/mapFit'
 import { toWorld } from '../../src/map/mercator'
 import { placeAt } from '../../src/map/svgPaths'
 import type { GeoPoint } from '../../src/map/greatCircle'
 import { framingPoints, legProgress, makeTripMap, positionAt } from '../../src/map/tripMap'
 import { tripMapDrawing } from '../../src/map/tripMapDrawing'
+import { followRect } from '../../src/map/tripMapFollow'
+import { legPlane } from '../../src/facts/planePosition'
+import { equatorFlight } from '../facts/factsTestData'
+import { date } from '../facts/liveFacts'
 import { AIRPORTS, at, drive, EUROPE, flight } from '../map/tripMapLegs'
 
 /** Where a place is on the whole `width` × `height` view MapKit shows for `camera`: its rectangle, grown by its padding. */
@@ -313,5 +319,27 @@ describe('keeping the pilot’s marker in view when MapKit won’t zoom out far 
   it('takes a marker already slid into view as in view, so a second check never chases rounding', () => {
     const slid = slideIntoView(atLimit(asked, 0.6), [home], width, height, insets)!
     expect(slideIntoView(slid, [home], width, height, insets)).toBeNull()
+  })
+})
+
+describe('the view that follows the plane on Apple’s map (follow the plane design §3)', () => {
+  const leg = equatorFlight(0, 20)
+  const t = date('2026-03-20T11:45:00Z')
+  const follow = followRect(leg, t, false)!
+  const plane = legPlane(leg, t, false).place
+
+  it('is the frame fitted to the clear part, where the plane is in it already', () => {
+    expect(followView(follow, [plane], 390, 520, NO_INSETS)).toEqual(fitClear(follow, 390, 520, NO_INSETS))
+  })
+
+  it('slides to keep the plane between the card’s banner and its bottom chip, where they leave too little to frame in', () => {
+    // A card 220 px tall: the banner and key take 150 at the top, the chip 40 at the bottom, so the frame fills the card
+    // and the plane, in its middle, would be under the banner.
+    const insets: Insets = { top: 150, right: 0, bottom: 40, left: 0 }
+    const view = followView(follow, [plane], 343, 220, insets)
+    const y = placeAt(plane, { rect: view, width: 343, height: 220 }).y
+    expect(placeAt(plane, { rect: fitClear(follow, 343, 220, insets), width: 343, height: 220 }).y).toBeLessThan(150)
+    expect(y).toBeGreaterThanOrEqual(150)
+    expect(y).toBeLessThanOrEqual(180)
   })
 })

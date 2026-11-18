@@ -118,6 +118,17 @@ export function appleCamera(framing: GeoPoint[], kept: readonly GeoPoint[], widt
   return cameraFor(view, width, height, insets)
 }
 
+/**
+ * The whole view that follows the plane (follow the plane design §3), from `follow`, the frame that holds it, its tail
+ * and the way ahead: framed in the clear part as the trip is (`appleCamera`), then slid the shortest way that shows what's
+ * kept in view, the plane and its ghost, there. Where the card's chips and the banner leave too little clear to frame in,
+ * the frame fills the card and the slide keeps the plane between them, as it does today. The glide heads for it.
+ */
+export function followView(follow: WorldRect, kept: readonly GeoPoint[], width: number, height: number, insets: Insets): WorldRect {
+  const framed = fitClear(follow, width, height, insets)
+  return slideToShow(framed, width, height, kept.map((p) => placeAt(p, { rect: framed, width, height })), PILOT_RADIUS, insets)
+}
+
 /** The pilot's marker counts as in view when a slide would move it less than this, in px: never a slide for rounding. */
 const SLIDE_TOLERANCE_PX = 1
 
@@ -169,7 +180,7 @@ export function isSameView(shown: AppleCamera, asked: AppleCamera, width: number
 }
 
 /** The whole `width` × `height` view MapKit shows for `camera`: its rectangle, grown by its padding. */
-function wholeView({ rect, padding }: AppleCamera, width: number, height: number): WorldRect {
+export function wholeView({ rect, padding }: AppleCamera, width: number, height: number): WorldRect {
   const perPixel = rect.width / (width - padding.left - padding.right)
   return { x: rect.x - padding.left * perPixel, y: rect.y - padding.top * perPixel, width: width * perPixel, height: height * perPixel }
 }
@@ -179,7 +190,7 @@ function wholeView({ rect, padding }: AppleCamera, width: number, height: number
  * clear (`insetsThatFit`), with those insets as its padding, so its logo and Legal link keep above the bottom chip; with
  * none that fit, the whole view and no padding.
  */
-function cameraFor(view: WorldRect, width: number, height: number, all: Insets): AppleCamera {
+export function cameraFor(view: WorldRect, width: number, height: number, all: Insets): AppleCamera {
   const insets = insetsThatFit(all, width, height)
   const clearWidth = width - insets.left - insets.right
   const clearHeight = height - insets.top - insets.bottom
