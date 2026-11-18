@@ -272,7 +272,8 @@
 /* A heading for screen readers, at the size of the text around it. */
 .trip-map-headline { margin: 0; font-size: 1rem; font-weight: 600; }
 .trip-timeline-row { display: flex; align-items: center; gap: 12px; }
-.trip-timeline-settings { justify-content: space-between; }
+/* Quick layovers beside the speeds, or above them when the two don't fit on one line, as the app's. */
+.trip-timeline-settings { justify-content: space-between; flex-wrap: wrap; row-gap: 4px; }
 .trip-timeline-time { margin: 2px 0 6px; color: var(--text-2); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
 
 /* The bar (activity markers design §4.1): the colored blocks, with a range input's thumb over them. */
@@ -389,7 +390,29 @@
 }
 .trip-timeline-play { min-width: 44px; min-height: 44px; border: 0; background: none; color: inherit; fill: currentColor; cursor: pointer; }
 .trip-timeline-live { min-height: 44px; padding: 0 14px; border-radius: 999px; }
-.trip-timeline-speed { min-height: 44px; }
+/* The speeds, as iOS's segmented control: the picked one raised on a gray track. Its radio buttons are hidden but kept
+   for the keyboard and screen readers. */
+.trip-timeline-speeds { display: inline-flex; flex: none; padding: 2px; border-radius: 9px; background: var(--button-fill); }
+.trip-timeline-speed { position: relative; display: flex; cursor: pointer; }
+.trip-timeline-speed input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.trip-timeline-speed span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 40px;
+  padding: 0 10px;
+  border-radius: 7px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.trip-timeline-speed input:checked + span { background: var(--segment-fill); box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04); }
+.trip-timeline-speed input:focus-visible + span { outline: 2px solid var(--blue); outline-offset: 1px; }
+@media (forced-colors: active) {
+  .trip-timeline-speeds { outline: 1px solid CanvasText; }
+  .trip-timeline-speed input:checked + span { background: Highlight; color: HighlightText; }
+}
 
 /* The facts' panel (Stage 2 spec §10): the headline and its toggle, the facts, then the timeline. Below 900 px it sits
    under the map, and "More facts" opens its facts, which scroll inside it. */

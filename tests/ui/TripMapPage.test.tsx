@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { factRow, type FactsAtMoment } from '../../src/facts/factRow'
 import type { MapKitApi } from '../../src/map/mapkitApi'
@@ -53,7 +53,7 @@ describe('the full map (moving map spec §6)', () => {
     expect(Number(slider.max)).toBe(118_000)
     expect(slider.step).toBe('any')
     expect(slider.getAttribute('aria-valuetext')).toMatch(/^Friday 7:00\sPM, layover in Cologne$/)
-    expect(screen.getByRole('combobox', { name: 'Replay speed' })).toBeTruthy()
+    expect(screen.getByRole('radiogroup', { name: 'Replay speed' })).toBeTruthy()
     expect((screen.getByRole('switch', { name: 'Quick layovers' }) as HTMLInputElement).checked).toBe(true)
   })
 
@@ -178,6 +178,18 @@ describe('the full map (moving map spec §6)', () => {
     }
   })
 
+  it('shows the speeds as the app’s segmented control, one tap each, 1× picked at first (Todd, 17 Nov 2026)', () => {
+    page()
+    const group = screen.getByRole('radiogroup', { name: 'Replay speed' })
+    const speeds = within(group).getAllByRole('radio') as HTMLInputElement[]
+    expect(speeds.map((r) => r.closest('label')!.textContent)).toEqual(['1×', '2×', '5×', '10×'])
+    expect(speeds.map((r) => r.checked)).toEqual([true, false, false, false])
+    fireEvent.click(screen.getByRole('radio', { name: '10×' }))
+    expect(speeds.map((r) => r.checked)).toEqual([false, false, false, true])
+    // One group: the arrow keys move between them, and Tab passes the group once.
+    expect(new Set(speeds.map((r) => r.name)).size).toBe(1)
+  })
+
   it('takes a new speed while a replay plays, and keeps it as the frames go on (the app lost such taps, 17 Nov 2026)', () => {
     vi.useFakeTimers({ toFake: ['Date', 'requestAnimationFrame', 'cancelAnimationFrame'] })
     try {
@@ -187,8 +199,8 @@ describe('the full map (moving map spec §6)', () => {
       act(() => {
         vi.advanceTimersByTime(1000)
       })
-      const speed = screen.getByRole('combobox', { name: 'Replay speed' }) as HTMLSelectElement
-      fireEvent.change(speed, { target: { value: '5' } })
+      const speed = screen.getByRole('radio', { name: '5×' }) as HTMLInputElement
+      fireEvent.click(speed)
       const line = () => document.querySelector('.trip-timeline-time')!.textContent
       act(() => {
         vi.advanceTimersByTime(100)
@@ -198,7 +210,7 @@ describe('the full map (moving map spec §6)', () => {
       act(() => {
         vi.advanceTimersByTime(2000)
       })
-      expect(speed.value).toBe('5')
+      expect(speed.checked).toBe(true)
       expect(line()).not.toBe(before)
       expect(line()).toMatch(/^Fri (9|10):\d\d\sAM · Flying to Cologne$/)
     } finally {

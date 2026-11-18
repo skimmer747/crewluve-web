@@ -94,6 +94,8 @@ const SPEC_COLORS: Array<[name: string, light: string, dark: string]> = [
   ['--grid-line', 'rgba(0,0,0,.15)', 'rgba(255,255,255,.4)'],
   ['--button-fill', 'rgba(118,118,128,.12)', 'rgba(118,118,128,.24)'],
   ['--separator', 'rgba(60,60,67,.29)', 'rgba(84,84,88,.6)'],
+  // The replay's speeds as iOS's segmented control (Todd, 17 Nov 2026): its picked segment.
+  ['--segment-fill', '#FFFFFF', '#636366'],
 ]
 
 describe('tokens.css', () => {
@@ -941,5 +943,27 @@ describe('split.css', () => {
       ['min-width', '0'], ['min-height', '0'], ['padding', '0 16px'], ['border-left', '0.5px solid var(--separator)'],
       ['display', 'flex'], ['flex-direction', 'column'],
     ])
+  })
+})
+
+describe('the replay’s speeds, as the app’s segmented control (Todd, 17 Nov 2026)', () => {
+  const rules = rulesIn(css('tripMap'))
+  const rule = (head: string) => new Map(declarations(find(rules, head)?.body ?? ''))
+
+  it('raises the picked speed on the gray track, in the segment fill', () => {
+    expect(rule('.trip-timeline-speeds').get('background')).toBe('var(--button-fill)')
+    expect(rule('.trip-timeline-speed input:checked + span').get('background')).toBe('var(--segment-fill)')
+  })
+
+  it('hides the radio buttons without taking them from the keyboard or screen readers, and gives each a finger’s room', () => {
+    const input = rule('.trip-timeline-speed input')
+    expect(input.get('opacity')).toBe('0')
+    expect(input.get('display')).toBeUndefined()
+    expect(rule('.trip-timeline-speed input:focus-visible + span').get('outline')).toBe('2px solid var(--blue)')
+    expect(rule('.trip-timeline-speed span').get('min-width')).toBe('44px')
+  })
+
+  it('puts the speeds under Quick layovers when the two don’t fit on one line, as the app does', () => {
+    expect(rule('.trip-timeline-settings').get('flex-wrap')).toBe('wrap')
   })
 })

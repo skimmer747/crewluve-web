@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'preact/hooks'
 import { FOLLOW_HINT, followCaption, timelineLine, timelineSpokenValue } from '../copy/tripMap'
 import {
   clockTime, goLive, hasFinished, isLive, isPlaying, pause, play, progressAt, REPLAY_SPEEDS, replayDuration, replayOffset, scrub,
-  setSpeed, tripTimeAtOffset, type ReplayClock, type ReplaySpeed,
+  setSpeed, tripTimeAtOffset, type ReplayClock,
 } from '../map/replayClock'
 import { timelineBlocks } from '../map/timelineBlocks'
 import { activityAt, flightOnGround } from '../map/tripActivity'
@@ -115,10 +115,17 @@ export function TripTimeline({ map, clock, onChange, onQuickLayovers, followsPla
             onChange={(e) => onQuickLayovers(e.currentTarget.checked)} />
           Quick layovers
         </label>
-        <select class="trip-timeline-speed" aria-label="Replay speed" value={String(clock.speed)}
-          onChange={(e) => onChange(setSpeed(clock, Number(e.currentTarget.value) as ReplaySpeed, Date.now()))}>
-          {REPLAY_SPEEDS.map((s) => <option key={s} value={String(s)}>{`${s}×`}</option>)}
-        </select>
+        {/* The speeds as the app's segmented control: one tap each (Todd, 17 Nov 2026). Radio buttons, so the arrow keys
+            move between them and screen readers hear "Replay speed". */}
+        <div class="trip-timeline-speeds" role="radiogroup" aria-label="Replay speed">
+          {REPLAY_SPEEDS.map((s) => (
+            <label key={s} class="trip-timeline-speed">
+              <input type="radio" name="trip-timeline-speed" value={String(s)} checked={clock.speed === s}
+                onChange={() => onChange(setSpeed(clock, s, Date.now()))} />
+              <span>{`${s}×`}</span>
+            </label>
+          ))}
+        </div>
       </div>
       {/* Follow the plane (follow the plane design §2): the website's own place for it, under Quick layovers, with what a
           tap did beside it (Todd, 17 Nov 2026). The caption is a status, so screen readers hear it, outside the label so
