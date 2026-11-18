@@ -35,7 +35,7 @@ describe("the replay's pace with Quick layovers (activity markers design §3.2):
 
 describe('Quick layovers (activity markers design §3.1) and positions in replay time (§4.3)', () => {
   // The Europe trip: legs of 8, 6 and 14 hours, with a 24-hour and a 20-hour wait. At 1x with Quick layovers on that's
-  // 16 s, 3 s, 12 s, 3 s and 28 s: 62 s. With it off, 144 s.
+  // 32 s, 3 s, 24 s, 3 s and 56 s: 118 s. With it off, 288 s.
   const span = { start: at(0), end: at(72) }
   const legs = [{ start: at(0), end: at(8) }, { start: at(32), end: at(38) }, { start: at(58), end: at(72) }]
   const waits = [{ start: at(8), end: at(32) }, { start: at(38), end: at(58) }]
@@ -43,20 +43,21 @@ describe('Quick layovers (activity markers design §3.1) and positions in replay
 
   it('is off for a clock made as before, so it plays as before', () => {
     expect(liveClock(span, legs).quickLayovers).toBe(false)
-    expect(replayDuration(liveClock(span, legs, waits))).toBe(144_000)
+    expect(replayDuration(liveClock(span, legs, waits))).toBe(288_000)
   })
 
   it('measures the whole replay at each pace', () => {
-    expect(replayDuration(quick)).toBe(62_000)
-    expect(replayDuration({ ...quick, quickLayovers: false })).toBe(144_000)
+    expect(replayDuration(quick)).toBe(118_000)
+    expect(replayDuration({ ...quick, quickLayovers: false })).toBe(288_000)
   })
 
   it('keeps the moment when switched during a replay, and carries on from there at the new pace', () => {
-    const switched = setQuickLayovers(play(quick, 0), false, 17_500)
+    // 33.5 s in: the 32 s flight, then half of the day in Cologne, which plays in 3 s.
+    const switched = setQuickLayovers(play(quick, 0), false, 33_500)
     expect(switched.quickLayovers).toBe(false)
-    expect(clockTime(switched, 17_500)).toBe(at(20))
-    // A second at a day in 48 s is half an hour.
-    expect(clockTime(switched, 18_500)).toBe(at(20.5))
+    expect(clockTime(switched, 33_500)).toBe(at(20))
+    // A second at a day in 96 s is a quarter of an hour.
+    expect(clockTime(switched, 34_500)).toBe(at(20.25))
   })
 
   it('keeps the moment when switched while paused', () => {
@@ -64,14 +65,14 @@ describe('Quick layovers (activity markers design §3.1) and positions in replay
   })
 
   it('turns a moment into replay time and back, held to the trip', () => {
-    expect(replayOffset(quick, at(20))).toBe(17_500)
-    expect(tripTimeAtOffset(quick, 17_500)).toBe(at(20))
+    expect(replayOffset(quick, at(20))).toBe(33_500)
+    expect(tripTimeAtOffset(quick, 33_500)).toBe(at(20))
     expect(tripTimeAtOffset(quick, -5)).toBe(at(0))
-    expect(tripTimeAtOffset(quick, 99_000)).toBe(at(72))
+    expect(tripTimeAtOffset(quick, 199_000)).toBe(at(72))
   })
 
   it('places a moment along the bar, 0 to 1, held to its ends', () => {
-    expect(progressAt(quick, at(8))).toBeCloseTo(16 / 62, 12)
+    expect(progressAt(quick, at(8))).toBeCloseTo(32 / 118, 12)
     expect(progressAt(quick, at(-5))).toBe(0)
     expect(progressAt(quick, at(80))).toBe(1)
     expect(progressAt(liveClock({ start: at(0), end: at(0) }), at(0))).toBe(0)

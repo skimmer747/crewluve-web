@@ -1,8 +1,9 @@
 /**
  * The full-screen map's time (moving map spec §6), as the app's TripReplayClock: now, a moment dragged to, or a replay
- * at 1x to 10x. A value the page keeps in state and reads on each frame, so nothing changes per frame. A leg in motion
- * that would pass in under 3 s at 1x slows so it takes 3 s (docs/superpowers/specs/2026-11-13-replay-short-legs-design.md).
- * With Quick layovers on, a wait on the ground takes a second a day, never under 3 s and never slower than a day in 48 s,
+ * at 1x to 10x. A value the page keeps in state and reads on each frame, so nothing changes per frame. The pace is a day
+ * in 96 s at 1x, half CrewLu's, since 17 Nov 2026. A leg in motion that would pass in under 6 s at 1x slows so it takes
+ * 6 s (docs/superpowers/specs/2026-11-13-replay-short-legs-design.md). With Quick layovers on, a wait on the ground takes
+ * a second a day, never under 3 s and never slower than a day in 96 s,
  * and the clock places any moment along the timeline in replay time (the app's activity markers design §3.2, §4.3).
  * The shared cases are tests/fixtures/trip-map/replay-cases.json, a copy of the app's: change both together.
  */
@@ -10,11 +11,14 @@
 export type ReplaySpeed = 1 | 2 | 5 | 10
 export const REPLAY_SPEEDS: readonly ReplaySpeed[] = [1, 2, 5, 10]
 
-/** Trip time per replay time at 1x: a day in 48 seconds, as on CrewLu's moving map. */
-export const REPLAY_BASE_RATE = 1800
+/**
+ * Trip time per replay time at 1x: a day in 96 seconds, half CrewLu's moving map's pace, so a short flight such as
+ * Louisville to Cleveland can be followed (Todd, 17 Nov 2026; the app's, and the shared cases').
+ */
+export const REPLAY_BASE_RATE = 900
 
-/** The least real time, in ms at 1x, that a leg in motion takes, so a drive to work can be seen. */
-export const LEG_MIN_REPLAY = 3000
+/** The least real time, in ms at 1x, that a leg in motion takes, so a drive to work can be seen: 6 s, as the app's. */
+export const LEG_MIN_REPLAY = 6000
 
 /** The least real time, in ms at 1x, that a wait takes with Quick layovers on. */
 export const WAIT_MIN_REPLAY = 3000
@@ -76,7 +80,7 @@ function pace(c: ReplayClock): Piece[] {
 }
 
 /**
- * A wait of `length` plays in min(length / 1,800, max(3 s, length / 86,400)) at 1x: a second a day, never under 3 s,
+ * A wait of `length` plays in min(length / 900, max(3 s, length / 86,400)) at 1x: a second a day, never under 3 s,
  * and never slower than the normal rate. As a rate, that's its length over that time.
  */
 const quickRate = (length: number) => Math.max(REPLAY_BASE_RATE, Math.min(length / WAIT_MIN_REPLAY, QUICK_WAIT_RATE))
