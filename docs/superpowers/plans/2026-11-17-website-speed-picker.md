@@ -463,13 +463,13 @@ git commit -m "The website's speed picker plan, with its record"
 
 ### Task 5: Going live, on Todd's yes
 
-- [ ] **Step 1: Ask Todd** whether to go live now.
-- [ ] **Step 2:** `git fetch origin && git merge-base --is-ancestor origin/main HEAD && echo "fast-forward"`. If it isn't a fast-forward, STOP and tell Todd.
-- [ ] **Step 3:** `TZ=UTC npx vitest run`: everything passes.
-- [ ] **Step 4: Todd runs everything** (Task 2 Step 5's command).
-- [ ] **Step 5: Push on Todd's yes,** a fast-forward only: `git push origin claude/trip-map-live-598046:main`. This also takes the replay pace plan's record, `5d1a53e`, live.
-- [ ] **Step 6: Watch the deploy** until it succeeds; if it fails, tell Todd at once with its log.
-- [ ] **Step 7: The record,** committed and pushed the same way.
+- [x] **Step 1: Ask Todd** whether to go live now.
+- [x] **Step 2:** `git fetch origin && git merge-base --is-ancestor origin/main HEAD && echo "fast-forward"`. If it isn't a fast-forward, STOP and tell Todd.
+- [x] **Step 3:** `TZ=UTC npx vitest run`: everything passes.
+- [x] **Step 4: Todd runs everything** (Task 2 Step 5's command).
+- [x] **Step 5: Push on Todd's yes,** a fast-forward only: `git push origin claude/trip-map-live-598046:main`. This also takes the replay pace plan's record, `5d1a53e`, live.
+- [x] **Step 6: Watch the deploy** until it succeeds; if it fails, tell Todd at once with its log.
+- [x] **Step 7: The record,** committed and pushed the same way.
 
 ---
 
@@ -490,6 +490,12 @@ git commit -m "The website's speed picker plan, with its record"
     - The group's `name` is fixed. Only one timeline is ever drawn on a page (`TripMapPage`), so it can't clash today.
     - The focus ring may touch the track's edge. That's for a look.
     - The arrow keys and Tab are the browser's own for one radio group, and no test drives them.
+- **Task 5, gone live** on Todd's "Run it, commit, go live" and "Good: go live":
+  - The branch was a fast-forward of `main`, and `TZ=UTC npx vitest run` passed 3,911 tests.
+  - Todd's run passed 3,911 tests at 10:22 PM EST and again in UTC, and built.
+  - Pushed `4d9458c..3410194`, with the replay pace plan's record.
+  - **Deployed:** run `44230078451`, succeeded, 10:24 PM EST.
+  - The live site serves Todd's build (`index-BUpw9abJ.js`): the "Replay speed" group, 1× picked, and no dropdown.
 
 ## Self-review
 
