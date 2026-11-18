@@ -72,6 +72,19 @@ export function flightStatus(leg: MapLeg, now: number, isReplay = false): string
   return label ? liveLabelText(label) : 'In flight'
 }
 
+/**
+ * The caption a tap on Follow the plane shows for a moment beside the switch, and screen readers hear (follow the plane
+ * design §2, as the app's TripMapWording.followCaption): what the map does now. With no flight in the air, turning it on
+ * changes nothing yet, so it says when it will.
+ */
+export function followCaption(isOn: boolean, hasFlightInAir: boolean): string {
+  if (!isOn) return 'Showing the whole flight'
+  return hasFlightInAir ? 'Following the plane' : 'Follows the plane when a flight is in the air'
+}
+
+/** What Follow the plane does, for screen readers, as the app's hint. */
+export const FOLLOW_HINT = 'Keeps the map on the plane and where it’s headed.'
+
 /** "45 min", "2 h" or "2 h 10 min": the landing countdown's length, and the real plane's gap. */
 export function minutesText(minutes: number): string {
   const hours = Math.floor(minutes / 60)

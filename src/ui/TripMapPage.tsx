@@ -16,6 +16,7 @@ import { FactsBody } from './FactsBody'
 import { useAppleMapKit } from './hooks/useAppleMapKit'
 import { useFrameClock } from './hooks/useFrameClock'
 import { useMapStyle } from './hooks/useMapStyle'
+import { useFollowsPlane } from './hooks/useFollowsPlane'
 import { useQuickLayovers } from './hooks/useQuickLayovers'
 import { useSidePanel } from './hooks/useSidePanel'
 import { useSize } from './hooks/useSize'
@@ -56,6 +57,8 @@ export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, 
   // A recap opens paused at its trip's start, ready to play; Live jumps to now, after the trip (Stage 2 spec §6.5).
   const [kept, setClock] = useState(() => (map.mode.kind === 'recap' ? scrub(liveClock(map.span), map.span.start) : liveClock(map.span)))
   const [quickLayovers, rememberQuickLayovers] = useQuickLayovers()
+  // Whether the map follows the plane: this browser's choice, which the card follows too (follow the plane design §2).
+  const [followsPlane, rememberFollowsPlane] = useFollowsPlane()
   const waits = useMemo(() => tripWaits(map), [map])
   // The span, legs and waits always follow the map, so the slider's range and the replay's pace are right if the trip
   // changes while the page is open. A new landing estimate changes them: a replay keeps its moment and plays on from it
@@ -183,7 +186,8 @@ export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, 
             <FactsBody rows={facts.rows} tripSoFar={facts.tripSoFar} showsLiveCredit={facts.showsLiveCredit} />
           </div>
         )}
-        <TripTimeline map={map} clock={clock} onChange={setClock} onQuickLayovers={onQuickLayovers} now={frameNow} viewerTz={viewerTz} h24={h24} />
+        <TripTimeline map={map} clock={clock} onChange={setClock} onQuickLayovers={onQuickLayovers} followsPlane={followsPlane}
+          onFollowsPlane={rememberFollowsPlane} now={frameNow} viewerTz={viewerTz} h24={h24} />
       </section>
     </main>
   )

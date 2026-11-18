@@ -1,13 +1,13 @@
 import type { JSX } from 'preact'
-import { useMemo } from 'preact/hooks'
-import { timelineLine, timelineSpokenValue } from '../copy/tripMap'
+import { useEffect, useMemo, useState } from 'preact/hooks'
+import { FOLLOW_HINT, followCaption, timelineLine, timelineSpokenValue } from '../copy/tripMap'
 import {
   clockTime, goLive, hasFinished, isLive, isPlaying, pause, play, progressAt, REPLAY_SPEEDS, replayDuration, replayOffset, scrub,
   setSpeed, tripTimeAtOffset, type ReplayClock, type ReplaySpeed,
 } from '../map/replayClock'
 import { timelineBlocks } from '../map/timelineBlocks'
 import { activityAt, flightOnGround } from '../map/tripActivity'
-import type { TripMap } from '../map/tripMap'
+import { isMoving, type TripMap } from '../map/tripMap'
 import { TripTimelineBlocks } from './TripTimelineBlocks'
 
 export interface TripTimelineProps {
@@ -16,10 +16,17 @@ export interface TripTimelineProps {
   onChange: (clock: ReplayClock) => void
   /** Quick layovers switched on or off (activity markers design §3.1). */
   onQuickLayovers: (on: boolean) => void
+  /** Whether the map follows the plane (follow the plane design §2), this browser's setting. */
+  followsPlane: boolean
+  /** Follow the plane switched on or off. */
+  onFollowsPlane: (on: boolean) => void
   now: number
   viewerTz: string
   h24: boolean
 }
+
+/** How long the caption a tap on Follow the plane shows beside it: about 2 seconds, as the app's. */
+export const FOLLOW_CAPTION_MS = 2000
 
 /** An arrow key moves half a second of replay at 1x: a quarter hour of a flight, and more of a quick layover. */
 const KEY_STEP = 500
@@ -45,8 +52,20 @@ function keyMove(key: string, whole: number): number | null {
  * activity markers design §3, §4). The bar measures replay time at 1x at the clock's pace, colored by what the pilot
  * is doing, with when and what under it.
  */
-export function TripTimeline({ map, clock, onChange, onQuickLayovers, now, viewerTz, h24 }: TripTimelineProps) {
+export function TripTimeline({ map, clock, onChange, onQuickLayovers, followsPlane, onFollowsPlane, now, viewerTz, h24 }: TripTimelineProps) {
   const t = clockTime(clock, now)
+  // What a tap on Follow the plane did, beside it for a moment, and to screen readers (follow the plane design §2).
+  const [caption, setCaption] = useState<{ text: string; tapped: number } | null>(null)
+  useEffect(() => {
+    if (!caption) return
+    const shown = setTimeout(() => setCaption(null), FOLLOW_CAPTION_MS)
+    return () => clearTimeout(shown)
+  }, [caption])
+  const follow = (on: boolean) => {
+    onFollowsPlane(on)
+    const hasFlightInAir = map.legs.some((l) => l.kind === 'flight' && isMoving(l, t))
+    setCaption({ text: followCaption(on, hasFlightInAir), tapped: Date.now() })
+  }
   const showsPause = isPlaying(clock) && !hasFinished(clock, now)
   const whole = replayDuration(clock)
   const offset = Math.min(replayOffset(clock, t), whole)
@@ -99,6 +118,18 @@ export function TripTimeline({ map, clock, onChange, onQuickLayovers, now, viewe
           onChange={(e) => onChange(setSpeed(clock, Number(e.currentTarget.value) as ReplaySpeed, Date.now()))}>
           {REPLAY_SPEEDS.map((s) => <option key={s} value={String(s)}>{`${s}×`}</option>)}
         </select>
+      </div>
+      {/* Follow the plane (follow the plane design §2): the website's own place for it, under Quick layovers, with what a
+          tap did beside it (Todd, 17 Nov 2026). The caption is a status, so screen readers hear it, outside the label so
+          the switch keeps its name. */}
+      <div class="trip-timeline-follow">
+        <label class="trip-timeline-quick">
+          <input type="checkbox" role="switch" class="trip-timeline-switch" checked={followsPlane} aria-describedby="trip-timeline-follow-hint"
+            onChange={(e) => follow(e.currentTarget.checked)} />
+          Follow the plane
+        </label>
+        <span class="trip-timeline-caption" role="status">{caption?.text ?? ''}</span>
+        <span id="trip-timeline-follow-hint" class="sr-only">{FOLLOW_HINT}</span>
       </div>
     </div>
   )
