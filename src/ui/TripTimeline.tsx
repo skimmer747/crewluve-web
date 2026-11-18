@@ -55,7 +55,7 @@ function keyMove(key: string, whole: number): number | null {
 export function TripTimeline({ map, clock, onChange, onQuickLayovers, followsPlane, onFollowsPlane, now, viewerTz, h24 }: TripTimelineProps) {
   const t = clockTime(clock, now)
   // What a tap on Follow the plane did, beside it for a moment, and to screen readers (follow the plane design §2).
-  const [caption, setCaption] = useState<{ text: string; tapped: number } | null>(null)
+  const [caption, setCaption] = useState<{ text: string } | null>(null)
   useEffect(() => {
     if (!caption) return
     const shown = setTimeout(() => setCaption(null), FOLLOW_CAPTION_MS)
@@ -64,7 +64,8 @@ export function TripTimeline({ map, clock, onChange, onQuickLayovers, followsPla
   const follow = (on: boolean) => {
     onFollowsPlane(on)
     const hasFlightInAir = map.legs.some((l) => l.kind === 'flight' && isMoving(l, t))
-    setCaption({ text: followCaption(on, hasFlightInAir), tapped: Date.now() })
+    // A new caption each tap, the same words or not, so the 2 seconds start again.
+    setCaption({ text: followCaption(on, hasFlightInAir) })
   }
   const showsPause = isPlaying(clock) && !hasFinished(clock, now)
   const whole = replayDuration(clock)

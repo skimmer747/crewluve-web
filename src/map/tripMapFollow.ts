@@ -3,6 +3,7 @@ import { legPlane } from '../facts/planePosition'
 import { pointAtDistance } from './flightPath'
 import { EARTH_RADIUS_M, METERS_PER_MILE } from './greatCircle'
 import { fitRect, type WorldRect } from './mapFit'
+import { MAX_LATITUDE } from './mercator'
 import { framingPoints, isMoving, legInMotion, nextFlight, type MapLeg, type TripMap } from './tripMap'
 
 /**
@@ -19,8 +20,12 @@ export const LEAST_WIDTH_M = 300 * METERS_PER_MILE
 /** How many places along the tail and the way ahead the frame is made from. */
 const PLACE_COUNT = 33
 
-/** World units (a whole world across is 1) in a meter east and west at `latitude`, as MapKit's map points a meter. */
-export const worldPerMeterAt = (latitude: number) => 1 / (2 * Math.PI * EARTH_RADIUS_M * Math.cos((latitude * Math.PI) / 180))
+/**
+ * World units (a whole world across is 1) in a meter east and west at `latitude`, as MapKit's map points a meter: no
+ * nearer a pole than the map draws (`MAX_LATITUDE`), where it would grow without end.
+ */
+export const worldPerMeterAt = (latitude: number) =>
+  1 / (2 * Math.PI * EARTH_RADIUS_M * Math.cos((Math.min(Math.abs(latitude), MAX_LATITUDE) * Math.PI) / 180))
 
 /**
  * The frame that follows `leg`'s plane at `t` (§3): the plane where the map draws it, the tail behind it and the path

@@ -101,6 +101,13 @@ interface Live {
    * isn't asked again while the frame is the same. None until it has asked, and again once the person moves the map.
    */
   followed: WorldRect | null
+  /**
+   * While following, how wide a view MapKit settled on once it couldn't show the frame it was asked for, as it won't
+   * zoom out past its limit on a wide flight in a small view, the card's above all: the slide that keeps the plane in
+   * view then follows it, as it does today, until the frame is narrower than this and fits (the review's fix). Null
+   * otherwise.
+   */
+  clamped: number | null
 }
 
 /** How many of the latest asks a late report from MapKit is matched against. */
@@ -145,7 +152,11 @@ function slideToKept(mapkit: MapKitApi, state: Live, now: Latest | undefined) {
   const taken = state.asks.map((a) => isSameView(shown, a.camera, now.width)).lastIndexOf(true)
   if (taken === state.asks.length - 1) state.view = newest.camera
   else if (taken >= 0) return
-  else state.view = newest.isFraming ? shown : null
+  else {
+    state.view = newest.isFraming ? shown : null
+    // Following, a view of MapKit's own once the glide is there is one it chose because it couldn't show the frame.
+    if (state.followed && !state.glide) state.clamped = wholeView(shown, now.width, now.height).width
+  }
   const settling = state.settling
   if (!settling || now.kept.length === 0) return
   const slide = slideIntoView(shown, now.kept, now.width, now.height, now.insets)
@@ -197,7 +208,7 @@ function AppleMapView({
     })
     const state: Live = {
       map: m, lines: new Map(), night, nightAt: NaN, marks: new Map(), popup: null, framed: '', settling: null, asks: [], view: null,
-      justFramed: false, moved: false, recenterSeen: recenter, glide: 0, followed: null,
+      justFramed: false, moved: false, recenterSeen: recenter, glide: 0, followed: null, clamped: null,
     }
     const moved = () => {
       if (state.moved) return
@@ -414,7 +425,8 @@ function AppleMapView({
       return
     }
     // Following, the plane is in its frame already: the glide keeps it there.
-    if (state.moved || !state.view || following.current) return
+    // Following, the plane is in its frame already, and the glide keeps it there; unless MapKit couldn't show the frame.
+    if (state.moved || !state.view || (following.current && state.clamped == null)) return
     const slide = keepInView(state.view, kept, width, height, insets)
     if (!slide) return
     // The framing has settled by now: the camera is keeping up with the plane.
@@ -437,9 +449,17 @@ function AppleMapView({
       cancelAnimationFrame(state.glide)
       state.glide = 0
       state.followed = null
+      state.clamped = null
       return
     }
     if (state.glide) return
+    // MapKit couldn't show the frame: the slide keeps the plane in view, until the frame is narrow enough to show,
+    // when the glide takes it on from where MapKit shows the map.
+    if (state.clamped != null) {
+      if (target.width >= state.clamped) return
+      state.clamped = null
+      state.followed = null
+    }
     const followed = state.followed
     if (followed && (['x', 'y', 'width', 'height'] as const).every((k) => followed[k] === target[k])) return
     const m = state.map

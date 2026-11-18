@@ -252,6 +252,31 @@ describe('following the plane on Apple’s map (follow the plane design §3, §4
     expect(sameRect(m.rects.at(-1)!.rect, target.rect)).toBe(true)
   })
 
+  it('leaves a view MapKit can’t zoom out to to the slide that keeps the plane in view, as the card does today, until the frame fits (the review’s fix)', async () => {
+    const kit = await ready()
+    const frames = stubFrames()
+    const view = render(<AppleTripMap {...props} followsPlane />)
+    await waitFor(() => expect(kit.maps).toHaveLength(1))
+    const m = kit.maps[0]
+    const asked = m.rects[0].rect
+    // MapKit won't zoom out so far: it shows half the width asked for, about its middle, and the plane is off its left.
+    const clamped = new kit.MapRect(asked.x + asked.width / 4, asked.y + asked.height / 4, asked.width / 2, asked.height / 2)
+    m.visibleMapRect = clamped
+    m.fire('region-change-end')
+    expect(m.rects, 'one slide to show the plane').toHaveLength(2)
+    m.visibleMapRect = m.rects[1].rect
+    m.fire('region-change-end')
+    // A minute on the frame has moved a little, still too wide for MapKit: no glide back to it, and no jump.
+    view.rerender(<AppleTripMap {...props} t={at('11:46')} followsPlane />)
+    expect(frames.waiting).toBe(0)
+    expect(m.rects.slice(2).every((r) => !sameRect(r.rect, followed(at('11:46')).rect))).toBe(true)
+    // Near the end the frame is narrow enough for MapKit to show: the glide takes it there again.
+    view.rerender(<AppleTripMap {...props} t={at('13:10')} followsPlane />)
+    expect(frames.waiting).toBe(1)
+    for (let i = 0; i < 300 && frames.waiting > 0; i++) frames.frame()
+    expect(sameRect(m.rects.at(-1)!.rect, followed(at('13:10')).rect)).toBe(true)
+  })
+
   it('frames the whole flight again, animated, when the setting is turned off', async () => {
     const kit = await ready()
     const view = render(<AppleTripMap {...props} followsPlane />)

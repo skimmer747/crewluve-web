@@ -61,6 +61,13 @@ describe('the frame that follows the plane (follow the plane design §3)', () =>
     expect(TAIL_SHARE).toBe(0.1)
   })
 
+  it('measures its 300 miles no nearer a pole than the map draws, so a flight over the top of the world has a frame', () => {
+    const polar = { ...equatorFlight(0, 20), origin: { ...flight.origin, place: { lat: 89.9, lng: 0 } }, destination: { ...flight.destination, place: { lat: 89.9, lng: 180 } } }
+    const rect = followRect(polar, at('11:45'), false)!
+    expect(Number.isFinite(rect.width) && Number.isFinite(rect.height)).toBe(true)
+    expect(worldPerMeterAt(90)).toBe(worldPerMeterAt(85.05))
+  })
+
   it('is none before the plane has left, after the gate, and on a drive', () => {
     expect(followRect(flight, at('10:10'), false), 'taxiing out: the whole flight').toBeNull()
     expect(followRect(flight, at('13:30'), false), 'at the gate').toBeNull()
