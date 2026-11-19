@@ -1,11 +1,12 @@
+import { yours } from '../copy/clockLabel'
 import {
-  aircraftText, allFlownText, averageSpeedText, chaseText, closestToHomeText, cockpitEventText, flownText, flyingInto, groundSunText,
-  halfwayText, heightAndSpeedText, landsText, midLine, moonText, timeDifferenceText, toGoText,
+  aircraftText, allFlownText, averageSpeedText, chaseText, closestToHomeText, cockpitEventText, cockpitGapText, flownText, flyingInto,
+  groundSunText, halfwayText, heightAndSpeedText, landsText, midLine, moonText, timeDifferenceText, toGoText,
 } from '../copy/facts'
 import { longestText, milesText, onTheWayText, soFarText } from '../copy/factsTrip'
-import { daysText, shortTimeText } from '../copy/format'
-import { dayPhrase, gateLine, landedText, landingLine, nextDepartureChip } from '../copy/tripMap'
-import { landingWeatherText } from '../copy/weather'
+import { daysText } from '../copy/format'
+import { dayPhrase, gateLine, landedText, landingLine, nextDepartureChip, takeoffLine } from '../copy/tripMap'
+import { landingWeatherText, takeoffWeatherText } from '../copy/weather'
 import { airborneWindow } from '../map/flightProgress'
 import { METERS_PER_MILE } from '../map/greatCircle'
 import { dayCount, destinationsOf, legDistanceMeters, legInMotion, nextFlight, pilotLocation, type MapLeg } from '../map/tripMap'
@@ -16,6 +17,7 @@ import { hasLiveData, isSeenAt, legHalfwayTime, legPathLength, legTimeAtDistance
 import { roundedMiles } from './milestone'
 import { legPlane, type PlanePosition } from './planePosition'
 import { chase, cockpitHorizonOnLeg, moonSight, nextGroundSunEvent, sunAltitudeOnLeg } from './sky'
+import { takeoffOf } from './takeoff'
 import {
   atDepartureText, belowText, forecastFor, isLandedBeforeGate, isRecapOver, isStillOnGround, lastSeenText, latestEvent, sheetHeadline, showsLiveData,
   tripSoFar,
@@ -40,8 +42,10 @@ const compared = (facts: TripFacts, distance: number) => {
 
 function flightRows(facts: TripFacts, leg: MapLeg, t: number, now: number): FactRow[] {
   const plane = legPlane(leg, t, facts.isReplay)
-  return [belowRow(facts, leg, t), planeRow(leg, plane), skyRow(facts, leg, t), distanceRow(facts, leg, plane, t), headedRow(facts, leg, t, now)]
-    .filter(notNull)
+  return [
+    belowRow(facts, leg, t), planeRow(leg, plane), skyRow(facts, leg, t), distanceRow(facts, leg, plane, t), takeoffRow(facts, leg, t),
+    headedRow(facts, leg, t, now),
+  ].filter(notNull)
 }
 
 /**
@@ -91,7 +95,8 @@ function planeRow(leg: MapLeg, plane: PlanePosition): FactRow | null {
 }
 
 /**
- * The sky from the cockpit: the next sunrise or sunset, chasing the sun, the moon. Left out while the real plane is still
+ * The sky from the cockpit: the next sunrise or sunset, how much sooner or later the pilot sees it than the ground ("The
+ * pilot sees it 31 min before the ground does", time labels design §3.6), chasing the sun, the moon. Left out while the real plane is still
  * at its departure airport after the plan's takeoff time, as nothing says "flying" then (the website's own, Todd, 16
  * Nov 2026): its times would be the schedule's, for a plane that hasn't left. And once it's down, until the gate, as at
  * the gate (the landed, not yet at the gate design §3, Todd, 17 Nov 2026).
@@ -104,6 +109,7 @@ function skyRow(facts: TripFacts, leg: MapLeg, t: number): FactRow | null {
   const parts = [
     next ? flyingInto(next.kind) : null,
     next ? cockpitEventText(next, t, facts.viewerTz, facts.h24) : null,
+    next ? cockpitGapText(next) : null,
     chasing ? chaseText(chasing) : null,
     moon ? moonText(moon) : null,
   ].filter(notNull)
@@ -138,8 +144,22 @@ function distanceRow(facts: TripFacts, leg: MapLeg, plane: PlanePosition, t: num
 }
 
 /**
+ * "Took off Taipei 7:42 PM · 6:42 AM L" once the plane is off the ground (time labels design §3.3), then the weather it
+ * took off in, "84°F and clear at takeoff". The real plane's takeoff where it was seen, else the schedule's, "about".
+ * Left out before it, while a real plane is still at its departure airport or back there after an air return, and where
+ * the leg has no takeoff to tell (`takeoffOf`): a real plane first seen too far out.
+ */
+function takeoffRow(facts: TripFacts, leg: MapLeg, t: number): FactRow | null {
+  const takeoff = takeoffOf(leg)
+  if (isStillOnGround(facts, leg, t) || !takeoff || takeoff.time > t) return null
+  const weather = facts.takeoffForecasts[leg.id] ?? null
+  const title = takeoffLine(leg, takeoff.time, !takeoff.isSeen, facts.viewerTz, facts.h24)
+  return factRow('takeoff', 'AirplaneTakeoff', title, [weather ? takeoffWeatherText(weather) : null], weather != null)
+}
+
+/**
  * When it lands, then the weather there and its time. Down, not yet at the gate, when it reaches the gate: "Reaches the
- * gate at 3:52 PM · 7:52 PM your time" (the landed, not yet at the gate design §3, Todd, 17 Nov 2026).
+ * gate in Anchorage at 3:52 PM · 7:52 PM L" (the landed, not yet at the gate design §3, Todd, 17 Nov 2026).
  */
 function headedRow(facts: TripFacts, leg: MapLeg, t: number, now: number): FactRow {
   const forecast = forecastFor(facts, leg, now)
@@ -160,7 +180,7 @@ function whereTheyAreRow(facts: TripFacts, t: number): FactRow | null {
   const sun = zone ? nextGroundSunEvent(place.place, t) : null
   return factRow('whereTheyAre', 'MapPin', `In ${place.city}`, [
     zone ? timeDifferenceText(zone, facts.viewerTz, t) : null,
-    zone && sun ? groundSunText(sun.kind, sun.time, zone, facts.h24) : null,
+    zone && sun ? groundSunText(sun.kind, sun.time, zone, place.city, facts.h24) : null,
   ])
 }
 
@@ -186,7 +206,7 @@ function tripSoFarRow(facts: TripFacts, t: number): FactRow | null {
 function leavesRow(facts: TripFacts, t: number, now: number): FactRow | null {
   const first = nextFlight(facts.map, t)
   if (!first) return null
-  const when = `${dayPhrase(first.start, t, facts.viewerTz)} ${shortTimeText(first.start, facts.viewerTz, facts.h24)}`
+  const when = `${dayPhrase(first.start, t, facts.viewerTz)} ${yours(first.start, facts.viewerTz, facts.h24)}`
   const flight = first.flightNumber ? `${first.flightNumber} to ${first.destination.city}` : `Flying to ${first.destination.city}`
   const forecast = forecastFor(facts, first, now)
   return factRow('leaves', 'AirplaneTakeoff', `Leaves ${when}`, [flight, forecast ? landingWeatherText(forecast) : null], forecast != null)

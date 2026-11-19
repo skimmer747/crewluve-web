@@ -18,16 +18,16 @@ describe('narrative on the demo timeline', () => {
   const driver = engineFor(demoRaw('driver', A))
 
   it.each([
-    [100, 'Alex is flying to Rockford on UPS flight 2961 from Louisville — landing in 50m which is 8:00am EDT.'],
-    [180, 'Alex is in Rockford — heading to Anchorage in 45m which is 9:15am EDT.'],
-    [30, 'Alex is at base in Louisville — flies to Rockford in 30m which is 6:30am EDT.'],
-    [-7800, 'Alex is on layover in Miami — flies to Louisville in 10h 0m which is 5:30am EDT.'],
-    [1300, "Alex's layover has been extended by 40 minutes and will now fly to Louisville in 5h 0m which is 8:10am EDT."],
-    [1700, 'Alex was delayed in Anchorage and is flying to Louisville on UPS flight 2962 — landing in 3h 20m which is 1:10pm EDT.'],
-    [-60, 'Alex is driving to work in Louisville — arrives in 40m at 5:10am EDT, then the trip starts.'],
-    [1950, 'Alex is driving home to Lexington — back in 50m at 2:50pm EDT.'],
-    [4500, 'Alex is on reserve in Louisville — on call until 9h 0m which is 5:30pm EDT.'],
-    [5900, 'Alex: CQ Training in Louisville — finishes in 5h 40m which is 1:30pm EDT.'],
+    [100, 'Alex is flying to Rockford on UPS flight 2961 from Louisville — landing in 50m which is 8:00\u202FAM L.'],
+    [180, 'Alex is in Rockford — heading to Anchorage in 45m which is 9:15\u202FAM L.'],
+    [30, 'Alex is at base in Louisville — flies to Rockford in 30m which is 6:30\u202FAM L.'],
+    [-7800, 'Alex is on layover in Miami — flies to Louisville in 10h 0m which is 5:30\u202FAM L.'],
+    [1300, "Alex's layover has been extended by 40 minutes and will now fly to Louisville in 5h 0m which is 8:10\u202FAM L."],
+    [1700, 'Alex was delayed in Anchorage and is flying to Louisville on UPS flight 2962 — landing in 3h 20m which is 1:10\u202FPM L.'],
+    [-60, 'Alex is driving to work in Louisville — arrives in 40m at 5:10\u202FAM L, then the trip starts.'],
+    [1950, 'Alex is driving home to Lexington — back in 50m at 2:50\u202FPM L.'],
+    [4500, 'Alex is on reserve in Louisville — on call until 9h 0m which is 5:30\u202FPM L.'],
+    [5900, 'Alex: CQ Training in Louisville — finishes in 5h 40m which is 1:30\u202FPM L.'],
   ])('at %i min: %s', (minutes, text) => {
     expect(plain(sentenceAt(driver, minutes))).toBe(text)
   })
@@ -35,13 +35,13 @@ describe('narrative on the demo timeline', () => {
   it('jumpseat commuter waiting at base for the ride home', () => {
     const js = engineFor(demoRaw('jumpseater', A))
     expect(plain(sentenceAt(js, 1960))).toBe(
-      'Alex has one more leg home from Louisville to Orlando! It leaves in 1h 20m at 3:30pm EDT and lands at 5:30pm EDT.',
+      'Alex has one more leg home from Louisville to Orlando! It leaves in 1h 20m at 3:30\u202FPM L and lands at 5:30\u202FPM L.',
     )
   })
 
   it('bolds places and times, and colors the countdown with the status color', () => {
     const spans = sentenceAt(driver, 100)
-    expect(spans.filter((s) => s.bold).map((s) => s.text)).toEqual(['Rockford', 'Louisville', '50m', '8:00am EDT'])
+    expect(spans.filter((s) => s.bold).map((s) => s.text)).toEqual(['Rockford', 'Louisville', '50m', '8:00\u202FAM L'])
     expect(spans.filter((s) => s.color).map((s) => `${s.text}:${s.color}`)).toEqual(['50m:status'])
     expect(spans.find((s) => s.text === '50m')?.digits).toBe(true)
   })
@@ -64,19 +64,19 @@ describe('narrative edge cases', () => {
 
   it('says riding for a company deadhead', () => {
     expect(plain(sentenceAt(tripWith({ dh: true }), 270))).toBe(
-      'Alex is riding to Anchorage on UPS flight 1000 from Louisville — landing in 1h 0m which is 11:00am EDT.',
+      'Alex is riding to Anchorage on UPS flight 1000 from Louisville — landing in 1h 0m which is 11:00\u202FAM L.',
     )
   })
 
   it('names the airline on a commercial deadhead', () => {
     expect(plain(sentenceAt(tripWith({ commercialDh: true, airline: 'DL', number: '1234' }), 270))).toBe(
-      'Alex is riding to Anchorage on Delta flight 1234 from Louisville — landing in 1h 0m which is 11:00am EDT.',
+      'Alex is riding to Anchorage on Delta flight 1234 from Louisville — landing in 1h 0m which is 11:00\u202FAM L.',
     )
   })
 
   it('gives ground transport its own sentence', () => {
     expect(plain(sentenceAt(tripWith({ arr: 'LEX', out: 30, in: 90, number: 'GND', ground: true }), 60))).toBe(
-      'Alex is riding to Lexington by ground from Louisville — arrives in 30m which is 7:00am EDT.',
+      'Alex is riding to Lexington by ground from Louisville — arrives in 30m which is 7:00\u202FAM L.',
     )
   })
 
@@ -94,13 +94,13 @@ describe('narrative edge cases', () => {
     const withNext = engineFor(
       builder().trip('t2', { dutyPeriods: [{ start: 1440, end: 1700, flights: [{ dep: 'MIA', arr: 'SDF', out: 1500, in: 1650 }] }] }).build(),
     )
-    expect(plain(sentenceAt(withNext, 600))).toBe('Alex is in Miami — flies to Louisville in 15h 0m which is 6:30am EDT.')
+    expect(plain(sentenceAt(withNext, 600))).toBe('Alex is in Miami — flies to Louisville in 15h 0m which is 6:30\u202FAM L.')
     expect(plain(sentenceAt(engineFor(builder().build()), 600))).toBe('Alex is in Miami')
   })
 
   it('drops the city for an event with no location and no base', () => {
     const e = engineFor(new RawBuilder(A).pilot('Alex', null, 'LEX').manualEvent('e1', 'Vacation', 0, 600, null).build())
-    expect(plain(sentenceAt(e, 60))).toBe('Alex: Vacation — finishes in 9h 0m which is 3:30pm EDT.')
+    expect(plain(sentenceAt(e, 60))).toBe('Alex: Vacation — finishes in 9h 0m which is 3:30\u202FPM L.')
   })
 
   it('says "On duty" for the unknown status, and when building the sentence fails', () => {
@@ -124,37 +124,37 @@ describe('narrative when a departure moves', () => {
     {
       name: 'turn, late flight',
       engine: twoFlights(40), minutes: 200,
-      text: 'Alex is delayed in Rockford — heading to Anchorage in 2h 20m which is 11:10am EDT.',
+      text: 'Alex is delayed in Rockford — heading to Anchorage in 2h 20m which is 11:10\u202FAM L.',
       colors: ['2h 20m:red'],
     },
     {
       name: 'turn, early flight',
       engine: twoFlights(-40), minutes: 200,
-      text: 'Alex is pushing early in Rockford — heading to Anchorage in 1h 0m which is 9:50am EDT.',
+      text: 'Alex is pushing early in Rockford — heading to Anchorage in 1h 0m which is 9:50\u202FAM L.',
       colors: ['1h 0m:green'],
     },
     {
       name: 'in the air, left early',
       engine: twoFlights(-40), minutes: 400,
-      text: 'Alex pushed early in Rockford and is flying to Anchorage on UPS flight 1000 — landing in 2h 40m which is 2:50pm EDT.',
+      text: 'Alex pushed early in Rockford and is flying to Anchorage on UPS flight 1000 — landing in 2h 40m which is 2:50\u202FPM L.',
       colors: ['2h 40m:green'],
     },
     {
       name: 'layover, shortened by an hour',
       engine: overnight(-60), minutes: 800,
-      text: "Alex's layover has been shortened by 1 hour and will now fly to Louisville in 9h 0m which is 3:50am EDT.",
+      text: "Alex's layover has been shortened by 1 hour and will now fly to Louisville in 9h 0m which is 3:50\u202FAM L.",
       colors: ['9h 0m:green'],
     },
     {
       name: 'layover, shortened by 20 minutes',
       engine: overnight(-20), minutes: 800,
-      text: "Alex's layover has been shortened by 20 minutes and will now fly to Louisville in 9h 40m which is 4:30am EDT.",
+      text: "Alex's layover has been shortened by 20 minutes and will now fly to Louisville in 9h 40m which is 4:30\u202FAM L.",
       colors: ['9h 40m:green'],
     },
     {
       name: 'layover, extended by 2h 5m',
       engine: overnight(125), minutes: 800,
-      text: "Alex's layover has been extended by 2 hours 5 minutes and will now fly to Louisville in 12h 5m which is 6:55am EDT.",
+      text: "Alex's layover has been extended by 2 hours 5 minutes and will now fly to Louisville in 12h 5m which is 6:55\u202FAM L.",
       colors: ['12h 5m:red'],
     },
     {
@@ -184,7 +184,7 @@ describe('narrative when a departure moves', () => {
     {
       name: 'off, on-time flight',
       engine: firstFlight(0, { dep: 'ANC' }), minutes: 20,
-      text: 'Alex is in Anchorage — flies to Rockford in 40m which is 6:30am EDT.',
+      text: 'Alex is in Anchorage — flies to Rockford in 40m which is 6:30\u202FAM L.',
       colors: ['40m:status'],
     },
   ])('$name', ({ engine, minutes, text, colors }) => {
@@ -199,7 +199,7 @@ describe('narrative for standby, reserve, events and base', () => {
 
   it('says hot standby, with the on-call time', () => {
     const e = engineFor(alex().manualEvent('h', 'HOT STANDBY', 0, 300, 'SDF').build())
-    expect(plain(sentenceAt(e, 60))).toBe('Alex is on hot standby in Louisville — on call until 4h 0m which is 10:30am EDT.')
+    expect(plain(sentenceAt(e, 60))).toBe('Alex is on hot standby in Louisville — on call until 4h 0m which is 10:30\u202FAM L.')
   })
 
   it('says only "on reserve" when there is no city', () => {
@@ -209,12 +209,12 @@ describe('narrative for standby, reserve, events and base', () => {
 
   it('bolds an event’s title, its city, the countdown and the finish time', () => {
     const spans = sentenceAt(demo, 5900)
-    expect(spans.filter((s) => s.bold).map((s) => s.text)).toEqual(['CQ Training', 'Louisville', '5h 40m', '1:30pm EDT'])
+    expect(spans.filter((s) => s.bold).map((s) => s.text)).toEqual(['CQ Training', 'Louisville', '5h 40m', '1:30\u202FPM L'])
   })
 
   it('heads home from base ahead of the next flight', () => {
     const spans = sentenceAt(demo, 1910)
-    expect(plain(spans)).toBe('Alex is at base in Louisville — heads home to Lexington in 20m which is 1:40pm EDT.')
+    expect(plain(spans)).toBe('Alex is at base in Louisville — heads home to Lexington in 20m which is 1:40\u202FPM L.')
     expect(coloredSpans(spans)).toEqual(['20m:status'])
   })
 
@@ -226,7 +226,7 @@ describe('narrative for standby, reserve, events and base', () => {
   it('writes times on the 24-hour clock when asked', () => {
     const snapshot = makeSnapshot(demo.schedule, demo.legs, at(100), NY)
     expect(plain(narrative(snapshot, { ...ctx(100), h24: true }))).toBe(
-      'Alex is flying to Rockford on UPS flight 2961 from Louisville — landing in 50m which is 08:00 EDT.',
+      'Alex is flying to Rockford on UPS flight 2961 from Louisville — landing in 50m which is 8:00 L.',
     )
   })
 })
@@ -273,18 +273,18 @@ describe('narrative while the real plane is back at its departure airport after 
   }
 
   it('says it has returned there, with the countdown and the time as before', () => {
-    expect(plain(back(100))).toBe('Alex has returned to Louisville on UPS flight 2961 to Rockford — landing in 50m which is 8:00am EDT.')
+    expect(plain(back(100))).toBe('Alex has returned to Louisville on UPS flight 2961 to Rockford — landing in 50m which is 8:00\u202FAM L.')
   })
 
   it('says "about" of a landing time that’s the real plane’s estimate, as before', () => {
     const end = (makeSnapshot(driver.schedule, driver.legs, at(100), NY).status.current as MoveLeg).end
     expect(plain(back(100, { estimatedArrival: end })))
-      .toBe('Alex has returned to Louisville on UPS flight 2961 to Rockford — landing in 50m which is about 8:00am EDT.')
+      .toBe('Alex has returned to Louisville on UPS flight 2961 to Rockford — landing in 50m which is about 8:00\u202FAM L.')
   })
 
   it('says still on the ground, as before, when the flight back is another', () => {
     expect(plain(back(100, { returnedFlight: 'another flight' })))
-      .toBe('Alex is still on the ground in Louisville on UPS flight 2961 to Rockford — landing in 50m which is 8:00am EDT.')
+      .toBe('Alex is still on the ground in Louisville on UPS flight 2961 to Rockford — landing in 50m which is 8:00\u202FAM L.')
   })
 })
 
@@ -312,37 +312,37 @@ describe('narrative while the real plane is still on the ground at its departure
     )
 
   it('says so in place of flying, with the countdown and the time as before', () => {
-    expect(plain(onGround(driver, 100))).toBe('Alex is still on the ground in Louisville on UPS flight 2961 to Rockford — landing in 50m which is 8:00am EDT.')
+    expect(plain(onGround(driver, 100))).toBe('Alex is still on the ground in Louisville on UPS flight 2961 to Rockford — landing in 50m which is 8:00\u202FAM L.')
   })
 
   it('says "about" of a landing time that’s the real plane’s estimate, as before', () => {
     const end = (snapAt(driver, 100).status.current as MoveLeg).end
     expect(plain(onGround(driver, 100, { estimatedArrival: end })))
-      .toBe('Alex is still on the ground in Louisville on UPS flight 2961 to Rockford — landing in 50m which is about 8:00am EDT.')
+      .toBe('Alex is still on the ground in Louisville on UPS flight 2961 to Rockford — landing in 50m which is about 8:00\u202FAM L.')
   })
 
   it('bolds the places and the times, and colors the countdown with the status color', () => {
     const spans = onGround(driver, 100)
-    expect(spans.filter((s) => s.bold).map((s) => s.text)).toEqual(['Louisville', 'Rockford', '50m', '8:00am EDT'])
+    expect(spans.filter((s) => s.bold).map((s) => s.text)).toEqual(['Louisville', 'Rockford', '50m', '8:00\u202FAM L'])
     expect(coloredSpans(spans)).toEqual(['50m:status'])
     expect(spans.find((s) => s.text === '50m')?.spoken).toBe('50 minutes')
   })
 
   it('takes the place of a delayed departure’s words too, keeping its red countdown', () => {
     const spans = onGround(driver, 1700)
-    expect(plain(spans)).toBe('Alex is still on the ground in Anchorage on UPS flight 2962 to Louisville — landing in 3h 20m which is 1:10pm EDT.')
+    expect(plain(spans)).toBe('Alex is still on the ground in Anchorage on UPS flight 2962 to Louisville — landing in 3h 20m which is 1:10\u202FPM L.')
     expect(coloredSpans(spans)).toEqual(['3h 20m:red'])
   })
 
   it('reads the same for a deadhead, and names the flight plainly when it has no usable number', () => {
     expect(plain(onGround(tripWith({ dh: true }), 270)))
-      .toBe('Alex is still on the ground in Louisville on UPS flight 1000 to Anchorage — landing in 1h 0m which is 11:00am EDT.')
+      .toBe('Alex is still on the ground in Louisville on UPS flight 1000 to Anchorage — landing in 1h 0m which is 11:00\u202FAM L.')
     expect(plain(onGround(tripWith({ number: null }), 270)))
-      .toBe('Alex is still on the ground in Louisville on the flight to Anchorage — landing in 1h 0m which is 11:00am EDT.')
+      .toBe('Alex is still on the ground in Louisville on the flight to Anchorage — landing in 1h 0m which is 11:00\u202FAM L.')
   })
 
   it('says flying, as before, when the plane on the ground is another flight’s, or none is', () => {
-    const flying = 'Alex is flying to Rockford on UPS flight 2961 from Louisville — landing in 50m which is 8:00am EDT.'
+    const flying = 'Alex is flying to Rockford on UPS flight 2961 from Louisville — landing in 50m which is 8:00\u202FAM L.'
     expect(plain(narrative(snapAt(driver, 100), { ...ctx(100), stillOnGroundFlight: 'another flight' }))).toBe(flying)
     expect(plain(narrative(snapAt(driver, 100), { ...ctx(100), stillOnGroundFlight: null }))).toBe(flying)
   })
@@ -364,35 +364,35 @@ describe('narrative while the real plane is down, not yet at the gate (the lande
     )
 
   it('says it has landed, and counts down to the gate, with the time as before', () => {
-    expect(plain(landed(driver, 145))).toBe('Alex has landed in Rockford on UPS flight 2961 — at the gate in 5m which is 8:00am EDT.')
+    expect(plain(landed(driver, 145))).toBe('Alex has landed in Rockford on UPS flight 2961 — at the gate in 5m which is 8:00\u202FAM L.')
   })
 
   it('says "about" of a gate time that’s the real plane’s estimate, as before', () => {
     const end = (snapAt(driver, 145).status.current as MoveLeg).end
     expect(plain(landed(driver, 145, { estimatedArrival: end })))
-      .toBe('Alex has landed in Rockford on UPS flight 2961 — at the gate in 5m which is about 8:00am EDT.')
+      .toBe('Alex has landed in Rockford on UPS flight 2961 — at the gate in 5m which is about 8:00\u202FAM L.')
   })
 
   it('bolds the place and the times, and colors the countdown with the status color', () => {
     const spans = landed(driver, 145)
-    expect(spans.filter((s) => s.bold).map((s) => s.text)).toEqual(['Rockford', '5m', '8:00am EDT'])
+    expect(spans.filter((s) => s.bold).map((s) => s.text)).toEqual(['Rockford', '5m', '8:00\u202FAM L'])
     expect(coloredSpans(spans)).toEqual(['5m:status'])
     expect(spans.find((s) => s.text === '5m')?.spoken).toBe('5 minutes')
   })
 
   it('takes the place of a delayed flight’s words too, keeping its red countdown', () => {
     const spans = landed(driver, 1890)
-    expect(plain(spans)).toBe('Alex has landed in Louisville on UPS flight 2962 — at the gate in 10m which is 1:10pm EDT.')
+    expect(plain(spans)).toBe('Alex has landed in Louisville on UPS flight 2962 — at the gate in 10m which is 1:10\u202FPM L.')
     expect(coloredSpans(spans)).toEqual(['10m:red'])
   })
 
   it('reads the same for a deadhead, and says "on the flight" when it has no usable number', () => {
-    expect(plain(landed(tripWith({ dh: true }), 320))).toBe('Alex has landed in Anchorage on UPS flight 1000 — at the gate in 10m which is 11:00am EDT.')
-    expect(plain(landed(tripWith({ number: null }), 320))).toBe('Alex has landed in Anchorage on the flight — at the gate in 10m which is 11:00am EDT.')
+    expect(plain(landed(tripWith({ dh: true }), 320))).toBe('Alex has landed in Anchorage on UPS flight 1000 — at the gate in 10m which is 11:00\u202FAM L.')
+    expect(plain(landed(tripWith({ number: null }), 320))).toBe('Alex has landed in Anchorage on the flight — at the gate in 10m which is 11:00\u202FAM L.')
   })
 
   it('says flying, as before, when the plane down is another flight’s, or none is', () => {
-    const flying = 'Alex is flying to Rockford on UPS flight 2961 from Louisville — landing in 5m which is 8:00am EDT.'
+    const flying = 'Alex is flying to Rockford on UPS flight 2961 from Louisville — landing in 5m which is 8:00\u202FAM L.'
     expect(plain(narrative(snapAt(driver, 145), { ...ctx(145), landedFlight: 'another flight' }))).toBe(flying)
     expect(plain(narrative(snapAt(driver, 145), { ...ctx(145), landedFlight: null }))).toBe(flying)
   })

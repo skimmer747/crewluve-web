@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { flightsToForecast, landsWithinHorizon, WEATHER_HORIZON_MS } from '../../src/facts/landingWeather'
+import { flightsToForecast, landsWithinHorizon, takeoffToFetch, WEATHER_HORIZON_MS } from '../../src/facts/landingWeather'
+import { takeoffOf } from '../../src/facts/takeoff'
 import { makeTripMap } from '../../src/map/tripMap'
 import { AIRPORTS, at, EUROPE, HOUR } from '../map/tripMapLegs'
 
@@ -30,5 +31,25 @@ describe('which flights get weather (Stage 2 spec §7.2)', () => {
     expect(landsWithinHorizon(f1, at(4))).toBe(true)
     expect(landsWithinHorizon(f1, at(9))).toBe(false)
     expect(landsWithinHorizon(f1, at(8 - 49))).toBe(false)
+  })
+})
+
+describe('the takeoff weather (time labels design §3.3)', () => {
+  /** The Europe trip's first flight leaves Louisville at +0 and lands at +8 hours. */
+  const mapAt = (hours: number) => makeTripMap(EUROPE, { isNextTrip: false, home: 'SDF', now: at(hours), airports: AIRPORTS })!
+
+  it('is for the flight in the air, at its takeoff', () => {
+    const wanted = takeoffToFetch(mapAt(4), at(4))
+    expect(wanted?.leg.id).toBe('f1')
+    expect(wanted?.takeoff).toEqual(takeoffOf(mapAt(4).legs[0]))
+    expect(wanted?.takeoff.time).toBeGreaterThan(at(0))
+  })
+
+  it('is for none before the takeoff, taxiing out', () => {
+    expect(takeoffToFetch(mapAt(0), at(0) + 5 * 60_000)).toBeNull()
+  })
+
+  it('is for none on a layover', () => {
+    expect(takeoffToFetch(mapAt(12), at(12))).toBeNull()
   })
 })

@@ -29,6 +29,7 @@ import { TrackingPopup } from './TrackingPopup'
 import { TripMapCard } from './TripMapCard'
 import { TripProgressCard } from './TripProgressCard'
 import { UpcomingTripCard } from './UpcomingTripCard'
+import { ClockKey } from './ClockText'
 
 export interface StatusScreenProps {
   snap: Snapshot
@@ -158,10 +159,12 @@ export function StatusScreen(p: StatusScreenProps) {
         <InFlightCard facts={flying} now={p.now} h24={p.h24} headingRef={inFlightHeading} onOpenTracking={tracking.show} />
       )}
       {snap.upcomingTrip && (
-        <UpcomingTripCard trip={snap.upcomingTrip} now={p.now} timeZone={p.homeTz} h24={p.h24} airports={p.airports}
+        <UpcomingTripCard trip={snap.upcomingTrip} now={p.now} timeZone={p.viewerTz} h24={p.h24} airports={p.airports}
           link={linkTo('trip', p.onOpenSchedule)} />
       )}
       {snap.tripProgress && <TripProgressCard progress={snap.tripProgress} airports={p.airports} />}
+      {/* The key to the family's times' "L", above the footer (time labels design §3.5). */}
+      <ClockKey />
       <Footer {...p.footer} />
     </>
   )
@@ -207,14 +210,15 @@ export function StatusScreen(p: StatusScreenProps) {
   )
 }
 
-function HomeCards({ snap, now, homeTz, h24, airports, onOpenSchedule }: StatusScreenProps) {
+/** The countdown cards' times are the family's, in the viewer's zone, as the status sentence's (time labels design §3.7). */
+function HomeCards({ snap, now, viewerTz, h24, airports, onOpenSchedule }: StatusScreenProps) {
   const leave = snap.leave
   const visual = leave ? leaveCard(leave) : null
   const subtitle = !leave
     ? null
     : leave.commuterUnlogged
-      ? tripDepartsText(airports.city(leave.airport) ?? '', leave.time, homeTz, h24)
-      : leaveWhenText(leave.time, homeTz, h24)
+      ? tripDepartsText(airports.city(leave.airport) ?? '', leave.time, viewerTz, h24)
+      : leaveWhenText(leave.time, viewerTz, h24)
   return (
     <>
       {leave && visual && (
@@ -226,7 +230,7 @@ function HomeCards({ snap, now, homeTz, h24, airports, onOpenSchedule }: StatusS
   )
 }
 
-function AwayCard({ snap, now, homeTz, h24, airports, celebrateKey, onOpenSchedule, estimatedArrival }: StatusScreenProps) {
+function AwayCard({ snap, now, viewerTz, h24, airports, celebrateKey, onOpenSchedule, estimatedArrival }: StatusScreenProps) {
   const arrival = snap.arrival
   if (!arrival) {
     return snap.fallbackDaysRemaining != null
@@ -237,7 +241,7 @@ function AwayCard({ snap, now, homeTz, h24, airports, celebrateKey, onOpenSchedu
   const city = airports.city(arrival.airport)
   // A time that's the real plane's estimate reads "About" (Stage 3 spec §9).
   const isEstimate = estimatedArrival != null && Math.abs(arrival.time - estimatedArrival) < 1000
-  const when = `${isEstimate ? 'About ' : ''}${arrivalWhenText(arrival.time, homeTz, h24)}`
+  const when = `${isEstimate ? 'About ' : ''}${arrivalWhenText(arrival.time, viewerTz, h24)}`
   return (
     <CountdownCard
       title={visual.title}

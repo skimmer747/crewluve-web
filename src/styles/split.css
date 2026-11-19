@@ -63,6 +63,10 @@
   height: min(160px, calc(0.42 * max(320px, 40vw)));
 }
 
+.split-status .location {
+  --dial: min(160px, calc(0.42 * max(320px, 40vw)));
+}
+
 /* The countdown, for browsers without container units, from the column's card: its content is the column less 80 px.
    The cqi line comes last again, so browsers that have them keep it (cards.css). */
 .split-status .countdown-value .num {

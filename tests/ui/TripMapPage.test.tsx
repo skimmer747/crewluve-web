@@ -7,7 +7,7 @@ import { makeTripMap } from '../../src/map/tripMap'
 import { resetAppleMapKit, startAppleMapKit } from '../../src/ui/hooks/useAppleMapKit'
 import { TripMapPage } from '../../src/ui/TripMapPage'
 import { fakeMapKit } from '../fixtures/fakeMapKit'
-import { setWindowSize } from '../fixtures/ui'
+import { setWindowSize, visibleText } from '../fixtures/ui'
 import { AIRPORTS, at, drive, EUROPE, flight } from '../map/tripMapLegs'
 
 afterEach(() => {
@@ -61,7 +61,7 @@ describe('the full map (moving map spec §6)', () => {
     const { container } = render(<TripMapPage map={makeTripMap(EUROPE, { isNextTrip: false, home: 'SDF', now: at(12), airports: AIRPORTS })!}
       now={at(12)} viewerTz="America/New_York" h24={false} day={1} days={4} land={null} onBack={() => {}} />)
     expect(container.querySelector('h2.trip-map-headline')).toBeTruthy()
-    const time = () => container.querySelector('.trip-timeline-time')!.textContent
+    const time = () => visibleText(container.querySelector('.trip-timeline-time')!)
     const before = time()
     fireEvent.click(screen.getByRole('button', { name: 'Replay the trip' }))
     await waitFor(() => expect(time()).not.toBe(before))
@@ -96,7 +96,7 @@ describe('the full map (moving map spec §6)', () => {
       // About halfway through the 6 s drive after 3 s: some 15 minutes in, at 7:15 AM. At a day in 96 s it would be
       // 45 minutes in, past the drive. (The slider measures replay time, which passes alike at either pace, so the trip
       // time is read from the line under the bar.)
-      expect(document.querySelector('.trip-timeline-time')!.textContent).toMatch(/^Fri 7:1\d\sAM · Driving to Lexington$/)
+      expect(visibleText(document.querySelector('.trip-timeline-time')!)).toMatch(/^Fri 7:1\d\sAM L · Driving to Lexington$/)
     } finally {
       vi.useRealTimers()
     }
@@ -125,7 +125,7 @@ describe('the full map (moving map spec §6)', () => {
 
   it('says when and what under the bar', () => {
     page()
-    expect(document.querySelector('.trip-timeline-time')!.textContent).toMatch(/^Fri 7:00\sPM · Layover in Cologne$/)
+    expect(visibleText(document.querySelector('.trip-timeline-time')!)).toMatch(/^Fri 7:00\sPM L · Layover in Cologne$/)
   })
 
   it('colors the bar by what the pilot is doing, with each layover’s length', () => {
@@ -141,18 +141,18 @@ describe('the full map (moving map spec §6)', () => {
   it('moves half a second of replay with an arrow key: four hours of a quick layover', () => {
     page()
     fireEvent.keyDown(screen.getByRole('slider', { name: 'Trip time' }), { key: 'ArrowRight' })
-    expect(document.querySelector('.trip-timeline-time')!.textContent).toMatch(/^Fri 11:00\sPM · Layover in Cologne$/)
+    expect(visibleText(document.querySelector('.trip-timeline-time')!)).toMatch(/^Fri 11:00\sPM L · Layover in Cologne$/)
   })
 
   it('moves a tenth of the replay with Page Down, and leaves a key with a modifier to the browser', () => {
     page()
     const slider = screen.getByRole('slider', { name: 'Trip time' })
-    const line = () => document.querySelector('.trip-timeline-time')!.textContent
+    const line = () => visibleText(document.querySelector('.trip-timeline-time')!)
     fireEvent.keyDown(slider, { key: 'ArrowRight', altKey: true })
-    expect(line()).toMatch(/^Fri 7:00\sPM · Layover in Cologne$/)
+    expect(line()).toMatch(/^Fri 7:00\sPM L · Layover in Cologne$/)
     // 32.5 s into the 118 s replay, less 11.8 s: 20.7 s into the first flight, at a day in 96 s 5 h 10½ min after 7:00 AM.
     fireEvent.keyDown(slider, { key: 'PageDown' })
-    expect(line()).toMatch(/^Fri 12:10\sPM · Flying to Cologne$/)
+    expect(line()).toMatch(/^Fri 12:10\sPM L · Flying to Cologne$/)
   })
 
   it('keeps the moment when Quick layovers is switched off during a replay, and carries on at the slower pace', () => {
@@ -161,18 +161,18 @@ describe('the full map (moving map spec §6)', () => {
       vi.setSystemTime(at(100))
       page()
       fireEvent.click(screen.getByRole('button', { name: 'Replay the trip' }))
-      const line = () => document.querySelector('.trip-timeline-time')!.textContent
+      const line = () => visibleText(document.querySelector('.trip-timeline-time')!)
       // 33.5 s in with Quick layovers: 32 s for the flight, then half of the day in Cologne, which plays in 3 s.
       act(() => {
         vi.advanceTimersByTime(33_500)
       })
-      expect(line()).toMatch(/^Sat [23]:\d\d\sAM · Layover in Cologne$/)
+      expect(line()).toMatch(/^Sat [23]:\d\d\sAM L · Layover in Cologne$/)
       fireEvent.click(screen.getByRole('switch', { name: 'Quick layovers' }))
       // A second on at a day in 96 s is a quarter of an hour, from 3:00 AM. A quick second would be 8 hours.
       act(() => {
         vi.advanceTimersByTime(1000)
       })
-      expect(line()).toMatch(/^Sat 3:1\d\sAM · Layover in Cologne$/)
+      expect(line()).toMatch(/^Sat 3:1\d\sAM L · Layover in Cologne$/)
     } finally {
       vi.useRealTimers()
     }
@@ -201,7 +201,7 @@ describe('the full map (moving map spec §6)', () => {
       })
       const speed = screen.getByRole('radio', { name: '5×' }) as HTMLInputElement
       fireEvent.click(speed)
-      const line = () => document.querySelector('.trip-timeline-time')!.textContent
+      const line = () => visibleText(document.querySelector('.trip-timeline-time')!)
       act(() => {
         vi.advanceTimersByTime(100)
       })
@@ -212,7 +212,7 @@ describe('the full map (moving map spec §6)', () => {
       })
       expect(speed.checked).toBe(true)
       expect(line()).not.toBe(before)
-      expect(line()).toMatch(/^Fri (9|10):\d\d\sAM · Flying to Cologne$/)
+      expect(line()).toMatch(/^Fri (9|10):\d\d\sAM L · Flying to Cologne$/)
     } finally {
       vi.useRealTimers()
     }
@@ -238,9 +238,9 @@ describe('the full map (moving map spec §6)', () => {
 
   it('keeps the moment when Quick layovers is switched off, and the bar then measures the slower replay', () => {
     page()
-    const line = document.querySelector('.trip-timeline-time')!.textContent
+    const line = visibleText(document.querySelector('.trip-timeline-time')!)
     fireEvent.click(screen.getByRole('switch', { name: 'Quick layovers' }))
-    expect(document.querySelector('.trip-timeline-time')!.textContent).toBe(line)
+    expect(visibleText(document.querySelector('.trip-timeline-time')!)).toBe(line)
     expect(Number((screen.getByRole('slider', { name: 'Trip time' }) as HTMLInputElement).max)).toBe(288_000)
   })
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { clockTime } from '../../src/copy/clockLabel'
 import { shortTimeText } from '../../src/copy/format'
 import { planePopupWords } from '../../src/copy/planePopup'
 import { landsAt } from '../../src/copy/tripMap'
@@ -7,7 +8,7 @@ import type { MapLeg } from '../../src/map/tripMap'
 import { airport, at, caseFlight, LIVE_CASES } from '../map/liveCases'
 
 const NY = 'America/New_York'
-const time = (ms: number) => shortTimeText(ms, NY, false)
+const time = (ms: number) => `${shortTimeText(ms, NY, false)} L`
 
 /** A shared case's flight as the map's leg at one of its moments, with its real times then. */
 function caseLeg(name: string, moment = 0): { leg: MapLeg; t: number } {
@@ -47,7 +48,7 @@ describe("a plane's popup (which plane design §3)", () => {
   it('names the real plane back at its departure airport after an air return, and when it lands (air return design §3)', () => {
     const { leg, words } = realPlane('an air return, back on the ground')
     expect(words).toEqual({ title: 'UPS207 · real plane', lines: ['Returned to SDF', landsAt(leg, NY, false)] })
-    expect(landsAt(leg, NY, false)).toMatch(/^Lands about 9:11\sAM$/)
+    expect(landsAt(leg, NY, false)).toMatch(/^Lands about 9:11\sAM L$/)
   })
 
   it('calls a faded plane a best guess, says when it went out of tracking range, and lands it about its estimate', () => {
@@ -84,8 +85,8 @@ describe("a plane's popup (which plane design §3)", () => {
     const unnamed = { ...leg, flightNumber: null }
     expect(planePopupWords(unnamed, 'ghost', t, false, NY, false).lines).toEqual(['Where the flight was scheduled to be'])
     expect(planePopupWords(unnamed, 'realPlane', t, false, NY, false).title).toBe('The flight · real plane')
-    expect(planePopupWords(leg, 'realPlane', t, true, NY, true).lines).toEqual([`Where it was at ${shortTimeText(t, NY, true)}`])
-    expect(shortTimeText(t, NY, true)).toMatch(/^\d\d:\d\d$/)
+    expect(planePopupWords(leg, 'realPlane', t, true, NY, true).lines).toEqual([`Where it was at ${clockTime(t, NY, true)} L`])
+    expect(clockTime(t, NY, true)).toMatch(/^\d{1,2}:\d\d$/)
   })
 
   it("says the card's bar's words in every shared case and moment the real plane shows", () => {

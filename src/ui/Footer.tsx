@@ -1,6 +1,7 @@
 import { agoText, clockWithDayText } from '../copy/format'
 import { Icon } from './Icon'
 import type { Problem } from './problem'
+import { ClockText } from './ClockText'
 
 export interface FooterProps {
   now: number
@@ -34,7 +35,7 @@ export function Footer(p: FooterProps) {
         {p.problem ? (
           <p class="sync-row sync-problem">
             <Icon name="Warning" size={12} color="var(--orange)" />
-            <span>{problemText(p)}</span>
+            <span><ClockText text={problemText(p)} /></span>
           </p>
         ) : (
           <div class="sync-rows">

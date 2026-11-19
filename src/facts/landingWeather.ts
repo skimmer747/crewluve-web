@@ -1,4 +1,5 @@
 import { isMoving, type MapLeg, type TripMap } from '../map/tripMap'
+import { takeoffOf, type Takeoff } from './takeoff'
 import { HOUR } from '../time/zoned'
 
 /** Weather shows for a flight landing within this of now (Stage 2 spec §7.2). */
@@ -16,4 +17,14 @@ export function flightsToForecast(map: TripMap, now: number): MapLeg[] {
   const inAir = flights.find((l) => isMoving(l, now))
   const next = flights.find((l) => l.start > now)
   return [inAir, next].filter((l): l is MapLeg => l != null && l.end - now <= WEATHER_HORIZON_MS)
+}
+
+/**
+ * The flight in the air at `now` and when it took off, once it has: its takeoff row tells that hour's weather (time
+ * labels design §3.3). Null on the ground, taxiing out, and for a flight with no takeoff to tell.
+ */
+export function takeoffToFetch(map: TripMap, now: number): { leg: MapLeg; takeoff: Takeoff } | null {
+  const leg = map.legs.find((l) => l.kind === 'flight' && isMoving(l, now))
+  const takeoff = leg ? takeoffOf(leg) : null
+  return leg && takeoff && takeoff.time <= now ? { leg, takeoff } : null
 }

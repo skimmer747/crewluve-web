@@ -9,6 +9,7 @@ import { resetAppleMapKit, startAppleMapKit } from '../../src/ui/hooks/useAppleM
 import { chipInsets, TripMapCard } from '../../src/ui/TripMapCard'
 import { fakeMapKit } from '../fixtures/fakeMapKit'
 import { AIRPORTS, at, EUROPE, flight } from '../map/tripMapLegs'
+import { visibleText } from '../fixtures/ui'
 
 const NY = 'America/New_York'
 const card = (now: number, extra = {}) => {
@@ -39,7 +40,7 @@ describe('the trip map card (moving map spec §5)', () => {
 
   it('shows the flight and its landing in the air, and the flight number opens tracking', () => {
     const { map, onOpenTracking } = card(at(4))
-    expect(screen.getByText('Lands 3:00 PM')).toBeTruthy()
+    expect(visibleText(document.querySelector('.inflight-time')!)).toMatch(/^Lands 3:00\sPM L$/)
     const number = screen.getByRole('button', { name: `${map.legs[0].flightNumber}. Opens flight tracking.` })
     fireEvent.click(number)
     expect(onOpenTracking).toHaveBeenCalledWith(number)

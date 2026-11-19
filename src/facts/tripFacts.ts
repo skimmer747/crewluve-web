@@ -40,6 +40,8 @@ export interface FactsOptions {
   comparisons: Comparison[] | null
   /** Landing-hour forecasts, by leg id. */
   forecasts?: Record<string, LandingForecast>
+  /** The weather in the hour the flight in the air took off, by leg id (time labels design §3.3). */
+  takeoffForecasts?: Record<string, LandingForecast>
   viewerTz: string
   h24: boolean
   /** The status's trip day, for "Day 2 of 4". */
@@ -62,6 +64,8 @@ export interface TripFacts {
   stories: Record<string, LegStory>
   sunEvents: SunEventsByLeg
   forecasts: Record<string, LandingForecast>
+  /** The weather in the hour the flight in the air took off, by leg id (time labels design §3.3). */
+  takeoffForecasts: Record<string, LandingForecast>
   viewerTz: string
   h24: boolean
   day: number | null
@@ -142,6 +146,7 @@ export function makeTripFacts(map: TripMap, options: FactsOptions): TripFacts {
     stories: legStories,
     sunEvents: events,
     forecasts: options.forecasts ?? {},
+    takeoffForecasts: options.takeoffForecasts ?? {},
     viewerTz: options.viewerTz,
     h24: options.h24,
     day: options.day ?? null,
@@ -275,6 +280,10 @@ export function headline(facts: TripFacts, t: number, includesEvents = true): st
   return belowText(facts, leg, t) ?? landingCountdown(leg, t)
 }
 
+/** The newest of `told`, by time, not by the way along: a best guess and a sighting can disagree a little. */
+const newestOf = (told: Milestone[]): Milestone | null =>
+  told.reduce<Milestone | null>((latest, m) => (latest == null || m.time > latest.time ? m : latest), null)
+
 /**
  * The newest event of the flight between its gates at `t`, for the banner (latest event design §1): what it was, how
  * long ago, and its sentence for screen readers. It stays until the next. Null on the ground, on a drive, and before the
@@ -286,10 +295,7 @@ export function headline(facts: TripFacts, t: number, includesEvents = true): st
 export function latestEvent(facts: TripFacts, t: number): LatestEvent | null {
   const leg = legInMotion(facts.map, t)
   if (!leg || leg.kind !== 'flight' || isStillOnGround(facts, leg, t)) return null
-  // By time, not by the way along: a best guess and a sighting can disagree a little.
-  const newest = toldMilestones(facts, leg, t)
-    .filter((m) => m.time <= t)
-    .reduce<Milestone | null>((latest, m) => (latest == null || m.time > latest.time ? m : latest), null)
+  const newest = newestOf(toldMilestones(facts, leg, t).filter((m) => m.time <= t))
   if (!newest) return null
   const { viewerTz, h24, isReplay } = facts
   return {
@@ -339,15 +345,19 @@ export function hasTripSoFarRow(facts: TripFacts, t: number): boolean {
  * takeoff time has passed none of its flight's events, whatever the schedule's times say, and its flight is left out
  * until it takes off, with no "In the air now". Down and not yet at the gate, it's tagged "Landed" (the landed, not yet
  * at the gate design §3, Todd, 17 Nov 2026).
+ *
+ * The newest event of the flight between its gates, by time as the banner has it, is `isCurrent`, drawn bold (time
+ * labels design §3.4). Older flights have none.
  */
 export function tripSoFar(facts: TripFacts, t: number): TripSoFar {
   const started = facts.map.legs.filter((l) => l.kind === 'flight' && l.start <= t && !isStillOnGround(facts, l, t)).reverse()
   const flights = started.flatMap((leg) => {
-    const events = toldMilestones(facts, leg, t)
-      .filter((m) => m.time <= t)
-      .reverse()
-      .map((m) => ({ text: milestoneLine(m, facts.viewerTz, facts.h24), isEstimate: m.isEstimate === true }))
+    const told = toldMilestones(facts, leg, t).filter((m) => m.time <= t)
     const tag = !isMoving(leg, t) ? null : isLandedBeforeGate(facts, leg, t) ? LANDED_TAG : inTheAirTag(facts.isReplay)
+    const newest = tag == null ? null : newestOf(told)
+    const events = told
+      .reverse()
+      .map((m) => ({ text: milestoneLine(m, facts.viewerTz, facts.h24), isEstimate: m.isEstimate === true, isCurrent: m === newest }))
     return tag != null || events.length > 0 ? [{ id: leg.id, title: flightTitle(leg), tag, events }] : []
   })
   if (isRecapOver(facts, t)) {

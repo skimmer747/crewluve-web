@@ -4,6 +4,7 @@ import type { Visual } from '../copy/visuals'
 import { cssColor } from './colors'
 import { Icon } from './Icon'
 import { ProgressRing } from './ProgressRing'
+import { ClockText } from './ClockText'
 
 /** The "what's happening now" card (NarrativeCardView). */
 export function NarrativeCard({ spans, visual, ring }: { spans: Span[]; visual: Visual; ring: number | null }) {
@@ -25,7 +26,7 @@ export function NarrativeCard({ spans, visual, ring }: { spans: Span[]; visual: 
               style={span.color ? { color: span.color === 'status' ? statusColor : cssColor(span.color) } : undefined}
               aria-hidden={span.spoken ? 'true' : undefined}
             >
-              {span.text}
+              {span.spoken ? span.text : <ClockText text={span.text} />}
             </span>
           )
           if (!span.spoken) return shown

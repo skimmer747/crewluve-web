@@ -3,7 +3,8 @@ import { arrivalOf, type DriveLeg, type DutyLeg, type MoveLeg } from '../engine/
 import { DELAY_THRESHOLD_MIN, type Snapshot } from '../engine/snapshot'
 import { reportOnce } from '../reportOnce'
 import { flightPhrase } from './airlines'
-import { daysText, delayText, departureText, longDateTimeText, narrativeCountdown, spokenDuration, timeWithZone } from './format'
+import { yours } from './clockLabel'
+import { daysText, delayText, departureText, longDateTimeText, narrativeCountdown, spokenDuration } from './format'
 
 export type SpanColor = 'status' | 'green' | 'red'
 
@@ -65,7 +66,8 @@ export class Sentence {
 
   time(ms: number): this {
     if (this.ctx.estimatedArrival != null && Math.abs(ms - this.ctx.estimatedArrival) < 1000) this.t('about ')
-    return this.b(timeWithZone(ms, this.ctx.viewerTz, this.ctx.h24))
+    // "4:35 PM L": the family's time (time labels design §3.7).
+    return this.b(yours(ms, this.ctx.viewerTz, this.ctx.h24))
   }
 }
 
@@ -227,7 +229,7 @@ function homeSentence(s: Snapshot, n: Sentence, city: (code: string) => string):
 
   const prev = s.lastTripDays
   const hb = s.homecoming
-  // {HB}: ". Back home in {cd} on **Monday October 12th at 8:02pm EDT**."
+  // {HB}: ". Back home in {cd} on **Monday October 12th at 8:02 PM L**."
   const backHome = (homecoming: number) =>
     n.t('. Back home in ').cd(homecoming, 'green').t(' on ').b(longDateTimeText(homecoming, viewerTz, h24)).t('.')
 

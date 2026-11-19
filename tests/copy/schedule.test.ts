@@ -38,27 +38,27 @@ describe('legTimes', () => {
   const out = Date.UTC(2026, 9, 15, 10, 5)
   const landed = Date.UTC(2026, 9, 15, 11, 40)
 
-  it('gives both times in the visitor’s zone, each with its abbreviation, in lower case (TimelineRowView.subtitle)', () => {
-    expect(legTimes(out, landed, NY, false)).toBe('6:05am edt – 7:40am edt')
+  it('gives both times in the visitor’s zone, with one L at the end of the range (time labels design §3.7)', () => {
+    expect(legTimes(out, landed, NY, false)).toBe('6:05\u202FAM – 7:40\u202FAM L')
   })
 
   it('uses 24-hour times on 24-hour devices', () => {
-    expect(legTimes(out, landed, NY, true)).toBe('06:05 edt – 07:40 edt')
+    expect(legTimes(out, landed, NY, true)).toBe('6:05 – 7:40 L')
   })
 
   it('says "about" before a landing time that’s the real plane’s estimate (Stage 3 spec §9)', () => {
-    expect(legTimes(out, landed, NY, false, true)).toBe('6:05am edt – about 7:40am edt')
-    expect(legTimes(out, landed, NY, true, true)).toBe('06:05 edt – about 07:40 edt')
-    expect(legTimes(out, landed, NY, false, false)).toBe('6:05am edt – 7:40am edt')
+    expect(legTimes(out, landed, NY, false, true)).toBe('6:05\u202FAM – about 7:40\u202FAM L')
+    expect(legTimes(out, landed, NY, true, true)).toBe('6:05 – about 7:40 L')
+    expect(legTimes(out, landed, NY, false, false)).toBe('6:05\u202FAM – 7:40\u202FAM L')
   })
 
-  it('gives each time the abbreviation in force then, across the change back to standard time', () => {
+  it('gives each time in the visitor’s zone, across the change back to standard time', () => {
     // Sunday 1 November 2026: New York's clocks go back from 2am EDT to 1am EST.
-    expect(legTimes(Date.UTC(2026, 10, 1, 4), Date.UTC(2026, 10, 1, 12), NY, false)).toBe('12:00am edt – 7:00am est')
+    expect(legTimes(Date.UTC(2026, 10, 1, 4), Date.UTC(2026, 10, 1, 12), NY, false)).toBe('12:00\u202FAM – 7:00\u202FAM L')
   })
 
-  it('lower-cases a zone with no letter abbreviation', () => {
-    expect(legTimes(Date.UTC(2026, 9, 15, 8), Date.UTC(2026, 9, 15, 9), 'Europe/Berlin', false)).toBe('10:00am gmt+2 – 11:00am gmt+2')
+  it('marks a zone with no letter abbreviation the same way', () => {
+    expect(legTimes(Date.UTC(2026, 9, 15, 8), Date.UTC(2026, 9, 15, 9), 'Europe/Berlin', false)).toBe('10:00\u202FAM – 11:00\u202FAM L')
   })
 })
 

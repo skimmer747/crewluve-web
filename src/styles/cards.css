@@ -135,6 +135,16 @@
   color: var(--text-2);
 }
 
+/* "L = your time (Eastern Standard Time)": the key to the family's times, above the footer, in caption type and the
+   secondary color (time labels design §3.5). */
+.clock-key {
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-2);
+}
+
 /* Footer: two round glass buttons around the freshness rows (SyncStatusBarView). */
 .footer {
   display: flex;

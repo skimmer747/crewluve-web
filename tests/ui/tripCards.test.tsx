@@ -5,6 +5,7 @@ import type { TripProgress, UpcomingTrip } from '../../src/engine/trips'
 import { TripProgressCard } from '../../src/ui/TripProgressCard'
 import { UpcomingTripCard } from '../../src/ui/UpcomingTripCard'
 import { testAirports } from '../fixtures/airports'
+import { shownText } from '../fixtures/ui'
 
 afterEach(cleanup)
 
@@ -25,7 +26,7 @@ describe('UpcomingTripCard', () => {
   it('shows the Line Trip badge, when it departs, and how long it lasts', () => {
     render(card(trip()))
     expect(screen.getByText('Line Trip')).toBeTruthy()
-    expect(screen.getByText('Departs tomorrow at 6:30am')).toBeTruthy()
+    expect(screen.getByText(shownText('Departs tomorrow at 6:30\u202FAM L'))).toBeTruthy()
     expect(screen.getByText('2 days')).toBeTruthy()
   })
 
@@ -65,7 +66,7 @@ describe('UpcomingTripCard', () => {
   it('says "1 day" for a one-day trip, and uses 24-hour time when asked', () => {
     render(card(trip({ days: 1 }), true))
     expect(screen.getByText('1 day')).toBeTruthy()
-    expect(screen.getByText('Departs tomorrow at 06:30')).toBeTruthy()
+    expect(screen.getByText(shownText('Departs tomorrow at 6:30 L'))).toBeTruthy()
   })
 })
 

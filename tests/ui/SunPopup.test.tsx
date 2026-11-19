@@ -49,7 +49,7 @@ describe('SunPopup', () => {
     const dialog = screen.getByRole('dialog', { name: 'Anchorage' })
     expect(dialog.getAttribute('aria-modal')).toBe('true')
     const [local, home] = [...container.querySelectorAll('.sun-popup-time')]
-    expect(local.textContent).toBe('Local time 10:05\u202FPM')
+    expect(local.textContent).toBe('Local time 10:05\u202FPM Anchorage')
     expect(home.textContent).toBe('Time at home 2:05\u202FAM')
     expect(
       screen.getByRole('img', {
@@ -88,7 +88,7 @@ describe('SunPopup', () => {
     const { container } = render(popup({ now: DAYTIME, h24: true }))
     const local = container.querySelector('.sun-popup-time svg') as SVGElement
     expect([iconNameOf(local), local.style.color]).toEqual(['Sun', 'var(--orange)'])
-    expect([...container.querySelectorAll('.sun-popup-time')].map((t) => t.textContent)).toEqual(['Local time 13:14', 'Time at home 17:14'])
+    expect([...container.querySelectorAll('.sun-popup-time')].map((t) => t.textContent)).toEqual(['Local time 13:14 Anchorage', 'Time at home 17:14'])
     expect(text(container, '.sun-popup-sunrise')).toBe('Sunrise 08:30')
   })
 

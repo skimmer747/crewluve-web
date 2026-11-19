@@ -86,7 +86,8 @@ describe('the credit to adsb.lol (Stage 3 spec §8, §15)', () => {
 
   it('isn’t under the facts with no live data', () => {
     const container = pages(null)
-    expect(container.querySelector('#trip-facts .facts-footer')?.textContent).toBe('Estimated from the schedule')
+    expect(container.querySelector('#trip-facts .facts-footer p')?.textContent).toBe('Estimated from the schedule')
+    expect(container.querySelector('#trip-facts .facts-footer .live-credit')).toBeNull()
     replayAQuarterIn()
     expect(container.textContent).not.toMatch(/adsb\.lol/)
   })

@@ -117,7 +117,7 @@ describe('LocationCard', () => {
   it('shows the pilot’s local time and how far it is from home', () => {
     reduceMotion()
     const { container } = render(card('ANC', cloudy))
-    expect(container.querySelector('.time-label')!.textContent).toBe('Current time:')
+    expect(container.querySelector('.time-label')!.textContent).toBe('Current time in Anchorage:')
     expect(container.querySelector('.time-value')!.textContent).toBe('9:14\u202FAM')
     expect(container.querySelector('.time-diff .sr-only')!.textContent).toBe('4 hours behind you')
     expect(container.querySelector('.time-diff [aria-hidden="true"]')!.textContent).toBe('4h behind you')

@@ -469,6 +469,8 @@
 .trip-so-far ul { margin: 0; padding: 0; list-style: none; font-size: 0.9rem; }
 .trip-so-far p { margin: 0; font-size: 0.9rem; }
 .trip-so-far li.estimate { color: var(--text-2); font-style: italic; }
+/* The newest event of the flight between its gates (time labels design §3.4); a best guess stays slanted. */
+.trip-so-far li.current { font-weight: 600; }
 /* The flight between its gates (best guesses design §4): a border round it, and its tag beside its name, or under it
    where they don't fit on one line. */
 .trip-so-far-flight.in-the-air { padding: 12px 14px; border: 1.5px solid var(--blue); border-radius: 12px; }

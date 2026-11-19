@@ -1,4 +1,5 @@
-import { calendarDay, MONTHS, WEEKDAYS, zoneAbbr, zonedParts } from '../time/zoned'
+import { calendarDay, MONTHS, WEEKDAYS, zonedParts } from '../time/zoned'
+import { yours } from './clockLabel'
 
 export const pad2 = (n: number) => String(n).padStart(2, '0')
 
@@ -104,12 +105,13 @@ export function clockText(ms: number, timeZone: string, h24: boolean): string {
 }
 
 /**
- * A clock time with its day when that isn't today in `timeZone`: "7:59am", "Thu 7:59am", or "Oct 2, 7:59am".
+ * A clock time in the family's time, `timeZone`, with its day when that isn't today there: "7:59 AM L", "Thu 7:59 AM L",
+ * or "Oct 2, 7:59 AM L" (time labels design §3.7).
  * A weekday name is unambiguous only for the six days before today (a week back it repeats today's),
  * so anything older, or ahead of `now`, gets the date.
  */
 export function clockWithDayText(ms: number, now: number, timeZone: string, h24: boolean): string {
-  const time = clockText(ms, timeZone, h24)
+  const time = yours(ms, timeZone, h24)
   const daysAgo = calendarDay(now, timeZone) - calendarDay(ms, timeZone)
   if (daysAgo === 0) return time
   const p = zonedParts(ms, timeZone)
@@ -136,14 +138,12 @@ export function mapAirportTimeText(ms: number, timeZone: string, h24: boolean): 
   return `${weekday} ${clock(ms, timeZone, h24, 'AM', 'PM')}`
 }
 
-/** {T}: "1:00pm EST" or "13:00 EST" (formattedLocalTime). */
-export function timeWithZone(ms: number, timeZone: string, h24: boolean): string {
-  return `${clockText(ms, timeZone, h24)} ${zoneAbbr(ms, timeZone)}`
-}
-
-/** {dep}: "today at 6:00am", "tomorrow at 6:00am", or "Sunday the 1st at 6:00am" (formattedDepartureDate). */
+/**
+ * {dep}: "today at 6:00 AM L", "tomorrow at 6:00 AM L", or "Sunday the 1st at 6:00 AM L" (formattedDepartureDate), in
+ * the family's time (time labels design §3.7).
+ */
 export function departureText(ms: number, now: number, timeZone: string, h24: boolean): string {
-  const time = clockText(ms, timeZone, h24)
+  const time = yours(ms, timeZone, h24)
   const diff = calendarDay(ms, timeZone) - calendarDay(now, timeZone)
   if (diff === 0) return `today at ${time}`
   if (diff === 1) return `tomorrow at ${time}`
@@ -151,9 +151,12 @@ export function departureText(ms: number, now: number, timeZone: string, h24: bo
   return `${WEEKDAYS[p.weekday]} the ${p.day}${ordinalSuffix(p.day)} at ${time}`
 }
 
-/** Upcoming trip card: "Departs today at 6:00am", "Departs tomorrow at 6:00am", or "Departs Tue Oct 13 at 6:00am" (UpcomingTripCard.formattedDeparture, with 24-hour times respected). */
+/**
+ * Upcoming trip card: "Departs today at 6:00 AM L", "Departs tomorrow at 6:00 AM L", or "Departs Tue Oct 13 at 6:00 AM
+ * L" (UpcomingTripCard.formattedDeparture), in the family's time and clock (time labels design §3.7).
+ */
 export function tripCardDepartsText(ms: number, now: number, timeZone: string, h24: boolean): string {
-  const time = clockText(ms, timeZone, h24)
+  const time = yours(ms, timeZone, h24)
   const diff = calendarDay(ms, timeZone) - calendarDay(now, timeZone)
   if (diff === 0) return `Departs today at ${time}`
   if (diff === 1) return `Departs tomorrow at ${time}`
@@ -166,23 +169,26 @@ function longDate(ms: number, timeZone: string): string {
   return `${WEEKDAYS[p.weekday]} ${MONTHS[p.month - 1]} ${p.day}${ordinalSuffix(p.day)}`
 }
 
-/** {HB} date: "Monday October 12th at 8:02pm EDT" (homecomingText). */
+/** {HB} date: "Monday October 12th at 8:02 PM L" (homecomingText), in the family's time (time labels design §3.7). */
 export function longDateTimeText(ms: number, timeZone: string, h24: boolean): string {
-  return `${longDate(ms, timeZone)} at ${timeWithZone(ms, timeZone, h24)}`
+  return `${longDate(ms, timeZone)} at ${yours(ms, timeZone, h24)}`
 }
 
-/** Arrival card date: "Sun, Mar 1 at 5:57 PM", with iOS's narrow no-break space before PM; or "Sun, Mar 1 at 17:57". */
+/**
+ * Arrival card date: "Sun, Mar 1, 5:57 PM L", with iOS's narrow no-break space before PM; or "Sun, Mar 1, 17:57 L", in
+ * the family's time, as the status sentence above it (time labels design §3.7).
+ */
 export function arrivalWhenText(ms: number, timeZone: string, h24: boolean): string {
   const p = zonedParts(ms, timeZone)
-  return `${WEEKDAYS[p.weekday].slice(0, 3)}, ${MONTHS[p.month - 1].slice(0, 3)} ${p.day} at ${shortTimeText(ms, timeZone, h24)}`
+  return `${WEEKDAYS[p.weekday].slice(0, 3)}, ${MONTHS[p.month - 1].slice(0, 3)} ${p.day}, ${yours(ms, timeZone, h24)}`
 }
 
-/** Leave card subtitle: "Departs Sunday March 1st at 5:57pm" (24-hour: "… at 17:57", fixing the app's "17:57pm"). */
+/** Leave card subtitle: "Departs Sunday March 1st at 5:57 PM L", in the family's time (time labels design §3.7). */
 export function leaveWhenText(ms: number, timeZone: string, h24: boolean): string {
-  return `Departs ${longDate(ms, timeZone)} at ${clockText(ms, timeZone, h24)}`
+  return `Departs ${longDate(ms, timeZone)} at ${yours(ms, timeZone, h24)}`
 }
 
-/** Commuter with no logged commute: "Trip departs Louisville Sunday March 1st at 5:57pm". */
+/** Commuter with no logged commute: "Trip departs Louisville Sunday March 1st at 5:57 PM L". */
 export function tripDepartsText(city: string, ms: number, timeZone: string, h24: boolean): string {
-  return `Trip departs ${city} ${longDate(ms, timeZone)} at ${clockText(ms, timeZone, h24)}`
+  return `Trip departs ${city} ${longDate(ms, timeZone)} at ${yours(ms, timeZone, h24)}`
 }

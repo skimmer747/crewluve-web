@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Footer, freshnessColor, type FooterProps } from '../../src/ui/Footer'
-import { iconNameOf } from '../fixtures/ui'
+import { iconNameOf, shownText } from '../fixtures/ui'
 
 afterEach(cleanup)
 
@@ -30,7 +30,7 @@ describe('Footer', () => {
 
   it('swaps the rows for a warning when offline or unreachable', () => {
     const { rerender } = render(<Footer {...props({ problem: { kind: 'offline' } })} />)
-    expect(screen.getByText('Offline — showing the schedule from 7:59am')).toBeTruthy()
+    expect(screen.getByText(shownText('Offline — showing the schedule from 7:59\u202FAM L'))).toBeTruthy()
     rerender(<Footer {...props({ problem: { kind: 'unreachable' } })} />)
     expect(screen.getByText("Couldn't reach CrewLu Cloud — will retry")).toBeTruthy()
     expect(screen.queryByText(/Checked/)).toBeNull()
@@ -105,25 +105,25 @@ describe('Footer, offline with a schedule saved on another day', () => {
 
   it('names the day, so "7:59am" cannot be taken for this morning', () => {
     render(<Footer {...offline({ lastSuccessAt: yesterday })} />)
-    expect(screen.getByText('Offline — showing the schedule from Thu 7:59am')).toBeTruthy()
+    expect(screen.getByText(shownText('Offline — showing the schedule from Thu 7:59\u202FAM L'))).toBeTruthy()
   })
 
   it('keeps the 24-hour clock', () => {
     const { rerender } = render(<Footer {...offline({ lastSuccessAt: yesterday, h24: true })} />)
-    expect(screen.getByText('Offline — showing the schedule from Thu 07:59')).toBeTruthy()
+    expect(screen.getByText(shownText('Offline — showing the schedule from Thu 7:59 L'))).toBeTruthy()
     rerender(<Footer {...offline({ h24: true })} />)
-    expect(screen.getByText('Offline — showing the schedule from 07:59')).toBeTruthy()
+    expect(screen.getByText(shownText('Offline — showing the schedule from 7:59 L'))).toBeTruthy()
   })
 
   it('gives the date once the schedule is a week old', () => {
     render(<Footer {...offline({ lastSuccessAt: Date.UTC(2026, 9, 2, 11, 59) })} />)
-    expect(screen.getByText('Offline — showing the schedule from Oct 2, 7:59am')).toBeTruthy()
+    expect(screen.getByText(shownText('Offline — showing the schedule from Oct 2, 7:59\u202FAM L'))).toBeTruthy()
   })
 
   it('counts today in the viewer’s zone', () => {
     // 03:30Z on Fri 9 Oct is still Thursday evening in New York.
     render(<Footer {...offline({ lastSuccessAt: Date.UTC(2026, 9, 9, 3, 30) })} />)
-    expect(screen.getByText('Offline — showing the schedule from Thu 11:30pm')).toBeTruthy()
+    expect(screen.getByText(shownText('Offline — showing the schedule from Thu 11:30\u202FPM L'))).toBeTruthy()
   })
 })
 

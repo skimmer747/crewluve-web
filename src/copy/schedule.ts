@@ -1,5 +1,6 @@
 import { DAY, MONTHS, WEEKDAYS } from '../time/zoned'
-import { pad2, spokenDuration, timeWithZone } from './format'
+import { clockTime, yours } from './clockLabel'
+import { pad2, spokenDuration } from './format'
 
 /**
  * A leg's length or countdown as the app's schedule writes it (TimelineRowView and TimeGapView, formattedDuration):
@@ -32,14 +33,13 @@ export function dayHeading(day: number, today: number): string {
 }
 
 /**
- * A row's second line (TimelineRowView.subtitle): "6:05am edt – 7:40am edt", or "06:05 edt – 07:40 edt" on 24-hour
- * devices. Each time carries the abbreviation in force then; the app puts today's on both (slice 3A §4.7). A landing
- * time that's the real plane's estimate (`isEndEstimated`) reads "about", as the status page's: "6:05am edt – about
- * 7:52am edt" (Stage 3 spec §9).
+ * A row's second line (TimelineRowView.subtitle): "6:05 AM – 7:40 AM L", or "6:05 – 7:40 L" on 24-hour devices, in the
+ * family's time, with one L at the end of the range (time labels design §3.7). A landing time that's the real plane's
+ * estimate (`isEndEstimated`) reads "about", as the status page's: "6:05 AM – about 7:52 AM L" (Stage 3 spec §9).
  */
 export function legTimes(start: number, end: number, timeZone: string, h24: boolean, isEndEstimated = false): string {
   const about = isEndEstimated ? 'about ' : ''
-  return `${timeWithZone(start, timeZone, h24).toLowerCase()} – ${about}${timeWithZone(end, timeZone, h24).toLowerCase()}`
+  return `${clockTime(start, timeZone, h24)} – ${about}${yours(end, timeZone, h24)}`
 }
 
 /** What names a gap between two legs: the leg after it (TimeGapView.gapType). */

@@ -21,7 +21,7 @@ import { EmptyState } from './EmptyState'
 import { Footer, type FooterProps } from './Footer'
 import { useComparisons, useGeography } from './hooks/useFactsData'
 import { useLand } from './hooks/useLand'
-import { useLandingWeather } from './hooks/useLandingWeather'
+import { useLandingWeather, useTakeoffWeather } from './hooks/useLandingWeather'
 import type { LivePlane } from './hooks/useLivePlane'
 import type { ScheduleHandle } from './hooks/useSchedule'
 import { useNow } from './hooks/useNow'
@@ -38,6 +38,9 @@ import { ScheduleView } from './ScheduleView'
 import { StatusScreen } from './StatusScreen'
 import { TripMapPage } from './TripMapPage'
 import { Title } from './Title'
+import type { ComponentChildren } from 'preact'
+import { ClockZonesContext, type ClockZones } from './ClockText'
+import { cityZones } from './clockParts'
 
 export interface PilotPagesProps {
   schedule: ScheduleHandle
@@ -137,11 +140,13 @@ export function PilotPages({
   const geography = useGeography(tripMap?.mode.kind === 'inFlight' || mapOpen)
   const comparisons = useComparisons(mapOpen)
   const forecasts = useLandingWeather(mapOpen ? tripMap : null, now, unit, loadLanding)
+  // And the weather the flight in the air took off in, for its takeoff row (time labels design §3.3).
+  const takeoffForecasts = useTakeoffWeather(mapOpen ? tripMap : null, now, unit, loadLanding)
   // One store for every facts this page makes, so a real path's story is kept between renders (Stage 3 spec §8).
   const factsStore = useMemo(() => makeFactsStore(), [])
   const factsOptions: FactsOptions | null = snap
     ? {
-      geography, comparisons, forecasts, viewerTz, h24, day: snap.tripProgress?.day ?? null, days: snap.tripProgress?.days ?? null, store: factsStore,
+      geography, comparisons, forecasts, takeoffForecasts, viewerTz, h24, day: snap.tripProgress?.day ?? null, days: snap.tripProgress?.days ?? null, store: factsStore,
     }
     : null
   const facts = tripMap && factsOptions ? makeTripFacts(tripMap, factsOptions) : null
@@ -173,25 +178,29 @@ export function PilotPages({
     snap, now, viewerTz, homeTz, h24, airports, weather, demo, celebrateKey, footer, notice, quickStatus, tripMap, land, facts,
     onOpenMap: mapPage.show, estimatedArrival: estimated, stillOnGroundFlight: onGround, returnedFlight: returned, landedFlight: down,
   }
+  // Whose time is whose, for every time's hover tip and the key (time labels design §3.5): the viewer's zone, the moment
+  // shown, and the zones of the trip's cities.
+  const zones: ClockZones = { viewerTz, at: now, cities: cityZones(tripMap) }
+  const shown = (page: ComponentChildren) => <ClockZonesContext.Provider value={zones}>{page}</ClockZonesContext.Provider>
   // A #map address with no trip to draw falls through to the status page (moving map spec §6).
   if (mapPage.open && tripMap) {
-    return <TripMapPage map={tripMap} now={now} viewerTz={viewerTz} h24={h24} day={snap.tripProgress?.day ?? null}
+    return shown(<TripMapPage map={tripMap} now={now} viewerTz={viewerTz} h24={h24} day={snap.tripProgress?.day ?? null}
       days={snap.tripProgress?.days ?? null} land={land} onBack={mapPage.back}
-      factsAt={facts && factsOptions ? factsAtMoments(tripMap, facts, factsOptions) : undefined} />
+      factsAt={facts && factsOptions ? factsAtMoments(tripMap, facts, factsOptions) : undefined} />)
   }
   // The Schedule page says "about" of a landing time that's the real plane's estimate, as the cards do (Stage 3 spec §9).
   const view = { legs: listed, pilot: snap.pilot, now, timeZone: viewerTz, h24, airports, flights: ready?.flights }
   // Side by side, the schedule sits beside the cards, and nothing on the status page opens it (3C §4.3). Each layout
   // has a status page of its own, so crossing the line rebuilds it, and a popup open on it closes (§5.2, §5.3).
   if (sideBySide) {
-    return <StatusScreen key="side-by-side" {...status} beside={<ScheduleView {...view} />} />
+    return shown(<StatusScreen key="side-by-side" {...status} beside={<ScheduleView {...view} />} />)
   }
 
   if (page.open) {
-    return <SchedulePage {...view} onBack={page.back} />
+    return shown(<SchedulePage {...view} onBack={page.back} />)
   }
 
-  return <StatusScreen key="one-column" {...status} onOpenSchedule={page.show} />
+  return shown(<StatusScreen key="one-column" {...status} onOpenSchedule={page.show} />)
 }
 
 /**

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   cardChips, dateRangeText, dayPhrase, landingCountdown, landingLine, landsAt, arrivalLocalTime, nextDepartureChip,
-  nextTripChip, placeChip, statsItems, timelineTime, topPill, tripMapSummary,
+  nextTripChip, placeChip, statsItems, takeoffLine, timelineTime, topPill, tripMapSummary,
 } from '../../src/copy/tripMap'
 import { airportMark, makeTripMap, type MapLeg } from '../../src/map/tripMap'
 import { AIRPORTS, at, drive, EUROPE, flight } from '../map/tripMapLegs'
@@ -18,12 +18,12 @@ const leg = (from: string, to: string, start: number, end: number): MapLeg => ({
 const MIN = 60_000
 
 describe('the trip map words (moving map spec §5, §6, §14)', () => {
-  it('names the place and its time there', () => {
-    expect(placeChip(mark('CGN'), NOW, false)).toBe(`Cologne · 9:14${PM} there`)
+  it('names the place, and its time after its name (time labels design §3.2)', () => {
+    expect(placeChip(mark('CGN'), NOW, false)).toBe(`Cologne · 9:14${PM}`)
   })
 
   it('names the next departure in your time', () => {
-    expect(nextDepartureChip(leg('CGN', 'DXB', NOW + (14 * 60 + 56) * MIN, NOW + 21 * 60 * MIN), NOW, NY, false)).toBe(`Next: Dubai, tomorrow 6:10${AM}`)
+    expect(nextDepartureChip(leg('CGN', 'DXB', NOW + (14 * 60 + 56) * MIN, NOW + 21 * 60 * MIN), NOW, NY, false)).toBe(`Next: Dubai, tomorrow 6:10${AM} L`)
   })
 
   it('counts down to landing', () => {
@@ -33,13 +33,29 @@ describe('the trip map words (moving map spec §5, §6, §14)', () => {
 
   it('gives the landing in both times, or one when it is yours', () => {
     const away = leg('SDF', 'CGN', NOW - 360 * MIN, NOW + 16 * MIN)
-    expect(landingLine(away, NY, false)).toBe(`Lands Cologne 9:30${PM} · 3:30${PM} your time`)
-    expect(landsAt(away, NY, false)).toBe(`Lands 3:30${PM}`)
+    expect(landingLine(away, NY, false)).toBe(`Lands Cologne 9:30${PM} · 3:30${PM} L`)
+    expect(landsAt(away, NY, false)).toBe(`Lands 3:30${PM} L`)
     expect(arrivalLocalTime(away, NY, false)).toBe(`9:30${PM} in Cologne`)
     const home = leg('CGN', 'SDF', NOW - 360 * MIN, NOW + 16 * MIN)
-    expect(landingLine(home, NY, false)).toBe(`Lands Louisville 3:30${PM}`)
+    expect(landingLine(home, NY, false)).toBe(`Lands Louisville 3:30${PM} L`)
     expect(arrivalLocalTime(home, NY, false)).toBeNull()
-    expect(landsAt(away, NY, true)).toBe('Lands 15:30')
+    expect(landsAt(away, NY, true)).toBe('Lands 15:30 L')
+  })
+
+  it('gives the takeoff in both times, "about" for the schedule’s, or one when it is yours (time labels design §3.3)', () => {
+    const away = leg('CGN', 'SDF', NOW - 360 * MIN, NOW + 16 * MIN)
+    expect(takeoffLine(away, NOW - 340 * MIN, false, NY, false)).toBe(`Took off Cologne 3:34${PM} · 9:34${AM} L`)
+    expect(takeoffLine(away, NOW - 340 * MIN, true, NY, false)).toBe(`Took off Cologne about 3:34${PM} · 9:34${AM} L`)
+    const home = leg('SDF', 'CGN', NOW - 360 * MIN, NOW + 16 * MIN)
+    expect(takeoffLine(home, NOW - 340 * MIN, false, NY, false)).toBe(`Took off Louisville 9:34${AM} L`)
+    expect(takeoffLine(home, NOW - 340 * MIN, false, NY, true)).toBe('Took off Louisville 9:34 L')
+  })
+
+  it('says "your time" for the next departure in the card’s spoken sentence (time labels design §3.2)', () => {
+    const resting = makeTripMap(EUROPE, { isNextTrip: false, home: 'SDF', now: at(12), airports: AIRPORTS })!
+    const sentence = tripMapSummary(resting, at(12), 'Alex', NY, false)
+    expect(sentence).toMatch(/Next: Dubai, .* your time\. Opens the full map\.$/)
+    expect(sentence).not.toMatch(/ L\./)
   })
 
   it('says today, tomorrow, a weekday or a date', () => {

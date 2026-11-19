@@ -8,6 +8,7 @@ import { TripMapCard } from '../../src/ui/TripMapCard'
 import { TripMapPage } from '../../src/ui/TripMapPage'
 import { atTheGate, backAtTheGate, FLYING, LANDED_EARLY, liveTripMap } from '../map/liveTrip'
 import { fix, MINUTE, START } from '../map/madeUpFlights'
+import { visibleText } from '../fixtures/ui'
 
 afterEach(() => {
   cleanup()
@@ -30,7 +31,7 @@ describe("the map card with a real plane (Stage 3 spec §9)", () => {
     const status = document.querySelector('.inflight-status')?.textContent
     expect(status).toBe(flightStatus(currentLeg(map)!, IN_THE_AIR))
     expect(status).toMatch(/ (ahead|behind)$|^On schedule$/)
-    expect(document.querySelector('.inflight-time')?.textContent).toMatch(/^Lands about \d{1,2}:\d\d\s[AP]M$/)
+    expect(visibleText(document.querySelector('.inflight-time')!)).toMatch(/^Lands about \d{1,2}:\d\d\s[AP]M L$/)
   })
 
   it('says it all to a screen reader in one sentence', () => {
@@ -41,7 +42,7 @@ describe("the map card with a real plane (Stage 3 spec §9)", () => {
   it('says "In flight", as before, with no live data', () => {
     card(IN_THE_AIR, null as never)
     expect(document.querySelector('.inflight-status')?.textContent).toBe('In flight')
-    expect(document.querySelector('.inflight-time')?.textContent).toMatch(/^Lands \d/)
+    expect(visibleText(document.querySelector('.inflight-time')!)).toMatch(/^Lands \d/)
   })
 })
 
@@ -91,7 +92,7 @@ describe('a real plane still on the ground at its departure airport (the website
   const LATE = START + 25 * MINUTE
   const page = (t: number, live: Parameters<typeof liveTripMap>[1]) =>
     <TripMapPage map={liveTripMap(t, live)} now={t} viewerTz={NY} h24={false} day={1} days={1} land={null} onBack={() => {}} />
-  const line = () => document.querySelector('.trip-timeline-time')?.textContent
+  const line = () => visibleText(document.querySelector('.trip-timeline-time')!)
   const slider = () => screen.getByRole('slider', { name: 'Trip time' }) as HTMLInputElement
 
   it('heads the card "On the ground" for screen readers, not "In flight"', () => {
@@ -109,7 +110,7 @@ describe('a real plane still on the ground at its departure airport (the website
 
   it('says under the full map’s timeline that it’s on the ground there, now', () => {
     render(page(LATE, atTheGate(25)))
-    expect(line()).toMatch(/^Fri 7:25\sAM · On the ground in Louisville$/)
+    expect(line()).toMatch(/^Fri 7:25\sAM L · On the ground in Louisville$/)
     expect(slider().getAttribute('aria-valuetext')).toMatch(/^Friday 7:25\sAM, on the ground in Louisville$/)
   })
 
@@ -142,7 +143,7 @@ describe('a real plane back at its departure airport after an air return (air re
   const BACK = START + 45 * MINUTE
   const page = (t: number, live: Parameters<typeof liveTripMap>[1]) =>
     <TripMapPage map={liveTripMap(t, live)} now={t} viewerTz={NY} h24={false} day={1} days={1} land={null} onBack={() => {}} />
-  const line = () => document.querySelector('.trip-timeline-time')?.textContent
+  const line = () => visibleText(document.querySelector('.trip-timeline-time')!)
   const slider = () => screen.getByRole('slider', { name: 'Trip time' }) as HTMLInputElement
 
   it('says so on the card’s bar, and heads the card "On the ground" for screen readers', () => {
@@ -153,7 +154,7 @@ describe('a real plane back at its departure airport after an air return (air re
 
   it('says under the full map’s timeline that it has returned there, now', () => {
     render(page(BACK, backAtTheGate(45)))
-    expect(line()).toMatch(/^Fri 7:45\sAM · Returned to Louisville$/)
+    expect(line()).toMatch(/^Fri 7:45\sAM L · Returned to Louisville$/)
     expect(slider().getAttribute('aria-valuetext')).toMatch(/^Friday 7:45\sAM, returned to Louisville$/)
   })
 
@@ -169,7 +170,7 @@ describe('a real plane down, not yet at the gate (the landed, not yet at the gat
   const DOWN = START + 103 * MINUTE
   const page = (t: number, live: Parameters<typeof liveTripMap>[1]) =>
     <TripMapPage map={liveTripMap(t, live)} now={t} viewerTz={NY} h24={false} day={1} days={1} land={null} onBack={() => {}} />
-  const line = () => document.querySelector('.trip-timeline-time')?.textContent
+  const line = () => visibleText(document.querySelector('.trip-timeline-time')!)
   const slider = () => screen.getByRole('slider', { name: 'Trip time' }) as HTMLInputElement
 
   it('heads the card "Landed" for screen readers, not "In flight"', () => {
@@ -182,13 +183,13 @@ describe('a real plane down, not yet at the gate (the landed, not yet at the gat
     render(<TripMapCard map={liveTripMap(DOWN, LANDED_EARLY)} now={DOWN} viewerTz="America/Los_Angeles" h24={false} name="Alex" day={1} days={1}
       delayMinutes={null} land={null} onOpenMap={() => {}} />)
     expect(document.querySelector('.inflight-status')?.textContent).toBe('Landed 13 min early')
-    expect(document.querySelector('.inflight-time')?.textContent).toMatch(/^At the gate 5:47\sAM$/)
-    expect(document.querySelector('.inflight-code')?.textContent).toMatch(/^8:47\sAM in Philadelphia$/)
+    expect(visibleText(document.querySelector('.inflight-time')!)).toMatch(/^At the gate 5:47\sAM L$/)
+    expect(visibleText(document.querySelector('.inflight-code')!)).toMatch(/^8:47\sAM in Philadelphia$/)
   })
 
   it('says under the full map’s timeline that it has landed there, now', () => {
     render(page(DOWN, LANDED_EARLY))
-    expect(line()).toMatch(/^Fri 8:43\sAM · Landed in Philadelphia$/)
+    expect(line()).toMatch(/^Fri 8:43\sAM L · Landed in Philadelphia$/)
     expect(slider().getAttribute('aria-valuetext')).toMatch(/^Friday 8:43\sAM, landed in Philadelphia$/)
   })
 
@@ -198,6 +199,6 @@ describe('a real plane down, not yet at the gate (the landed, not yet at the gat
     expect(line()).toMatch(/ · Flying to Philadelphia$/)
     cleanup()
     render(page(DOWN, null))
-    expect(line()).toMatch(/^Fri 8:43\sAM · Flying to Philadelphia$/)
+    expect(line()).toMatch(/^Fri 8:43\sAM L · Flying to Philadelphia$/)
   })
 })

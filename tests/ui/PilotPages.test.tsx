@@ -13,7 +13,7 @@ import type { ScheduleHandle } from '../../src/ui/hooks/useSchedule'
 import { PilotPages } from '../../src/ui/PilotPages'
 import { scheduleLegs } from '../../src/ui/scheduleFacts'
 import { testAirports } from '../fixtures/airports'
-import { setWindowSize, stubAnimationFrames } from '../fixtures/ui'
+import { setWindowSize, shownText, stubAnimationFrames, visibleText } from '../fixtures/ui'
 
 // The map's land is a download these tests don't make.
 vi.mock('../../src/ui/hooks/useLand', () => ({ useLand: () => null }))
@@ -72,8 +72,9 @@ describe('PilotPages details', () => {
     expect(screen.getByRole('button', { name: 'Disconnect' })).toBeTruthy()
   })
 
-  it("shows the homecoming in the pilot's home time zone, not the base's", () => {
-    // Base SDF (Eastern), home ONT (Pacific). The flight home lands at 20:00 UTC: 1:00 PM at home, 4:00 PM at base.
+  it("shows the homecoming in the viewer's own zone, marked L, not the base's (time labels design §3.7)", () => {
+    // Base SDF (Eastern), home ONT (Pacific), and the viewer on Pacific time. The flight home lands at 20:00 UTC: 1:00 PM
+    // for the viewer, 4:00 PM at base.
     const raw = new RawBuilder(NOW)
       .pilot('Pat', 'SDF', 'ONT')
       .trip('t1', {
@@ -83,9 +84,16 @@ describe('PilotPages details', () => {
         ],
       })
       .build()
-    render(<PilotPages schedule={handle(raw)} airports={testAirports} demo={false} onLeave={() => {}} />)
-    // Testing Library normalizes whitespace, so the narrow space before PM reads as a plain space here.
-    expect(screen.getByText(/(1:00 PM|13:00) · Ontario/)).toBeTruthy()
+    const real = Intl.DateTimeFormat.prototype.resolvedOptions
+    const resolved = vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockImplementation(function (this: Intl.DateTimeFormat) {
+      return { ...real.call(this), timeZone: 'America/Los_Angeles' }
+    })
+    try {
+      render(<PilotPages schedule={handle(raw)} airports={testAirports} demo={false} onLeave={() => {}} />)
+      expect(screen.getByText(shownText(/(1:00\sPM|13:00) L · Ontario$/))).toBeTruthy()
+    } finally {
+      resolved.mockRestore()
+    }
   })
 
   it('falls back to the title and footer when the schedule cannot be read', () => {
@@ -237,7 +245,7 @@ describe('PilotPages: the status page and the Schedule page (slice 3A §3.3)', (
     try {
       history.replaceState(null, '', '/#schedule')
       const { container } = render(<PilotPages schedule={handle(demoRawForScene('home', NOW))} airports={testAirports} demo onLeave={() => {}} />)
-      expect(container.querySelector('.leg-times')!.textContent).toMatch(/^\d\d:\d\d pdt – \d\d:\d\d pdt$/)
+      expect(visibleText(container.querySelector('.leg-times')!)).toMatch(/^\d{1,2}:\d\d – \d{1,2}:\d\d L$/)
     } finally {
       resolved.mockRestore()
     }

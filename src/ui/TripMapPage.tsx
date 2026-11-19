@@ -25,6 +25,7 @@ import { Icon } from './Icon'
 import { bannerLayout, LatestEventBanner, useBannerSize } from './LatestEventBanner'
 import { PlaneKey } from './PlaneKey'
 import { TripTimeline } from './TripTimeline'
+import { ClockText } from './ClockText'
 
 export interface TripMapPageProps {
   map: TripMap
@@ -168,7 +169,7 @@ export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, 
       <section ref={panel} class={`trip-map-panel ${side ? 'side' : 'bottom'}${showsFacts ? ' open' : ''}`}
         aria-label={facts ? 'Trip facts and timeline' : 'Timeline'}>
         <div class="trip-map-panel-top">
-          <h2 class="trip-map-headline">{facts ? facts.headline : panelHeadline(map, t, viewerTz, h24)}</h2>
+          <h2 class="trip-map-headline"><ClockText text={facts ? facts.headline : panelHeadline(map, t, viewerTz, h24)} /></h2>
           {facts && side && (
             <button type="button" class="facts-toggle chevron-toggle" aria-expanded={open} aria-controls="trip-facts"
               aria-label={open ? 'Hide facts' : 'Show facts'} onClick={() => setOpen(!open)}>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  aircraftText, allFlownText, averageSpeedText, belowWords, chaseText, closestToHomeText, cockpitCountdown, cockpitEventText, eventTitle, eventWhen,
+  aircraftText, allFlownText, averageSpeedText, belowWords, chaseText, closestToHomeText, cockpitCountdown, cockpitEventText, cockpitGapText, eventTitle, eventWhen,
   flightTitle, flownText, flyingInto, groundSunText, halfwayText, heightAndSpeedText, inTheAirTag, LANDED_TAG, landsText, lastSeenLine, LIVE_CREDIT,
   midLine, milestoneHeadline, milestoneLine, moonText, SPOKEN_LIVE_CREDIT, spokenLastSeen, spokenLatestEvent, stillOnGroundText, timeDifferenceText,
   toGoText, WIDEST_EVENT_WHEN,
@@ -30,16 +30,16 @@ describe('milestones in words (Stage 2 spec §4.3)', () => {
   })
 
   it('lists them with the time in your zone', () => {
-    expect(milestoneLine({ kind: 'crossedInto', name: 'Canada', time: NOW }, NY, false)).toBe(`Crossed into Canada · 3:14${PM}`)
-    expect(milestoneLine({ kind: 'closestToHome', miles: 40, time: NOW }, NY, false)).toBe(`Closest to home, 40 mi · 3:14${PM}`)
+    expect(milestoneLine({ kind: 'crossedInto', name: 'Canada', time: NOW }, NY, false)).toBe(`Crossed into Canada · 3:14${PM} L`)
+    expect(milestoneLine({ kind: 'closestToHome', miles: 40, time: NOW }, NY, false)).toBe(`Closest to home, 40 mi · 3:14${PM} L`)
   })
 
   it('says "about" before a best guess’s time (best guesses design §2)', () => {
-    expect(milestoneLine({ kind: 'outOver', name: 'the Pacific', time: NOW }, NY, false)).toBe(`Out over the Pacific · 3:14${PM}`)
-    expect(milestoneLine({ kind: 'outOver', name: 'the Pacific', time: NOW, isEstimate: true }, NY, false)).toBe(`Out over the Pacific · about 3:14${PM}`)
-    expect(milestoneLine({ kind: 'halfway', time: NOW, isEstimate: true }, NY, false)).toBe(`Halfway · about 3:14${PM}`)
-    expect(milestoneLine({ kind: 'crossedInto', name: 'Kansas', time: NOW, isEstimate: true }, NY, false)).toBe(`Crossed into Kansas · about 3:14${PM}`)
-    expect(milestoneLine({ kind: 'closestToHome', miles: 40, time: NOW, isEstimate: true }, NY, false)).toBe(`Closest to home, 40 mi · about 3:14${PM}`)
+    expect(milestoneLine({ kind: 'outOver', name: 'the Pacific', time: NOW }, NY, false)).toBe(`Out over the Pacific · 3:14${PM} L`)
+    expect(milestoneLine({ kind: 'outOver', name: 'the Pacific', time: NOW, isEstimate: true }, NY, false)).toBe(`Out over the Pacific · about 3:14${PM} L`)
+    expect(milestoneLine({ kind: 'halfway', time: NOW, isEstimate: true }, NY, false)).toBe(`Halfway · about 3:14${PM} L`)
+    expect(milestoneLine({ kind: 'crossedInto', name: 'Kansas', time: NOW, isEstimate: true }, NY, false)).toBe(`Crossed into Kansas · about 3:14${PM} L`)
+    expect(milestoneLine({ kind: 'closestToHome', miles: 40, time: NOW, isEstimate: true }, NY, false)).toBe(`Closest to home, 40 mi · about 3:14${PM} L`)
   })
 
   it('names a flight by its number and cities', () => {
@@ -61,28 +61,34 @@ describe('below, the sky and the distance in words (Stage 2 spec §4.1, §4.5, �
   })
 
   it('says when it passes closest to home, before and after', () => {
-    expect(closestToHomeText(40, NOW + 60 * MIN, NOW, NY, false)).toBe(`Passes 40 mi from home at 4:14${PM}`)
-    expect(closestToHomeText(40, NOW, NOW + 60 * MIN, NY, false)).toBe(`Closest to home was 40 mi at 3:14${PM}`)
+    expect(closestToHomeText(40, NOW + 60 * MIN, NOW, NY, false)).toBe(`Passes 40 mi from home at 4:14${PM} L`)
+    expect(closestToHomeText(40, NOW, NOW + 60 * MIN, NY, false)).toBe(`Closest to home was 40 mi at 3:14${PM} L`)
   })
 
   it('says "about" before the closest point’s time ahead of a real plane, and after it where nobody saw it pass', () => {
-    expect(closestToHomeText(40, NOW + 60 * MIN, NOW, NY, false, true)).toBe(`Passes 40 mi from home at about 4:14${PM}`)
+    expect(closestToHomeText(40, NOW + 60 * MIN, NOW, NY, false, true)).toBe(`Passes 40 mi from home at about 4:14${PM} L`)
     // Where nobody saw the plane pass, it's still a best guess.
-    expect(closestToHomeText(40, NOW, NOW + 60 * MIN, NY, false, true)).toBe(`Closest to home was 40 mi at about 3:14${PM}`)
+    expect(closestToHomeText(40, NOW, NOW + 60 * MIN, NY, false, true)).toBe(`Closest to home was 40 mi at about 3:14${PM} L`)
   })
 
   it('counts down to a cockpit sunset, rounding up', () => {
     expect(cockpitCountdown({ kind: 'sunset', time: NOW + 24.5 * MIN, peopleBelowGap: null }, NOW)).toBe('Sunset from the cockpit in 25 min')
   })
 
-  it('says how far the people below are behind a sunset soon', () => {
+  it('counts down to a sunset soon, and leaves the people below to the next line (time labels design §3.6)', () => {
     expect(cockpitEventText({ kind: 'sunset', time: NOW + 24.5 * MIN, peopleBelowGap: 12.2 * MIN }, NOW, NY, false))
-      .toBe('Sunset in 25 min, about 12 min after the people below')
+      .toBe('Sunset in 25 min')
+  })
+
+  it('says how much sooner or later the pilot sees it than the ground (time labels design §3.6)', () => {
+    expect(cockpitGapText({ kind: 'sunrise', time: NOW, peopleBelowGap: 31 * MIN })).toBe('The pilot sees it 31 min before the ground does')
+    expect(cockpitGapText({ kind: 'sunset', time: NOW, peopleBelowGap: 12.2 * MIN })).toBe('The pilot sees it 12 min after the ground does')
+    expect(cockpitGapText({ kind: 'sunset', time: NOW, peopleBelowGap: null })).toBeNull()
   })
 
   it('gives the time of an event an hour or more away', () => {
     expect(cockpitEventText({ kind: 'sunrise', time: NOW + 120 * MIN, peopleBelowGap: 22 * MIN }, NOW, NY, false))
-      .toBe(`Sunrise at 5:14${PM}, about 22 min before the people below`)
+      .toBe(`Sunrise at 5:14${PM} L`)
   })
 
   it('has the sky’s other lines', () => {
@@ -91,12 +97,12 @@ describe('below, the sky and the distance in words (Stage 2 spec §4.1, §4.5, �
     expect(chaseText('afternoon')).toBe('Chasing the sun: their afternoon is stretching')
     expect(moonText({ phase: 'waxingGibbous', isUp: true })).toBe('Waxing gibbous moon, up')
     expect(moonText({ phase: 'full', isUp: false })).toBe('Full moon, below the horizon')
-    expect(groundSunText('sunrise', NOW, 'Europe/Berlin', false)).toBe(`sunrise at 9:14${PM} there`)
+    expect(groundSunText('sunrise', NOW, 'Europe/Berlin', 'Berlin', false)).toBe(`sunrise at 9:14${PM} Berlin`)
   })
 
   it('counts down only under 59 minutes, so it never reads "in 60 min", as the app does', () => {
     expect(cockpitEventText({ kind: 'sunset', time: NOW + 58.5 * MIN, peopleBelowGap: null }, NOW, NY, false)).toBe('Sunset in 59 min')
-    expect(cockpitEventText({ kind: 'sunset', time: NOW + 59.5 * MIN, peopleBelowGap: null }, NOW, NY, false)).toBe(`Sunset at 4:13${PM}`)
+    expect(cockpitEventText({ kind: 'sunset', time: NOW + 59.5 * MIN, peopleBelowGap: null }, NOW, NY, false)).toBe(`Sunset at 4:13${PM} L`)
   })
 
   it('says the distance and speed', () => {
@@ -117,8 +123,8 @@ describe('below, the sky and the distance in words (Stage 2 spec §4.1, §4.5, �
   })
 
   it('says "about" before the halfway time that’s the real plane’s estimate (Stage 3 spec §8)', () => {
-    expect(halfwayText(NOW, NY, false)).toBe(`Halfway at 3:14${PM}`)
-    expect(halfwayText(NOW, NY, false, true)).toBe(`Halfway at about 3:14${PM}`)
+    expect(halfwayText(NOW, NY, false)).toBe(`Halfway at 3:14${PM} L`)
+    expect(halfwayText(NOW, NY, false, true)).toBe(`Halfway at about 3:14${PM} L`)
   })
 })
 
@@ -238,9 +244,9 @@ describe('the latest event in words (latest event design §1, §3)', () => {
 
   it('at a moment of the replay, says its clock time', () => {
     const later = NOW + 10 * MIN
-    expect(eventWhen(crossed, later, NY, false, true)).toBe(`3:14${PM}`)
-    expect(eventWhen({ ...crossed, isEstimate: true }, later, NY, false, true)).toBe(`About 3:14${PM}`)
-    expect(eventWhen(crossed, later, NY, true, true)).toBe('15:14')
+    expect(eventWhen(crossed, later, NY, false, true)).toBe(`3:14${PM} L`)
+    expect(eventWhen({ ...crossed, isEstimate: true }, later, NY, false, true)).toBe(`About 3:14${PM} L`)
+    expect(eventWhen(crossed, later, NY, true, true)).toBe('15:14 L')
   })
 
   it('has a widest form, which the banner keeps room for: no "when" of a flight in the air is longer', () => {
@@ -263,9 +269,9 @@ describe('the latest event in words (latest event design §1, §3)', () => {
     const closest: Milestone = { kind: 'closestToHome', miles: 35, time: NOW, isEstimate: true }
     expect(spokenLatestEvent(closest, NOW + 60 * MIN, NY, false)).toBe('Latest: closest to home, 35 miles, about 1 hour ago.')
     expect(spokenLatestEvent(closest, NOW, NY, false)).toBe('Latest: closest to home, 35 miles, about now.')
-    expect(spokenLatestEvent({ kind: 'halfway', time: NOW }, NOW + 10 * MIN, NY, false, true)).toBe(`Latest: halfway, at 3:14${PM}.`)
+    expect(spokenLatestEvent({ kind: 'halfway', time: NOW }, NOW + 10 * MIN, NY, false, true)).toBe(`Latest: halfway, at 3:14${PM} your time.`)
     expect(spokenLatestEvent({ kind: 'outOver', name: 'the Pacific', time: NOW, isEstimate: true }, NOW + 10 * MIN, NY, false, true))
-      .toBe(`Latest: out over the Pacific, at about 3:14${PM}.`)
+      .toBe(`Latest: out over the Pacific, at about 3:14${PM} your time.`)
   })
 })
 
@@ -280,8 +286,8 @@ describe('where they’re headed in words (Stage 2 spec §4.7)', () => {
   })
 
   it('says when a flight lands, there or in your time', () => {
-    expect(landsText(toCologne, NY, false)).toBe(`lands 9:14${PM} there`)
-    expect(landsText(home, NY, false)).toBe(`lands 3:14${PM}`)
+    expect(landsText(toCologne, NY, false)).toBe(`lands 9:14${PM} Cologne`)
+    expect(landsText(home, NY, false)).toBe(`lands 3:14${PM} L`)
   })
 })
 

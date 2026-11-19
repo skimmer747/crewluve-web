@@ -8,12 +8,14 @@ import {
 import { milesFlown, totalMiles } from '../facts/tripTotals'
 import { calendarDay, MONTHS, WEEKDAYS, zoneOffsetMinutes, zonedParts } from '../time/zoned'
 import type { FlightOnGround, TripActivity } from '../map/tripActivity'
+import { clockTime, MARK, pair, spoken, yours } from './clockLabel'
 import { recapChip } from './factsTrip'
 import { shortTimeText } from './format'
 
 /**
- * Every sentence the trip map shows or speaks (moving map spec §5, §6, §14), as the app's TripMapWording. Times are the
- * family's own, in `viewerTz`, unless the words say "there".
+ * Every sentence the trip map shows or speaks (moving map spec §5, §6, §14), as the app's TripMapWording. The family's
+ * own times, in `viewerTz`, are marked "L", and a city's follow its name (time labels design §2). Screen readers hear
+ * "your time".
  */
 
 const shortWeekday = (ms: number, tz: string) => WEEKDAYS[zonedParts(ms, tz).weekday].slice(0, 3)
@@ -38,14 +40,14 @@ export function dateRangeText(start: number, end: number, tz: string): string {
   return days === 0 ? shortWeekday(start, tz) : `${shortWeekday(start, tz)}–${shortWeekday(end, tz)}`
 }
 
-/** "Cologne · 9:14 PM there". */
+/** "Cologne · 9:14 PM": the city's time, after its name (time labels design §3.2). */
 export function placeChip(place: AirportMark, now: number, h24: boolean): string {
-  return place.timeZone ? `${place.city} · ${shortTimeText(now, place.timeZone, h24)} there` : place.city
+  return place.timeZone ? `${place.city} · ${clockTime(now, place.timeZone, h24)}` : place.city
 }
 
-/** "Next: Dubai, tomorrow 6:10 AM". */
+/** "Next: Dubai, tomorrow 6:10 AM L". */
 export function nextDepartureChip(leg: MapLeg, now: number, viewerTz: string, h24: boolean): string {
-  return `Next: ${leg.destination.city}, ${dayPhrase(leg.start, now, viewerTz)} ${shortTimeText(leg.start, viewerTz, h24)}`
+  return `Next: ${leg.destination.city}, ${dayPhrase(leg.start, now, viewerTz)} ${yours(leg.start, viewerTz, h24)}`
 }
 
 /** "Home · next trip Wednesday", or "At base · next trip Wednesday" while the pilot waits at base (base waits design §3). */
@@ -184,30 +186,33 @@ export function liveSummary(
 function thereAtLanding(leg: MapLeg, viewerTz: string, h24: boolean): string | null {
   const there = leg.destination.timeZone
   if (!there || zoneOffsetMinutes(leg.end, there) === zoneOffsetMinutes(leg.end, viewerTz)) return null
-  return shortTimeText(leg.end, there, h24)
+  return clockTime(leg.end, there, h24)
 }
 
 /**
- * "Lands Cologne 9:30 PM · 3:30 PM your time", or "Lands Louisville 3:30 PM". With the real plane's estimate, "Lands
- * Cologne about 9:18 PM · 3:18 PM your time": "about" once.
+ * "Lands Cologne 9:30 PM · 3:30 PM L", or one time, "Lands Louisville 3:30 PM L", when the destination keeps the family's
+ * clock. With the real plane's estimate, "Lands Cologne about 9:18 PM · 3:18 PM L": "about" once.
  */
 export function landingLine(leg: MapLeg, viewerTz: string, h24: boolean): string {
-  const yours = shortTimeText(leg.end, viewerTz, h24)
-  const there = thereAtLanding(leg, viewerTz, h24)
-  const city = `Lands ${leg.destination.city} ${about(leg)}`
-  return there ? `${city}${there} · ${yours} your time` : `${city}${yours}`
+  return `Lands ${leg.destination.city} ${about(leg)}${pair(leg.end, leg.destination.timeZone, viewerTz, h24)}`
 }
 
 /**
- * "Reaches the gate at 3:52 PM · 7:52 PM your time", or "Reaches the gate at 3:30 PM": the landing line once the real
- * plane is down and not yet at the gate (the landed, not yet at the gate design §3, Todd, 17 Nov 2026). "about" where the
- * time is the real plane's estimate, else "at", as the plane's popup says it.
+ * "Reaches the gate in Anchorage at 3:52 PM · 7:52 PM L", or one time where the destination keeps the family's clock: the
+ * landing line once the real plane is down and not yet at the gate (the landed, not yet at the gate design §3, Todd, 17
+ * Nov 2026). It names the city, so its first time is the city's (time labels design §3.2). "about" where the time is the
+ * real plane's estimate, else "at", as the plane's popup says it.
  */
 export function gateLine(leg: MapLeg, viewerTz: string, h24: boolean): string {
-  const yours = shortTimeText(leg.end, viewerTz, h24)
-  const there = thereAtLanding(leg, viewerTz, h24)
-  const lead = `Reaches the gate ${about(leg) || 'at '}`
-  return there ? `${lead}${there} · ${yours} your time` : `${lead}${yours}`
+  return `Reaches the gate in ${leg.destination.city} ${about(leg) || 'at '}${pair(leg.end, leg.destination.timeZone, viewerTz, h24)}`
+}
+
+/**
+ * "Took off Taipei 7:42 PM · 6:42 AM L", or one time where the departure airport keeps the family's clock: the facts'
+ * takeoff row (time labels design §3.3). "about" when it's the schedule's takeoff, not the real plane's.
+ */
+export function takeoffLine(leg: MapLeg, takeoff: number, isEstimate: boolean, viewerTz: string, h24: boolean): string {
+  return `Took off ${leg.origin.city} ${isEstimate ? 'about ' : ''}${pair(takeoff, leg.origin.timeZone, viewerTz, h24)}`
 }
 
 /**
@@ -222,15 +227,16 @@ export const landedText = (city: string) => `Landed in ${city}`
  */
 export const returnedText = (city: string) => `Returned to ${city}`
 
-/** "Lands 3:30 PM", for the card's bar. With the real plane's estimate, "Lands about 3:18 PM". */
-export const landsAt = (leg: MapLeg, viewerTz: string, h24: boolean) => `Lands ${about(leg)}${shortTimeText(leg.end, viewerTz, h24)}`
+/** "Lands 3:30 PM L", for the card's bar. With the real plane's estimate, "Lands about 3:18 PM L". */
+export const landsAt = (leg: MapLeg, viewerTz: string, h24: boolean) => `Lands ${about(leg)}${yours(leg.end, viewerTz, h24)}`
 
 /**
- * The card's bar's arrival: "Lands 3:30 PM" (`landsAt`), or "At the gate 8:47 AM" while the real plane is down and not
- * yet at the gate, with no "about" (Todd, 17 Nov 2026, the landed, not yet at the gate design §3). The card is always now.
+ * The card's bar's arrival: "Lands 3:30 PM L" (`landsAt`), or "At the gate 8:47 AM L" while the real plane is down and
+ * not yet at the gate, with no "about" (Todd, 17 Nov 2026, the landed, not yet at the gate design §3). The card is
+ * always now.
  */
 export function barArrival(leg: MapLeg, now: number, viewerTz: string, h24: boolean): string {
-  return legLandedBeforeGate(leg, now) ? `At the gate ${shortTimeText(leg.end, viewerTz, h24)}` : landsAt(leg, viewerTz, h24)
+  return legLandedBeforeGate(leg, now) ? `At the gate ${yours(leg.end, viewerTz, h24)}` : landsAt(leg, viewerTz, h24)
 }
 
 /** "9:30 PM in Cologne", or null when the destination keeps the family's time. */
@@ -304,7 +310,7 @@ export function panelHeadline(map: TripMap, t: number, viewerTz: string, h24: bo
 }
 
 /** "Fri 9:14 PM", under the timeline and as the slider's spoken value. */
-export const timelineTime = (ms: number, viewerTz: string, h24: boolean) => `${shortWeekday(ms, viewerTz)} ${shortTimeText(ms, viewerTz, h24)}`
+export const timelineTime = (ms: number, viewerTz: string, h24: boolean) => `${shortWeekday(ms, viewerTz)} ${clockTime(ms, viewerTz, h24)}`
 
 /** The words under the timeline (activity markers design §4.2): "Flying to San Francisco", "Layover in Denver", "Home". */
 export function activityWords({ kind, place }: TripActivity): string {
@@ -334,15 +340,16 @@ function lineWords(activity: TripActivity | null, onGround: FlightOnGround | nul
 }
 
 /**
- * "Sat 1:40 PM · Layover in Denver": the line under the timeline, when and what (activity markers design §4.2). While
- * the flight's real plane is on the ground, `onGround`: "Mon 12:21 PM · On the ground in Rockford" (the website's own,
- * Todd, 16 Nov 2026), "Mon 12:21 PM · Returned to Rockford" (air return design §3), or "Mon 7:45 PM · Landed in
- * Anchorage" (the landed, not yet at the gate design §3, Todd, 17 Nov 2026).
+ * "Sat 1:40 PM L · Layover in Denver": the line under the timeline, when and what (activity markers design §4.2), its
+ * time the family's (time labels design §3.2). While the flight's real plane is on the ground, `onGround`: "Mon 12:21 PM
+ * L · On the ground in Rockford" (the website's own, Todd, 16 Nov 2026), "Mon 12:21 PM L · Returned to Rockford" (air
+ * return design §3), or "Mon 7:45 PM L · Landed in Anchorage" (the landed, not yet at the gate design §3, Todd, 17 Nov
+ * 2026).
  */
 export function timelineLine(
   ms: number, activity: TripActivity | null, viewerTz: string, h24: boolean, onGround: FlightOnGround | null = null,
 ): string {
-  const time = timelineTime(ms, viewerTz, h24)
+  const time = `${timelineTime(ms, viewerTz, h24)} ${MARK}`
   const words = lineWords(activity, onGround)
   return words ? `${time} · ${words}` : time
 }
@@ -351,7 +358,7 @@ export function timelineLine(
 export function timelineSpokenValue(
   ms: number, activity: TripActivity | null, viewerTz: string, h24: boolean, onGround: FlightOnGround | null = null,
 ): string {
-  const time = `${WEEKDAYS[zonedParts(ms, viewerTz).weekday]} ${shortTimeText(ms, viewerTz, h24)}`
+  const time = `${WEEKDAYS[zonedParts(ms, viewerTz).weekday]} ${clockTime(ms, viewerTz, h24)}`
   const words = lineWords(activity, onGround)
   if (!words) return time
   return `${time}, ${words.charAt(0).toLowerCase()}${words.slice(1)}`
@@ -394,7 +401,8 @@ export function tripMapSummary(map: TripMap, t: number, name: string, viewerTz: 
   if (place) parts.push(`${name} is in ${place.city}.`)
   else if (drive) parts.push(`${name} is driving to ${drive.destination.city}.`)
   const next = nextFlight(map, t)
-  if (next) parts.push(`${nextDepartureChip(next, t, viewerTz, h24)}.`)
+  // Spoken: "Next: Dubai, tomorrow 6:10 AM your time." (time labels design §3.2).
+  if (next) parts.push(`${spoken(nextDepartureChip(next, t, viewerTz, h24))}.`)
   return [...parts, opens].join(' ')
 }
 

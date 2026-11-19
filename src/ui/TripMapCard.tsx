@@ -17,6 +17,7 @@ import { Icon } from './Icon'
 import { BANNER_EDGE, bannerLayout, LatestEventBanner, useBannerSize } from './LatestEventBanner'
 import { PlaneKey } from './PlaneKey'
 import { TripRecapBar } from './TripRecapBar'
+import { ClockText } from './ClockText'
 
 export interface TripMapCardProps {
   map: TripMap
@@ -101,12 +102,12 @@ export function TripMapCard(p: TripMapCardProps) {
             mapStyle={mapStyle} interactive={false} followsPlane={followsPlane} />
         </span>
         {latest ? <LatestEventBanner event={latest} refs={banner.refs} />
-          : chips.top && <span ref={setTopChip} class="trip-map-chip top" aria-hidden="true">{chips.top}</span>}
+          : chips.top && <span ref={setTopChip} class="trip-map-chip top" aria-hidden="true"><ClockText text={chips.top} /></span>}
         {showsKey && <PlaneKey boxRef={setKey} top={layout?.keyTop} />}
         {bottom && (
           <span ref={setBottomChip} class="trip-map-chip bottom" aria-hidden="true">
             {isRecap && <PlayMark />}
-            {bottom}
+            <ClockText text={bottom} />
           </span>
         )}
       </button>
@@ -139,9 +140,9 @@ function InFlightBar({ leg, now, viewerTz, h24, onOpenTracking }: TripMapCardPro
         <span class="inflight-status">{flightStatus(leg, now)}</span>
       </div>
       <div class="inflight-arrival">
-        {/* "Lands 3:30 PM", or "At the gate 8:47 AM" once the real plane is down (Todd, 17 Nov 2026). */}
-        <p class="inflight-time">{barArrival(leg, now, viewerTz, h24)}</p>
-        {local && <span class="inflight-code">{local}</span>}
+        {/* "Lands 3:30 PM L", or "At the gate 8:47 AM L" once the real plane is down (Todd, 17 Nov 2026). */}
+        <p class="inflight-time"><ClockText text={barArrival(leg, now, viewerTz, h24)} /></p>
+        {local && <span class="inflight-code"><ClockText text={local} /></span>}
       </div>
     </div>
   )

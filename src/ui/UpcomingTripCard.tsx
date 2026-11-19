@@ -7,11 +7,12 @@ import type { UpcomingTrip } from '../engine/trips'
 import { cssFill } from './colors'
 import { Icon } from './Icon'
 import { useScheduleLink, type ScheduleLinkProps } from './ScheduleLink'
+import { ClockText } from './ClockText'
 
 interface UpcomingTripCardProps {
   trip: UpcomingTrip
   now: number
-  /** The pilot's home time zone, like the other cards' subtitles. */
+  /** The viewer's time zone: the family's time, marked "L" (time labels design §3.7). */
   timeZone: string
   h24: boolean
   airports: AirportIndex
@@ -30,7 +31,7 @@ export function UpcomingTripCard({ trip, now, timeZone, h24, airports, link }: U
       <div class="trip-head">
         <Badge badge={LINE_TRIP_BADGE} />
         <div class="trip-when">
-          <p class="trip-departs">{tripCardDepartsText(trip.departs, now, timeZone, h24)}</p>
+          <p class="trip-departs"><ClockText text={tripCardDepartsText(trip.departs, now, timeZone, h24)} /></p>
           <p class="trip-days">{daysText(trip.days)}</p>
         </div>
         {trip.delayMinutes != null && <Badge badge={delayBadge(trip.delayMinutes)} />}

@@ -11,7 +11,7 @@ const headed = factRow('headed', 'AirplaneLanding', 'Lands Cologne 9:30 PM', [nu
 const soFar: TripSoFar = {
   flights: [{
     id: 'f1', title: 'UPS201 · Louisville → Cologne', tag: null,
-    events: [{ text: 'Halfway · 4:12 PM', isEstimate: false }, { text: 'Crossed into Canada · 1:12 PM', isEstimate: false }],
+    events: [{ text: 'Halfway · 4:12 PM', isEstimate: false, isCurrent: false }, { text: 'Crossed into Canada · 1:12 PM', isEstimate: false, isCurrent: false }],
   }],
   totalsTitle: 'Trip so far',
   totals: 'Day 1 of 4 · 2,140 mi',
@@ -84,10 +84,12 @@ describe('the credit to adsb.lol under the facts (Stage 3 spec §8, §15)', () =
   it('shows under "Estimated from the schedule", beside the weather credit, whenever a flight with live data shows', () => {
     const { container } = render(<FactsBody rows={[withWeather]} tripSoFar={soFar} showsLiveCredit />)
     const lines = [...footer(container).children]
-    expect(lines).toHaveLength(3)
+    expect(lines).toHaveLength(4)
     expect(lines[0].textContent).toBe('Estimated from the schedule')
-    expect(lines[1].classList.contains('live-credit')).toBe(true)
-    expect(lines[2].classList.contains('weather-credit')).toBe(true)
+    // The key to the family's times (time labels design §3.5).
+    expect(lines[1].classList.contains('clock-key')).toBe(true)
+    expect(lines[2].classList.contains('live-credit')).toBe(true)
+    expect(lines[3].classList.contains('weather-credit')).toBe(true)
   })
 
   it('reads "Live position: adsb.lol", and is a sentence for screen readers', () => {
@@ -107,7 +109,7 @@ describe('the credit to adsb.lol under the facts (Stage 3 spec §8, §15)', () =
   it('leaves the footer as it was with no live data', () => {
     const { container } = render(<FactsBody rows={[below]} tripSoFar={soFar} />)
     const before = footer(container).outerHTML
-    expect(footer(container).textContent).toBe('Estimated from the schedule')
+    expect([...footer(container).children].map((line) => line.className || line.textContent)).toEqual(['Estimated from the schedule', 'clock-key'])
     expect(container.querySelector('.live-credit')).toBeNull()
     cleanup()
     const none = render(<FactsBody rows={[below]} tripSoFar={soFar} showsLiveCredit={false} />)
@@ -121,9 +123,9 @@ describe('the trip so far’s list (best guesses design §3, §4)', () => {
     flights: [
       {
         id: 'f2', title: 'UPS202 · Cologne → Dubai', tag: 'In the air now',
-        events: [{ text: 'Out over the Persian Gulf · about 9:05 AM', isEstimate: true }, { text: 'Crossed into Iran · 8:40 AM', isEstimate: false }],
+        events: [{ text: 'Out over the Persian Gulf · about 9:05 AM', isEstimate: true, isCurrent: false }, { text: 'Crossed into Iran · 8:40 AM', isEstimate: false, isCurrent: false }],
       },
-      { id: 'f1', title: 'UPS201 · Louisville → Cologne', tag: null, events: [{ text: 'Crossed into Canada · 1:12 PM', isEstimate: false }] },
+      { id: 'f1', title: 'UPS201 · Louisville → Cologne', tag: null, events: [{ text: 'Crossed into Canada · 1:12 PM', isEstimate: false, isCurrent: false }] },
     ],
     totalsTitle: 'Trip so far',
     totals: 'Day 2 of 4 · 6,100 mi',

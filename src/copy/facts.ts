@@ -6,13 +6,13 @@ import { METERS_PER_MILE, METERS_PER_NM } from '../map/greatCircle'
 import { isArrivalEstimated, type MapLeg } from '../map/tripMap'
 import type { MoonPhase } from '../time/moon'
 import { MINUTE, zoneOffsetMinutes } from '../time/zoned'
-import { shortTimeText } from './format'
+import { place, spoken, yours } from './clockLabel'
 import { minutesText, spokenMinutes } from './tripMap'
 
 /**
  * The facts' sentences about a flight (Stage 2 spec §4, §5), as the app's FactsWording: milestones, what's below, the
- * sky, distance and landing. Times are the family's own, in `viewerTz`, unless the words say "there". The whole trip's
- * sentences are in src/copy/factsTrip.ts.
+ * sky, distance and landing. The family's own times, in `viewerTz`, are marked "L", and a city's follow its name (time
+ * labels design §2). The whole trip's sentences are in src/copy/factsTrip.ts.
  */
 
 /** "4,351". */
@@ -38,11 +38,11 @@ export function milestoneHeadline(milestone: MilestoneKind): string {
 const aboutIf = (isEstimate: boolean | undefined) => (isEstimate ? 'about ' : '')
 
 /**
- * The trip so far's list: "Crossed into Kansas · 1:12 PM". A best guess reads "about": "Out over the Pacific · about
- * 4:05 PM" (best guesses design §2).
+ * The trip so far's list: "Crossed into Kansas · 1:12 PM L". A best guess reads "about": "Out over the Pacific · about
+ * 4:05 PM L" (best guesses design §2).
  */
 export const milestoneLine = (milestone: Milestone, viewerTz: string, h24: boolean) =>
-  `${eventTitle(milestone)} · ${aboutIf(milestone.isEstimate)}${shortTimeText(milestone.time, viewerTz, h24)}`
+  `${eventTitle(milestone)} · ${aboutIf(milestone.isEstimate)}${yours(milestone.time, viewerTz, h24)}`
 
 /**
  * What an event was, on its own: "Crossed into Kansas", "Out over the Atlantic", "Halfway", "Closest to home, 40 mi".
@@ -74,11 +74,11 @@ function minutesSince(time: number, t: number): number | null {
 /**
  * When an event was, under it in the banner (latest event design §1): "Just now" in its first minute, then "12 min ago".
  * A best guess says so: "About now", "About 12 min ago". At a moment of the replay, where "ago" means nothing, its clock
- * time: "10:37 AM", "About 10:37 AM".
+ * time: "10:37 AM L", "About 10:37 AM L".
  */
 export function eventWhen(milestone: Milestone, t: number, viewerTz: string, h24: boolean, isReplay = false): string {
   const about = milestone.isEstimate ? 'About ' : ''
-  if (isReplay) return `${about}${shortTimeText(milestone.time, viewerTz, h24)}`
+  if (isReplay) return `${about}${yours(milestone.time, viewerTz, h24)}`
   const minutes = minutesSince(milestone.time, t)
   if (minutes == null) return milestone.isEstimate ? 'About now' : 'Just now'
   return `${about}${minutesText(minutes)} ago`
@@ -86,7 +86,7 @@ export function eventWhen(milestone: Milestone, t: number, viewerTz: string, h24
 
 /**
  * The widest "when" of a flight in the air: a best guess two-digit hours ago, in eights, as wide as any digit. A replay's
- * clock time, "About 10:37 AM", is narrower. The banner keeps room for it when it decides where the key goes, so the key
+ * clock time, "About 10:37 AM L", is narrower. The banner keeps room for it when it decides where the key goes, so the key
  * doesn't move while the same event shows.
  */
 export const WIDEST_EVENT_WHEN = 'About 88 h 88 min ago'
@@ -94,13 +94,13 @@ export const WIDEST_EVENT_WHEN = 'About 88 h 88 min ago'
 /**
  * The banner as a screen reader reads it, as its own sentence (latest event design §3): "Latest: crossed into Canada, 12
  * minutes ago.", "Latest: halfway, about 40 minutes ago.", or at a moment of the replay "Latest: crossed into Canada, at
- * 10:37 AM." The card's sentence has it too.
+ * 10:37 AM your time." The card's sentence has it too.
  */
 export function spokenLatestEvent(milestone: Milestone, t: number, viewerTz: string, h24: boolean, isReplay = false): string {
   const what = milestone.kind === 'closestToHome' ? `closest to home, ${milestone.miles} miles` : midLine(eventTitle(milestone))
   const about = aboutIf(milestone.isEstimate)
   const minutes = minutesSince(milestone.time, t)
-  const when = isReplay ? `at ${about}${shortTimeText(milestone.time, viewerTz, h24)}`
+  const when = isReplay ? `at ${about}${spoken(yours(milestone.time, viewerTz, h24))}`
     : minutes != null ? `${about}${spokenMinutes(minutes)} ago`
     : milestone.isEstimate ? 'about now' : 'just now'
   return `Latest: ${what}, ${when}.`
@@ -136,11 +136,11 @@ export const belowWords = (place: Place, city: City | null) => (city ? `Over ${p
 export const stillOnGroundText = (city: string) => `Still on the ground in ${city}`
 
 /**
- * "Passes 40 mi from home at 1:05 PM", or "Closest to home was 40 mi at 1:05 PM" once it's passed. Where nobody saw the
- * real plane (`isEstimate`) the time is a best guess: "Passes 40 mi from home at about 1:05 PM".
+ * "Passes 40 mi from home at 1:05 PM L", or "Closest to home was 40 mi at 1:05 PM L" once it's passed. Where nobody saw
+ * the real plane (`isEstimate`) the time is a best guess: "Passes 40 mi from home at about 1:05 PM L".
  */
 export function closestToHomeText(miles: number, at: number, now: number, viewerTz: string, h24: boolean, isEstimate = false): string {
-  const clock = `${aboutIf(isEstimate)}${shortTimeText(at, viewerTz, h24)}`
+  const clock = `${aboutIf(isEstimate)}${yours(at, viewerTz, h24)}`
   return at > now ? `Passes ${miles} mi from home at ${clock}` : `Closest to home was ${miles} mi at ${clock}`
 }
 
@@ -230,13 +230,22 @@ const minutesUntil = (now: number, time: number) => Math.max(1, Math.ceil((time 
 /** The headline: "Sunset from the cockpit in 25 min". */
 export const cockpitCountdown = (event: SunEvent, now: number) => `${sunName(event.kind)} from the cockpit in ${minutesUntil(now, event.time)} min`
 
-/** The sky row: "Sunset in 25 min, about 12 min after the people below", or "Sunrise at 6:38 AM" 59 minutes or more ahead. */
+/** The sky row: "Sunset in 25 min", or "Sunrise at 6:38 AM L" 59 minutes or more ahead. */
 export function cockpitEventText(event: SunEvent, now: number, viewerTz: string, h24: boolean): string {
   // Under 59 minutes as a countdown, so it never reads "in 60 min", as the app's FactsWording does.
-  const when = event.time - now < 59 * MINUTE ? `in ${minutesUntil(now, event.time)} min` : `at ${shortTimeText(event.time, viewerTz, h24)}`
-  if (event.peopleBelowGap == null) return `${sunName(event.kind)} ${when}`
+  const when = event.time - now < 59 * MINUTE ? `in ${minutesUntil(now, event.time)} min` : `at ${yours(event.time, viewerTz, h24)}`
+  return `${sunName(event.kind)} ${when}`
+}
+
+/**
+ * After the sky row's sunrise or sunset, how much sooner or later the cockpit sees it than the ground below (time labels
+ * design §3.6): "The pilot sees it 31 min before the ground does", or "… 12 min after the ground does" for a sunset.
+ * Null when they see it about together.
+ */
+export function cockpitGapText(event: SunEvent): string | null {
+  if (event.peopleBelowGap == null) return null
   const side = event.kind === 'sunset' ? 'after' : 'before'
-  return `${sunName(event.kind)} ${when}, about ${Math.round(event.peopleBelowGap / MINUTE)} min ${side} the people below`
+  return `The pilot sees it ${Math.round(event.peopleBelowGap / MINUTE)} min ${side} the ground does`
 }
 
 export const flyingInto = (kind: SunKind) => (kind === 'sunset' ? 'Flying into the night' : 'Flying into the morning')
@@ -260,8 +269,8 @@ export const moonName = (phase: MoonPhase) => MOON_NAMES[phase]
 /** "Waxing gibbous moon, up", "Full moon, below the horizon". */
 export const moonText = (sight: MoonSight) => `${moonName(sight.phase)}, ${sight.isUp ? 'up' : 'below the horizon'}`
 
-/** On the ground at an airport: "sunrise at 7:02 AM there". */
-export const groundSunText = (kind: SunKind, time: number, zone: string, h24: boolean) => `${kind} at ${shortTimeText(time, zone, h24)} there`
+/** On the ground at an airport: "sunrise at 7:02 AM Cologne". */
+export const groundSunText = (kind: SunKind, time: number, zone: string, city: string, h24: boolean) => `${kind} at ${place(time, zone, city, h24)}`
 
 // Distance (§4.6)
 
@@ -277,9 +286,9 @@ export const toGoText = (toGo: number) => `${numberText(toGo)} mi to go`
  */
 export const allFlownText = (flown: number) => `${numberText(flown)} mi flown`
 
-/** "Halfway at 4:12 PM", or with the real plane's estimate "Halfway at about 12:05 PM" (Stage 3 spec §8). */
+/** "Halfway at 4:12 PM L", or with the real plane's estimate "Halfway at about 12:05 PM L" (Stage 3 spec §8). */
 export const halfwayText = (time: number, viewerTz: string, h24: boolean, isEstimate = false) =>
-  `Halfway at ${aboutIf(isEstimate)}${shortTimeText(time, viewerTz, h24)}`
+  `Halfway at ${aboutIf(isEstimate)}${yours(time, viewerTz, h24)}`
 
 /** "Averaging about 510 mph", to the nearest 10. */
 export const averageSpeedText = (milesPerHour: number) => `Averaging about ${Math.round(milesPerHour / 10) * 10} mph`
@@ -300,11 +309,14 @@ export function timeDifferenceText(zone: string, viewerTz: string, t: number): s
   return `${amount} ${quarters <= 4 ? 'hour' : 'hours'} ${minutes > 0 ? 'ahead of' : 'behind'} you`
 }
 
-/** "lands 4:05 PM there", or in the family's time when the destination keeps it or its zone isn't known. */
+/**
+ * "lands 4:05 PM Dubai", or in the family's time, "lands 4:05 PM L", when the destination keeps it or its zone isn't
+ * known (time labels design §3.2).
+ */
 export function landsText(leg: MapLeg, viewerTz: string, h24: boolean): string {
   const there = leg.destination.timeZone
-  // "lands about 4:05 PM there" when it's the real plane's estimate (Stage 3 spec §9).
+  // "lands about 4:05 PM Dubai" when it's the real plane's estimate (Stage 3 spec §9).
   const about = isArrivalEstimated(leg) ? 'about ' : ''
-  if (there && zoneOffsetMinutes(leg.end, there) !== zoneOffsetMinutes(leg.end, viewerTz)) return `lands ${about}${shortTimeText(leg.end, there, h24)} there`
-  return `lands ${about}${shortTimeText(leg.end, viewerTz, h24)}`
+  if (there && zoneOffsetMinutes(leg.end, there) !== zoneOffsetMinutes(leg.end, viewerTz)) return `lands ${about}${place(leg.end, there, leg.destination.city, h24)}`
+  return `lands ${about}${yours(leg.end, viewerTz, h24)}`
 }

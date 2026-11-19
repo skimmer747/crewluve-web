@@ -142,10 +142,10 @@ describe('the headline with a real plane (Stage 3 spec §8, §9)', () => {
 describe('the rows with a real plane (Stage 3 spec §8)', () => {
   it('in the air, have the plane’s row second', () => {
     const rows = rowsAt(facts('11:10'), '11:10')
-    expect(rows.map((r) => r.kind)).toEqual(['below', 'plane', 'distance', 'headed'])
+    expect(rows.map((r) => r.kind)).toEqual(['below', 'plane', 'distance', 'takeoff', 'headed'])
 
     // 14° E is still ahead: its time is the estimate.
-    expect(row('below', rows)).toMatchObject({ title: 'Over Bravo', detail: `Passes 35 mi from home at about 8:07${AM}` })
+    expect(row('below', rows)).toMatchObject({ title: 'Over Bravo', detail: `Passes 35 mi from home at about 8:07${AM} L` })
 
     const plane = row('plane', rows)
     // 450 kt.
@@ -154,22 +154,22 @@ describe('the rows with a real plane (Stage 3 spec §8)', () => {
 
     // 6.875° is 475 mi, of 1,382. No "Averaging about": that's the schedule's speed.
     expect(row('distance', rows)).toMatchObject({
-      icon: 'Path', title: '475 mi flown · 907 to go', detail: `Halfway at about 7:35${AM} · like driving the Alaska Highway`,
+      icon: 'Path', title: '475 mi flown · 907 to go', detail: `Halfway at about 7:35${AM} L · like driving the Alaska Highway`,
     })
 
     // 788 nm to go: the last 120 at 280 kt and the rest at its own 450 is 1 h 55 min, and 7 minutes to the gate.
-    expect(row('headed', rows).title).toBe(`Lands E20 about 9:11${AM}`)
+    expect(row('headed', rows).title).toBe(`Lands E20 about 9:11${AM} L`)
   })
 
   it('while it’s out of sight, say where it was last tracked under what’s below, and leave out its height and speed', () => {
     const rows = rowsAt(facts('11:10', { now: '11:20' }), '11:20')
     expect(row('below', rows)).toMatchObject({
-      title: 'Over Bravo', detail: `Last tracked over Bravo · 10 min ago · Passes 35 mi from home at about 8:07${AM}`,
+      title: 'Over Bravo', detail: `Last tracked over Bravo · 10 min ago · Passes 35 mi from home at about 8:07${AM} L`,
     })
 
     // Last seen at 6° E, 21 mi from Testville.
     const byACity = rowsAt(facts('11:03', { now: '11:13' }), '11:13')
-    expect(row('below', byACity).detail).toBe(`Last tracked near Testville · 10 min ago · Passes 35 mi from home at about 8:07${AM}`)
+    expect(row('below', byACity).detail).toBe(`Last tracked near Testville · 10 min ago · Passes 35 mi from home at about 8:07${AM} L`)
 
     // With no place known, when it was last tracked leads the row.
     const noPlace = rowsAt(facts('11:10', { now: '11:20', hasStory: false }), '11:20')
@@ -192,15 +192,15 @@ describe('the rows with a real plane (Stage 3 spec §8)', () => {
 
   it('of a flight that has landed, have real times, with no "about"', () => {
     const rows = rowsAt(facts('12:53', { now: '12:56', landed: true, isReplay: true }), '11:00', '12:56')
-    expect(row('below', rows).detail).toBe(`Passes 35 mi from home at 8:07${AM}`)
-    expect(row('distance', rows).detail).toBe(`Halfway at 7:35${AM} · like driving the Alaska Highway`)
+    expect(row('below', rows).detail).toBe(`Passes 35 mi from home at 8:07${AM} L`)
+    expect(row('distance', rows).detail).toBe(`Halfway at 7:35${AM} L · like driving the Alaska Highway`)
   })
 
   it('tell the closest point to home where nobody saw it as a best guess, with "about"', () => {
     // Nobody saw it from 13° E to 15° E, where it passed home.
-    expect(row('below', rowsAt(facts('12:30', { unseen: [13, 15] }), '12:30')).detail).toBe(`Closest to home was 35 mi at about 8:07${AM}`)
+    expect(row('below', rowsAt(facts('12:30', { unseen: [13, 15] }), '12:30')).detail).toBe(`Closest to home was 35 mi at about 8:07${AM} L`)
     // Seen all the way, it's told with its real time.
-    expect(row('below', rowsAt(facts('12:30'), '12:30')).detail).toBe(`Closest to home was 35 mi at 8:07${AM}`)
+    expect(row('below', rowsAt(facts('12:30'), '12:30')).detail).toBe(`Closest to home was 35 mi at 8:07${AM} L`)
   })
 
   it('show an unknown type as itself in the plane’s row, and leave out what’s missing', () => {
@@ -231,7 +231,7 @@ describe('the rows with a real plane (Stage 3 spec §8)', () => {
     expect(sunAltitudeOnLeg(leg, t)).toBeLessThan(cockpitHorizonOnLeg(leg))
     expect(sunAltitudeOnLeg(leg, t)).toBeGreaterThan(COCKPIT_HORIZON)
     const rows = factRows(theFacts, t, t)
-    expect(rows.map((r) => r.kind)).toEqual(['below', 'plane', 'sky', 'distance', 'headed'])
+    expect(rows.map((r) => r.kind)).toEqual(['below', 'plane', 'sky', 'distance', 'takeoff', 'headed'])
     expect(row('sky', rows).icon).toBe('Moon')
   })
 
@@ -257,10 +257,10 @@ describe('the rows with a real plane (Stage 3 spec §8)', () => {
   it('with no live data, are the schedule’s, as before', () => {
     const rows = rowsAt(factsOf(equatorLiveLeg(null, at('11:10'))), '11:10')
     // No plane's row.
-    expect(rows.map((r) => r.kind)).toEqual(['below', 'distance', 'headed'])
+    expect(rows.map((r) => r.kind)).toEqual(['below', 'distance', 'takeoff', 'headed'])
     expect(row('below', rows).title).toBe('Over Bravo, near Testville')
     expect(row('distance', rows)).toMatchObject({
-      title: '422 mi flown · 960 to go', detail: `Halfway at 7:45${AM} · Averaging about 460 mph · like driving the Alaska Highway`,
+      title: '422 mi flown · 960 to go', detail: `Halfway at 7:45${AM} L · Averaging about 460 mph · like driving the Alaska Highway`,
     })
   })
 })
@@ -271,7 +271,7 @@ const listed = (theFacts: TripFacts, t: string) => tripSoFar(theFacts, at(t)).fl
 describe('the trip so far with a real plane, and whether to credit adsb.lol (Stage 3 spec §8, best guesses design §4)', () => {
   it('counts the miles along the real path, and lists real times', () => {
     const soFar = tripSoFar(facts('11:10'), at('11:10'))
-    expect(soFar.flights[0]?.events.map((e) => e.text)).toEqual([`Crossed into Bravo · 6:55${AM}`])
+    expect(soFar.flights[0]?.events.map((e) => e.text)).toEqual([`Crossed into Bravo · 6:55${AM} L`])
     expect(soFar.flights[0]?.events.map((e) => e.isEstimate)).toEqual([false])
     expect(soFar.totals).toBe('Day 1 of 1 · 475 mi')
   })
@@ -290,20 +290,20 @@ describe('the trip so far with a real plane, and whether to credit adsb.lol (Sta
 
   it('lists the newest event first', () => {
     expect(listed(facts('12:30'), '12:30')).toEqual([
-      `Closest to home, 35 mi · 8:07${AM}`, `Out over the Test Sea · 7:51${AM}`, `Halfway · 7:35${AM}`, `Crossed into Bravo · 6:55${AM}`,
+      `Closest to home, 35 mi · 8:07${AM} L`, `Out over the Test Sea · 7:51${AM} L`, `Halfway · 7:35${AM} L`, `Crossed into Bravo · 6:55${AM} L`,
     ])
   })
 
   it('lists a crossing nobody saw as a best guess, with "about"', () => {
     // Nobody saw it from 4° E to 6.5° E. On the straight join it crossed into Bravo at 10:55.
     const events = tripSoFar(facts('11:10', { unseen: [4, 6.5] }), at('11:10')).flights[0]?.events
-    expect(events?.map((e) => e.text)).toEqual([`Crossed into Bravo · about 6:55${AM}`])
+    expect(events?.map((e) => e.text)).toEqual([`Crossed into Bravo · about 6:55${AM} L`])
     expect(events?.map((e) => e.isEstimate)).toEqual([true])
   })
 
   it('while it’s out of sight, lists what the plan has happened', () => {
     // Last seen at 4.375° E at 10:50. By the plan it crossed into Bravo at 10:55.
-    expect(listed(facts('10:50', { now: '11:01' }), '11:01')).toEqual([`Crossed into Bravo · about 6:55${AM}`])
+    expect(listed(facts('10:50', { now: '11:01' }), '11:01')).toEqual([`Crossed into Bravo · about 6:55${AM} L`])
   })
 
   it('shows live data when a flight of the trip has it', () => {
@@ -375,10 +375,10 @@ describe('the latest event with a real plane (latest event design §1)', () => {
 
   it('in a replay, is the record’s newest, at its clock time', () => {
     const seen = facts('11:10', { isReplay: true })
-    expect(latestEvent(seen, at('11:25'))?.when).toBe(`6:55${AM}`)
+    expect(latestEvent(seen, at('11:25'))?.when).toBe(`6:55${AM} L`)
     // Before it crossed.
     expect(latestEvent(seen, at('10:50'))).toBeNull()
-    expect(latestEvent(facts('10:50', { isReplay: true }), at('11:01'))?.when).toBe(`About 6:55${AM}`)
+    expect(latestEvent(facts('10:50', { isReplay: true }), at('11:01'))?.when).toBe(`About 6:55${AM} L`)
   })
 })
 
@@ -500,20 +500,20 @@ describe('a real plane still at its departure airport: nothing passed, and its t
     expect(latestEvent(theFacts, at('10:28'))).toBeNull()
     expect(cardSummary(theFacts, at('10:28'), 'Alex')).not.toMatch(/Latest/)
     expect(latestEvent(atTheGate('10:28', { geography: border, isReplay: true }), at('10:28'))).toEqual({
-      title: 'Crossed into Bravo', when: `6:24${AM}`, sentence: `Latest: crossed into Bravo, at 6:24${AM}.`,
+      title: 'Crossed into Bravo', when: `6:24${AM} L`, sentence: `Latest: crossed into Bravo, at 6:24${AM} your time.`,
     })
   })
 
   it('in a replay, lists them where the map has the plane: the schedule’s, as it has no record', () => {
     const soFar = tripSoFar(atTheGate('10:28', { geography: border, isReplay: true }), at('10:28'))
     expect(soFar.flights.map((f) => f.tag)).toEqual(['In the air'])
-    expect(soFar.flights[0]?.events.map((e) => e.text)).toEqual([`Crossed into Bravo · 6:24${AM}`])
+    expect(soFar.flights[0]?.events.map((e) => e.text)).toEqual([`Crossed into Bravo · 6:24${AM} L`])
   })
 
   it('says "about" of the leg’s halfway and closest-to-home times, worked out from a takeoff that hasn’t happened', () => {
     const rows = rowsAt(atTheGate('10:35'), '10:35')
-    expect(row('below', rows).detail).toMatch(/^Passes 35 mi from home at about \d{1,2}:\d\d AM$/)
-    expect(row('distance', rows).detail).toMatch(/^Halfway at about \d{1,2}:\d\d AM · /)
+    expect(row('below', rows).detail).toMatch(/^Passes 35 mi from home at about \d{1,2}:\d\d AM L$/)
+    expect(row('distance', rows).detail).toMatch(/^Halfway at about \d{1,2}:\d\d AM L · /)
   })
 
   it('never says it has passed closest to home: a guessed time already gone by is left out, as halfway’s is', () => {
@@ -610,7 +610,7 @@ describe('a real plane down, not yet at the gate (the landed, not yet at the gat
     const theFacts = landedIn('12:58')
     expect(headline(theFacts, at('12:58'))).toBe('Landed in Anchorage')
     const rows = rowsAt(theFacts, '12:58')
-    expect(rows.map((r) => r.kind)).toEqual(['below', 'plane', 'distance', 'headed'])
+    expect(rows.map((r) => r.kind)).toEqual(['below', 'plane', 'distance', 'takeoff', 'headed'])
     expect(row('below', rows)).toMatchObject({ title: 'Landed in Anchorage', detail: null })
     // The plane's row as before: the aircraft's name, with no height or speed.
     expect(row('plane', rows)).toMatchObject({ title: 'Boeing 767-300 · N370UP', detail: null })
@@ -633,13 +633,13 @@ describe('a real plane down, not yet at the gate (the landed, not yet at the gat
     const later = 5 * 3_600_000
     const t = at('12:58') + later
     expect(row('sky', factRows(landedIn('12:58', { later, isReplay: true }), t, t)).title).toBe('Waxing crescent moon, up')
-    expect(factRows(landedIn('12:58', { later }), t, t).map((r) => r.kind)).toEqual(['below', 'plane', 'distance', 'headed'])
+    expect(factRows(landedIn('12:58', { later }), t, t).map((r) => r.kind)).toEqual(['below', 'plane', 'distance', 'takeoff', 'headed'])
   })
 
   it('says when it reaches the gate, "at" as the card’s sentence says it, with the weather and the time there under it as before', () => {
     const forecasts: Record<string, LandingForecast> = { eq: { temperature: 28, unit: 'fahrenheit', code: 71 } }
     expect(row('headed', rowsAt(landedIn('12:58', { forecasts }), '12:58'))).toMatchObject({
-      title: `Reaches the gate at 5:02${AM} · 9:02${AM} your time`, detail: '28°F and flurries on landing · 4 hours behind you', hasWeather: true,
+      title: `Reaches the gate in Anchorage at 5:02${AM} · 9:02${AM} L`, detail: '28°F and flurries on landing · 4 hours behind you', hasWeather: true,
     })
   })
 
@@ -647,7 +647,7 @@ describe('a real plane down, not yet at the gate (the landed, not yet at the gat
     const soFar = tripSoFar(landedIn('12:58'), at('12:58'))
     expect(soFar.flights.map((f) => f.tag)).toEqual(['Landed'])
     expect(soFar.flights[0]?.events.map((e) => e.text))
-      .toEqual([`Closest to home, 35 mi · 8:07${AM}`, `Out over the Test Sea · 7:51${AM}`, `Halfway · 7:35${AM}`, `Crossed into Bravo · 6:55${AM}`])
+      .toEqual([`Closest to home, 35 mi · 8:07${AM} L`, `Out over the Test Sea · 7:51${AM} L`, `Halfway · 7:35${AM} L`, `Crossed into Bravo · 6:55${AM} L`])
   })
 
   it('keeps the card’s sentence as it was: how it landed, and when it reaches the gate', () => {
@@ -661,7 +661,7 @@ describe('a real plane down, not yet at the gate (the landed, not yet at the gat
     expect(headline(theFacts, at('12:58'))).toBe('Over the Test Sea')
     const rows = rowsAt(theFacts, '12:58')
     expect(row('distance', rows).title).toBe('1,382 mi flown · 0 to go')
-    expect(row('headed', rows).title).toBe(`Lands Anchorage 5:02${AM} · 9:02${AM} your time`)
+    expect(row('headed', rows).title).toBe(`Lands Anchorage 5:02${AM} · 9:02${AM} L`)
     expect(tripSoFar(theFacts, at('12:58')).flights.map((f) => f.tag)).toEqual(['In the air'])
   })
 
@@ -713,6 +713,6 @@ describe('the full map’s facts at a moment, with and without live data (Stage 
         expect(withoutNow(replayed)).toEqual(withoutNow(factsAtMoment(factsOf(leg), at(t), at('11:10'))))
       }
     }
-    expect(factsAtMoment(factsOf(equatorFlight(0, 20), { isReplay: true }), at('11:10'), at('11:10')).latestEvent?.when).toBe(`7:00${AM}`)
+    expect(factsAtMoment(factsOf(equatorFlight(0, 20), { isReplay: true }), at('11:10'), at('11:10')).latestEvent?.when).toBe(`7:00${AM} L`)
   })
 })

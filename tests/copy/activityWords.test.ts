@@ -23,9 +23,9 @@ describe('the words for what the pilot is doing (activity markers design §4.2, 
   it('writes the line under the timeline, and its value for screen readers, from the time and the activity', () => {
     // at(12) is Friday 7:00 PM in Louisville.
     const layover = { kind: 'layover', place: cologne } as const
-    expect(timelineLine(at(12), layover, 'America/New_York', false)).toMatch(/^Fri 7:00\sPM · Layover in Cologne$/)
+    expect(timelineLine(at(12), layover, 'America/New_York', false)).toMatch(/^Fri 7:00\sPM L · Layover in Cologne$/)
     expect(timelineSpokenValue(at(12), layover, 'America/New_York', false)).toMatch(/^Friday 7:00\sPM, layover in Cologne$/)
-    expect(timelineLine(at(12), null, 'America/New_York', false)).toMatch(/^Fri 7:00\sPM$/)
+    expect(timelineLine(at(12), null, 'America/New_York', false)).toMatch(/^Fri 7:00\sPM L$/)
     expect(timelineSpokenValue(at(12), { kind: 'home', place: cologne }, 'America/New_York', false)).toMatch(/^Friday 7:00\sPM, home$/)
   })
 
@@ -33,26 +33,26 @@ describe('the words for what the pilot is doing (activity markers design §4.2, 
     const flying = { kind: 'flying', place: cologne } as const
     const rockford = { ...cologne, code: 'RFD', city: 'Rockford' }
     const stillIn = { kind: 'stillIn', airport: rockford } as const
-    expect(timelineLine(at(12), flying, 'America/New_York', false, stillIn)).toMatch(/^Fri 7:00\sPM · On the ground in Rockford$/)
+    expect(timelineLine(at(12), flying, 'America/New_York', false, stillIn)).toMatch(/^Fri 7:00\sPM L · On the ground in Rockford$/)
     expect(timelineSpokenValue(at(12), flying, 'America/New_York', false, stillIn)).toMatch(/^Friday 7:00\sPM, on the ground in Rockford$/)
     // Without it, flying, as before.
-    expect(timelineLine(at(12), flying, 'America/New_York', false, null)).toMatch(/^Fri 7:00\sPM · Flying to Cologne$/)
+    expect(timelineLine(at(12), flying, 'America/New_York', false, null)).toMatch(/^Fri 7:00\sPM L · Flying to Cologne$/)
     expect(timelineSpokenValue(at(12), flying, 'America/New_York', false, null)).toMatch(/^Friday 7:00\sPM, flying to Cologne$/)
   })
 
   it('says where a flight’s real plane is down, not yet at the gate, in place of flying (the landed, not yet at the gate design §3, Todd, 17 Nov 2026)', () => {
     const flying = { kind: 'flying', place: cologne } as const
     const landedIn = { kind: 'landedIn', airport: cologne } as const
-    expect(timelineLine(at(12), flying, 'America/New_York', false, landedIn)).toMatch(/^Fri 7:00\sPM · Landed in Cologne$/)
+    expect(timelineLine(at(12), flying, 'America/New_York', false, landedIn)).toMatch(/^Fri 7:00\sPM L · Landed in Cologne$/)
     expect(timelineSpokenValue(at(12), flying, 'America/New_York', false, landedIn)).toMatch(/^Friday 7:00\sPM, landed in Cologne$/)
     // Without it, flying, as before.
-    expect(timelineLine(at(12), flying, 'America/New_York', false, null)).toMatch(/^Fri 7:00\sPM · Flying to Cologne$/)
+    expect(timelineLine(at(12), flying, 'America/New_York', false, null)).toMatch(/^Fri 7:00\sPM L · Flying to Cologne$/)
   })
 
   it('says where a flight’s real plane is back on the ground after an air return, in place of flying (air return design §3)', () => {
     const flying = { kind: 'flying', place: cologne } as const
     const returnedTo = { kind: 'returnedTo', airport: { ...cologne, code: 'RFD', city: 'Rockford' } } as const
-    expect(timelineLine(at(12), flying, 'America/New_York', false, returnedTo)).toMatch(/^Fri 7:00\sPM · Returned to Rockford$/)
+    expect(timelineLine(at(12), flying, 'America/New_York', false, returnedTo)).toMatch(/^Fri 7:00\sPM L · Returned to Rockford$/)
     expect(timelineSpokenValue(at(12), flying, 'America/New_York', false, returnedTo)).toMatch(/^Friday 7:00\sPM, returned to Rockford$/)
   })
 })

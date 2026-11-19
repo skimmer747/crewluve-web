@@ -902,7 +902,7 @@ describe('split.css', () => {
     // The title keeps its 22 px bold, the app's iPad title, and no other rule here restyles it.
     expect(declarations(find(rulesIn(css('base')), '.title')!.body)).toEqual(expect.arrayContaining([['font-size', '22px'], ['font-weight', '700']]))
     expect(rulesIn(css('split')).map((r) => r.head)).toEqual([
-      '.split', '.split-bar', '.split-bar .title', '.split-status', '.split-status > *', '.split-status:focus-visible', '.split-status .sun-dial',
+      '.split', '.split-bar', '.split-bar .title', '.split-status', '.split-status > *', '.split-status:focus-visible', '.split-status .sun-dial', '.split-status .location',
       '.split-status .countdown-value .num', '.split-status .countdown-value .unit', '.split-schedule',
     ])
   })

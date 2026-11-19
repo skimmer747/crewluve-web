@@ -79,10 +79,10 @@ describe("what's below, past 2 hours out of tracking range (long gap design §3)
     // The website's own rows, which the app's tests leave to its sheet: "Last tracked …" and closest to home as before.
     const overLand = belowRow(facts({ now: '13:10' }), '13:10')
     expect(plain(overLand?.title)).toBe('Last tracked over Alpha · 2 h 25 min ago')
-    expect(plain(overLand?.detail)).toBe('Closest to home was 35 mi at about 8:05 AM')
+    expect(plain(overLand?.detail)).toBe('Closest to home was 35 mi at about 8:05 AM L')
     const overTheOcean = belowRow(facts({ now: '12:48' }), '12:48')
     expect(plain(overTheOcean?.title)).toBe('Over the Atlantic')
-    expect(plain(overTheOcean?.detail)).toBe('Last tracked over Alpha · 2 h 3 min ago · Closest to home was 35 mi at about 8:05 AM')
+    expect(plain(overTheOcean?.detail)).toBe('Last tracked over Alpha · 2 h 3 min ago · Closest to home was 35 mi at about 8:05 AM L')
   })
 
   it('in a replay, past 2 hours after the last sighting, names only the ocean', () => {
@@ -147,7 +147,7 @@ describe('events, past 2 hours out of tracking range (long gap design §3)', () 
     // By the guess it crosses into Delta at 21° E just before 13:00, over 2 hours after it was last seen: not told. The
     // others were guessed within the 2 hours, and are told with "about".
     expect(events(facts({ now: '13:10' }), '13:10')).toEqual([
-      'Closest to home, 35 mi · about 8:05 AM', 'Halfway · about 7:49 AM', 'Out over the Atlantic · about 7:34 AM', 'Crossed into Bravo · about 6:54 AM',
+      'Closest to home, 35 mi · about 8:05 AM L', 'Halfway · about 7:49 AM L', 'Out over the Atlantic · about 7:34 AM L', 'Crossed into Bravo · about 6:54 AM L',
     ])
   })
 
@@ -161,10 +161,10 @@ describe('events, past 2 hours out of tracking range (long gap design §3)', () 
   it('are all told as best guesses once the flight is over, if it is never tracked again', () => {
     // It reaches the gate at 13:40.6 by its estimate. After that the crossing into Delta is told too.
     const over = facts({ now: '13:45' })
-    expect(events(over, '13:45')?.[0]).toBe('Crossed into Delta · about 8:59 AM')
+    expect(events(over, '13:45')?.[0]).toBe('Crossed into Delta · about 8:59 AM L')
     expect(events(over, '13:45')).toHaveLength(5)
     // Not before: at 13:30 it's past the schedule's 13:22 at the gate, but in the air by its estimate.
-    expect(events(facts({ now: '13:30' }), '13:30')?.[0]).toBe('Closest to home, 35 mi · about 8:05 AM')
+    expect(events(facts({ now: '13:30' }), '13:30')?.[0]).toBe('Closest to home, 35 mi · about 8:05 AM L')
   })
 
   it('are told at exactly 2 hours after the last sighting, and held a moment past it (the review of the long gap plan)', () => {
@@ -183,8 +183,8 @@ describe('events, past 2 hours out of tracking range (long gap design §3)', () 
   })
 
   it('are held in a replay too, until the replay reaches the flight’s end', () => {
-    expect(events(facts({ now: '13:10', isReplay: true }), '13:10')?.[0]).toBe('Closest to home, 35 mi · about 8:05 AM')
-    expect(events(facts({ now: '13:45', isReplay: true }), '13:45')?.[0]).toBe('Crossed into Delta · about 8:59 AM')
+    expect(events(facts({ now: '13:10', isReplay: true }), '13:10')?.[0]).toBe('Closest to home, 35 mi · about 8:05 AM L')
+    expect(events(facts({ now: '13:45', isReplay: true }), '13:45')?.[0]).toBe('Crossed into Delta · about 8:59 AM L')
   })
 
   it('are told on the straight join once the plane is tracked again', () => {
@@ -192,8 +192,8 @@ describe('events, past 2 hours out of tracking range (long gap design §3)', () 
     // what it passed in the gap is told on the straight join between the two, with "about".
     const trackedAgain = facts({ seenUntil: '13:05', now: '13:05', unseen: [3.8, 20.5] })
     expect(events(trackedAgain, '13:05')).toEqual([
-      'Crossed into Delta · 9:02 AM', 'Closest to home, 35 mi · about 8:06 AM', 'Halfway · about 7:51 AM', 'Out over the Atlantic · about 7:35 AM',
-      'Crossed into Bravo · about 6:55 AM',
+      'Crossed into Delta · 9:02 AM L', 'Closest to home, 35 mi · about 8:06 AM L', 'Halfway · about 7:51 AM L', 'Out over the Atlantic · about 7:35 AM L',
+      'Crossed into Bravo · about 6:55 AM L',
     ])
     // The website's own banner and headline: the newest event, seen, with its plain time.
     expect(latestEvent(trackedAgain, at('13:05'))?.title).toBe('Crossed into Delta')

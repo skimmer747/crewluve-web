@@ -18,7 +18,7 @@ import { sunTimes } from '../../src/time/sun'
 import { wedgePath } from '../../src/ui/bigDialGeometry'
 import { hourAngle } from '../../src/ui/sunDialGeometry'
 import { A, at, engineFor } from '../fixtures/engine'
-import { stubAnimationFrames, visibleText } from '../fixtures/ui'
+import { shownText, stubAnimationFrames, visibleText } from '../fixtures/ui'
 
 afterEach(() => {
   cleanup()
@@ -49,21 +49,21 @@ describe('StatusScreen', () => {
     const { container } = renderAt(100)
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe("Where's Alex?")
     expect(visibleText(container.querySelector('.narrative-text')!)).toBe(
-      'Alex is flying to Rockford on UPS flight 2961 from Louisville — landing in 50m which is 8:00am EDT.',
+      'Alex is flying to Rockford on UPS flight 2961 from Louisville — landing in 50m which is 8:00\u202FAM L.',
     )
     // Screen readers hear the countdown in words, not "50m".
     expect(container.querySelector('.narrative-text .sr-only')!.textContent).toBe('50 minutes')
     expect(screen.getByRole('timer').getAttribute('aria-label')).toBe('1 day, 7 hours, 40 minutes')
     expect(screen.getByRole('heading', { level: 2, name: 'Back Home In' })).toBeTruthy()
     expect(container.querySelector('.countdown-value')!.textContent).toBe('1d  07h  40m')
-    expect(container.querySelector('.countdown-sub')!.textContent).toBe('Sat, Oct 10 at 2:50\u202FPM · Lexington')
+    expect(visibleText(container.querySelector('.countdown-sub')!)).toBe('Sat, Oct 10, 2:50\u202FPM L · Lexington')
   })
 
   it('home: Leaves Home In with its departure line, then the been-home pill', () => {
     const { container } = renderAt(-1440)
     expect(screen.getByRole('heading', { level: 2, name: 'Leaves Home In' })).toBeTruthy()
     expect(container.querySelector('.countdown-value')!.textContent).toBe('22h  30m')
-    expect(container.querySelector('.countdown-sub')!.textContent).toBe('Departs Friday October 9th at 4:00am')
+    expect(visibleText(container.querySelector('.countdown-sub')!)).toBe('Departs Friday October 9th at 4:00\u202FAM L')
     expect(screen.getByText("Alex's been home for 3 days")).toBeTruthy()
   })
 
@@ -92,7 +92,7 @@ describe('StatusScreen pieces', () => {
   it('tells a commuter with nothing logged where the trip leaves from', () => {
     const snap = { ...home(), leave: { ...home().leave!, commuterUnlogged: true, airport: 'ATL' } }
     const { container } = renderAt(-1440, snap)
-    expect(container.querySelector('.countdown-sub')!.textContent).toBe('Trip departs Atlanta Friday October 9th at 4:00am')
+    expect(visibleText(container.querySelector('.countdown-sub')!)).toBe('Trip departs Atlanta Friday October 9th at 4:00\u202FAM L')
   })
 
   it('falls back to the ~N days card when no arrival can be worked out, and to nothing without a fallback', () => {
@@ -200,14 +200,14 @@ describe('StatusScreen trip cards (slice 2A)', () => {
     )
   }
 
-  it('dates the departure in the pilot’s home zone, not the viewer’s', () => {
+  it('dates the departure in the viewer’s zone, marked L, not the pilot’s home zone (time labels design §3.7)', () => {
     render(screenWith(-1440, { viewerTz: 'America/Los_Angeles', homeTz: NY }))
-    expect(screen.getByText('Departs tomorrow at 6:30am')).toBeTruthy()
+    expect(screen.getByText(shownText('Departs tomorrow at 3:30\u202FAM L'))).toBeTruthy()
   })
 
   it('passes the 24-hour choice through to the upcoming trip card', () => {
     render(screenWith(-1440, { h24: true }))
-    expect(screen.getByText('Departs tomorrow at 06:30')).toBeTruthy()
+    expect(screen.getByText(shownText('Departs tomorrow at 6:30 L'))).toBeTruthy()
   })
 
   it('away: the Day N card sits after the Back Home In card, before the footer', () => {
@@ -221,7 +221,7 @@ describe('StatusScreen trip cards (slice 2A)', () => {
   it('home: the upcoming trip card sits after the been-home pill, before the footer', () => {
     const { container } = renderAt(-1440)
     const card = container.querySelector('.trip-card')!
-    expect(screen.getByText('Departs tomorrow at 6:30am')).toBeTruthy()
+    expect(screen.getByText(shownText('Departs tomorrow at 6:30\u202FAM L'))).toBeTruthy()
     expect(container.querySelector('.pill')!.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(card.compareDocumentPosition(container.querySelector('.footer')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(screen.queryByText(/^Day \d+ of \d+$/)).toBeNull()

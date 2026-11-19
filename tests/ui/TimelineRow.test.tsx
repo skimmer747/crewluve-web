@@ -39,7 +39,7 @@ describe('TimelineRow (slice 3A §4.4–4.9)', () => {
     expect(iconNameOf(icon)).toBe('AirplaneTilt')
     expect(icon.getAttribute('width')).toBe('15')
     expect(text('.leg-title')).toBe('UPS2961: RFD → SDF')
-    expect(text('.leg-times')).toBe('6:15am edt – 7:45am edt')
+    expect(visibleText(card.querySelector('.leg-times')!)).toBe('6:15\u202FAM – 7:45\u202FAM L')
     expect([text('.leg-clock-label'), text('.leg-clock-value'), text('.leg-clock .sr-only')]).toEqual(['Duration', '1h 30m', 'Duration 1 hour, 30 minutes'])
     expect([...card.querySelectorAll('.leg-clock-label, .leg-clock-value')].map((s) => s.getAttribute('aria-hidden'))).toEqual(['true', 'true'])
     expect(card.querySelector('.up-next')).toBeNull()

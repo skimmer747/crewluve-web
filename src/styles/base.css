@@ -53,6 +53,11 @@ h2[tabindex='-1']:focus {
   flex: none;
 }
 
+/* A time and whose it is, "12:34 PM L" or "7:02 AM Cologne", stay on one line (time labels design §3.5). */
+time {
+  white-space: nowrap;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

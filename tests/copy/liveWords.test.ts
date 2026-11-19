@@ -64,7 +64,7 @@ describe('"about" a landing time (Stage 3 spec §9)', () => {
   it("is said of the real plane's estimate on the bar", () => {
     const { leg } = caseLeg('ahead, in the air')
     expect(landsAt(leg, NY, false)).toBe(`Lands about ${landsAt(scheduleOnly(leg), NY, false).slice(6)}`)
-    expect(landsAt(leg, NY, false)).toMatch(/^Lands about \d{1,2}:\d\d\s[AP]M$/)
+    expect(landsAt(leg, NY, false)).toMatch(/^Lands about \d{1,2}:\d\d\s[AP]M L$/)
   })
 
   it("isn't said of the schedule's time, or once the plane has landed", () => {
@@ -76,21 +76,21 @@ describe('"about" a landing time (Stage 3 spec §9)', () => {
 
   it('is said once on the landing line, before the time there', () => {
     const { leg } = caseLeg('behind, with a late first point and an unseen ocean')
-    expect(landingLine(leg, NY, false)).toMatch(/^Lands Cologne about \d{1,2}:\d\d\s[AP]M · \d{1,2}:\d\d\s[AP]M your time$/)
+    expect(landingLine(leg, NY, false)).toMatch(/^Lands Cologne about \d{1,2}:\d\d\s[AP]M · \d{1,2}:\d\d\s[AP]M L$/)
   })
 
   it("is said in the facts' landing words", () => {
     const { leg } = caseLeg('behind, with a late first point and an unseen ocean')
-    expect(landsText(leg, NY, false)).toMatch(/^lands about \d{1,2}:\d\d\s[AP]M there$/)
+    expect(landsText(leg, NY, false)).toMatch(/^lands about \d{1,2}:\d\d\s[AP]M Cologne$/)
     expect(landsText(scheduleOnly(leg), NY, false)).toMatch(/^lands \d/)
   })
 
   it("is said in the narrative of the time that's the estimate, and of no other", () => {
     const ctx = { now: 0, viewerTz: NY, h24: false, airports: {} as AirportIndex, estimatedArrival: Date.UTC(2027, 0, 15, 20, 18) }
     const text = (ms: number) => new Sentence(ctx).t('which is ').time(ms).spans.map((s) => s.text).join('')
-    expect(text(Date.UTC(2027, 0, 15, 20, 18))).toBe('which is about 3:18pm EST')
-    expect(text(Date.UTC(2027, 0, 15, 20, 30))).toBe('which is 3:30pm EST')
-    expect(new Sentence({ ...ctx, estimatedArrival: null }).time(Date.UTC(2027, 0, 15, 20, 18)).spans.map((s) => s.text)).toEqual(['3:18pm EST'])
+    expect(text(Date.UTC(2027, 0, 15, 20, 18))).toBe('which is about 3:18\u202FPM L')
+    expect(text(Date.UTC(2027, 0, 15, 20, 30))).toBe('which is 3:30\u202FPM L')
+    expect(new Sentence({ ...ctx, estimatedArrival: null }).time(Date.UTC(2027, 0, 15, 20, 18)).spans.map((s) => s.text)).toEqual(['3:18\u202FPM L'])
   })
 
   it("counts the landing countdown to the real plane's arrival", () => {
@@ -205,18 +205,18 @@ describe('the words for a real plane down, not yet at the gate (the landed, not 
   it('say when it reaches the gate, there and in the family’s time, "at" as the card’s sentence and the popup say it once it’s down', () => {
     // The gate at 13:21:51 UTC: 8:21 AM in Philadelphia and Louisville, 5:21 AM in Los Angeles.
     const { leg } = caseLeg('landed, seen all the way')
-    expect(gateLine(leg, NY, false)).toMatch(/^Reaches the gate at 8:21\sAM$/)
-    expect(gateLine(leg, 'America/Los_Angeles', false)).toMatch(/^Reaches the gate at 8:21\sAM · 5:21\sAM your time$/)
-    expect(gateLine(leg, NY, true)).toBe('Reaches the gate at 08:21')
+    expect(gateLine(leg, NY, false)).toMatch(/^Reaches the gate in Philadelphia at 8:21\sAM L$/)
+    expect(gateLine(leg, 'America/Los_Angeles', false)).toMatch(/^Reaches the gate in Philadelphia at 8:21\sAM · 5:21\sAM L$/)
+    expect(gateLine(leg, NY, true)).toBe('Reaches the gate in Philadelphia at 8:21 L')
   })
 
   it('say on the card’s bar when it reaches the gate, and "Lands" otherwise, as before (Todd, 17 Nov 2026)', () => {
     // Down at 13:14:51, and at the gate 7 minutes later, at 8:21 AM in Louisville.
     const { leg } = caseLeg('landed, seen all the way')
-    expect(barArrival(leg, leg.end - 3 * 60_000, NY, false)).toMatch(/^At the gate 8:21\sAM$/)
+    expect(barArrival(leg, leg.end - 3 * 60_000, NY, false)).toMatch(/^At the gate 8:21\sAM L$/)
     // At the gate, and with no live data.
-    expect(barArrival(leg, leg.end, NY, false)).toMatch(/^Lands 8:21\sAM$/)
-    expect(barArrival(scheduleOnly(leg), leg.end - 3 * 60_000, NY, false)).toMatch(/^Lands 8:21\sAM$/)
+    expect(barArrival(leg, leg.end, NY, false)).toMatch(/^Lands 8:21\sAM L$/)
+    expect(barArrival(scheduleOnly(leg), leg.end - 3 * 60_000, NY, false)).toMatch(/^Lands 8:21\sAM L$/)
     // In the air, with "about" the real plane's estimate.
     const flying = caseLeg('ahead, in the air')
     expect(barArrival(flying.leg, flying.t, NY, false)).toBe(landsAt(flying.leg, NY, false))
@@ -225,8 +225,8 @@ describe('the words for a real plane down, not yet at the gate (the landed, not 
 
   it('say "about" where the time is the real plane’s estimate, and "at" where it’s the schedule’s', () => {
     const { leg } = caseLeg('behind, with a late first point and an unseen ocean')
-    expect(gateLine(leg, NY, false)).toMatch(/^Reaches the gate about \d{1,2}:\d\d\s[AP]M · \d{1,2}:\d\d\s[AP]M your time$/)
-    expect(gateLine(scheduleOnly(leg), NY, false)).toMatch(/^Reaches the gate at \d{1,2}:\d\d\s[AP]M · \d{1,2}:\d\d\s[AP]M your time$/)
+    expect(gateLine(leg, NY, false)).toMatch(/^Reaches the gate in Cologne about \d{1,2}:\d\d\s[AP]M · \d{1,2}:\d\d\s[AP]M L$/)
+    expect(gateLine(scheduleOnly(leg), NY, false)).toMatch(/^Reaches the gate in Cologne at \d{1,2}:\d\d\s[AP]M · \d{1,2}:\d\d\s[AP]M L$/)
   })
 })
 

@@ -1,6 +1,6 @@
 import { mapFlightProgress } from '../map/mapFlight'
 import type { MapLeg } from '../map/tripMap'
-import { shortTimeText } from './format'
+import { yours } from './clockLabel'
 import { about, landsAt, liveLabelText, returnedText } from './tripMap'
 
 /** Which of a flight's two planes: the real one, or the ghost where an on-schedule plane would be. */
@@ -16,11 +16,12 @@ const capitalized = (text: string) => `${text.charAt(0).toUpperCase()}${text.sli
 
 /**
  * The popup on one of `leg`'s planes at `t`: now, or a moment of the replay when `isReplay` (which plane design §3). It
- * names the plane, then says what the card's bar says of it, with its landing time, in the viewer's time zone and clock.
+ * names the plane, then says what the card's bar says of it, with its landing time, in the viewer's time zone and clock,
+ * marked "L" (time labels design §3.2).
  */
 export function planePopupWords(leg: MapLeg, plane: PlaneKind, t: number, isReplay: boolean, viewerTz: string, h24: boolean): PopupWords {
   const name = leg.flightNumber ?? 'the flight'
-  const time = (ms: number) => shortTimeText(ms, viewerTz, h24)
+  const time = (ms: number) => yours(ms, viewerTz, h24)
   if (plane === 'ghost') return { title: 'On schedule', lines: [`Where ${name} was scheduled to be`] }
   const title = `${capitalized(name)} · real plane`
   if (isReplay) return { title, lines: [`Where it was at ${time(t)}`] }

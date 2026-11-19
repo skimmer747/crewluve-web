@@ -112,3 +112,9 @@ export function landingWeatherText(forecast: LandingForecast): string {
   const letter = forecast.unit === 'fahrenheit' ? 'F' : 'C'
   return `${temperatureText(forecast.temperature)}${letter} and ${CONDITIONS[forecast.code][0].toLowerCase()} on landing`
 }
+
+/** "84°F and clear at takeoff": the weather in the hour the flight left (time labels design §3.3). */
+export function takeoffWeatherText(forecast: LandingForecast): string {
+  const letter = forecast.unit === 'fahrenheit' ? 'F' : 'C'
+  return `${temperatureText(forecast.temperature)}${letter} and ${CONDITIONS[forecast.code][0].toLowerCase()} at takeoff`
+}

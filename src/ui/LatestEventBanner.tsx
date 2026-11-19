@@ -4,6 +4,7 @@ import { WIDEST_EVENT_WHEN } from '../copy/facts'
 import type { LatestEvent } from '../facts/factRow'
 import type { Size } from './hooks/useSize'
 import { useSizeOf } from './hooks/useSizeOf'
+import { ClockText } from './ClockText'
 
 /** How far the banner sits in from the map's edges, as the card's chips do (`.latest-event` in tripMap.css). */
 export const BANNER_EDGE = 10
@@ -79,7 +80,7 @@ export function LatestEventBanner({ event, isFullMap = false, refs }: LatestEven
   return (
     <span ref={refs?.box} class={isFullMap ? 'latest-event centred' : 'latest-event'} aria-hidden={isFullMap ? undefined : 'true'}>
       <span ref={refs?.title} class="latest-event-title" aria-hidden="true">{event.title}</span>
-      <span class="latest-event-when" aria-hidden="true">{event.when}</span>
+      <span class="latest-event-when" aria-hidden="true"><ClockText text={event.when} /></span>
       <span ref={refs?.widest} class="latest-event-when latest-event-widest" aria-hidden="true">{WIDEST_EVENT_WHEN}</span>
       {isFullMap && <span class="sr-only">{event.sentence}</span>}
     </span>

@@ -77,3 +77,12 @@ export function iconNameOf(svg: Element | null): IconName | null {
 export function setWindowSize(width: number, height: number) {
   ;(window as unknown as { happyDOM: { setViewport(size: { width: number; height: number }): void } }).happyDOM.setViewport({ width, height })
 }
+
+/**
+ * A getByText matcher for words a <time> splits up (time labels design §3.5): the element whose visible text, the
+ * screen-reader-only words left out, is `text`, and not one around it.
+ */
+export function shownText(text: string | RegExp) {
+  const matches = (el: Element) => (typeof text === 'string' ? visibleText(el) === text : text.test(visibleText(el)))
+  return (_content: string, el: Element | null) => el != null && matches(el) && ![...el.children].some(matches)
+}

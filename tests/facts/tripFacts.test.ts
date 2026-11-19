@@ -104,8 +104,8 @@ describe('the latest event (latest event design §1)', () => {
     const facts = makeTripFacts(flightMap(equatorFlight(0, 20), mark('HOME', 0.5, 14)), {
       geography: EQUATOR, comparisons: null, viewerTz: NY, h24: false, isReplay: true,
     })
-    expect(latestEvent(facts, t('11:12'))?.when).toBe(`7:00${AM}`)
-    expect(latestEvent(facts, t('11:12'))?.sentence).toBe(`Latest: crossed into Bravo, at 7:00${AM}.`)
+    expect(latestEvent(facts, t('11:12'))?.when).toBe(`7:00${AM} L`)
+    expect(latestEvent(facts, t('11:12'))?.sentence).toBe(`Latest: crossed into Bravo, at 7:00${AM} your time.`)
   })
 
   it('on the ground and on a drive, is none', () => {
@@ -155,7 +155,7 @@ describe('the trip so far (Stage 2 spec §5.2, §5.5; best guesses design §4)',
     expect(soFar.flights.map((f) => f.title)).toEqual(['TST1 · E0 → E20'])
     // Newest first, so the latest is at the top, and the flight is the one in the air.
     expect(soFar.flights[0].events.map((e) => e.text)).toEqual([
-      `Closest to home, 35 mi · 8:21${AM}`, `Out over the Test Sea · 8:03${AM}`, `Halfway · 7:45${AM}`, `Crossed into Bravo · 7:00${AM}`,
+      `Closest to home, 35 mi · 8:21${AM} L`, `Out over the Test Sea · 8:03${AM} L`, `Halfway · 7:45${AM} L`, `Crossed into Bravo · 7:00${AM} L`,
     ])
     // The schedule is told as it is.
     expect(soFar.flights[0].events.map((e) => e.isEstimate)).toEqual([false, false, false, false])

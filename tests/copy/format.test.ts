@@ -17,7 +17,6 @@ import {
   ordinalSuffix,
   shortTimeText,
   spokenDuration,
-  timeWithZone,
   tripCardDepartsText,
   tripDepartsText,
 } from '../../src/copy/format'
@@ -117,40 +116,36 @@ describe('clock times', () => {
     expect(mapAirportTimeText(Date.UTC(2026, 9, 11, 20, 0), 'Asia/Tokyo', false)).toBe('MO 5:00AM')
   })
 
-  it('adds the zone for {T}', () => {
-    expect(timeWithZone(afternoon, NY, false)).toBe('1:10pm EDT')
-    expect(timeWithZone(afternoon, 'Europe/Berlin', true)).toBe('19:10 GMT+2')
-  })
 })
 
 describe('clockWithDayText', () => {
   const now = Date.UTC(2026, 9, 9, 12, 0) // Fri 9 Oct, 8:00am EDT
 
   it('gives just the time for today', () => {
-    expect(clockWithDayText(Date.UTC(2026, 9, 9, 11, 59), now, NY, false)).toBe('7:59am')
-    expect(clockWithDayText(Date.UTC(2026, 9, 9, 11, 59), now, NY, true)).toBe('07:59')
+    expect(clockWithDayText(Date.UTC(2026, 9, 9, 11, 59), now, NY, false)).toBe('7:59\u202FAM L')
+    expect(clockWithDayText(Date.UTC(2026, 9, 9, 11, 59), now, NY, true)).toBe('7:59 L')
   })
 
   it('adds the weekday for an earlier day this week', () => {
-    expect(clockWithDayText(Date.UTC(2026, 9, 8, 11, 59), now, NY, false)).toBe('Thu 7:59am')
-    expect(clockWithDayText(Date.UTC(2026, 9, 8, 11, 59), now, NY, true)).toBe('Thu 07:59')
-    expect(clockWithDayText(Date.UTC(2026, 9, 3, 11, 59), now, NY, false)).toBe('Sat 7:59am') // six days back
+    expect(clockWithDayText(Date.UTC(2026, 9, 8, 11, 59), now, NY, false)).toBe('Thu 7:59\u202FAM L')
+    expect(clockWithDayText(Date.UTC(2026, 9, 8, 11, 59), now, NY, true)).toBe('Thu 7:59 L')
+    expect(clockWithDayText(Date.UTC(2026, 9, 3, 11, 59), now, NY, false)).toBe('Sat 7:59\u202FAM L') // six days back
   })
 
   it('adds the date once the weekday would repeat today’s', () => {
-    expect(clockWithDayText(Date.UTC(2026, 9, 2, 11, 59), now, NY, false)).toBe('Oct 2, 7:59am') // a week back: also a Friday
-    expect(clockWithDayText(Date.UTC(2026, 9, 2, 11, 59), now, NY, true)).toBe('Oct 2, 07:59')
-    expect(clockWithDayText(Date.UTC(2026, 8, 20, 11, 59), now, NY, false)).toBe('Sep 20, 7:59am')
+    expect(clockWithDayText(Date.UTC(2026, 9, 2, 11, 59), now, NY, false)).toBe('Oct 2, 7:59\u202FAM L') // a week back: also a Friday
+    expect(clockWithDayText(Date.UTC(2026, 9, 2, 11, 59), now, NY, true)).toBe('Oct 2, 7:59 L')
+    expect(clockWithDayText(Date.UTC(2026, 8, 20, 11, 59), now, NY, false)).toBe('Sep 20, 7:59\u202FAM L')
   })
 
   it('gives the date for a time ahead of now, such as after the clock was set back', () => {
-    expect(clockWithDayText(Date.UTC(2026, 9, 10, 11, 59), now, NY, false)).toBe('Oct 10, 7:59am')
+    expect(clockWithDayText(Date.UTC(2026, 9, 10, 11, 59), now, NY, false)).toBe('Oct 10, 7:59\u202FAM L')
   })
 
   it('decides what counts as today in the viewer’s zone', () => {
     const lateNight = Date.UTC(2026, 9, 9, 3, 30) // Thu 8 Oct, 11:30pm EDT: already Friday in UTC
-    expect(clockWithDayText(lateNight, now, NY, false)).toBe('Thu 11:30pm')
-    expect(clockWithDayText(lateNight, now, 'UTC', false)).toBe('3:30am')
+    expect(clockWithDayText(lateNight, now, NY, false)).toBe('Thu 11:30\u202FPM L')
+    expect(clockWithDayText(lateNight, now, 'UTC', false)).toBe('3:30\u202FAM L')
   })
 })
 
@@ -158,46 +153,46 @@ describe('departureText', () => {
   const now = Date.UTC(2026, 9, 8, 13, 30) // Thu 8 Oct, 9:30am EDT
 
   it('says today, tomorrow, or the weekday and date', () => {
-    expect(departureText(Date.UTC(2026, 9, 8, 22, 0), now, NY, false)).toBe('today at 6:00pm')
-    expect(departureText(Date.UTC(2026, 9, 9, 10, 30), now, NY, false)).toBe('tomorrow at 6:30am')
-    expect(departureText(Date.UTC(2026, 9, 9, 10, 30), now, NY, true)).toBe('tomorrow at 06:30')
-    expect(departureText(Date.UTC(2026, 9, 11, 10, 30), now, NY, false)).toBe('Sunday the 11th at 6:30am')
+    expect(departureText(Date.UTC(2026, 9, 8, 22, 0), now, NY, false)).toBe('today at 6:00\u202FPM L')
+    expect(departureText(Date.UTC(2026, 9, 9, 10, 30), now, NY, false)).toBe('tomorrow at 6:30\u202FAM L')
+    expect(departureText(Date.UTC(2026, 9, 9, 10, 30), now, NY, true)).toBe('tomorrow at 6:30 L')
+    expect(departureText(Date.UTC(2026, 9, 11, 10, 30), now, NY, false)).toBe('Sunday the 11th at 6:30\u202FAM L')
   })
 
   it('compares calendar days in the viewer’s zone', () => {
     const lateNight = Date.UTC(2026, 9, 8, 3, 30) // Wed 7 Oct, 11:30pm EDT
-    expect(departureText(Date.UTC(2026, 9, 8, 10, 30), lateNight, NY, false)).toBe('tomorrow at 6:30am')
+    expect(departureText(Date.UTC(2026, 9, 8, 10, 30), lateNight, NY, false)).toBe('tomorrow at 6:30\u202FAM L')
   })
 
   it('takes the ordinal from the same zone as the date (C5)', () => {
     // 03:00Z on Nov 2 is still Sun Nov 1 in New York: the zone says "1st", UTC says "2nd".
     expect(departureText(Date.UTC(2026, 10, 2, 3, 0), Date.UTC(2026, 9, 29, 13, 0), NY, false)).toBe(
-      'Sunday the 1st at 10:00pm',
+      'Sunday the 1st at 10:00\u202FPM L',
     )
   })
 })
 
 describe('long dates', () => {
   it('formats the homecoming date for {HB}', () => {
-    expect(longDateTimeText(Date.UTC(2026, 9, 13, 0, 2), NY, false)).toBe('Monday October 12th at 8:02pm EDT')
+    expect(longDateTimeText(Date.UTC(2026, 9, 13, 0, 2), NY, false)).toBe('Monday October 12th at 8:02\u202FPM L')
   })
 
   it('formats the arrival card subtitle like iOS', () => {
-    expect(arrivalWhenText(Date.UTC(2026, 9, 10, 18, 50), NY, false)).toBe('Sat, Oct 10 at 2:50\u202FPM')
-    expect(arrivalWhenText(Date.UTC(2026, 9, 10, 18, 50), NY, true)).toBe('Sat, Oct 10 at 14:50')
+    expect(arrivalWhenText(Date.UTC(2026, 9, 10, 18, 50), NY, false)).toBe('Sat, Oct 10, 2:50\u202FPM L')
+    expect(arrivalWhenText(Date.UTC(2026, 9, 10, 18, 50), NY, true)).toBe('Sat, Oct 10, 14:50 L')
   })
 
   it('formats the leave card subtitle, with no "17:57pm" on 24-hour clocks', () => {
-    expect(leaveWhenText(Date.UTC(2026, 9, 9, 8, 0), NY, false)).toBe('Departs Friday October 9th at 4:00am')
-    expect(leaveWhenText(Date.UTC(2026, 9, 9, 8, 0), NY, true)).toBe('Departs Friday October 9th at 04:00')
+    expect(leaveWhenText(Date.UTC(2026, 9, 9, 8, 0), NY, false)).toBe('Departs Friday October 9th at 4:00\u202FAM L')
+    expect(leaveWhenText(Date.UTC(2026, 9, 9, 8, 0), NY, true)).toBe('Departs Friday October 9th at 4:00 L')
     expect(tripDepartsText('Louisville', Date.UTC(2026, 9, 9, 8, 0), NY, false)).toBe(
-      'Trip departs Louisville Friday October 9th at 4:00am',
+      'Trip departs Louisville Friday October 9th at 4:00\u202FAM L',
     )
   })
 
   it('takes the ordinal from the same zone as the date (C5)', () => {
     // 02:00Z on Oct 2 is still Thu Oct 1 in New York: the zone says "1st", UTC says "2nd".
-    expect(leaveWhenText(Date.UTC(2026, 9, 2, 2, 0), NY, false)).toBe('Departs Thursday October 1st at 10:00pm')
+    expect(leaveWhenText(Date.UTC(2026, 9, 2, 2, 0), NY, false)).toBe('Departs Thursday October 1st at 10:00\u202FPM L')
   })
 })
 
@@ -223,39 +218,39 @@ describe('tripCardDepartsText', () => {
   const now = Date.UTC(2026, 9, 8, 13, 30) // Thu 8 Oct, 9:30am EDT
 
   it('says today, tomorrow, or the short weekday and date', () => {
-    expect(tripCardDepartsText(Date.UTC(2026, 9, 8, 22, 0), now, NY, false)).toBe('Departs today at 6:00pm')
-    expect(tripCardDepartsText(Date.UTC(2026, 9, 9, 10, 30), now, NY, false)).toBe('Departs tomorrow at 6:30am')
-    expect(tripCardDepartsText(Date.UTC(2026, 9, 13, 15, 32), now, NY, false)).toBe('Departs Tue Oct 13 at 11:32am')
+    expect(tripCardDepartsText(Date.UTC(2026, 9, 8, 22, 0), now, NY, false)).toBe('Departs today at 6:00\u202FPM L')
+    expect(tripCardDepartsText(Date.UTC(2026, 9, 9, 10, 30), now, NY, false)).toBe('Departs tomorrow at 6:30\u202FAM L')
+    expect(tripCardDepartsText(Date.UTC(2026, 9, 13, 15, 32), now, NY, false)).toBe('Departs Tue Oct 13 at 11:32\u202FAM L')
   })
 
   it('keeps the date on a past day, and writes a single-digit day without padding', () => {
-    expect(tripCardDepartsText(Date.UTC(2026, 9, 7, 15, 0), now, NY, false)).toBe('Departs Wed Oct 7 at 11:00am') // a past day keeps its date, as the app does
-    expect(tripCardDepartsText(Date.UTC(2026, 10, 3, 15, 0), now, NY, false)).toBe('Departs Tue Nov 3 at 10:00am') // single-digit day, next month, after DST ends
+    expect(tripCardDepartsText(Date.UTC(2026, 9, 7, 15, 0), now, NY, false)).toBe('Departs Wed Oct 7 at 11:00\u202FAM L') // a past day keeps its date, as the app does
+    expect(tripCardDepartsText(Date.UTC(2026, 10, 3, 15, 0), now, NY, false)).toBe('Departs Tue Nov 3 at 10:00\u202FAM L') // single-digit day, next month, after DST ends
   })
 
   it('dates a later departure in the given zone, not UTC', () => {
-    expect(tripCardDepartsText(Date.UTC(2026, 9, 14, 1, 30), now, NY, false)).toBe('Departs Tue Oct 13 at 9:30pm')
+    expect(tripCardDepartsText(Date.UTC(2026, 9, 14, 1, 30), now, NY, false)).toBe('Departs Tue Oct 13 at 9:30\u202FPM L')
     // 9:30pm Tue 13 Oct in Honolulu is already Wed 14 Oct in both UTC and New York.
-    expect(tripCardDepartsText(Date.UTC(2026, 9, 14, 7, 30), now, 'Pacific/Honolulu', false)).toBe('Departs Tue Oct 13 at 9:30pm')
+    expect(tripCardDepartsText(Date.UTC(2026, 9, 14, 7, 30), now, 'Pacific/Honolulu', false)).toBe('Departs Tue Oct 13 at 9:30\u202FPM L')
   })
 
   it('uses 24-hour time when the viewer does', () => {
-    expect(tripCardDepartsText(Date.UTC(2026, 9, 13, 15, 32), now, NY, true)).toBe('Departs Tue Oct 13 at 11:32')
+    expect(tripCardDepartsText(Date.UTC(2026, 9, 13, 15, 32), now, NY, true)).toBe('Departs Tue Oct 13 at 11:32 L')
   })
 
   it('uses 24-hour time on the today and tomorrow lines too', () => {
-    expect(tripCardDepartsText(Date.UTC(2026, 9, 8, 22, 0), now, NY, true)).toBe('Departs today at 18:00')
-    expect(tripCardDepartsText(Date.UTC(2026, 9, 9, 10, 30), now, NY, true)).toBe('Departs tomorrow at 06:30')
+    expect(tripCardDepartsText(Date.UTC(2026, 9, 8, 22, 0), now, NY, true)).toBe('Departs today at 18:00 L')
+    expect(tripCardDepartsText(Date.UTC(2026, 9, 9, 10, 30), now, NY, true)).toBe('Departs tomorrow at 6:30 L')
   })
 
   it('compares calendar days in the given zone', () => {
     const lateNight = Date.UTC(2026, 9, 8, 3, 30) // Wed 7 Oct, 11:30pm EDT
-    expect(tripCardDepartsText(Date.UTC(2026, 9, 8, 10, 30), lateNight, NY, false)).toBe('Departs tomorrow at 6:30am')
+    expect(tripCardDepartsText(Date.UTC(2026, 9, 8, 10, 30), lateNight, NY, false)).toBe('Departs tomorrow at 6:30\u202FAM L')
   })
 
   it('compares calendar days in a zone other than this machine’s', () => {
     // 11:30pm Wed 7 Oct in Honolulu; 6:30am Thu there is tomorrow, though it's the same day in UTC and New York.
     const HNL = 'Pacific/Honolulu'
-    expect(tripCardDepartsText(Date.UTC(2026, 9, 8, 16, 30), Date.UTC(2026, 9, 8, 9, 30), HNL, false)).toBe('Departs tomorrow at 6:30am')
+    expect(tripCardDepartsText(Date.UTC(2026, 9, 8, 16, 30), Date.UTC(2026, 9, 8, 9, 30), HNL, false)).toBe('Departs tomorrow at 6:30\u202FAM L')
   })
 })

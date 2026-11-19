@@ -4,6 +4,7 @@ import { cssColor } from './colors'
 import { Icon } from './Icon'
 import { memo } from './memo'
 import type { Gap, RowLook } from './scheduleFacts'
+import { ClockText } from './ClockText'
 
 export interface TimelineRowProps {
   leg: Leg
@@ -50,7 +51,7 @@ export const TimelineRow = memo(function TimelineRow({ leg, look, times, moment,
         </span>
         <span class="leg-text">
           <span class="leg-title">{look.title}</span>
-          <span class="leg-times">{times}</span>
+          <span class="leg-times"><ClockText text={times} /></span>
         </span>
         <span class="leg-clock">
           <span class="leg-clock-label" aria-hidden="true">{clock.label}</span>

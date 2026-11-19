@@ -28,14 +28,14 @@ describe('the rows in flight (Stage 2 spec §5.1)', () => {
 
   it('are below, distance and landing, with no sky row at midday eastbound', () => {
     const rows = factRows(facts(equator()), shown, shown)
-    expect(rows.map((r) => r.kind)).toEqual(['below', 'distance', 'headed'])
+    expect(rows.map((r) => r.kind)).toEqual(['below', 'distance', 'takeoff', 'headed'])
 
-    expect(row('below', rows)).toMatchObject({ icon: 'MapPin', title: 'Over Bravo, near Testville', detail: `Passes 35 mi from home at 8:21${AM}` })
+    expect(row('below', rows)).toMatchObject({ icon: 'MapPin', title: 'Over Bravo, near Testville', detail: `Passes 35 mi from home at 8:21${AM} L` })
     expect(row('distance', rows)).toMatchObject({
       icon: 'Path', title: '422 mi flown · 960 to go',
-      detail: `Halfway at 7:45${AM} · Averaging about 460 mph · like driving the Alaska Highway`,
+      detail: `Halfway at 7:45${AM} L · Averaging about 460 mph · like driving the Alaska Highway`,
     })
-    expect(row('headed', rows)).toMatchObject({ icon: 'AirplaneLanding', title: `Lands E20 9:22${AM}`, detail: null })
+    expect(row('headed', rows)).toMatchObject({ icon: 'AirplaneLanding', title: `Lands E20 9:22${AM} L`, detail: null })
   })
 
   it('show weather only for a landing still ahead in real time', () => {
@@ -54,7 +54,7 @@ describe('the rows in flight (Stage 2 spec §5.1)', () => {
     const leg: MapLeg = { id: 'evening', kind: 'flight', origin: airportMark('SDF', AIRPORTS)!, destination: airportMark('CGN', AIRPORTS)!, start, end: start + 8 * HOUR, flightNumber: 'UPS207' }
     const now = Date.parse('2026-11-13T20:30:00Z')
     expect(row('sky', factRows(facts(flightMap(leg, null)), now, now))).toMatchObject({
-      icon: 'SunHorizon', title: 'Flying into the night', detail: 'Sunset in 17 min, about 21 min after the people below',
+      icon: 'SunHorizon', title: 'Flying into the night', detail: 'Sunset in 17 min · The pilot sees it 21 min after the ground does',
     })
   })
 })
@@ -63,9 +63,9 @@ describe('the rows on the ground (Stage 2 spec §5.3, §5.4, §5.5)', () => {
   it('on a layover in Cologne, are where, the next flight and the trip so far', () => {
     const rows = factRows(facts(europe(at(12))), at(12), at(12))
     expect(rows.map((r) => r.kind)).toEqual(['whereTheyAre', 'nextFlight', 'tripSoFar'])
-    expect(row('whereTheyAre', rows)).toMatchObject({ title: 'In Cologne', detail: `6 hours ahead of you · sunrise at 7:45${AM} there` })
+    expect(row('whereTheyAre', rows)).toMatchObject({ title: 'In Cologne', detail: `6 hours ahead of you · sunrise at 7:45${AM} Cologne` })
     expect(row('nextFlight', rows)).toMatchObject({
-      title: `Next: Dubai, tomorrow 3:00${PM}`, detail: `3,086 mi, like driving coast to coast · lands 6:00${AM} there`,
+      title: `Next: Dubai, tomorrow 3:00${PM} L`, detail: `3,086 mi, like driving coast to coast · lands 6:00${AM} Dubai`,
     })
     expect(row('tripSoFar', rows).detail).toBe('1 city · 4,351 mi · 6 time zones · 1 sunset from the cockpit')
   })
@@ -73,7 +73,7 @@ describe('the rows on the ground (Stage 2 spec §5.3, §5.4, §5.5)', () => {
   it('at home the day before, are when they leave, the trip ahead and on the way', () => {
     const rows = factRows(facts(europe(at(-24), { isNextTrip: true })), at(-24), at(-24))
     expect(rows.map((r) => r.kind)).toEqual(['leaves', 'tripAhead', 'onTheWay'])
-    expect(row('leaves', rows)).toMatchObject({ title: `Leaves tomorrow 7:00${AM}`, detail: 'UPS201 to Cologne' })
+    expect(row('leaves', rows)).toMatchObject({ title: `Leaves tomorrow 7:00${AM} L`, detail: 'UPS201 to Cologne' })
     expect(row('tripAhead', rows).detail).toBe('4 days · Cologne, Dubai · 14,819 mi · like digging straight through the Earth twice')
     expect(row('onTheWay', rows).detail).toBe('18 time zones · a sunset from the cockpit')
   })
@@ -99,7 +99,7 @@ describe('the facts at a moment', () => {
     const shown = Date.parse('2026-03-20T11:10:00Z')
     const moment = factsAtMoment(facts(equator()), shown, shown)
     expect(moment.headline).toBe('Over Bravo, near Testville')
-    expect(moment.rows).toHaveLength(3)
+    expect(moment.rows).toHaveLength(4)
     expect(moment.tripSoFar.totalsTitle).toBe('Trip so far')
     expect(moment.latestEvent).toEqual({ title: 'Crossed into Bravo', when: '10 min ago', sentence: 'Latest: crossed into Bravo, 10 minutes ago.' })
   })

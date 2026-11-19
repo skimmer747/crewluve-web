@@ -1,4 +1,5 @@
 import type { PopupWords } from '../copy/planePopup'
+import { ClockText } from './ClockText'
 
 /** The room a popup needs over its plane, and either side of it, in px: `.trip-map-popup` is 240 px wide at most. */
 export const POPUP_ROOM = { above: 96, side: 128 }
@@ -29,7 +30,7 @@ export function PlanePopup({ words, at, placement }: { words: PopupWords; at: { 
   return (
     <div class={`trip-map-popup${placement.below ? ' below' : ''}`} style={{ left: `${at.x}px`, top: `${at.y}px`, transform }} aria-hidden="true">
       <p class="trip-map-popup-title">{words.title}</p>
-      {words.lines.map((line) => <p key={line}>{line}</p>)}
+      {words.lines.map((line) => <p key={line}><ClockText text={line} /></p>)}
     </div>
   )
 }

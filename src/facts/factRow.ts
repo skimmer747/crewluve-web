@@ -1,3 +1,4 @@
+import { spoken } from '../copy/clockLabel'
 import type { IconName } from '../icons/iconPaths'
 
 /**
@@ -5,8 +6,9 @@ import type { IconName } from '../icons/iconPaths'
  * the row's other parts.
  */
 export type FactRowKind =
-  // In flight (§5.1), with the plane's row for a flight with live data (Stage 3 spec §8): "Boeing 767-300 · N370UP"
-  | 'below' | 'plane' | 'sky' | 'distance' | 'headed'
+  // In flight (§5.1), with the plane's row for a flight with live data (Stage 3 spec §8): "Boeing 767-300 · N370UP",
+  // and the takeoff row just above the landing row (time labels design §3.3)
+  | 'below' | 'plane' | 'sky' | 'distance' | 'takeoff' | 'headed'
   // On a layover (§5.3), at home before a trip (§5.4) and in the recap (§5.5)
   | 'whereTheyAre' | 'nextFlight' | 'leaves' | 'tripAhead' | 'theTrip' | 'onTheWay' | 'tripSoFar' | 'longestFlight'
 
@@ -26,14 +28,19 @@ export function factRow(kind: FactRowKind, icon: IconName, title: string, detail
   return { kind, icon, title, detail: parts.length > 0 ? parts.join(' · ') : null, hasWeather }
 }
 
-/** The row as screen readers hear it: one sentence, with commas where the screen shows " · " (§13). */
-export const rowSentence = (row: FactRow) => (row.detail ? `${row.title}. ${row.detail.split(' · ').join(', ')}` : row.title)
+/**
+ * The row as screen readers hear it: one sentence, with commas where the screen shows " · " (§13), and "your time" for
+ * the family's times' "L" (time labels design §3.2).
+ */
+export const rowSentence = (row: FactRow) => spoken(row.detail ? `${row.title}. ${row.detail.split(' · ').join(', ')}` : row.title)
 
-/** One line of a flight's list: "Crossed into Canada · 1:12 PM". */
+/** One line of a flight's list: "Crossed into Canada · 1:12 PM L". */
 export interface TripSoFarEvent {
   text: string
   /** A best guess, where nobody saw the plane. Its time reads "about", and it's drawn lighter (best guesses design §3). */
   isEstimate: boolean
+  /** The newest event of the flight between its gates, drawn bold (time labels design §3.4). */
+  isCurrent: boolean
 }
 
 /** A flight in the trip so far. */

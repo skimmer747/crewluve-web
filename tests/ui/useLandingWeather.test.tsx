@@ -3,7 +3,8 @@ import { cleanup, render, waitFor } from '@testing-library/preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { LandingLoader } from '../../src/data/weather'
 import { makeTripMap, type TripMap } from '../../src/map/tripMap'
-import { LANDING_REFRESH_MS, useLandingWeather } from '../../src/ui/hooks/useLandingWeather'
+import { takeoffOf } from '../../src/facts/takeoff'
+import { LANDING_REFRESH_MS, useLandingWeather, useTakeoffWeather } from '../../src/ui/hooks/useLandingWeather'
 import { AIRPORTS, at, EUROPE } from '../map/tripMapLegs'
 
 afterEach(() => {
@@ -45,6 +46,36 @@ describe('useLandingWeather (Stage 2 spec §7.1, §7.2)', () => {
   it('fetches nothing while the full map is closed', () => {
     const load = vi.fn<LandingLoader>(async () => null)
     render(<Shown trip={null} load={load} />)
+    expect(load).not.toHaveBeenCalled()
+  })
+})
+
+function TakeoffShown({ trip, load, now = at(4) }: { trip: TripMap | null; load: LandingLoader; now?: number }) {
+  const forecasts = useTakeoffWeather(trip, now, 'fahrenheit', load)
+  return <p>{Object.entries(forecasts).map(([id, f]) => `${id}:${f.temperature}`).join(' ')}</p>
+}
+
+describe('useTakeoffWeather (time labels design §3.3)', () => {
+  it('fetches the hour the flight in the air took off, at its departure airport, by leg', async () => {
+    const load = vi.fn<LandingLoader>(async () => ({ temperature: 84, unit: 'fahrenheit', code: 0 }))
+    const { container } = render(<TakeoffShown trip={map} load={load} />)
+    await waitFor(() => expect(container.textContent).toBe('f1:84'))
+    expect(load.mock.calls.map(([place, hour]) => [place.code, hour])).toEqual([['SDF', takeoffOf(map.legs[0])!.time]])
+  })
+
+  it('keeps the weather once the flight is down, as the app does, and fetches no more', async () => {
+    const load = vi.fn<LandingLoader>(async () => ({ temperature: 84, unit: 'fahrenheit', code: 0 }))
+    const { container, rerender } = render(<TakeoffShown trip={map} load={load} />)
+    await waitFor(() => expect(container.textContent).toBe('f1:84'))
+    // On the layover in Cologne, the flight is down: its takeoff row's weather stays, and nothing new is asked for.
+    rerender(<TakeoffShown trip={map} load={load} now={at(12)} />)
+    expect(container.textContent).toBe('f1:84')
+    expect(load).toHaveBeenCalledTimes(1)
+  })
+
+  it('fetches nothing while the full map is closed', () => {
+    const load = vi.fn<LandingLoader>(async () => null)
+    render(<TakeoffShown trip={null} load={load} />)
     expect(load).not.toHaveBeenCalled()
   })
 })

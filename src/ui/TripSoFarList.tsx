@@ -1,10 +1,12 @@
-import type { TripSoFar } from '../facts/factRow'
+import type { TripSoFar, TripSoFarEvent } from '../facts/factRow'
+import { ClockText } from './ClockText'
 
 /**
  * The trip so far (Stage 2 spec §5.2, §5.5; best guesses design §3, §4): each flight's events under its name, newest
  * first, then the trip's totals. The flight between its gates has a border, and its tag beside its name (or under it,
  * where they don't fit on one line), so it stands out from the flights before it. A best guess is drawn lighter, and
- * slanted.
+ * slanted. The newest event of the flight between its gates is bold, and "latest" to a screen reader (time labels
+ * design §3.4). Each time says whose it is.
  *
  * With nothing to list, as on a layover whose rows say "Trip so far" before any flight has an event, it's left out
  * altogether: an empty box would add a second gap between the rows and the footer.
@@ -21,7 +23,12 @@ export function TripSoFarList({ tripSoFar }: { tripSoFar: TripSoFar }) {
           </h3>
           {flight.events.length > 0 && (
             <ul>
-              {flight.events.map((event, i) => <li key={i} class={event.isEstimate ? 'estimate' : undefined}>{event.text}</li>)}
+              {flight.events.map((event, i) => (
+                <li key={i} class={eventClass(event)}>
+                  <ClockText text={event.text} />
+                  {event.isCurrent && <span class="sr-only">, latest</span>}
+                </li>
+              ))}
             </ul>
           )}
         </section>
@@ -35,3 +42,6 @@ export function TripSoFarList({ tripSoFar }: { tripSoFar: TripSoFar }) {
     </div>
   )
 }
+
+/** "estimate" for a best guess, "current" for the newest event, both, or none. */
+const eventClass = (event: TripSoFarEvent) => [event.isEstimate && 'estimate', event.isCurrent && 'current'].filter(Boolean).join(' ') || undefined

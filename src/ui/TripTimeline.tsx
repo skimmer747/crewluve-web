@@ -9,6 +9,7 @@ import { timelineBlocks } from '../map/timelineBlocks'
 import { activityAt, flightOnGround } from '../map/tripActivity'
 import { isMoving, type TripMap } from '../map/tripMap'
 import { TripTimelineBlocks } from './TripTimelineBlocks'
+import { ClockText } from './ClockText'
 
 export interface TripTimelineProps {
   map: TripMap
@@ -108,7 +109,7 @@ export function TripTimeline({ map, clock, onChange, onQuickLayovers, followsPla
           <button type="button" class="trip-timeline-live" onClick={() => onChange(goLive(clock))}>Live</button>
         )}
       </div>
-      <p class="trip-timeline-time" aria-hidden="true">{timelineLine(t, activity, viewerTz, h24, onGround)}</p>
+      <p class="trip-timeline-time" aria-hidden="true"><ClockText text={timelineLine(t, activity, viewerTz, h24, onGround)} /></p>
       <div class="trip-timeline-row trip-timeline-settings">
         <label class="trip-timeline-quick">
           <input type="checkbox" role="switch" class="trip-timeline-switch" checked={clock.quickLayovers}

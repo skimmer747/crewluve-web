@@ -5,6 +5,7 @@ import type { ScheduleHandle } from '../../src/ui/hooks/useSchedule'
 import { PilotPages } from '../../src/ui/PilotPages'
 import { atTheGate, backAtTheGate, FLYING, LANDED_EARLY, LIVE_AIRPORTS, SCHEDULE, SDF } from '../map/liveTrip'
 import { fix, liveFlight, MINUTE, START } from '../map/madeUpFlights'
+import { visibleText } from '../fixtures/ui'
 
 const NOW = START + 59 * MINUTE
 
@@ -30,8 +31,8 @@ describe('the status page with a real plane (Stage 3 spec §7.1, §9)', () => {
   it("shows one landing time, the real plane's, said with \"about\" on the map's bar, the countdown and the narrative", () => {
     const container = page(LIVE)
     expect(container.querySelector('.inflight-status')?.textContent).not.toBe('In flight')
-    const lands = container.querySelector('.inflight-time')?.textContent ?? ''
-    expect(lands).toMatch(/^Lands about \d{1,2}:\d\d\s[AP]M$/)
+    const lands = visibleText(container.querySelector('.inflight-time')!)
+    expect(lands).toMatch(/^Lands about \d{1,2}:\d\d\s[AP]M L$/)
     expect(container.querySelector('.countdown-sub')?.textContent).toMatch(/^About /)
     expect(container.querySelector('.narrative-text')?.textContent).toMatch(/ which is about \d/)
     expect(container.querySelector('.trip-map-open')?.getAttribute('aria-label')).toMatch(/^UPS1234 to Philadelphia, .* schedule(, over [^.]+)?\. Lands about .* your time\. Opens the full map\.$/)
@@ -42,7 +43,7 @@ describe('the status page with a real plane (Stage 3 spec §7.1, §9)', () => {
     // At the gate ten minutes after the plan's takeoff, seen 20 seconds ago.
     const atTheGate = liveFlight([], { legId: 'f1', state: 'ground', fix: fix(25 - 1 / 3, SDF.lat, SDF.lng, { onGround: true }) })
     const container = page({ flights: new Map([['f1', atTheGate]]), clockOffset: 0 })
-    const lands = () => container.querySelector('.inflight-time')?.textContent
+    const lands = () => visibleText(container.querySelector('.inflight-time')!)
     const before = lands()
     expect(before).toMatch(/^Lands about /)
     act(() => {
@@ -58,7 +59,7 @@ describe('the status page with a real plane (Stage 3 spec §7.1, §9)', () => {
     const broken = { flights: new Map([['f1', { ...FLYING, trail: [{ time: START, place: null as never, altitudeFt: 30_000 }] }]]), clockOffset: 0 }
     const container = page(broken)
     expect(container.querySelector('.inflight-status')?.textContent).toBe('In flight')
-    expect(container.querySelector('.inflight-time')?.textContent).toMatch(/^Lands \d/)
+    expect(visibleText(container.querySelector('.inflight-time')!)).toMatch(/^Lands \d/)
     expect(error).toHaveBeenCalledWith('Could not show the real plane', expect.any(Error))
     error.mockRestore()
   })
@@ -66,7 +67,7 @@ describe('the status page with a real plane (Stage 3 spec §7.1, §9)', () => {
   it('shows the schedule as before with no live data', () => {
     const container = page(null)
     expect(container.querySelector('.inflight-status')?.textContent).toBe('In flight')
-    expect(container.querySelector('.inflight-time')?.textContent).toMatch(/^Lands \d/)
+    expect(visibleText(container.querySelector('.inflight-time')!)).toMatch(/^Lands \d/)
     expect(container.querySelector('.countdown-sub')?.textContent).not.toMatch(/^About /)
     expect(container.querySelector('.narrative-text')?.textContent).not.toMatch(/about/)
   })
@@ -81,8 +82,8 @@ describe('the status page with a real plane still on the ground at its departure
     vi.setSystemTime(LATE)
     const container = page(AT_THE_GATE)
     expect(container.querySelector('.narrative-text')?.textContent)
-      // The countdown's digits, then its words for screen readers.
-      .toMatch(/^Alex is still on the ground in Louisville on UPS flight 1234 to Philadelphia — landing in \d+h \d+m\d.* which is about \d{1,2}:\d\d[ap]m [A-Z]+\.$/)
+      // The countdown's digits, then its words for screen readers; the time, then "your time" for them.
+      .toMatch(/^Alex is still on the ground in Louisville on UPS flight 1234 to Philadelphia — landing in \d+h \d+m\d.* which is about \d{1,2}:\d\d\s[AP]M L your time\.$/)
     expect(container.querySelector('.trip-map-card h2')?.textContent).toBe('On the ground')
   })
 
@@ -115,7 +116,7 @@ describe('the status page with a real plane back at its departure airport after 
     const container = page({ flights: new Map([['f1', backAtTheGate(45)]]), clockOffset: 0 })
     expect(container.querySelector('.narrative-text')?.textContent)
       // The countdown's digits, then its words for screen readers; the time in the zone the tests run in, whatever its name.
-      .toMatch(/^Alex has returned to Louisville on UPS flight 1234 to Philadelphia — landing in \d+h \d+m\d.* which is about \d{1,2}:\d\d[ap]m \S+\.$/)
+      .toMatch(/^Alex has returned to Louisville on UPS flight 1234 to Philadelphia — landing in \d+h \d+m\d.* which is about \d{1,2}:\d\d\s[AP]M L your time\.$/)
     expect(container.querySelector('.inflight-status')?.textContent).toBe('Returned to Louisville')
     expect(container.querySelector('.trip-map-chip.bottom')?.textContent).toBe('Returned to Louisville')
     expect(container.querySelector('.trip-map-card h2')?.textContent).toBe('On the ground')
@@ -133,7 +134,7 @@ describe('the status page with a real plane down, not yet at the gate (the lande
     expect(container.querySelector('.narrative-text')?.textContent)
       // The countdown's digits, then its words for screen readers.
       // The time is the viewer's, in whatever zone the tests run (GitHub's build runs in UTC): its minutes are the gate's.
-      .toMatch(/^Alex has landed in Philadelphia on UPS flight 1234 — at the gate in 4m4 minutes which is \d{1,2}:47[ap]m [A-Z]+\.$/)
+      .toMatch(/^Alex has landed in Philadelphia on UPS flight 1234 — at the gate in 4m4 minutes which is \d{1,2}:47\s[AP]M L your time\.$/)
     expect(container.querySelector('.trip-map-card h2')?.textContent).toBe('Landed')
     expect(container.querySelector('.trip-map-chip.bottom')?.textContent).toBe('Landed in Philadelphia')
   })
@@ -142,7 +143,7 @@ describe('the status page with a real plane down, not yet at the gate (the lande
     vi.setSystemTime(DOWN)
     const container = page(LANDED)
     expect(container.querySelector('.inflight-status')?.textContent).toBe('Landed 13 min early')
-    expect(container.querySelector('.inflight-time')?.textContent).toMatch(/^At the gate \d{1,2}:47\s[AP]M$/)
+    expect(visibleText(container.querySelector('.inflight-time')!)).toMatch(/^At the gate \d{1,2}:47\s[AP]M L$/)
     expect(container.querySelector('.trip-map-open')?.getAttribute('aria-label'))
       .toMatch(/^UPS1234 to Philadelphia, landed 13 minutes early\. Reaches the gate at \d{1,2}:47\s[AP]M your time\. (.+\. )?Opens the full map\.$/)
   })
@@ -152,7 +153,7 @@ describe('the status page with a real plane down, not yet at the gate (the lande
     const container = page(null)
     expect(container.querySelector('.narrative-text')?.textContent).toMatch(/^Alex is flying to Philadelphia on UPS flight 1234 from Louisville — /)
     expect(container.querySelector('.trip-map-card h2')?.textContent).toBe('In flight')
-    expect(container.querySelector('.inflight-time')?.textContent).toMatch(/^Lands \d{1,2}:00\s[AP]M$/)
+    expect(visibleText(container.querySelector('.inflight-time')!)).toMatch(/^Lands \d{1,2}:00\s[AP]M L$/)
   })
 })
 
@@ -161,11 +162,11 @@ describe('the Schedule page with a real plane (Stage 3 spec §9)', () => {
 
   it('says "about" before the landing time that’s the real plane’s estimate', () => {
     history.replaceState(null, '', '/#schedule')
-    expect(page(LIVE).querySelector('.leg-times')?.textContent).toMatch(/ – about \d{1,2}:\d\d[ap]m [a-z]+$/)
+    expect(visibleText(page(LIVE).querySelector('.leg-times')!)).toMatch(/ – about \d{1,2}:\d\d\s[AP]M L$/)
   })
 
   it('says no "about" with no live data, as before', () => {
     history.replaceState(null, '', '/#schedule')
-    expect(page(null).querySelector('.leg-times')?.textContent).toMatch(/ – \d{1,2}:\d\d[ap]m [a-z]+$/)
+    expect(visibleText(page(null).querySelector('.leg-times')!)).toMatch(/ – \d{1,2}:\d\d\s[AP]M L$/)
   })
 })

@@ -17,6 +17,7 @@ import { MoonPhaseIcon } from './MoonPhaseIcon'
 import { SunDial } from './SunDial'
 import { WeatherBackdrop } from './WeatherBackdrop'
 import { WeatherCredit } from './WeatherCredit'
+import { ZonedTime } from './ClockText'
 
 export interface SunPopupProps {
   /** Where the pilot is, with the zone and sun times the dial needs: the screen opens the popup only then. */
@@ -97,7 +98,8 @@ export function SunPopup(p: SunPopupProps) {
             <p class="sun-popup-time">
               <Icon name={day ? 'Sun' : 'Moon'} size={15} color={day ? 'var(--orange)' : 'var(--indigo)'} />
               <span class="sr-only">Local time </span>
-              {shortTimeText(p.now, tz, p.h24)}
+              {/* The pilot's clock, named by their city: "3:45 PM Taipei" (time labels design §3.8). */}
+              <ZonedTime ms={p.now} zone={tz} h24={p.h24} label={city ? ` ${city}` : ''} />
             </p>
             <p class="sun-popup-time">
               <span class="sr-only">Time at home </span>

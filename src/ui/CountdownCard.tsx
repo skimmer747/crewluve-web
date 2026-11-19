@@ -6,6 +6,7 @@ import { Celebration } from './Celebration'
 import { cssColor } from './colors'
 import { Icon } from './Icon'
 import { useScheduleLink, type ScheduleLinkProps } from './ScheduleLink'
+import { ClockText } from './ClockText'
 
 export interface CountdownCardProps {
   title: string
@@ -46,7 +47,7 @@ export function CountdownCard({ title, icon, color, target, now, subtitle, celeb
           ))
         )}
       </div>
-      {subtitle && <p class="countdown-sub">{subtitle}</p>}
+      {subtitle && <p class="countdown-sub"><ClockText text={subtitle} /></p>}
       {celebrate && <Celebration playKey={celebrateKey} />}
     </section>
   )

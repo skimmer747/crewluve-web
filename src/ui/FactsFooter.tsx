@@ -1,4 +1,5 @@
 import { LIVE_CREDIT, SPOKEN_LIVE_CREDIT } from '../copy/facts'
+import { ClockKey } from './ClockText'
 import { WeatherCredit } from './WeatherCredit'
 
 export interface FactsFooterProps {
@@ -8,13 +9,15 @@ export interface FactsFooterProps {
 }
 
 /**
- * Under the facts (Stage 2 spec §5.2, §7.2; Stage 3 spec §8): that they come from the schedule, the credit to adsb.lol
- * whenever a flight with live data shows, and Open-Meteo's credit when a forecast shows.
+ * Under the facts (Stage 2 spec §5.2, §7.2; Stage 3 spec §8): that they come from the schedule, the key to the family's
+ * times' "L" (time labels design §3.5), the credit to adsb.lol whenever a flight with live data shows, and Open-Meteo's
+ * credit when a forecast shows.
  */
 export function FactsFooter({ showsWeather, showsLiveCredit }: FactsFooterProps) {
   return (
     <footer class="facts-footer">
       <p>Estimated from the schedule</p>
+      <ClockKey />
       {showsLiveCredit && <LiveCredit />}
       {showsWeather && <WeatherCredit />}
     </footer>

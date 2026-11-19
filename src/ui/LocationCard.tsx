@@ -1,5 +1,4 @@
 import type { Ref } from 'preact'
-import { shortTimeText } from '../copy/format'
 import { timeDifference } from '../copy/location'
 import { temperatureText } from '../copy/weather'
 import type { Weather } from '../data/weather'
@@ -12,6 +11,7 @@ import { showsDial, type LocationFacts } from './locationFacts'
 import { SunDial } from './SunDial'
 import { TimeDifferenceLine } from './TimeDifferenceLine'
 import { WeatherCredit } from './WeatherCredit'
+import { ZonedTime } from './ClockText'
 
 /** The app shows the location card in every status but flying, where the in-flight card takes its place (slice 2B1 §3, 2C §3). */
 export function showsLocationCard(snap: Snapshot): boolean {
@@ -55,7 +55,7 @@ export interface LocationCardProps {
 export function LocationCard({ airport, facts, now, homeTz, h24, weather, onOpenSun, headingRef, quickStatus = null }: LocationCardProps) {
   const { city, flag, tz, visual } = facts
   return (
-    <section class="card glass location">
+    <section class={showsDial(facts) ? 'card glass location with-dial' : 'card glass location'}>
       <div class="location-body">
         <div class="location-head">
           <Icon name="MapPin" size={22} color="var(--red)" />
@@ -89,14 +89,17 @@ export function LocationCard({ airport, facts, now, homeTz, h24, weather, onOpen
           <div class="location-time">
             <p class="time-row">
               <Icon name="Clock" size={17} color="var(--blue)" />
-              <span class="time-label">Current time:</span>
-              <span class="time-value">{shortTimeText(now, tz, h24)}</span>
+              {/* The pilot's own time, named by their city (time labels design §3.8). */}
+              <span class="time-label">{city ? `Current time in ${city}:` : 'Current time:'}</span>
+              <span class="time-value"><ZonedTime ms={now} zone={tz} h24={h24} /></span>
             </p>
             <TimeDifferenceLine diff={timeDifference(now, tz, homeTz)} />
           </div>
         )}
       </div>
       {showsDial(facts) && <SunDial sun={facts.sun} now={now} timeZone={facts.tz} h24={h24} city={city} onOpen={onOpenSun} />}
+      {/* Whose times the dial's labels are: the pilot's (time labels design §3.8). */}
+      {showsDial(facts) && <p class="sun-dial-caption" aria-hidden="true">{city ? `${city} time` : 'Pilot’s time'}</p>}
     </section>
   )
 }
