@@ -3,8 +3,11 @@ import type { MapLeg } from '../map/tripMap'
 import { yours } from './clockLabel'
 import { about, landsAt, liveLabelText, returnedText } from './tripMap'
 
-/** Which of a flight's two planes: the real one, or the ghost where an on-schedule plane would be. */
-export type PlaneKind = 'realPlane' | 'ghost'
+/**
+ * Which plane: of a flight Crewlu Cloud has live data for at the moment, the real one, or the ghost where an on-schedule
+ * plane would be; else the schedule's own plane, drawn alone, flying on the schedule's times.
+ */
+export type PlaneKind = 'realPlane' | 'ghost' | 'schedulePlane'
 
 /** What a plane's popup says (which plane design §3): a title, then a line or two. */
 export interface PopupWords {
@@ -23,6 +26,12 @@ export function planePopupWords(leg: MapLeg, plane: PlaneKind, t: number, isRepl
   const name = leg.flightNumber ?? 'the flight'
   const time = (ms: number) => yours(ms, viewerTz, h24)
   if (plane === 'ghost') return { title: 'On schedule', lines: [`Where ${name} was scheduled to be`] }
+  if (plane === 'schedulePlane') {
+    // Not tracked live, often at the gate with its transponder off: the real plane may not have left yet (Todd, 20 Nov 2026).
+    const title = `${capitalized(name)} · by the schedule`
+    if (isReplay) return { title, lines: [`Where the schedule had it at ${time(t)}`] }
+    return { title, lines: ["Not tracked live, so it's shown where the schedule has it", "If it's running late, it may still be at the gate"] }
+  }
   const title = `${capitalized(name)} · real plane`
   if (isReplay) return { title, lines: [`Where it was at ${time(t)}`] }
   if (!leg.flight) return { title, lines: [] }

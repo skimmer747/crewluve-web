@@ -883,6 +883,27 @@ describe('tripMap.css: the flown and drive lines show by day and under the night
   })
 })
 
+describe('tripMap.css: every plane drawn takes the pointer on the full map (which plane design §3)', () => {
+  // The plane drawn alone, by the schedule, opens its popup as the real plane and its ghost do (Todd, 20 Nov 2026).
+  const rules = rulesIn(css('tripMap'))
+  const ruleFor = (selector: string) => rules.find((b) => b.head.split(',').map((s) => s.trim()).includes(selector))
+  const declared = (selector: string) => new Map(declarations(ruleFor(selector)?.body ?? ''))
+
+  it('on the site’s own map', () => {
+    for (const plane of ['.trip-map-ghost', '.trip-map-real-plane', '.trip-map-plane']) {
+      const rule = declared(`.trip-map-svg.points ${plane}`)
+      expect(rule.get('cursor'), plane).toBe('pointer')
+      expect(rule.get('pointer-events'), plane).toBe('all')
+    }
+  })
+
+  it('on Apple’s map', () => {
+    for (const plane of ['.apple-mark.realPlane', '.apple-mark.ghost', '.apple-mark.plane']) {
+      expect(declared(`.apple-trip-map:not(.still) ${plane}`).get('cursor'), plane).toBe('pointer')
+    }
+  })
+})
+
 describe('split.css', () => {
   // Read when each test runs, so a missing file fails the tests below and not the whole file.
   const rule = (head: string) => declarations(find(rulesIn(css('split')), head)!.body)

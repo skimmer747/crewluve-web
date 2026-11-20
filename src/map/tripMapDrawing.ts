@@ -26,6 +26,11 @@ export interface TripMapDrawing {
   cars: { id: string; place: GeoPoint }[]
   /** The schedule's plane: where, and its angle in radians (0 east, clockwise). */
   plane: PlaneMark | null
+  /**
+   * The flight the schedule's plane is of, while it's drawn alone: the flight has no real plane at this moment, often at
+   * the gate with its transponder off. What its popup speaks of (which plane design §3).
+   */
+  planeLeg: MapLeg | null
   /** The real plane, of a flight Crewlu Cloud has seen (Stage 3 spec §5.4). */
   realPlane: RealPlaneMark | null
   /** Where an on-schedule plane would be, beside the real one. */
@@ -59,6 +64,7 @@ export function tripMapDrawing(map: TripMap, t: number, isReplay = false): TripM
   const segments: RouteSegment[] = []
   const cars: TripMapDrawing['cars'] = []
   let plane: PlaneMark | null = null
+  let planeLeg: MapLeg | null = null
   let realPlane: RealPlaneMark | null = null
   let ghost: PlaneMark | null = null
   let liveLeg: MapLeg | null = null
@@ -69,7 +75,10 @@ export function tripMapDrawing(map: TripMap, t: number, isReplay = false): TripM
     } else {
       const flight = flightDrawing(leg, t, isReplay)
       segments.push(...flight.segments)
-      plane = flight.plane ?? plane
+      if (flight.plane) {
+        plane = flight.plane
+        planeLeg = leg
+      }
       if (flight.realPlane) {
         realPlane = flight.realPlane
         ghost = flight.ghost
@@ -83,7 +92,7 @@ export function tripMapDrawing(map: TripMap, t: number, isReplay = false): TripM
     .map((a) => ({ ...a, driveOnly: !flown.has(a.code) }))
   const activity = activityAt(map, t)
   const pilot = activity && isGroundKind(activity.kind) ? { kind: activity.kind, place: activity.place } : null
-  return { segments, airports, cars, plane, realPlane, ghost, liveLeg, pilot }
+  return { segments, airports, cars, plane, planeLeg, realPlane, ghost, liveLeg, pilot }
 }
 
 /** About a degree of arc, in meters: the longest step of a real path's line (Stage 3 spec §13). */

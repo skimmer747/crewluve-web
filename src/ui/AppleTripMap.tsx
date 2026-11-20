@@ -2,7 +2,8 @@ import { render } from 'preact'
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks'
 import type { PlaneKind } from '../copy/planePopup'
 import {
-  appleCamera, appleMapPlan, cameraFor, followView, isSameView, keepInView, offDateLine, slideIntoView, wholeView, type AppleCamera, type PlannedMark,
+  appleCamera, appleMapPlan, cameraFor, followView, isSameView, keepInView, offDateLine, slideIntoView, wholeView, type AppleCamera, type MarkKind,
+  type PlannedMark,
 } from '../map/appleMapPlan'
 import type { AppleMapStyle } from '../map/appleMapStyle'
 import type { GeoPoint } from '../map/greatCircle'
@@ -18,7 +19,7 @@ import { useAppleMapKit } from './hooks/useAppleMapKit'
 import { prefersStill } from './hooks/useGlide'
 import { useSteadyFraming } from './hooks/useSteadyFraming'
 import { PlanePopup, popupPlacement } from './PlanePopup'
-import { isOnPlane, pointingAt, TripMapSvg, type TripMapSvgProps } from './TripMapSvg'
+import { isOnPlane, openedPlane, pointingAt, TripMapSvg, type TripMapSvgProps } from './TripMapSvg'
 
 export interface AppleTripMapProps extends TripMapSvgProps {
   mapStyle: AppleMapStyle
@@ -51,6 +52,9 @@ const LINES: Record<SegmentStyle, { color: '--trip-route' | '--trip-flown' | '--
 }
 
 const PRIORITY: Record<PlannedMark['priority'], number> = { lowest: 100, low: 250, high: 750, required: 1000 }
+
+/** The marks that open a popup on the full map, and which plane each is (which plane design §3). */
+const POPUP_PLANES: Partial<Record<MarkKind, PlaneKind>> = { realPlane: 'realPlane', ghost: 'ghost', plane: 'schedulePlane' }
 
 /**
  * MapKit stacks each line and mark over the ones added before it, and keeps one where it is when it's moved. So when
@@ -314,9 +318,11 @@ function AppleMapView({
       let kept = state.marks.get(mark.id)
       if (!kept) {
         const { element, turn, fade } = markElement(mark.kind, mark.label, mark.activity)
-        // On the full map the real plane and its ghost open their popups when pointed at or tapped.
-        if (planeWords && (mark.kind === 'realPlane' || mark.kind === 'ghost')) {
-          const pointing = pointingAt(mark.kind, setOpen)
+        // On the full map the real plane and its ghost, or the schedule's plane drawn alone, open their popups when
+        // pointed at or tapped.
+        const popupPlane = POPUP_PLANES[mark.kind]
+        if (planeWords && popupPlane) {
+          const pointing = pointingAt(popupPlane, setOpen)
           element.addEventListener('pointerenter', pointing.onPointerEnter)
           element.addEventListener('pointerleave', pointing.onPointerLeave)
           element.addEventListener('click', pointing.onClick)
@@ -354,28 +360,29 @@ function AppleMapView({
       }
     }
     // The open plane's popup, moving with its plane, over every mark: a mark made since goes under it again.
-    const opened = planeWords && open && drawing.liveLeg ? drawing[open] : null
+    const opened = planeWords && open ? openedPlane(drawing, open) : null
     if (opened) {
+      const place = opened.mark.place
       if (!state.popup) {
         const element = document.createElement('div')
         element.className = 'apple-popup'
-        const annotation = new mapkit.Annotation(C(opened.place), () => element, {
+        const annotation = new mapkit.Annotation(C(place), () => element, {
           displayPriority: PRIORITY.required, collisionMode: mapkit.AnnotationCollisionMode.None,
         })
         state.map.addAnnotation(annotation)
         state.popup = { annotation, element }
       } else {
-        state.popup.annotation.coordinate = C(opened.place)
+        state.popup.annotation.coordinate = C(place)
         if (madeMarks.size > 0) {
           state.map.removeAnnotation(state.popup.annotation)
           state.map.addAnnotation(state.popup.annotation)
         }
       }
       // MapKit gives the plane's place on the page, which scrolls; the map's box is measured in the window.
-      const page = state.map.convertCoordinateToPointOnPage(C(opened.place))
+      const page = state.map.convertCoordinateToPointOnPage(C(place))
       const frame = box.current!.getBoundingClientRect()
       const placement = popupPlacement({ x: page.x - frame.left - scrollX, y: page.y - frame.top - scrollY }, width)
-      render(<PlanePopup words={planeWords!(drawing.liveLeg!, open!)} at={{ x: 0, y: 0 }} placement={placement} />, state.popup.element)
+      render(<PlanePopup words={planeWords!(opened.leg, open!)} at={{ x: 0, y: 0 }} placement={placement} />, state.popup.element)
     } else if (state.popup) {
       render(null, state.popup.element)
       state.map.removeAnnotation(state.popup.annotation)

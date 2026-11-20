@@ -211,9 +211,11 @@
 /* A line that wraps stays apart from the next. */
 .trip-map-popup p + p { margin-top: 3px; }
 .trip-map-popup .trip-map-popup-title { color: inherit; font-weight: 600; }
-/* On the full map, the real plane and its ghost take the pointer: the rest of the site's map doesn't. */
+/* On the full map, the real plane and its ghost, and the schedule's plane drawn alone, take the pointer: the rest of the
+   site's map doesn't. */
 .trip-map-svg.points .trip-map-ghost,
-.trip-map-svg.points .trip-map-real-plane { cursor: pointer; pointer-events: all; }
+.trip-map-svg.points .trip-map-real-plane,
+.trip-map-svg.points .trip-map-plane { cursor: pointer; pointer-events: all; }
 
 .trip-map-stats {
   display: flex;
@@ -534,7 +536,8 @@
 .apple-mark.ghost { border: 1.5px dashed var(--trip-seen); }
 .apple-mark.ghost svg { fill: var(--trip-seen); opacity: 0.4; }
 .apple-trip-map:not(.still) .apple-mark.realPlane,
-.apple-trip-map:not(.still) .apple-mark.ghost { cursor: pointer; }
+.apple-trip-map:not(.still) .apple-mark.ghost,
+.apple-trip-map:not(.still) .apple-mark.plane { cursor: pointer; }
 /* The popup's own mark: a point, where MapKit puts its bottom centre, with the popup laid out from it. */
 .apple-popup { position: relative; width: 0; height: 0; pointer-events: none; }
 .apple-mark-dot { width: 7px; height: 7px; border: 0.5px solid rgba(0, 0, 0, 0.4); border-radius: 50%; background: #ffffff; }

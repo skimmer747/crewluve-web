@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { planePopupWords } from '../../src/copy/planePopup'
+import { shortTimeText } from '../../src/copy/format'
+import { planePopupWords, type PlaneKind } from '../../src/copy/planePopup'
 import type { MapKitApi } from '../../src/map/mapkitApi'
 import type { MapLeg, TripMap } from '../../src/map/tripMap'
 import { AppleTripMap } from '../../src/ui/AppleTripMap'
@@ -27,7 +28,7 @@ const IN_THE_AIR = START + 59 * MINUTE
 const LATER = START + 61 * MINUTE
 const FURTHER = { ...FLYING, fix: fix(60, 39.7, -79.2, { trackDeg: 75 }) }
 
-const wordsAt = (t: number, isReplay = false) => (leg: MapLeg, plane: 'realPlane' | 'ghost') => planePopupWords(leg, plane, t, isReplay, NY, false)
+const wordsAt = (t: number, isReplay = false) => (leg: MapLeg, plane: PlaneKind) => planePopupWords(leg, plane, t, isReplay, NY, false)
 const popup = () => document.querySelector('.trip-map-popup')
 const popupTitle = () => popup()?.querySelector('.trip-map-popup-title')?.textContent ?? null
 
@@ -67,6 +68,7 @@ describe("the popup on the site's own map", () => {
   }
   const real = () => document.querySelector('.trip-map-real-plane')!
   const ghost = () => document.querySelector('.trip-map-ghost')!
+  const lone = () => document.querySelector('.trip-map-plane')!
 
   it('opens over the real plane when it’s pointed at, and closes when the pointer leaves', () => {
     render(svg(IN_THE_AIR))
@@ -114,6 +116,41 @@ describe("the popup on the site's own map", () => {
     expect(popup()).toBeNull()
     // It stays closed when a ghost comes back.
     view.rerender(svg(IN_THE_AIR))
+    expect(popup()).toBeNull()
+  })
+
+  it('opens over the plane drawn alone, by the schedule, and stays open on a press on it', () => {
+    render(svg(IN_THE_AIR, { live: null }))
+    expect(document.querySelector('.trip-map-real-plane')).toBeNull()
+    fireEvent.pointerEnter(lone())
+    expect(popupTitle()).toBe('UPS1234 · by the schedule')
+    expect(popup()?.textContent).toBe("UPS1234 · by the scheduleNot tracked live, so it's shown where the schedule has itIf it's running late, it may still be at the gate")
+    const x = lone().getAttribute('transform')!.match(/^translate\(([^ ]+) /)![1]
+    expect(popup()?.getAttribute('style')).toContain(`left: ${x}px`)
+    fireEvent.pointerLeave(lone(), { pointerType: 'mouse' })
+    expect(popup()).toBeNull()
+    fireEvent.click(lone())
+    fireEvent.pointerDown(lone())
+    expect(popupTitle()).toBe('UPS1234 · by the schedule')
+  })
+
+  it('says where the schedule had the plane drawn alone in a replay', () => {
+    const t = START + 30 * MINUTE
+    render(svg(t, { live: null, isReplay: true, map: liveTripMap(t, null) }))
+    fireEvent.pointerEnter(lone())
+    expect(popupTitle()).toBe('UPS1234 · by the schedule')
+    expect(popup()?.querySelectorAll('p')[1].textContent).toMatch(new RegExp(`^Where the schedule had it at ${shortTimeText(t, NY, false)} L`))
+  })
+
+  it('closes when live data arrives and the real plane and its ghost take the lone plane’s place', () => {
+    const view = render(svg(IN_THE_AIR, { live: null }))
+    fireEvent.click(lone())
+    expect(popupTitle()).toBe('UPS1234 · by the schedule')
+    view.rerender(svg(IN_THE_AIR))
+    expect(document.querySelector('.trip-map-plane')).toBeNull()
+    expect(popup()).toBeNull()
+    // It stays closed when the lone plane comes back.
+    view.rerender(svg(IN_THE_AIR, { live: null }))
     expect(popup()).toBeNull()
   })
 
@@ -243,6 +280,22 @@ describe("the popup on Apple's map", () => {
     const element = popupMark(kit)!.element
     view.unmount()
     expect(element.childNodes).toHaveLength(0)
+  })
+
+  it('opens over the plane drawn alone, by the schedule, and closes when live data arrives', async () => {
+    const { kit, view, props } = await shown(IN_THE_AIR, { map: liveTripMap(IN_THE_AIR, null) })
+    expect(kit.maps[0].annotations.some((a) => a.element.classList.contains('realPlane'))).toBe(false)
+    point(mark(kit, 'plane').element, 'pointerenter')
+    await waitFor(() => expect(shownTitle(kit)).toBe('UPS1234 · by the schedule'))
+    expect(popupMark(kit)!.coordinate).toEqual(mark(kit, 'plane').coordinate)
+    point(mark(kit, 'plane').element, 'pointerleave')
+    await waitFor(() => expect(popupMark(kit)).toBeUndefined())
+    fireEvent.click(mark(kit, 'plane').element)
+    point(mark(kit, 'plane').element, 'pointerdown', 'touch')
+    await waitFor(() => expect(shownTitle(kit)).toBe('UPS1234 · by the schedule'))
+    view.rerender(<AppleTripMap {...props(IN_THE_AIR, liveTripMap(IN_THE_AIR))} />)
+    await waitFor(() => expect(popupMark(kit)).toBeUndefined())
+    expect(kit.maps[0].annotations.some((a) => a.element.classList.contains('plane'))).toBe(false)
   })
 
   it('opens nothing on the card’s map', async () => {

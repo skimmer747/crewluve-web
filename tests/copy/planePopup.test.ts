@@ -89,6 +89,32 @@ describe("a plane's popup (which plane design §3)", () => {
     expect(clockTime(t, NY, true)).toMatch(/^\d{1,2}:\d\d$/)
   })
 
+  it("calls the plane drawn alone the schedule's, and says it may still be at the gate", () => {
+    const { leg, t } = caseLeg('ahead, in the air')
+    const { flight: _, ...notLive } = leg
+    expect(planePopupWords(notLive, 'schedulePlane', t, false, NY, false)).toEqual({
+      title: 'UPS207 · by the schedule',
+      lines: ["Not tracked live, so it's shown where the schedule has it", "If it's running late, it may still be at the gate"],
+    })
+  })
+
+  it("says where the schedule had the plane drawn alone at a moment of the replay, in the viewer's clock", () => {
+    const { leg, t } = caseLeg('ahead, in the air')
+    const { flight: _, ...notLive } = leg
+    expect(planePopupWords(notLive, 'schedulePlane', t, true, NY, false)).toEqual({
+      title: 'UPS207 · by the schedule', lines: [`Where the schedule had it at ${time(t)}`],
+    })
+    expect(planePopupWords(notLive, 'schedulePlane', t, true, NY, true).lines).toEqual([`Where the schedule had it at ${clockTime(t, NY, true)} L`])
+  })
+
+  it('says "the flight" of the plane drawn alone with no flight number', () => {
+    const { leg, t } = caseLeg('ahead, in the air')
+    const { flight: _, ...notLive } = leg
+    const unnamed = { ...notLive, flightNumber: null }
+    expect(planePopupWords(unnamed, 'schedulePlane', t, false, NY, false).title).toBe('The flight · by the schedule')
+    expect(planePopupWords(unnamed, 'schedulePlane', t, true, NY, false).title).toBe('The flight · by the schedule')
+  })
+
   it("says the card's bar's words in every shared case and moment the real plane shows", () => {
     let checked = 0
     for (const flightCase of LIVE_CASES.flights) {
