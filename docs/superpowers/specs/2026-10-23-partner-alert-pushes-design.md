@@ -32,7 +32,7 @@
   - status (302-327): a change to Home or to In Flight.
 - **Two values come from the legs** (`Crewluv/Services/StatusNotifying.swift`):
   - the effective delay (`SharedPilotStatus.effectiveFlightDelayMinutes`, 103-127): the summary's own delay, or else the first flight leg with a delay that hasn't landed yet;
-  - the home arrival (`TripStateResolver.resolveHomeArrival`, 260-281).
+  - the home arrival (`TripStateResolver.resolveHomeArrival`, in `TripStateResolver+HomeArrival.swift` since 2026-11-20).
 - **In front,** every notification shows as a banner with sound (`Crewluv/App/AppDelegate.swift:89-94`).
 - **The device key** is a generic password under the service `com.ToddAnderson.Crewluv.partnerCloud`, readable after the first unlock, this device only. It names no access group, so it lives in Crewluve's own group, its application identifier (`Crewluv/Services/PartnerCloud/DeviceKeyStore.swift:58, 142-156`). `Crewluv.entitlements` has no `keychain-access-groups` and no App Groups.
 - **The name the alerts use** is `ResolvedPilotDisplayName` in standard UserDefaults (`Crewluv/Models/PartnerConnection.swift:22`).
@@ -141,7 +141,7 @@ These are today's `StatusChangeNotifier` rules, applied to one partner's view. W
 
 - **The quick status shown at a moment** (piece 4 spec §5.4): this partner's entry in `quickStatusByPartner` while it hasn't expired, then the top-level one while it hasn't expired, then none.
 - **The effective delay at a moment:** `flightDelayMinutes` when it isn't 0; else the `delayMinutes` of the first flight leg, in the summary's order, whose delay isn't 0 and whose end plus that delay is still ahead; else 0.
-- **The home arrival at a moment:** `TripStateResolver.resolveHomeArrival`, or else `homeArrivalTime`. It takes the trip block covering that moment, or else the next block. A block is a run of legs no more than 24 hours apart. Within it, the arrival is the latest delay-shifted end of a flight, event or drive leg that arrives at the home airport and hasn't ended yet.
+- **The home arrival at a moment:** `TripStateResolver.resolveHomeArrival`, or else `homeArrivalTime`. Since 2026-11-20 it goes trip by trip, as this site's `arrivalTarget` does, and no longer by blocks of legs no more than 24 hours apart, which carried a commuter's countdown past a few hours at home to a later trip's homecoming. On a ride home now (a jumpseat, drive or event that arrives home, in no trip), its end. Otherwise, for the trip under way, else one that ended or starts within a day: its last arrival home with nothing of the trip after it, else a ride home starting after its last flight began, within 3 days and before the next trip, else, while the pilot stays away, the same for the next trip. With no trip that near, a ride home starting within 3 days, before the next trip. Times are delay-shifted throughout.
 - **The legs compare as legs:** over the fields Crewluve's `TripLeg` reads, as `StatusChangeNotifier.legsDiffer` does, whatever the key order.
 
 | Kind | When | Words, written on the phone (§6.1) | Sound |
@@ -386,7 +386,7 @@ Plan 1's list, as it stands there. The review changed 7, 8 and 11 (§14.2).
 9. **Report's `p_retry_pilots` becomes `p_retries jsonb`.** A re-claimed pilot would now be compared with itself and get nothing, so whole pilots can't be retried any more.
 10. **The rules are plain functions in partner-push** (`alertsFor` and its helpers), each named after the Swift it copies.
     - They read the summary's fields as they are, as Crewluve's translation passes them through (piece 4 spec §5.4).
-    - They copy each detail the shared cases showed matters: a summary that isn't newer alerts nothing, a missing `displayStatus` reads as Home, a quick status ends at its expiry, and the home arrival comes from trip blocks.
+    - They copy each detail the shared cases showed matters: a summary that isn't newer alerts nothing, a missing `displayStatus` reads as Home, a quick status ends at its expiry, and the home arrival goes trip by trip.
     - Crewluve's trimming of layovers isn't copied, since it can't change either answer: `homeArrival`'s comment says why.
 11. **One push per alert, in StatusChangeNotifier's order.** A device that joined since the last run gets none.
 12. **The answer's counts gain `alerts`.** The log line becomes "N sent (N as alerts), …", and a run that finds nothing new for anyone logs "nothing new to send", so Task 8 can see that CrewLu's extra writes push nobody.
@@ -465,7 +465,7 @@ Both sides apply these to one partner's view, at the later summary's own `lastUp
 - **The safety net:** when either summary has no trip legs, nothing is added or removed. So a summary written without its trips, as during a reset of CrewLu's data, never reads as everything cancelled, nor the next as everything new. The price: a pilot with no other trip in the summary's window, the last 60 days and every trip to come, gets no alert for adding a trip, or for removing their only one. (The user, after plan 2a's review: the first rule looked only for a summary with no legs at all.)
 - **Matching by span:** a split trip merged on import, a re-import, or retimed flights is neither added nor removed. Nor is a trip traded for another on the same days.
 - **The same trip, for a home arrival:**
-  - an arrival from a trip block (§5.3) belongs to the trip ids among that block's legs;
+  - an arrival from the legs (§5.3) belongs to the trips its search went through;
   - one from the summary's `homeArrivalTime`, when the legs give no arrival, belongs to `currentTripId`'s trip;
   - two arrivals are compared only when they share a trip id.
 - **The same trip, for a departure:** a departure belongs to the trips whose spans hold `nextDepartureTime`: both, where one trip ends as the next begins. Two departures are compared only when they share one. For CrewLu's summaries that's the trip of the leg that starts at `nextDepartureTime`, the rule this spec first gave, since that time is always a trip flight's scheduled start.
@@ -496,7 +496,7 @@ Each plays a sound. A Crewluve that makes its own alerts (§6.3) uses the same w
   - **A hidden trip:** a trip the pilot hides from partners leaves their summary as a removed trip does, so it says "Trip was cancelled", and unhiding it says "Has a new trip". Telling the two apart would reveal the hidden trip.
   - **A trip deleted to import it again:** "Trip was cancelled", then "Has a new trip", since CrewLu writes a summary as soon as a trip is deleted. So does a trip moved to days it no longer overlaps.
   - **A summary with no trips** says nothing about trips, but its status can still say "is home!".
-  - **A trip picked up within 24 hours of the current one's end** shares its block, so the way home can move to the new trip's end, "Getting home later — now 3:15 PM" with no date, beside "Has a new trip". Crewluve's "Back Home In" card shows the same time.
+  - **A trip picked up within 24 hours of the current one's end, from base with no ride home before it,** carries the way home on to the new trip's, "Getting home later — now 3:15 PM" with no date, beside "Has a new trip". Crewluve's "Back Home In" card shows the same time.
   - **Two of the pilot's devices** both write the summary, so one that hasn't synced the latest schedule could make cancelled and new alerts alternate. A CrewLu guard, writing only after its schedule sync, would close it.
 - **Crewluve 1.2** keeps the first rules until each partner updates.
 
