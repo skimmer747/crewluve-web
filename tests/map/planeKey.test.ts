@@ -49,4 +49,12 @@ describe('the key to the two planes (which plane design §2)', () => {
     expect(showsPlaneKey(drawing)).toBe(false)
     expect(drawing.liveLeg).toBeNull()
   })
+
+  it("names the flight of the schedule's plane drawn alone, for its popup, and none while the real plane shows", () => {
+    const lone = drawingAt(IN_THE_AIR, null)
+    expect(lone.drawing.plane).not.toBeNull()
+    expect(lone.drawing.planeLeg).toBe(lone.map.legs[0])
+    expect(drawingAt(IN_THE_AIR, undefined).drawing.planeLeg).toBeNull()
+    expect(drawingAt(START + 200 * MINUTE, null).drawing.planeLeg).toBeNull()
+  })
 })

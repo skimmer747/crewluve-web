@@ -8,7 +8,7 @@ import { linePath, placeAt, polygonsPath, type Viewport } from '../map/svgPaths'
 import type { GroundKind } from '../map/tripActivity'
 import { framingPoints, framingSubject, type MapLeg, type TripMap } from '../map/tripMap'
 import { followingFrame } from '../map/tripMapFollow'
-import { keptInView, nightTime, PILOT_RADIUS, routePoints, tripMapDrawing, type PlaneMark } from '../map/tripMapDrawing'
+import { keptInView, nightTime, PILOT_RADIUS, routePoints, tripMapDrawing, type PlaneMark, type TripMapDrawing } from '../map/tripMapDrawing'
 import { useGlide } from './hooks/useGlide'
 import { useSteadyFraming } from './hooks/useSteadyFraming'
 import { PlanePopup, popupPlacement } from './PlanePopup'
@@ -33,8 +33,8 @@ export interface TripMapSvgProps {
   /** `t` is a moment of the replay, not now: a flight with a record shows its real plane alone (Stage 3 spec §7.3). */
   isReplay?: boolean
   /**
-   * What a plane's popup says, on the full map (which plane design §3): the real plane and its ghost then open one when
-   * pointed at or tapped. The card's map has none, and its planes take no pointer.
+   * What a plane's popup says, on the full map (which plane design §3): the real plane and its ghost, or the schedule's
+   * plane drawn alone, then open one when pointed at or tapped. The card's map has none, and its planes take no pointer.
    */
   planeWords?: (leg: MapLeg, plane: PlaneKind) => PopupWords
   /**
@@ -54,14 +54,27 @@ export const pointingAt = (kind: PlaneKind, setOpen: (open: (was: PlaneKind | nu
   onClick: () => setOpen(() => kind),
 })
 
-/** Whether a press on the map, at `target`, is on one of the two planes: a press anywhere else closes the popup. */
+/** Whether a press on the map, at `target`, is on a plane: a press anywhere else closes the popup. */
 export const isOnPlane = (target: EventTarget | null) =>
-  target instanceof Element && target.closest('.trip-map-ghost, .trip-map-real-plane, .apple-mark.ghost, .apple-mark.realPlane') != null
+  target instanceof Element
+  && target.closest('.trip-map-ghost, .trip-map-real-plane, .trip-map-plane, .apple-mark.ghost, .apple-mark.realPlane, .apple-mark.plane') != null
+
+/**
+ * The plane whose popup is open and the flight it's of, while that plane is drawn: none once it goes, as when live data
+ * arrives and the real plane and its ghost take the place of the schedule's plane drawn alone (which plane design §3).
+ */
+export function openedPlane(drawing: TripMapDrawing, kind: PlaneKind): { mark: PlaneMark; leg: MapLeg } | null {
+  const mark = kind === 'schedulePlane' ? drawing.plane : drawing[kind]
+  const leg = kind === 'schedulePlane' ? drawing.planeLeg : drawing.liveLeg
+  return mark && leg ? { mark, leg } : null
+}
 
 /** A Phosphor icon (256 units, pointing up) centred on `at`, `size` px wide, turned `degrees` clockwise. */
-function Mark({ name, at, size, degrees = 0, class: cls }: { name: IconName; at: { x: number; y: number }; size: number; degrees?: number; class: string }) {
+function Mark({ name, at, size, degrees = 0, class: cls, ...pointing }: {
+  name: IconName; at: { x: number; y: number }; size: number; degrees?: number; class: string
+} & Partial<ReturnType<typeof pointingAt>>) {
   return (
-    <g class={cls} transform={`translate(${at.x} ${at.y}) rotate(${degrees}) scale(${size / 256}) translate(-128 -128)`}>
+    <g class={cls} transform={`translate(${at.x} ${at.y}) rotate(${degrees}) scale(${size / 256}) translate(-128 -128)`} {...pointing}>
       {ICON_PATHS[name].map((d, i) => <path key={i} d={d} />)}
     </g>
   )
@@ -156,12 +169,12 @@ export function TripMapSvg({
   // The plane whose popup is open (which plane design §3). It closes when its plane goes, and as a replay starts or stops.
   const [open, setOpen] = useState<PlaneKind | null>(null)
   useEffect(() => setOpen(null), [isReplay])
-  const opened = planeWords && open && drawing.liveLeg ? drawing[open] : null
+  const opened = planeWords && open ? openedPlane(drawing, open) : null
   useEffect(() => {
     if (open && !opened) setOpen(null)
   })
   const pointing = (kind: PlaneKind) => (planeWords ? pointingAt(kind, setOpen) : {})
-  const popupAt = opened ? placeAt(opened.place, view) : null
+  const popupAt = opened ? placeAt(opened.mark.place, view) : null
   const svg = (
     <svg class={`trip-map-svg${planeWords ? ' points' : ''}`} width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden="true"
       onPointerDown={planeWords ? (e) => { if (!isOnPlane(e.target)) setOpen(null) } : undefined}>
@@ -179,7 +192,8 @@ export function TripMapSvg({
       {drawing.pilot && <PilotMarker kind={drawing.pilot.kind} at={placeAt(drawing.pilot.place.place, view)} />}
       {drawing.plane && (
         // The site's plane icon points up, so it turns a quarter more than the screen angle.
-        <Mark name="Airplane" at={placeAt(drawing.plane.place, view)} size={22} degrees={(drawing.plane.angle * 180) / Math.PI + 90} class="trip-map-plane" />
+        <Mark name="Airplane" at={placeAt(drawing.plane.place, view)} size={22} degrees={(drawing.plane.angle * 180) / Math.PI + 90} class="trip-map-plane"
+          {...pointing('schedulePlane')} />
       )}
       {/* The ghost just under the real plane, which is drawn on top. */}
       {drawing.ghost && <PlaneBadge plane={drawing.ghost} at={placeAt(drawing.ghost.place, view)} class="trip-map-ghost" {...pointing('ghost')} />}
@@ -189,11 +203,11 @@ export function TripMapSvg({
       )}
     </svg>
   )
-  if (!popupAt) return svg
+  if (!opened || !popupAt) return svg
   return (
     <>
       {svg}
-      <PlanePopup words={planeWords!(drawing.liveLeg!, open!)} at={popupAt} placement={popupPlacement(popupAt, width)} />
+      <PlanePopup words={planeWords!(opened.leg, open!)} at={popupAt} placement={popupPlacement(popupAt, width)} />
     </>
   )
 }
