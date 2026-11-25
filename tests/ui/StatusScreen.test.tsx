@@ -449,6 +449,7 @@ describe('the location card in each demo scene', () => {
     'live-landed': null,
     'live-long-gap': null,
     'live-returned': null,
+    'schedule-at-gate': null,
   }
 
   it.each(Object.keys(DEMO_SCENES) as DemoScene[])('%s', (scene) => {
@@ -582,7 +583,8 @@ describe('StatusScreen in-flight card (slice 2C)', () => {
       <StatusScreen snap={snap} now={NOW} viewerTz={NY} homeTz={NY} h24={false} airports={testAirports} weather={null} demo celebrateKey={0}
         footer={footer(NOW)} />,
     )
-    const inTheAir = ['flying', 'last-leg', 'live-ahead', 'live-ocean-gap', 'live-on-ground-late', 'live-landed', 'live-long-gap', 'live-returned']
+    const inTheAir = ['flying', 'last-leg', 'live-ahead', 'live-ocean-gap', 'live-on-ground-late', 'live-landed', 'live-long-gap', 'live-returned',
+      'schedule-at-gate']
     expect(container.querySelector('.inflight') != null).toBe(inTheAir.includes(scene))
   })
 })

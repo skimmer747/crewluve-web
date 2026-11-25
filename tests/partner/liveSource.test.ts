@@ -429,3 +429,26 @@ describe("hearing the flights change", () => {
     expect(offset).toBe(HOUR)
   })
 })
+
+describe('the first answer (live or scheduled design §2)', () => {
+  it('hasn’t come until the first call settles, and is told once even when it brings no flights', async () => {
+    const { source, answer: give } = made()
+    const told = vi.fn()
+    source.subscribe(told)
+    expect(source.hasAnswered).toBe(false)
+    give(answer([]), answer([]))
+    await source.ask()
+    expect(source.hasAnswered).toBe(true)
+    expect(told).toHaveBeenCalledTimes(1)
+    await source.ask()
+    expect(told).toHaveBeenCalledTimes(1)
+  })
+
+  it('has come when the call fails: the flights are then not tracked', async () => {
+    const { source, answer: give } = made()
+    give(new Error('offline'))
+    await source.ask()
+    expect(source.hasAnswered).toBe(true)
+    expect(source.flights.size).toBe(0)
+  })
+})

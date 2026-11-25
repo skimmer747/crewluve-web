@@ -20,6 +20,13 @@ export function airborneWindow(departure: number, arrival: number): { start: num
   return { start: departure + TAXI_OUT_MS, end: arrival - TAXI_IN_MS }
 }
 
+/**
+ * When the schedule's plane takes off for a flight from `departure` to `arrival` (both delay-moved): the start of its
+ * time in the air, or the gate departure for a flight with none (live or scheduled design §3).
+ */
+export const scheduledTakeoff = (departure: number, arrival: number): number =>
+  airborneWindow(departure, arrival)?.start ?? departure
+
 /** How far along its route the schedule's plane is at `t`: 0 at the departure airport, 1 at the arrival airport. */
 export function scheduledFraction(departure: number, arrival: number, t: number): number {
   const window = airborneWindow(departure, arrival)

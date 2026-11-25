@@ -7,7 +7,7 @@ import { isArrivalEstimated, type MapLeg } from '../map/tripMap'
 import type { MoonPhase } from '../time/moon'
 import { MINUTE, zoneOffsetMinutes } from '../time/zoned'
 import { place, spoken, yours } from './clockLabel'
-import { minutesText, spokenMinutes } from './tripMap'
+import { MAY_BE_AT_GATE, minutesText, spokenMinutes } from './tripMap'
 
 /**
  * The facts' sentences about a flight (Stage 2 spec §4, §5), as the app's FactsWording: milestones, what's below, the
@@ -134,6 +134,25 @@ export const belowWords = (place: Place, city: City | null) => (city ? `Over ${p
  * the ground in Rockford" (the website's own, Todd, 16 Nov 2026).
  */
 export const stillOnGroundText = (city: string) => `Still on the ground in ${city}`
+
+/**
+ * In place of what's below, a real plane seen at its gate before the plan's takeoff: "On the ground in Louisville"
+ * (live or scheduled design §4.2).
+ */
+export const onTheGroundText = (city: string) => `On the ground in ${city}`
+
+/**
+ * In place of what's below, a flight by the schedule alone before its takeoff: "Scheduled to take off about 3:14 PM L"
+ * (live or scheduled design §4.2). The time is the gate's plus the map's own taxi allowance, so "about".
+ */
+export const scheduledTakeoffText = (takeoff: number, viewerTz: string, h24: boolean) =>
+  `Scheduled to take off about ${yours(takeoff, viewerTz, h24)}`
+
+/**
+ * The second line of the facts' first row for a flight by the schedule alone, as the schedule's plane's popup says it
+ * (live or scheduled design §4.1).
+ */
+export const NOT_TRACKED_LINES = ['Shown where the schedule has it', MAY_BE_AT_GATE]
 
 /**
  * "Passes 40 mi from home at 1:05 PM L", or "Closest to home was 40 mi at 1:05 PM L" once it's passed. Where nobody saw

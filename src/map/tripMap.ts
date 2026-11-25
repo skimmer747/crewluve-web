@@ -6,7 +6,7 @@ import { pathFramingPoints } from './flightPathDrawing'
 import { scheduledFraction, scheduledTime } from './flightProgress'
 import { distanceMeters, pointAlong, pointsAlong, type GeoPoint } from './greatCircle'
 import { calendarDay } from '../time/zoned'
-import { hasLanded, hasReturned, isAtDeparture, isEstimate, type MapFlight } from './mapFlight'
+import { hasLanded, isEstimate, type MapFlight } from './mapFlight'
 import { aimFractions, flatMapAngle } from './planeHeading'
 import type { GroundKind } from './tripActivity'
 
@@ -36,6 +36,11 @@ export interface MapLeg {
    * and for a flight with no live data, which the map draws from the schedule as before.
    */
   flight?: MapFlight
+  /**
+   * The flight has no live data yet because Crewlu Cloud hasn't answered since the page opened (live or scheduled
+   * design §2). Set only on a flight with no `flight`, and only then.
+   */
+  isAwaitingLive?: boolean
 }
 
 /** One of the trip's ground legs, kept to name the waits between its moving legs (activity markers design §2.2). Never drawn. */
@@ -77,7 +82,7 @@ export function airportMark(code: Iata, airports: AirportIndex): AirportMark | n
   return { code: airport.iata, city: airports.city(code) ?? airport.iata, place: { lat: airport.lat, lng: airport.lng }, timeZone: airports.tz(code) }
 }
 
-function mapLeg(leg: Leg, airports: AirportIndex, flights: ReadonlyMap<string, MapFlight>): MapLeg | null {
+function mapLeg(leg: Leg, airports: AirportIndex, flights: ReadonlyMap<string, MapFlight>, isAwaitingLive: boolean): MapLeg | null {
   const ends = isMove(leg) ? [leg.dep, leg.arr] : leg.kind === 'drive' ? [leg.from, leg.to] : null
   if (!ends) return null
   const origin = airportMark(ends[0], airports)
@@ -95,6 +100,8 @@ function mapLeg(leg: Leg, airports: AirportIndex, flights: ReadonlyMap<string, M
     end: leg.end,
     flightNumber: isFlight ? flightNumberText(leg.airline, leg.number) : null,
     ...(flight && { flight }),
+    // Only a flight Crewlu Cloud hasn't answered for waits; a false spreads nothing.
+    ...(isFlight && !flight && isAwaitingLive && { isAwaitingLive: true }),
   }
 }
 
@@ -114,6 +121,11 @@ export interface TripMapOptions {
   airports: AirportIndex
   /** Each flight Crewlu Cloud answered for, by its leg's id (`liveMapFlights`). */
   flights?: ReadonlyMap<string, MapFlight>
+  /**
+   * Crewlu Cloud hasn't answered since the page opened: a flight with no live data may yet have some (live or
+   * scheduled design §2).
+   */
+  isAwaitingLive?: boolean
 }
 
 const NO_FLIGHTS: ReadonlyMap<string, MapFlight> = new Map()
@@ -121,9 +133,9 @@ const NO_FLIGHTS: ReadonlyMap<string, MapFlight> = new Map()
 /** The map of one trip's legs, or null when none can be drawn (moving map spec §12). */
 export function makeTripMap(
   legs: Leg[],
-  { isNextTrip, isRecap = false, days = null, home, base = null, isWaitingAtBase = false, now, airports, flights = NO_FLIGHTS }: TripMapOptions,
+  { isNextTrip, isRecap = false, days = null, home, base = null, isWaitingAtBase = false, now, airports, flights = NO_FLIGHTS, isAwaitingLive = false }: TripMapOptions,
 ): TripMap | null {
-  const mapped = [...legs].sort((a, b) => a.start - b.start).map((l) => mapLeg(l, airports, flights)).filter((l): l is MapLeg => l != null)
+  const mapped = [...legs].sort((a, b) => a.start - b.start).map((l) => mapLeg(l, airports, flights, isAwaitingLive)).filter((l): l is MapLeg => l != null)
   if (mapped.length === 0) return null
   const start = Math.min(...mapped.map((l) => l.start))
   const end = Math.max(start, ...mapped.map((l) => l.end))
@@ -148,25 +160,9 @@ export const isArrivalEstimated = (leg: MapLeg) => leg.flight != null && isEstim
 export const isMoving = (leg: MapLeg, t: number) => leg.start <= t && t < leg.end
 
 /**
- * Whether the leg is between its gates at `now` while its real plane is still on the ground at its departure airport:
- * the flight is late leaving, and the words say "on the ground" in place of "flying" (the website's own, Todd, 16 Nov
- * 2026). It reads the live data at `now`, so it's for now only: a replay's moment reads where the map has the plane.
- */
-export const legStillOnGround = (leg: MapLeg, now: number): boolean =>
-  leg.flight != null && isMoving(leg, now) && isAtDeparture(leg.flight, now)
-
-/**
- * Whether the leg is between its gates at `now` with its real plane back on the ground at its departure airport after an
- * air return (`hasReturned`, air return design §2): `legStillOnGround` holds too, and the words say "Returned to
- * Rockford" in place of "Still on the ground in Rockford". Now only, as `legStillOnGround` is.
- */
-export const legReturned = (leg: MapLeg, now: number): boolean =>
-  leg.flight != null && isMoving(leg, now) && hasReturned(leg.flight, now)
-
-/**
  * Whether the leg is between its gates at `now` while its real plane has landed: down, not yet at the gate (`leg.end`,
  * the real plane's estimate), and the words say "Landed in Anchorage" in place of "flying" (the landed, not yet at the
- * gate design §2, Todd, 17 Nov 2026). It reads the live data at `now`, so it's for now only, as `legStillOnGround` is.
+ * gate design §2, Todd, 17 Nov 2026). It reads the live data at `now`, so it's for now only, as `legAtDeparture` is.
  */
 export const legLandedBeforeGate = (leg: MapLeg, now: number): boolean =>
   leg.flight != null && isMoving(leg, now) && hasLanded(leg.flight, now)

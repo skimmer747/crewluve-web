@@ -36,12 +36,14 @@ describe("the map card with a real plane (Stage 3 spec §9)", () => {
 
   it('says it all to a screen reader in one sentence', () => {
     card(IN_THE_AIR)
-    expect(screen.getByRole('button', { name: /^UPS1234 to Philadelphia, .* schedule\. Lands about .* your time\. Opens the full map\.$/ })).toBeTruthy()
+    expect(screen.getByRole('button', {
+      name: /^UPS1234 to Philadelphia, .* schedule\. Lands about .* your time\. Tracked live\. Opens the full map\.$/,
+    })).toBeTruthy()
   })
 
-  it('says "In flight", as before, with no live data', () => {
+  it('says "Not tracked live" with no live data', () => {
     card(IN_THE_AIR, null as never)
-    expect(document.querySelector('.inflight-status')?.textContent).toBe('In flight')
+    expect(document.querySelector('.inflight-status')?.textContent).toBe('Not tracked live')
     expect(visibleText(document.querySelector('.inflight-time')!)).toMatch(/^Lands \d/)
   })
 })
@@ -100,12 +102,12 @@ describe('a real plane still on the ground at its departure airport (the website
     expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('On the ground')
   })
 
-  it('heads the card "In flight" in the air, and with no live data, as before', () => {
+  it('heads the card "In flight" in the air, and "Not tracked live" with no live data', () => {
     card(IN_THE_AIR)
     expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('In flight')
     cleanup()
     card(LATE, null as never)
-    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('In flight')
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('Not tracked live')
   })
 
   it('says under the full map’s timeline that it’s on the ground there, now', () => {
@@ -114,11 +116,11 @@ describe('a real plane still on the ground at its departure airport (the website
     expect(slider().getAttribute('aria-valuetext')).toMatch(/^Friday 7:25\sAM, on the ground in Louisville$/)
   })
 
-  it('says "Flying to", as before, while an on-time plane is still before the plan’s takeoff time', () => {
+  it('says it’s on the ground there while an on-time plane is still before the plan’s takeoff time (live or scheduled design §3)', () => {
     // A minute after its leg begins, 14 before the plan's takeoff.
     render(page(START + MINUTE, atTheGate(1)))
-    expect(line()).toMatch(/ · Flying to Philadelphia$/)
-    expect(slider().getAttribute('aria-valuetext')).toMatch(/, flying to Philadelphia$/)
+    expect(line()).toMatch(/^Fri 7:01\sAM L · On the ground in Louisville$/)
+    expect(slider().getAttribute('aria-valuetext')).toMatch(/^Friday 7:01\sAM, on the ground in Louisville$/)
   })
 
   it('says "Flying to" in a replay, which reads where the map has the plane', () => {
@@ -129,12 +131,12 @@ describe('a real plane still on the ground at its departure airport (the website
     expect(slider().getAttribute('aria-valuetext')).toMatch(/, flying to Philadelphia$/)
   })
 
-  it('says "Flying to" in the air, and with no live data, as before', () => {
+  it('says "Flying to" in the air, and "Should be flying to" with no live data', () => {
     render(page(IN_THE_AIR, FLYING))
     expect(line()).toMatch(/ · Flying to Philadelphia$/)
     cleanup()
     render(page(LATE, null))
-    expect(line()).toMatch(/ · Flying to Philadelphia$/)
+    expect(line()).toMatch(/ · Should be flying to Philadelphia$/)
   })
 })
 
@@ -148,7 +150,7 @@ describe('a real plane back at its departure airport after an air return (air re
 
   it('says so on the card’s bar, and heads the card "On the ground" for screen readers', () => {
     card(BACK, backAtTheGate(45))
-    expect(document.querySelector('.inflight-status')?.textContent).toBe('Returned to Louisville')
+    expect(document.querySelector('.inflight-status')?.textContent).toBe('Live · Returned to Louisville')
     expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('On the ground')
   })
 
@@ -182,7 +184,7 @@ describe('a real plane down, not yet at the gate (the landed, not yet at the gat
     // In Los Angeles, the gate at 8:47 AM in Philadelphia is 5:47 AM.
     render(<TripMapCard map={liveTripMap(DOWN, LANDED_EARLY)} now={DOWN} viewerTz="America/Los_Angeles" h24={false} name="Alex" day={1} days={1}
       delayMinutes={null} land={null} onOpenMap={() => {}} />)
-    expect(document.querySelector('.inflight-status')?.textContent).toBe('Landed 13 min early')
+    expect(document.querySelector('.inflight-status')?.textContent).toBe('Live · Landed 13 min early')
     expect(visibleText(document.querySelector('.inflight-time')!)).toMatch(/^At the gate 5:47\sAM L$/)
     expect(visibleText(document.querySelector('.inflight-code')!)).toMatch(/^8:47\sAM in Philadelphia$/)
   })
@@ -193,12 +195,12 @@ describe('a real plane down, not yet at the gate (the landed, not yet at the gat
     expect(slider().getAttribute('aria-valuetext')).toMatch(/^Friday 8:43\sAM, landed in Philadelphia$/)
   })
 
-  it('says "Flying to" in a replay, which reads where the map has the plane, and with no live data, as before', () => {
+  it('says "Flying to" in a replay, which reads where the map has the plane, and "Should be flying to" with no live data', () => {
     render(page(DOWN, LANDED_EARLY))
     fireEvent.input(slider(), { target: { value: String(Number(slider().max) / 2) } })
     expect(line()).toMatch(/ · Flying to Philadelphia$/)
     cleanup()
     render(page(DOWN, null))
-    expect(line()).toMatch(/^Fri 8:43\sAM L · Flying to Philadelphia$/)
+    expect(line()).toMatch(/^Fri 8:43\sAM L · Should be flying to Philadelphia$/)
   })
 })

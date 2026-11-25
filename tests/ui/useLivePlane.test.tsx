@@ -116,4 +116,12 @@ describe("the status page's live plane (Stage 3 spec §11, §12)", () => {
     await settle()
     expect(ended).toHaveBeenCalledTimes(1)
   })
+
+  it('is awaiting until Crewlu Cloud first answers, whatever the answer holds (live or scheduled design §2)', async () => {
+    const seen: LivePlane[] = []
+    render(<Probe door={door(() => ({ now: Date.now(), cursor: 1, flights: [] }))} schedule={SCHEDULE} seen={(p) => seen.push(p)} />)
+    expect(seen[0].isAwaiting).toBe(true)
+    await settle()
+    expect(seen[seen.length - 1].isAwaiting).toBe(false)
+  })
 })

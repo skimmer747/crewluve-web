@@ -95,7 +95,8 @@ describe('the trip map words (moving map spec §5, §6, §14)', () => {
   it('reads the card as one sentence', () => {
     const flying = makeTripMap(EUROPE, { isNextTrip: false, home: 'SDF', now: at(4), airports: AIRPORTS })!
     expect(tripMapSummary(flying, at(4), 'Alex', NY, false)).toBe(
-      `${flying.legs[0].flightNumber} to Cologne, landing at 3:00${PM} your time. Estimated from the schedule. Opens the full map.`,
+      `${flying.legs[0].flightNumber} to Cologne, landing at 3:00${PM} your time. Not tracked live, so it's shown where the schedule has it. ` +
+        'Opens the full map.',
     )
     const ahead = makeTripMap(EUROPE, { isNextTrip: true, home: 'SDF', now: at(-24), airports: AIRPORTS })!
     expect(tripMapSummary(ahead, at(-24), 'Alex', NY, false)).toBe('Map of the next trip, tomorrow: Cologne, Dubai. Opens the full map.')

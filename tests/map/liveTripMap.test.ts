@@ -4,8 +4,9 @@ import { liveMapFlights, withLiveTimes } from '../../src/engine/liveLegs'
 import { pathPoints } from '../../src/map/flightPathDrawing'
 import { pointsAlong } from '../../src/map/greatCircle'
 import { fitRect } from '../../src/map/mapFit'
-import { flightOnGround, landedIn, stillOnGroundIn } from '../../src/map/tripActivity'
-import { framingPoints, isArrivalEstimated, legLandedBeforeGate, legReturned, legStillOnGround, makeTripMap, type TripMap } from '../../src/map/tripMap'
+import { legAtDeparture } from '../../src/map/flightTracking'
+import { atDepartureAirport, flightBySchedule, flightNow, flightOnGround, landedIn } from '../../src/map/tripActivity'
+import { framingPoints, isArrivalEstimated, legLandedBeforeGate, makeTripMap, type TripMap } from '../../src/map/tripMap'
 import {
   atTheGate, backAtTheGate, FLYING, LANDED_EARLY, LIVE_AIRPORTS as AIRPORTS, liveTripMap, PHL, placeOf, SCHEDULE, SDF, SDF_PHL as F1,
 } from './liveTrip'
@@ -88,21 +89,22 @@ describe('a real plane still on the ground at its departure airport (the website
   it('is told once the plan’s takeoff time has gone by and the plane hasn’t left: the airport it waits at', () => {
     // Ten minutes after the plan's takeoff.
     const map = liveTripMap(START + 25 * MINUTE, atTheGate(25))
-    expect(legStillOnGround(flightOf(map), START + 25 * MINUTE)).toBe(true)
-    expect(stillOnGroundIn(map, START + 25 * MINUTE)).toMatchObject({ code: 'SDF', city: 'Louisville' })
+    expect(legAtDeparture(flightOf(map), START + 25 * MINUTE)).toBe('stillAtGate')
+    expect(atDepartureAirport(map, START + 25 * MINUTE)).toMatchObject({ code: 'SDF', city: 'Louisville' })
   })
 
-  it('isn’t told while an on-time plane is still before the plan’s takeoff time: it’s taxiing as the schedule has it', () => {
-    // A minute after its leg begins, 14 before the plan's takeoff: Todd's words are for a plane late leaving.
+  it('is told of an on-time plane seen at its gate before the plan’s takeoff, though it isn’t late (live or scheduled design §3)', () => {
+    // A minute after its leg begins, 14 before the plan's takeoff.
     const map = liveTripMap(START + MINUTE, atTheGate(1))
-    expect(legStillOnGround(flightOf(map), START + MINUTE)).toBe(false)
-    expect(stillOnGroundIn(map, START + MINUTE)).toBeNull()
+    expect(legAtDeparture(flightOf(map), START + MINUTE)).toBe('atGate')
+    expect(atDepartureAirport(map, START + MINUTE)).toMatchObject({ code: 'SDF', city: 'Louisville' })
+    expect(flightOnGround(map, START + MINUTE)).toMatchObject({ kind: 'stillIn', airport: { code: 'SDF' } })
   })
 
   it('isn’t told of a plane at its gate before its leg begins: the pilot isn’t flying yet', () => {
     const map = liveTripMap(START - 10 * MINUTE, atTheGate(-10))
-    expect(legStillOnGround(flightOf(map), START - 10 * MINUTE)).toBe(false)
-    expect(stillOnGroundIn(map, START - 10 * MINUTE)).toBeNull()
+    expect(legAtDeparture(flightOf(map), START - 10 * MINUTE)).toBeNull()
+    expect(atDepartureAirport(map, START - 10 * MINUTE)).toBeNull()
   })
 
   it('isn’t told of a plane in the air, landed, on the ground somewhere else, or with no live data', () => {
@@ -113,8 +115,8 @@ describe('a real plane still on the ground at its departure airport (the website
     for (const [live, minutes] of [[FLYING, 59], [landed, 103], [elsewhere, 25], [null, 25]] as const) {
       const now = START + minutes * MINUTE
       const map = liveTripMap(now, live)
-      expect(stillOnGroundIn(map, now)).toBeNull()
-      expect(legStillOnGround(flightOf(map), now)).toBe(false)
+      expect(atDepartureAirport(map, now)).toBeNull()
+      expect(legAtDeparture(flightOf(map), now)).toBeNull()
     }
   })
 })
@@ -179,20 +181,34 @@ describe('a real plane back at its departure airport after an air return (air re
     // Off on time, out and back, and on the ground in Louisville at 44 minutes.
     const now = START + 45 * MINUTE
     const map = liveTripMap(now, backAtTheGate(45))
-    expect(legReturned(flightOf(map), now)).toBe(true)
-    expect(legStillOnGround(flightOf(map), now)).toBe(true)
+    expect(legAtDeparture(flightOf(map), now)).toBe('returned')
     expect(flightOnGround(map, now)).toMatchObject({ kind: 'returnedTo', airport: { code: 'SDF', city: 'Louisville' } })
   })
 
   it('isn’t told of a plane that never left, in the air, or down at its arrival airport, which are told as before', () => {
     const late = START + 25 * MINUTE
-    expect(legReturned(flightOf(liveTripMap(late, atTheGate(25))), late)).toBe(false)
+    expect(legAtDeparture(flightOf(liveTripMap(late, atTheGate(25))), late)).toBe('stillAtGate')
     expect(flightOnGround(liveTripMap(late, atTheGate(25)), late)).toMatchObject({ kind: 'stillIn', airport: { code: 'SDF' } })
     const down = START + 103 * MINUTE
     expect(flightOnGround(liveTripMap(down, LANDED_EARLY), down)).toMatchObject({ kind: 'landedIn', airport: { code: 'PHL' } })
     const flying = START + 59 * MINUTE
-    expect(legReturned(flightOf(liveTripMap(flying, FLYING)), flying)).toBe(false)
+    expect(legAtDeparture(flightOf(liveTripMap(flying, FLYING)), flying)).toBeNull()
     expect(flightOnGround(liveTripMap(flying, FLYING), flying)).toBeNull()
     expect(flightOnGround(liveTripMap(late, null), late)).toBeNull()
+  })
+})
+
+describe('a flight by the schedule alone, under the timeline (live or scheduled design §4.1, §4.2)', () => {
+  it('is due to fly to Philadelphia before the schedule’s takeoff, and should be flying there after', () => {
+    expect(flightBySchedule(liveTripMap(START + 5 * MINUTE, null), START + 5 * MINUTE)).toMatchObject({ kind: 'dueTo', airport: { code: 'PHL' } })
+    expect(flightBySchedule(liveTripMap(START + 30 * MINUTE, null), START + 30 * MINUTE)).toMatchObject({ kind: 'shouldBeFlyingTo', airport: { code: 'PHL' } })
+  })
+
+  it('is none for a flight Crewlu Cloud sees, and the plane on the ground comes first', () => {
+    expect(flightBySchedule(liveTripMap(START + 59 * MINUTE, FLYING), START + 59 * MINUTE)).toBeNull()
+    const atGate = liveTripMap(START + 5 * MINUTE, atTheGate(5))
+    expect(flightNow(atGate, START + 5 * MINUTE)).toMatchObject({ kind: 'stillIn' })
+    const bySchedule = liveTripMap(START + 30 * MINUTE, null)
+    expect(flightNow(bySchedule, START + 30 * MINUTE)).toMatchObject({ kind: 'shouldBeFlyingTo' })
   })
 })

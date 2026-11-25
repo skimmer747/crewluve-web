@@ -777,7 +777,7 @@ describe('Root: the demo', () => {
     window.history.replaceState(null, '', '/?demo=1&scene=live-ahead')
     const { f, store } = setUp()
     render(<Root door={f.door} store={store} />)
-    expect(await screen.findByText('10 min ahead')).toBeTruthy()
+    expect(await screen.findByText('Live · 10 min ahead')).toBeTruthy()
     expect(f.liveCalls).toEqual([])
   })
 
@@ -787,12 +787,12 @@ describe('Root: the demo', () => {
     try {
       const { f, store } = setUp()
       render(<Root door={f.door} store={store} />)
-      expect(await screen.findByText('10 min ahead')).toBeTruthy()
+      expect(await screen.findByText('Live · 10 min ahead')).toBeTruthy()
       // It touches down 33 minutes after the scene opens, and reaches the gate 7 minutes after that.
       await act(async () => {
         vi.advanceTimersByTime(36 * 60_000)
       })
-      expect(await screen.findByText('Landed 10 min early')).toBeTruthy()
+      expect(await screen.findByText('Live · Landed 10 min early')).toBeTruthy()
     } finally {
       vi.useRealTimers()
     }
@@ -804,14 +804,14 @@ describe('Root: the demo', () => {
     try {
       const { f, store } = setUp()
       render(<Root door={f.door} store={store} />)
-      expect(await screen.findByText('10 min ahead')).toBeTruthy()
+      expect(await screen.findByText('Live · 10 min ahead')).toBeTruthy()
       // The clock moves on with no 30-second answer, as in a tab the browser held back, and then the page is shown.
       vi.setSystemTime(Date.now() + 36 * 60_000)
       await act(async () => {
         document.dispatchEvent(new Event('visibilitychange'))
         vi.advanceTimersByTime(1000)
       })
-      expect(await screen.findByText('Landed 10 min early')).toBeTruthy()
+      expect(await screen.findByText('Live · Landed 10 min early')).toBeTruthy()
     } finally {
       vi.useRealTimers()
     }

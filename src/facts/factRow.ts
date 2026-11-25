@@ -6,9 +6,10 @@ import type { IconName } from '../icons/iconPaths'
  * the row's other parts.
  */
 export type FactRowKind =
-  // In flight (§5.1), with the plane's row for a flight with live data (Stage 3 spec §8): "Boeing 767-300 · N370UP",
-  // and the takeoff row just above the landing row (time labels design §3.3)
-  | 'below' | 'plane' | 'sky' | 'distance' | 'takeoff' | 'headed'
+  // In flight (§5.1): first, how the flight is known now (live or scheduled design §4.1), with the plane's row for a
+  // flight with live data (Stage 3 spec §8): "Boeing 767-300 · N370UP", and the takeoff row just above the landing row
+  // (time labels design §3.3)
+  | 'source' | 'below' | 'plane' | 'sky' | 'distance' | 'takeoff' | 'headed'
   // On a layover (§5.3), at home before a trip (§5.4) and in the recap (§5.5)
   | 'whereTheyAre' | 'nextFlight' | 'leaves' | 'tripAhead' | 'theTrip' | 'onTheWay' | 'tripSoFar' | 'longestFlight'
 
@@ -48,7 +49,10 @@ export interface TripSoFarFlight {
   id: string
   /** "UPS207 · Louisville → Cologne". */
   title: string
-  /** "In the air now" for the flight between its gates, which the list sets apart. Null for any other. */
+  /**
+   * "In the air now" for the flight between its gates, which the list sets apart, "By the schedule" for one known by
+   * the schedule alone (live or scheduled design §4.1), or "Landed". Null for any other.
+   */
   tag: string | null
   /** What has happened so far, newest first. */
   events: TripSoFarEvent[]

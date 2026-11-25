@@ -94,18 +94,18 @@ describe('the banner on the card (latest event design §1, §2, §3)', () => {
   it('shows the latest event in the map’s top corner, large, with how long ago under it', () => {
     const container = equatorCard(t('11:12'))
     expect(banner(container)?.querySelector('.latest-event-title')?.textContent).toBe('Crossed into Bravo')
-    expect(banner(container)?.querySelector('.latest-event-when')?.textContent).toBe('12 min ago')
+    expect(banner(container)?.querySelector('.latest-event-when')?.textContent).toBe('About 12 min ago')
     // Screen readers hear it at the end of the card's sentence.
     expect(banner(container)?.getAttribute('aria-hidden')).toBe('true')
     expect(container.querySelector('[data-trip-map-open]')?.getAttribute('aria-label'))
-      .toMatch(/Estimated from the schedule\. Latest: crossed into Bravo, 12 minutes ago\. Opens the full map\.$/)
+      .toMatch(/Not tracked live, so it's shown where the schedule has it\. Latest: crossed into Bravo, about 12 minutes ago\. Opens the full map\.$/)
   })
 
   it('leaves the event off the bottom chip beside it', () => {
     // At 11:02 the headline is "Just crossed into Bravo": the banner says it, so the chip says what's below.
     const container = equatorCard(t('11:02'))
     expect(banner(container)?.querySelector('.latest-event-title')?.textContent).toBe('Crossed into Bravo')
-    expect(banner(container)?.querySelector('.latest-event-when:not(.latest-event-widest)')?.textContent).toBe('2 min ago')
+    expect(banner(container)?.querySelector('.latest-event-when:not(.latest-event-widest)')?.textContent).toBe('About 2 min ago')
     expect(container.querySelector('.trip-map-chip.bottom')?.textContent).toBe('Over Bravo')
   })
 

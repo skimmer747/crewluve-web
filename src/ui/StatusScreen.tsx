@@ -1,3 +1,4 @@
+import type { ScheduleOnlyFlight } from '../engine/liveLegs'
 import type { ComponentChildren } from 'preact'
 import { useRef } from 'preact/hooks'
 import { arrivalWhenText, leaveWhenText, tripDepartsText } from '../copy/format'
@@ -83,6 +84,12 @@ export interface StatusScreenProps {
    * has landed (the landed, not yet at the gate design §3, Todd, 17 Nov 2026).
    */
   landedFlight?: string | null
+  /** The flight under way, by its leg's id, while its real plane is at its gate before the plan's takeoff (live or scheduled design §4.2). */
+  atGateFlight?: string | null
+  /** The flight under way known by the schedule alone, and whether it's due to take off (live or scheduled design §4). */
+  scheduleOnlyFlight?: ScheduleOnlyFlight | null
+  /** Crewlu Cloud hasn't answered since the page opened (live or scheduled design §2). */
+  isAwaitingLive?: boolean
 }
 
 /** The link into the schedule named `name`, or none when the page has no way into it. */
@@ -110,6 +117,7 @@ export function StatusScreen(p: StatusScreenProps) {
   const spans = safeNarrative(snap, {
     now: p.now, viewerTz: p.viewerTz, h24: p.h24, airports: p.airports, estimatedArrival: p.estimatedArrival, stillOnGroundFlight: p.stillOnGroundFlight,
     returnedFlight: p.returnedFlight, landedFlight: p.landedFlight,
+    atGateFlight: p.atGateFlight, scheduleOnlyFlight: p.scheduleOnlyFlight, isAwaitingLive: p.isAwaitingLive,
   })
   const airport = snap.status.airport
   // The place, worked out once for the card, the popup and when the popup may be open: the card's rule for its dial.

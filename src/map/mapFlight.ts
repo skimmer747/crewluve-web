@@ -48,8 +48,20 @@ export const mapFlightProgress = (flight: MapFlight, now: number): LiveProgress 
  * design §3).
  */
 export function isAtDeparture(flight: MapFlight, now: number): boolean {
+  const at = seenAtDeparture(flight, now)
+  return at === 'stillAtGate' || at === 'returned'
+}
+
+/**
+ * Where the real plane is on the ground at its departure airport, when this browser's clock says `now` (live or
+ * scheduled design §3): at its gate before the plan's takeoff, `atGate`; still there after it, `stillAtGate`; or back
+ * there after an air return, `returned`. Null anywhere else, and when it isn't live.
+ */
+export function seenAtDeparture(flight: MapFlight, now: number): 'atGate' | 'stillAtGate' | 'returned' | null {
   const { phase, label } = mapFlightProgress(flight, now)
-  return phase === 'returned' || (phase === 'onGround' && label?.kind === 'stillOnGround')
+  if (phase === 'returned') return 'returned'
+  if (phase !== 'onGround') return null
+  return label?.kind === 'stillOnGround' ? 'stillAtGate' : 'atGate'
 }
 
 /**
@@ -57,6 +69,21 @@ export function isAtDeparture(flight: MapFlight, now: number): boolean {
  * `now` (air return design §2): the words say "Returned to Rockford" in place of "Still on the ground".
  */
 export const hasReturned = (flight: MapFlight, now: number): boolean => mapFlightProgress(flight, now).phase === 'returned'
+
+/**
+ * Whether Crewlu Cloud's answer says nothing of the plane now, when this browser's clock says `now`: never seen, or
+ * seen on the ground over 3 minutes ago (Stage 3 spec §5.1's `notLive`). The flight is then known by the schedule
+ * alone (live or scheduled design §2).
+ */
+export const isNotLive = (flight: MapFlight, now: number): boolean => mapFlightProgress(flight, now).phase === 'notLive'
+
+/**
+ * Whether the real plane is seen at its departure airport before the plan's takeoff, when this browser's clock says
+ * `now`: at its gate, not late yet (live or scheduled design §3). The words say "On the ground in Louisville".
+ */
+export function isAtGate(flight: MapFlight, now: number): boolean {
+  return seenAtDeparture(flight, now) === 'atGate'
+}
 
 /**
  * Whether the real plane has landed, when this browser's clock says `now`: Crewlu Cloud's state for the flight is

@@ -397,3 +397,57 @@ describe('narrative while the real plane is down, not yet at the gate (the lande
     expect(plain(narrative(snapAt(driver, 145), { ...ctx(145), landedFlight: null }))).toBe(flying)
   })
 })
+
+describe('narrative for a flight by the schedule alone (live or scheduled design §4)', () => {
+  const driver = engineFor(demoRaw('driver', A))
+  const snapAt = (e: ReturnType<typeof engineFor>, minutes: number) => makeSnapshot(e.schedule, e.legs, at(minutes), NY)
+  /** The sentence at `minutes`, with the flight under way by the schedule alone, due to take off or not. */
+  const bySchedule = (e: ReturnType<typeof engineFor>, minutes: number, isDue: boolean, more: Partial<NarrativeCtx> = {}) => {
+    const snap = snapAt(e, minutes)
+    const id = (snap.status.current as MoveLeg).id
+    return plain(narrative(snap, { ...ctx(minutes), scheduleOnlyFlight: { id, isDue }, ...more }))
+  }
+
+  it('says the pilot should be flying, and that it isn’t tracked live, after the schedule’s takeoff', () => {
+    expect(bySchedule(driver, 100, false))
+      .toBe('Alex should be flying to Rockford on UPS flight 2961 from Louisville — not tracked live — landing in 50m which is 8:00\u202FAM L.')
+  })
+
+  it('leaves out "not tracked live" while Crewlu Cloud’s first answer is on its way', () => {
+    expect(bySchedule(driver, 100, false, { isAwaitingLive: true }))
+      .toBe('Alex should be flying to Rockford on UPS flight 2961 from Louisville — landing in 50m which is 8:00\u202FAM L.')
+  })
+
+  it('says the pilot is due to take off before it', () => {
+    expect(bySchedule(driver, 65, true))
+      .toBe('Alex is due to take off from Louisville on UPS flight 2961 to Rockford — landing in 1h 25m which is 8:00\u202FAM L.')
+  })
+
+  it('says so of a delayed flight, keeping its red countdown', () => {
+    expect(bySchedule(driver, 1700, false))
+      .toBe('Alex was delayed in Anchorage and should be flying to Louisville on UPS flight 2962 — not tracked live — landing in 3h 20m which is 1:10\u202FPM L.')
+    expect(bySchedule(driver, 1700, true))
+      .toBe('Alex was delayed in Anchorage and is due to take off on UPS flight 2962 to Louisville — landing in 3h 20m which is 1:10\u202FPM L.')
+  })
+
+  it('says "should be riding" of a deadhead', () => {
+    const deadhead = engineFor(
+      new RawBuilder(A).pilot('Alex', 'SDF', 'LEX').trip('t1', {
+        dutyPeriods: [{ start: 0, end: 400, flights: [{ dep: 'SDF', arr: 'ANC', out: 30, in: 330, dh: true }] }],
+      }).build(),
+    )
+    expect(bySchedule(deadhead, 270, false))
+      .toBe('Alex should be riding to Anchorage on UPS flight 1000 from Louisville — not tracked live — landing in 1h 0m which is 11:00\u202FAM L.')
+  })
+
+  it('says the pilot is on the ground of a real plane seen at its gate before the plan’s takeoff', () => {
+    const snap = snapAt(driver, 65)
+    expect(plain(narrative(snap, { ...ctx(65), atGateFlight: (snap.status.current as MoveLeg).id })))
+      .toBe('Alex is on the ground in Louisville on UPS flight 2961 to Rockford — landing in 1h 25m which is 8:00\u202FAM L.')
+  })
+
+  it('says flying, as before, of a flight Crewlu Cloud sees', () => {
+    expect(plain(narrative(snapAt(driver, 100), ctx(100))))
+      .toBe('Alex is flying to Rockford on UPS flight 2961 from Louisville — landing in 50m which is 8:00\u202FAM L.')
+  })
+})

@@ -69,7 +69,8 @@ export function TripMapPage({ map, now, viewerTz, h24, day, days, land, onBack, 
     if (current !== kept) setClock(current)
   })
   const clock = { ...current, quickLayovers }
-  // A moment of the replay shows the real plane alone, and the pill says "In flight".
+  // A moment of the replay shows the real plane alone, and the pill says "In flight", or "By the schedule" for a flight
+  // with no real path (live or scheduled design §6).
   const isReplay = !isLive(clock)
   // Switching keeps the moment shown, and a replay carries on from it at the new pace.
   const onQuickLayovers = (on: boolean) => {

@@ -1,3 +1,4 @@
+import type { ScheduleOnlyFlight } from '../engine/liveLegs'
 import type { AirportIndex } from '../data/airports'
 import { arrivalOf, type DriveLeg, type DutyLeg, type MoveLeg } from '../engine/legs'
 import { DELAY_THRESHOLD_MIN, type Snapshot } from '../engine/snapshot'
@@ -41,6 +42,18 @@ export interface NarrativeCtx {
    * the sentence says it has landed (the landed, not yet at the gate design §3, Todd, 17 Nov 2026).
    */
   landedFlight?: string | null
+  /**
+   * The flight under way, by its leg's id, while its real plane is seen at its departure airport before the plan's
+   * takeoff: the sentence says "is on the ground in" (live or scheduled design §4.2).
+   */
+  atGateFlight?: string | null
+  /**
+   * The flight under way known by the schedule alone, and whether it's before the schedule's takeoff (live or scheduled
+   * design §4): the sentence says "should be flying … — not tracked live —", or "is due to take off".
+   */
+  scheduleOnlyFlight?: ScheduleOnlyFlight | null
+  /** Crewlu Cloud hasn't answered since the page opened: the sentence leaves out "not tracked live" (§2). */
+  isAwaitingLive?: boolean
 }
 
 /** Builds one sentence out of plain, bold, and countdown spans. */
@@ -135,11 +148,31 @@ export function narrative(s: Snapshot, ctx: NarrativeCtx): Span[] {
         return n.t(`${name} has landed in `).b(city(f.arr)).t(`${fl || ' on the flight'} — at the gate in `)
           .cd(f.end, delay ? changed : 'status').t(' which is ').time(f.end).t('.').spans
       }
-      if (delay) {
-        return n.t(`${name} ${early ? 'pushed early' : 'was delayed'} in `).b(city(f.dep)).t(` and is ${verb} to `).b(city(f.arr))
-          .t(`${fl} — landing in `).cd(f.end, changed).t(' which is ').time(f.end).t('.').spans
+      // Seen at its gate before the plan's takeoff: "Alex is on the ground in Louisville on UPS flight 70 to Honolulu —
+      // landing in 8h 59m which is 12:11am EST." (live or scheduled design §4.2).
+      if (ctx.atGateFlight === f.id) {
+        return n.t(`${name} is on the ground in `).b(city(f.dep)).t(`${fl || ' on the flight'} to `).b(city(f.arr))
+          .t(' — landing in ').cd(f.end, delay ? changed : 'status').t(' which is ').time(f.end).t('.').spans
       }
-      return n.t(`${name} is ${verb} to `).b(city(f.arr)).t(`${fl} from `).b(city(f.dep)).t(' — landing in ').cd(f.end)
+      const bySchedule = ctx.scheduleOnlyFlight?.id === f.id ? ctx.scheduleOnlyFlight : null
+      // By the schedule alone, before its takeoff: "Alex is due to take off from Louisville on UPS flight 70 to
+      // Honolulu — landing in …" (live or scheduled design §4.2).
+      if (bySchedule?.isDue) {
+        const lead = delay
+          ? n.t(`${name} ${early ? 'pushed early' : 'was delayed'} in `).b(city(f.dep)).t(' and is due to take off')
+          : n.t(`${name} is due to take off from `).b(city(f.dep))
+        return lead.t(`${fl || ' on the flight'} to `).b(city(f.arr)).t(' — landing in ').cd(f.end, delay ? changed : 'status')
+          .t(' which is ').time(f.end).t('.').spans
+      }
+      // After it: "Alex should be flying to Honolulu on UPS flight 70 from Louisville — not tracked live — landing in …"
+      // (§4.1), without "not tracked live" while Crewlu Cloud's first answer is on its way (§2).
+      const being = bySchedule ? `should be ${verb}` : `is ${verb}`
+      const untracked = bySchedule && !ctx.isAwaitingLive ? ' — not tracked live' : ''
+      if (delay) {
+        return n.t(`${name} ${early ? 'pushed early' : 'was delayed'} in `).b(city(f.dep)).t(` and ${being} to `).b(city(f.arr))
+          .t(`${fl}${untracked} — landing in `).cd(f.end, changed).t(' which is ').time(f.end).t('.').spans
+      }
+      return n.t(`${name} ${being} to `).b(city(f.arr)).t(`${fl} from `).b(city(f.dep)).t(`${untracked} — landing in `).cd(f.end)
         .t(' which is ').time(f.end).t('.').spans
     }
 

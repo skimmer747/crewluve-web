@@ -28,12 +28,17 @@ describe('the rows in flight (Stage 2 spec §5.1)', () => {
 
   it('are below, distance and landing, with no sky row at midday eastbound', () => {
     const rows = factRows(facts(equator()), shown, shown)
-    expect(rows.map((r) => r.kind)).toEqual(['below', 'distance', 'takeoff', 'headed'])
+    expect(rows.map((r) => r.kind)).toEqual(['source', 'below', 'distance', 'takeoff', 'headed'])
 
-    expect(row('below', rows)).toMatchObject({ icon: 'MapPin', title: 'Over Bravo, near Testville', detail: `Passes 35 mi from home at 8:21${AM} L` })
+    // With no live data, first how it's known, and each guess of the schedule's reads "about" (live or scheduled design §4.1, §5).
+    expect(row('source', rows)).toMatchObject({
+      icon: 'CalendarBlank', title: 'Not tracked live', detail: "Shown where the schedule has it · If it's running late, it may still be at the gate",
+    })
+
+    expect(row('below', rows)).toMatchObject({ icon: 'MapPin', title: 'Over Bravo, near Testville', detail: `Passes 35 mi from home at about 8:21${AM} L` })
     expect(row('distance', rows)).toMatchObject({
       icon: 'Path', title: '422 mi flown · 960 to go',
-      detail: `Halfway at 7:45${AM} L · Averaging about 460 mph · like driving the Alaska Highway`,
+      detail: `Halfway at about 7:45${AM} L · Averaging about 460 mph · like driving the Alaska Highway`,
     })
     expect(row('headed', rows)).toMatchObject({ icon: 'AirplaneLanding', title: `Lands E20 9:22${AM} L`, detail: null })
   })
@@ -99,16 +104,18 @@ describe('the facts at a moment', () => {
     const shown = Date.parse('2026-03-20T11:10:00Z')
     const moment = factsAtMoment(facts(equator()), shown, shown)
     expect(moment.headline).toBe('Over Bravo, near Testville')
-    expect(moment.rows).toHaveLength(4)
+    expect(moment.rows).toHaveLength(5)
     expect(moment.tripSoFar.totalsTitle).toBe('Trip so far')
-    expect(moment.latestEvent).toEqual({ title: 'Crossed into Bravo', when: '10 min ago', sentence: 'Latest: crossed into Bravo, 10 minutes ago.' })
+    expect(moment.latestEvent).toEqual({
+      title: 'Crossed into Bravo', when: 'About 10 min ago', sentence: 'Latest: crossed into Bravo, about 10 minutes ago.',
+    })
   })
 
   it('beside the latest event, head the panel with what’s below (latest event design §2)', () => {
     const shown = Date.parse('2026-03-20T11:02:00Z')
     const moment = factsAtMoment(facts(equator()), shown, shown)
     expect(moment.headline).toBe('Over Bravo')
-    expect(moment.latestEvent?.when).toBe('2 min ago')
+    expect(moment.latestEvent?.when).toBe('About 2 min ago')
   })
 
   it('have the latest event at the moment shown, not now’s', () => {
