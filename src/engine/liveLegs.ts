@@ -1,6 +1,9 @@
 import type { GeoPoint } from '../map/greatCircle'
 import type { LiveFlight } from '../map/liveFlight'
-import { hasLanded, hasReturned, isAtDeparture, isEstimate, makeMapFlight, mapFlightProgress, type MapFlight } from '../map/mapFlight'
+import { scheduledTakeoff } from '../map/flightProgress'
+import {
+  hasLanded, hasReturned, isAtDeparture, isAtGate, isEstimate, isNotLive, makeMapFlight, mapFlightProgress, type MapFlight,
+} from '../map/mapFlight'
 import { isMove, type Leg } from './legs'
 import type { DutyPeriod, Iata, Move, Schedule, Trip } from './types'
 
@@ -198,6 +201,42 @@ export function landedFlight(legs: Leg[], flights: ReadonlyMap<string, MapFlight
   const leg = legs.find((l) => {
     const flight = isMove(l) && l.start <= now && now < l.end ? flights.get(l.id) : undefined
     return flight != null && hasLanded(flight, now)
+  })
+  return leg ? leg.id : null
+}
+
+/** The flight under way known by the schedule alone, by its leg's id, and whether it's before the schedule's takeoff. */
+export interface ScheduleOnlyFlight {
+  id: string
+  isDue: boolean
+}
+
+/**
+ * The flight between its gates at `now` known by the schedule alone (live or scheduled design §2, §4): Crewlu Cloud
+ * answered nothing for it, or last saw it on the ground over 3 minutes ago. The narrative says "should be flying …
+ * — not tracked live —", or "is due to take off" before the schedule's takeoff. Null with no such flight.
+ */
+export function scheduleOnlyFlight(
+  legs: Leg[],
+  flights: ReadonlyMap<string, MapFlight>,
+  now: number,
+): ScheduleOnlyFlight | null {
+  const leg = legs.find((l) => isMove(l) && !l.ground && l.start <= now && now < l.end)
+  if (!leg) return null
+  const flight = flights.get(leg.id)
+  if (flight && !isNotLive(flight, now)) return null
+  return { id: leg.id, isDue: now < scheduledTakeoff(leg.start, leg.end) }
+}
+
+/**
+ * The flight between its gates at `now` whose real plane is seen at its departure airport before the plan's takeoff,
+ * by its leg's id: the narrative says "is on the ground in" (live or scheduled design §4.2). Null with no such flight.
+ */
+export function atGateFlight(legs: Leg[], flights: ReadonlyMap<string, MapFlight>, now: number): string | null {
+  if (flights.size === 0) return null
+  const leg = legs.find((l) => {
+    const flight = isMove(l) && l.start <= now && now < l.end ? flights.get(l.id) : undefined
+    return flight != null && isAtGate(flight, now)
   })
   return leg ? leg.id : null
 }

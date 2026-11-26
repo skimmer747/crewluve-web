@@ -34,6 +34,8 @@ const EXPECTED: Record<DemoScene, StatusKind> = {
   'live-landed': 'inFlight',
   'live-long-gap': 'inFlight',
   'live-returned': 'inFlight',
+  // The schedule's plane alone, 5 minutes after its gate time: "Scheduled to take off about …" (live or scheduled design §4.2).
+  'schedule-at-gate': 'inFlight',
 }
 
 function sceneSnapshot(scene: DemoScene) {
@@ -92,6 +94,7 @@ describe('demo trip cards (slice 2A)', () => {
     'live-landed': { progress: { day: 1, days: 2, upcoming: ['SDF'] } },
     'live-long-gap': { progress: { day: 1, days: 2, upcoming: ['SDF'] } },
     'live-returned': { progress: { day: 1, days: 2, upcoming: ['SDF'] } },
+    'schedule-at-gate': { progress: { day: 1, days: 2, upcoming: ['ANC', 'SDF'] } },
   }
 
   it.each(Object.keys(CARDS) as DemoScene[])('%s shows the right trip card', (scene) => {

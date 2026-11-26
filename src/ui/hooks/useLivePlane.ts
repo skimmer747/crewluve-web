@@ -10,6 +10,11 @@ import type { Device } from '../../partner/store'
 export interface LivePlane {
   flights: ReadonlyMap<string, LiveFlight>
   clockOffset: number
+  /**
+   * Crewlu Cloud hasn't answered since the page opened: a flight with no live data may yet have some (live or scheduled
+   * design §2). False unless it's said.
+   */
+  isAwaiting?: boolean
 }
 
 export const NO_LIVE_PLANE: LivePlane = { flights: new Map(), clockOffset: 0 }
@@ -38,7 +43,7 @@ export function useLivePlane({ door, device, schedule, onSharingEnded }: UseLive
     device: () => latest.current.device(),
     onSharingEnded: () => latest.current.onSharingEnded(),
   }))
-  const [plane, setPlane] = useState<LivePlane>(NO_LIVE_PLANE)
+  const [plane, setPlane] = useState<LivePlane>({ ...NO_LIVE_PLANE, isAwaiting: true })
 
   // The flights to watch, told before the first ask. Keyed by their ids and times: the schedule is a new object at every refresh.
   const watched = schedule ? watchedFlights(schedule) : []
@@ -48,7 +53,9 @@ export function useLivePlane({ door, device, schedule, onSharingEnded }: UseLive
   }, [source, watchedKey])
 
   useEffect(() => {
-    const stop = source.subscribe(() => setPlane({ flights: source.flights, clockOffset: source.clockOffset }))
+    const stop = source.subscribe(() =>
+      setPlane({ flights: source.flights, clockOffset: source.clockOffset, isAwaiting: !source.hasAnswered }),
+    )
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') source.pageHidden()
       else void source.pageShown()

@@ -1,13 +1,15 @@
 import type { AppleMapStyle } from '../map/appleMapStyle'
 import type { LiveLabel } from '../map/liveLabel'
+import { scheduledTakeoff } from '../map/flightProgress'
+import { isSeenAtDeparture, legAtDeparture, legTracking } from '../map/flightTracking'
 import { mapFlightProgress } from '../map/mapFlight'
 import {
-  dayCount, destinationsOf, isArrivalEstimated, legInMotion, legLandedBeforeGate, legStillOnGround, nextFlight, pilotLocation, currentLeg,
+  dayCount, destinationsOf, isArrivalEstimated, legInMotion, legLandedBeforeGate, nextFlight, pilotLocation, currentLeg,
   type AirportMark, type MapLeg, type TripMap,
 } from '../map/tripMap'
 import { milesFlown, totalMiles } from '../facts/tripTotals'
 import { calendarDay, MONTHS, WEEKDAYS, zoneOffsetMinutes, zonedParts } from '../time/zoned'
-import type { FlightOnGround, TripActivity } from '../map/tripActivity'
+import type { FlightNow, TripActivity } from '../map/tripActivity'
 import { clockTime, MARK, pair, spoken, yours } from './clockLabel'
 import { recapChip } from './factsTrip'
 import { shortTimeText } from './format'
@@ -64,14 +66,77 @@ export function landingCountdown(leg: MapLeg, now: number): string {
 export const about = (leg: MapLeg) => (isArrivalEstimated(leg) ? 'about ' : '')
 
 /**
- * What the card's bar and the full map's pill say of a flight between its gates (Stage 3 spec §9): the real plane's
- * label, or "In flight" when it has none. A moment of the replay is always "In flight" (§7.3). A plane back at its
- * departure airport after an air return names it: "Returned to Rockford" (air return design §3).
+ * A flight known by the schedule alone: the pill, the card's bar, the facts' first row and the card's heading (live or
+ * scheduled design §4.1).
+ */
+export const NOT_TRACKED_LIVE = 'Not tracked live'
+
+/** The facts' first row for a flight Crewlu Cloud sees now (§4.1). */
+export const TRACKED_LIVE = 'Tracked live'
+
+/**
+ * The list's tag for a flight known by the schedule alone, and a replay's pill for one without a real path (§4.1,
+ * §6).
+ */
+export const BY_THE_SCHEDULE = 'By the schedule'
+
+/**
+ * "Not tracked live, so it's shown where the schedule has it.": the card's sentence for a flight by the schedule alone
+ * (§7).
+ */
+export const SPOKEN_NOT_TRACKED = `${NOT_TRACKED_LIVE}, so it's shown where the schedule has it.`
+
+/** Why the schedule's plane may not be where it's drawn (live or scheduled design §4.1; which plane design §3). */
+export const MAY_BE_AT_GATE = "If it's running late, it may still be at the gate"
+
+/**
+ * What the card's sentence says of where the flight comes from (§7): "Tracked live." while Crewlu Cloud sees it, "Not
+ * tracked live, so …" by the schedule alone, and nothing for a best guess, whose sentence says where it was last
+ * tracked, or while the first answer is on its way.
+ */
+export function spokenSource(leg: MapLeg, now: number): string | null {
+  switch (legTracking(leg, now)) {
+    case 'live':
+      return `${TRACKED_LIVE}.`
+    case 'notTracked':
+      return SPOKEN_NOT_TRACKED
+    default:
+      return null
+  }
+}
+
+/**
+ * ", scheduled to take off about 3:14 PM your time": a flight by the schedule alone, before its takeoff (§7), else
+ * nothing.
+ */
+export function spokenDueClause(leg: MapLeg, now: number, viewerTz: string, h24: boolean): string {
+  if (legAtDeparture(leg, now) !== 'due') return ''
+  return `, scheduled to take off about ${shortTimeText(scheduledTakeoff(leg.start, leg.end), viewerTz, h24)} your time`
+}
+
+/**
+ * What the card's bar and the full map's pill say of a flight between its gates (Stage 3 spec §9, live or scheduled
+ * design §4.1): how it's known, then the real plane's label.
+ * - Seen now, "Live · 12 min ahead", or "Live" alone with no label; back at its departure airport after an air return,
+ *   "Live · Returned to Rockford" (air return design §3).
+ * - A best guess, its label alone, "About 12 min ahead", or "In flight" with no label.
+ * - By the schedule alone, "Not tracked live", and nothing while Crewlu Cloud's first answer is on its way.
+ * - A moment of the replay, "In flight" for a flight with a real path, and "By the schedule" for one without (§6).
  */
 export function flightStatus(leg: MapLeg, now: number, isReplay = false): string {
-  const label = !isReplay && leg.flight ? mapFlightProgress(leg.flight, now).label : null
-  if (label?.kind === 'returned') return returnedText(leg.origin.city)
-  return label ? liveLabelText(label) : 'In flight'
+  if (isReplay) return leg.flight?.path.isReal ? 'In flight' : BY_THE_SCHEDULE
+  const label = leg.flight ? mapFlightProgress(leg.flight, now).label : null
+  const words = label?.kind === 'returned' ? returnedText(leg.origin.city) : label ? liveLabelText(label) : null
+  switch (legTracking(leg, now)) {
+    case 'live':
+      return words ? `Live · ${words}` : 'Live'
+    case 'bestGuess':
+      return words ?? 'In flight'
+    case 'notTracked':
+      return NOT_TRACKED_LIVE
+    case 'waiting':
+      return ''
+  }
 }
 
 /**
@@ -157,8 +222,10 @@ export function spokenLiveLabel(label: LiveLabel): string {
  * The card's sentence for a flight with a real plane (Stage 3 spec §9, §15): "UPS207 to Cologne, 12 minutes ahead of
  * schedule, over Québec. Lands about 3:18 PM your time." Once it's down, "…, landed 8 minutes early. Reaches the gate at
  * 3:18 PM your time." Back at its departure airport after an air return, "UPS2963 to Anchorage, returned to Rockford.
- * Lands about 9:11 AM your time." (air return design §3). Null when the plane has no label, and the schedule's sentence
- * stands.
+ * Lands about 9:11 AM your time." (air return design §3). Null when the plane has no label and isn't seen at its gate, and
+ * the schedule's sentence stands. Seen at its gate before the plan's takeoff, with no label yet (live or scheduled
+ * design §7):
+ * "UPS70 to Honolulu, on the ground in Louisville. Lands at 12:11 AM your time."
  * - `over` is what's below.
  * - `lastSeen` is where a plane that's out of tracking range was last seen, as `spokenLastSeen` words it: "near
  *   Montréal", "over Québec" or "2 hours ago". It follows what's below, which is then a best guess: "…, about 14 minutes
@@ -169,16 +236,20 @@ export function liveSummary(
   leg: MapLeg, now: number, viewerTz: string, h24: boolean, over: string | null = null, lastSeen: string | null = null,
 ): string | null {
   const label = leg.flight ? mapFlightProgress(leg.flight, now).label : null
-  if (!label) return null
+  // A plane back at its departure airport after an air return names it (air return design §3). Seen at its gate before the
+  // plan's takeoff, with no label yet, it's on the ground (live or scheduled design §7).
+  const spoken = label?.kind === 'returned' ? `returned to ${leg.origin.city}`
+    : label ? spokenLiveLabel(label)
+    : legAtDeparture(leg, now) === 'atGate' ? `on the ground in ${leg.origin.city}`
+    : null
+  if (!spoken) return null
   const lead = leg.flightNumber ? `${leg.flightNumber} to` : 'Flying to'
   const time = shortTimeText(leg.end, viewerTz, h24)
-  const isDown = label.kind === 'landedOnTime' || label.kind === 'landedEarly' || label.kind === 'landedLate'
-  const isFlying = label.kind === 'onSchedule' || label.kind === 'ahead' || label.kind === 'behind'
+  const isDown = label?.kind === 'landedOnTime' || label?.kind === 'landedEarly' || label?.kind === 'landedLate'
+  const isFlying = label?.kind === 'onSchedule' || label?.kind === 'ahead' || label?.kind === 'behind'
   // It's down and on its way in: "landed 8 minutes early. Lands at 3:18 PM" would say so twice.
   const arrival = isDown ? `Reaches the gate at ${time} your time.` : `Lands ${isArrivalEstimated(leg) ? 'about' : 'at'} ${time} your time.`
   const where = isFlying ? `${over ? `, over ${over}` : ''}${lastSeen ? `, last tracked ${lastSeen}` : ''}` : ''
-  // A plane back at its departure airport after an air return names it (air return design §3).
-  const spoken = label.kind === 'returned' ? `returned to ${leg.origin.city}` : spokenLiveLabel(label)
   return `${lead} ${leg.destination.city}, ${spoken}${where}. ${arrival}`
 }
 
@@ -295,7 +366,11 @@ export function cardChips(map: TripMap, t: number, viewerTz: string, h24: boolea
 export function topPill(map: TripMap, t: number, day: number | null, days: number | null, isReplay = false): string {
   if (map.mode.kind === 'recap' && t >= map.span.end) return 'Trip recap'
   const leg = legInMotion(map, t)
-  if (leg) return leg.kind === 'flight' ? [leg.flightNumber, flightStatus(leg, t, isReplay)].filter(Boolean).join(' · ') : `Driving to ${leg.destination.city}`
+  if (leg) {
+    if (leg.kind !== 'flight') return `Driving to ${leg.destination.city}`
+    // While Crewlu Cloud's first answer is on its way the status is empty: the flight number alone, or where it's going.
+    return [leg.flightNumber, flightStatus(leg, t, isReplay)].filter(Boolean).join(' · ') || `Flight to ${leg.destination.city}`
+  }
   if (map.mode.kind === 'nextTrip' && t < map.span.start) return 'Next trip'
   return day != null && days != null ? `Day ${day} of ${days}` : 'Trip map'
 }
@@ -325,54 +400,68 @@ export function activityWords({ kind, place }: TripActivity): string {
 }
 
 /**
- * The words under the timeline: the activity's, or where the flight's real plane is on the ground, `onGround`: "On the
+ * The words under the timeline: the activity's, or where the flight's real plane is on the ground, `flight`: "On the
  * ground in Rockford" while it's still at its departure airport (the website's own, Todd, 16 Nov 2026), "Returned to
  * Rockford" once it's back there after an air return (air return design §3), or "Landed in Anchorage" where it's down at
- * its arrival airport and not yet at the gate (the landed, not yet at the gate design §3, Todd, 17 Nov 2026).
+ * its arrival airport and not yet at the gate (the landed, not yet at the gate design §3, Todd, 17 Nov 2026). By the
+ * schedule alone, "Scheduled to fly to Honolulu" before its takeoff and "Should be flying to Honolulu" after (live or
+ * scheduled design §4.1, §4.2).
  */
-function lineWords(activity: TripActivity | null, onGround: FlightOnGround | null): string | null {
-  switch (onGround?.kind) {
-    case 'stillIn': return `On the ground in ${onGround.airport.city}`
-    case 'returnedTo': return returnedText(onGround.airport.city)
-    case 'landedIn': return landedText(onGround.airport.city)
+function lineWords(activity: TripActivity | null, flight: FlightNow | null): string | null {
+  switch (flight?.kind) {
+    case 'stillIn': return `On the ground in ${flight.airport.city}`
+    case 'returnedTo': return returnedText(flight.airport.city)
+    case 'landedIn': return landedText(flight.airport.city)
+    case 'dueTo': return `Scheduled to fly to ${flight.airport.city}`
+    case 'shouldBeFlyingTo': return `Should be flying to ${flight.airport.city}`
     case undefined: return activity ? activityWords(activity) : null
   }
 }
 
 /**
  * "Sat 1:40 PM L · Layover in Denver": the line under the timeline, when and what (activity markers design §4.2), its
- * time the family's (time labels design §3.2). While the flight's real plane is on the ground, `onGround`: "Mon 12:21 PM
+ * time the family's (time labels design §3.2). While the flight's real plane is on the ground, `flight`: "Mon 12:21 PM
  * L · On the ground in Rockford" (the website's own, Todd, 16 Nov 2026), "Mon 12:21 PM L · Returned to Rockford" (air
  * return design §3), or "Mon 7:45 PM L · Landed in Anchorage" (the landed, not yet at the gate design §3, Todd, 17 Nov
  * 2026).
  */
 export function timelineLine(
-  ms: number, activity: TripActivity | null, viewerTz: string, h24: boolean, onGround: FlightOnGround | null = null,
+  ms: number, activity: TripActivity | null, viewerTz: string, h24: boolean, flight: FlightNow | null = null,
 ): string {
   const time = `${timelineTime(ms, viewerTz, h24)} ${MARK}`
-  const words = lineWords(activity, onGround)
+  const words = lineWords(activity, flight)
   return words ? `${time} · ${words}` : time
 }
 
 /** "Saturday 1:40 PM, layover in Denver": the timeline's value for screen readers (activity markers design §4.3), as the line under it. */
 export function timelineSpokenValue(
-  ms: number, activity: TripActivity | null, viewerTz: string, h24: boolean, onGround: FlightOnGround | null = null,
+  ms: number, activity: TripActivity | null, viewerTz: string, h24: boolean, flight: FlightNow | null = null,
 ): string {
   const time = `${WEEKDAYS[zonedParts(ms, viewerTz).weekday]} ${clockTime(ms, viewerTz, h24)}`
-  const words = lineWords(activity, onGround)
+  const words = lineWords(activity, flight)
   if (!words) return time
   return `${time}, ${words.charAt(0).toLowerCase()}${words.slice(1)}`
 }
 
 /**
- * The map card's heading, for screen readers: "In flight", or "On the ground" while the flight's real plane is still
- * on the ground at its departure airport (the website's own, Todd, 16 Nov 2026), or "Landed" while it's down and not yet
- * at the gate (the landed, not yet at the gate design §3, Todd, 17 Nov 2026); else "Trip recap" or "Trip map".
+ * The map card's heading, for screen readers (live or scheduled design §7): "On the ground" while the flight's real plane
+ * is at its departure airport (the website's own, Todd, 16 Nov 2026), "Landed" while it's down and not yet at the gate
+ * (the landed, not yet at the gate design §3), "Not tracked live" by the schedule alone, "Flight" while Crewlu Cloud's
+ * first answer is on its way, else "In flight"; with no flight, "Trip recap" or "Trip map".
  */
 export function cardHeading(map: TripMap, now: number): string {
   const leg = currentLeg(map)
-  if (leg) return legStillOnGround(leg, now) ? 'On the ground' : legLandedBeforeGate(leg, now) ? 'Landed' : 'In flight'
-  return map.mode.kind === 'recap' ? 'Trip recap' : 'Trip map'
+  if (!leg) return map.mode.kind === 'recap' ? 'Trip recap' : 'Trip map'
+  if (isSeenAtDeparture(legAtDeparture(leg, now))) return 'On the ground'
+  if (legLandedBeforeGate(leg, now)) return 'Landed'
+  switch (legTracking(leg, now)) {
+    case 'notTracked':
+      return NOT_TRACKED_LIVE
+    case 'waiting':
+      return 'Flight'
+    default:
+      return 'In flight'
+  }
 }
 
 /** The card as one sentence for screen readers (moving map spec §14), ending with what it opens. */
@@ -385,10 +474,13 @@ export function tripMapSummary(map: TripMap, t: number, name: string, viewerTz: 
   if (map.mode.kind === 'inFlight') {
     const leg = currentLeg(map)
     if (!leg) return `Trip map. ${opens}`
+    const source = spokenSource(leg, t)
     const live = liveSummary(leg, t, viewerTz, h24)
-    if (live) return `${live} ${opens}`
+    if (live) return [live, source, opens].filter(Boolean).join(' ')
     const lead = leg.flightNumber ? `${leg.flightNumber} to` : 'Flying to'
-    return `${lead} ${leg.destination.city}, landing at ${shortTimeText(leg.end, viewerTz, h24)} your time. Estimated from the schedule. ${opens}`
+    const due = spokenDueClause(leg, t, viewerTz, h24)
+    const landing = `${lead} ${leg.destination.city}${due}, landing at ${shortTimeText(leg.end, viewerTz, h24)} your time.`
+    return [landing, source, opens].filter(Boolean).join(' ')
   }
   if (map.mode.kind === 'nextTrip') {
     const day = dayPhrase(map.span.start, t, viewerTz)

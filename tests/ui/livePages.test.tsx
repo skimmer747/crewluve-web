@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { act, cleanup, render } from '@testing-library/preact'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { LivePlane } from '../../src/ui/hooks/useLivePlane'
 import type { ScheduleHandle } from '../../src/ui/hooks/useSchedule'
 import { PilotPages } from '../../src/ui/PilotPages'
 import { atTheGate, backAtTheGate, FLYING, LANDED_EARLY, LIVE_AIRPORTS, SCHEDULE, SDF } from '../map/liveTrip'
@@ -24,7 +25,7 @@ const handle: ScheduleHandle = { schedule: SCHEDULE, lastSuccessAt: START, probl
 const LIVE = { flights: new Map([['f1', FLYING]]), clockOffset: 0 }
 const noWeather = async () => null
 
-const page = (live: typeof LIVE | null) =>
+const page = (live: LivePlane | null) =>
   render(<PilotPages schedule={handle} airports={LIVE_AIRPORTS} demo={false} onLeave={() => {}} live={live} loadWeather={noWeather} />).container
 
 describe('the status page with a real plane (Stage 3 spec §7.1, §9)', () => {
@@ -35,7 +36,8 @@ describe('the status page with a real plane (Stage 3 spec §7.1, §9)', () => {
     expect(lands).toMatch(/^Lands about \d{1,2}:\d\d\s[AP]M L$/)
     expect(container.querySelector('.countdown-sub')?.textContent).toMatch(/^About /)
     expect(container.querySelector('.narrative-text')?.textContent).toMatch(/ which is about \d/)
-    expect(container.querySelector('.trip-map-open')?.getAttribute('aria-label')).toMatch(/^UPS1234 to Philadelphia, .* schedule(, over [^.]+)?\. Lands about .* your time\. Opens the full map\.$/)
+    expect(container.querySelector('.trip-map-open')?.getAttribute('aria-label'))
+      .toMatch(/^UPS1234 to Philadelphia, .* schedule(, over [^.]+)?\. Lands about .* your time\. Tracked live\. Opens the full map\.$/)
   })
 
   it('moves an estimate that moves by itself each minute: a plane still at the gate lands later as time goes by', () => {
@@ -53,20 +55,20 @@ describe('the status page with a real plane (Stage 3 spec §7.1, §9)', () => {
     expect(lands()).not.toBe(before)
   })
 
-  it('shows the schedule as before when the real plane can’t be read, and says so in the console', () => {
+  it('shows the schedule, not tracked live, when the real plane can’t be read, and says so in the console', () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {})
     // An answer that breaks the live code: a place on its trail with no place.
     const broken = { flights: new Map([['f1', { ...FLYING, trail: [{ time: START, place: null as never, altitudeFt: 30_000 }] }]]), clockOffset: 0 }
     const container = page(broken)
-    expect(container.querySelector('.inflight-status')?.textContent).toBe('In flight')
+    expect(container.querySelector('.inflight-status')?.textContent).toBe('Not tracked live')
     expect(visibleText(container.querySelector('.inflight-time')!)).toMatch(/^Lands \d/)
     expect(error).toHaveBeenCalledWith('Could not show the real plane', expect.any(Error))
     error.mockRestore()
   })
 
-  it('shows the schedule as before with no live data', () => {
+  it('shows the schedule with no live data, and says it’s not tracked live', () => {
     const container = page(null)
-    expect(container.querySelector('.inflight-status')?.textContent).toBe('In flight')
+    expect(container.querySelector('.inflight-status')?.textContent).toBe('Not tracked live')
     expect(visibleText(container.querySelector('.inflight-time')!)).toMatch(/^Lands \d/)
     expect(container.querySelector('.countdown-sub')?.textContent).not.toMatch(/^About /)
     expect(container.querySelector('.narrative-text')?.textContent).not.toMatch(/about/)
@@ -87,23 +89,25 @@ describe('the status page with a real plane still on the ground at its departure
     expect(container.querySelector('.trip-map-card h2')?.textContent).toBe('On the ground')
   })
 
-  it('says flying, as with no live data, while an on-time plane is still before the plan’s takeoff time', () => {
-    // A minute after its leg begins, 14 before the plan's takeoff.
+  it('says on the ground while an on-time plane is still before the plan’s takeoff time, where with no live data it’s due to take off', () => {
+    // A minute after its leg begins, 14 before the plan's takeoff (live or scheduled design §3, §4.2).
     const taxiing = START + MINUTE
     vi.setSystemTime(taxiing)
-    const before = page(null).querySelector('.narrative-text')?.textContent
+    expect(page(null).querySelector('.narrative-text')?.textContent)
+      .toMatch(/^Alex is due to take off from Louisville on UPS flight 1234 to Philadelphia — landing in /)
     cleanup()
     const container = page({ flights: new Map([['f1', atTheGate(1)]]), clockOffset: 0 })
-    expect(container.querySelector('.narrative-text')?.textContent).toMatch(/^Alex is flying to Philadelphia on UPS flight 1234 from Louisville — /)
-    expect(container.querySelector('.narrative-text')?.textContent).toBe(before)
-    expect(container.querySelector('.trip-map-card h2')?.textContent).toBe('In flight')
+    expect(container.querySelector('.narrative-text')?.textContent)
+      .toMatch(/^Alex is on the ground in Louisville on UPS flight 1234 to Philadelphia — landing in /)
+    expect(container.querySelector('.trip-map-card h2')?.textContent).toBe('On the ground')
   })
 
-  it('says flying, as before, once the plane is in the air, and with no live data', () => {
+  it('says flying, as before, once the plane is in the air, and "should be flying", not tracked live, with no live data', () => {
     expect(page(LIVE).querySelector('.narrative-text')?.textContent).toMatch(/^Alex is flying to Philadelphia on UPS flight 1234 from Louisville — /)
     cleanup()
     vi.setSystemTime(LATE)
-    expect(page(null).querySelector('.narrative-text')?.textContent).toMatch(/^Alex is flying to Philadelphia on UPS flight 1234 from Louisville — /)
+    expect(page(null).querySelector('.narrative-text')?.textContent)
+      .toMatch(/^Alex should be flying to Philadelphia on UPS flight 1234 from Louisville — not tracked live — /)
   })
 })
 
@@ -117,7 +121,7 @@ describe('the status page with a real plane back at its departure airport after 
     expect(container.querySelector('.narrative-text')?.textContent)
       // The countdown's digits, then its words for screen readers; the time in the zone the tests run in, whatever its name.
       .toMatch(/^Alex has returned to Louisville on UPS flight 1234 to Philadelphia — landing in \d+h \d+m\d.* which is about \d{1,2}:\d\d\s[AP]M L your time\.$/)
-    expect(container.querySelector('.inflight-status')?.textContent).toBe('Returned to Louisville')
+    expect(container.querySelector('.inflight-status')?.textContent).toBe('Live · Returned to Louisville')
     expect(container.querySelector('.trip-map-chip.bottom')?.textContent).toBe('Returned to Louisville')
     expect(container.querySelector('.trip-map-card h2')?.textContent).toBe('On the ground')
   })
@@ -139,20 +143,22 @@ describe('the status page with a real plane down, not yet at the gate (the lande
     expect(container.querySelector('.trip-map-chip.bottom')?.textContent).toBe('Landed in Philadelphia')
   })
 
-  it('keeps the bar’s label and the card’s sentence as they were, and the bar says when it reaches the gate (Todd, 17 Nov 2026)', () => {
+  it('keeps the bar’s label after "Live" and the card’s sentence before "Tracked live", and the bar says when it reaches the gate (Todd, 17 Nov 2026)', () => {
     vi.setSystemTime(DOWN)
     const container = page(LANDED)
-    expect(container.querySelector('.inflight-status')?.textContent).toBe('Landed 13 min early')
+    expect(container.querySelector('.inflight-status')?.textContent).toBe('Live · Landed 13 min early')
     expect(visibleText(container.querySelector('.inflight-time')!)).toMatch(/^At the gate \d{1,2}:47\s[AP]M L$/)
-    expect(container.querySelector('.trip-map-open')?.getAttribute('aria-label'))
-      .toMatch(/^UPS1234 to Philadelphia, landed 13 minutes early\. Reaches the gate at \d{1,2}:47\s[AP]M your time\. (.+\. )?Opens the full map\.$/)
+    expect(container.querySelector('.trip-map-open')?.getAttribute('aria-label')).toMatch(
+      /^UPS1234 to Philadelphia, landed 13 minutes early\. Reaches the gate at \d{1,2}:47\s[AP]M your time\. Tracked live\. (.+\. )?Opens the full map\.$/,
+    )
   })
 
-  it('says flying, as before, with no live data', () => {
+  it('says "should be flying", not tracked live, with no live data', () => {
     vi.setSystemTime(DOWN)
     const container = page(null)
-    expect(container.querySelector('.narrative-text')?.textContent).toMatch(/^Alex is flying to Philadelphia on UPS flight 1234 from Louisville — /)
-    expect(container.querySelector('.trip-map-card h2')?.textContent).toBe('In flight')
+    expect(container.querySelector('.narrative-text')?.textContent)
+      .toMatch(/^Alex should be flying to Philadelphia on UPS flight 1234 from Louisville — not tracked live — /)
+    expect(container.querySelector('.trip-map-card h2')?.textContent).toBe('Not tracked live')
     expect(visibleText(container.querySelector('.inflight-time')!)).toMatch(/^Lands \d{1,2}:00\s[AP]M L$/)
   })
 })
@@ -168,5 +174,21 @@ describe('the Schedule page with a real plane (Stage 3 spec §9)', () => {
   it('says no "about" with no live data, as before', () => {
     history.replaceState(null, '', '/#schedule')
     expect(visibleText(page(null).querySelector('.leg-times')!)).toMatch(/ – \d{1,2}:\d\d\s[AP]M L$/)
+  })
+})
+
+describe('the status page by the schedule alone (live or scheduled design §2, §4)', () => {
+  it('says nothing of where the flight comes from while Crewlu Cloud’s first answer is on its way', () => {
+    const container = page({ flights: new Map(), clockOffset: 0, isAwaiting: true })
+    expect(container.querySelector('.inflight-status')).toBeNull()
+    expect(container.querySelector('.narrative-text')?.textContent)
+      .toMatch(/^Alex should be flying to Philadelphia on UPS flight 1234 from Louisville — landing in /)
+  })
+
+  it('says "Not tracked live" on the bar and in the sentence once it has answered with nothing', () => {
+    const container = page({ flights: new Map(), clockOffset: 0 })
+    expect(container.querySelector('.inflight-status')?.textContent).toBe('Not tracked live')
+    expect(container.querySelector('.narrative-text')?.textContent)
+      .toMatch(/^Alex should be flying to Philadelphia on UPS flight 1234 from Louisville — not tracked live — landing in /)
   })
 })

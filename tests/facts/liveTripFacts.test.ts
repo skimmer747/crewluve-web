@@ -140,9 +140,11 @@ describe('the headline with a real plane (Stage 3 spec §8, §9)', () => {
 })
 
 describe('the rows with a real plane (Stage 3 spec §8)', () => {
-  it('in the air, have the plane’s row second', () => {
+  it('in the air, have the plane’s row right after what’s below', () => {
     const rows = rowsAt(facts('11:10'), '11:10')
-    expect(rows.map((r) => r.kind)).toEqual(['below', 'plane', 'distance', 'takeoff', 'headed'])
+    expect(rows.map((r) => r.kind)).toEqual(['source', 'below', 'plane', 'distance', 'takeoff', 'headed'])
+    // Seen now, it's tracked live, and says so first (live or scheduled design §4.1).
+    expect(row('source', rows)).toMatchObject({ icon: 'Broadcast', title: 'Tracked live', detail: null })
 
     // 14° E is still ahead: its time is the estimate.
     expect(row('below', rows)).toMatchObject({ title: 'Over Bravo', detail: `Passes 35 mi from home at about 8:07${AM} L` })
@@ -254,13 +256,16 @@ describe('the rows with a real plane (Stage 3 spec §8)', () => {
     expect(factsOf(scheduled).sunEvents.dusk).toEqual(fromCruise)
   })
 
-  it('with no live data, are the schedule’s, as before', () => {
+  it('with no live data, are the schedule’s, said not to be tracked live, with its times "about"', () => {
     const rows = rowsAt(factsOf(equatorLiveLeg(null, at('11:10'))), '11:10')
-    // No plane's row.
-    expect(rows.map((r) => r.kind)).toEqual(['below', 'distance', 'takeoff', 'headed'])
+    // No plane's row, and first how it's known (live or scheduled design §4.1, §5).
+    expect(rows.map((r) => r.kind)).toEqual(['source', 'below', 'distance', 'takeoff', 'headed'])
+    expect(row('source', rows)).toMatchObject({
+      icon: 'CalendarBlank', title: 'Not tracked live', detail: "Shown where the schedule has it · If it's running late, it may still be at the gate",
+    })
     expect(row('below', rows).title).toBe('Over Bravo, near Testville')
     expect(row('distance', rows)).toMatchObject({
-      title: '422 mi flown · 960 to go', detail: `Halfway at 7:45${AM} L · Averaging about 460 mph · like driving the Alaska Highway`,
+      title: '422 mi flown · 960 to go', detail: `Halfway at about 7:45${AM} L · Averaging about 460 mph · like driving the Alaska Highway`,
     })
   })
 })
@@ -317,8 +322,8 @@ describe('the card’s sentence for screen readers with a real plane (Stage 3 sp
   it('in the air, says what’s below the real plane, and the latest event', () => {
     // It lands at 13:05 by its estimate, where the plan has 13:15. It crossed into Bravo at 10:55.
     expect(cardSummary(facts('11:10'), at('11:10'), 'Alex')).toBe(
-      `TST1 to E20, 10 minutes ahead of schedule, over Bravo. Lands about 9:11${AM} your time. Latest: crossed into Bravo, 15 minutes ago. ` +
-        'Opens the full map.',
+      `TST1 to E20, 10 minutes ahead of schedule, over Bravo. Lands about 9:11${AM} your time. Tracked live. ` +
+        'Latest: crossed into Bravo, 15 minutes ago. Opens the full map.',
     )
   })
 
@@ -412,7 +417,7 @@ describe('a real plane still on the ground at its departure airport (the website
     const theFacts = atTheGate('10:35')
     expect(headline(theFacts, at('10:35'))).toBe('Still on the ground in Rockford')
     const rows = rowsAt(theFacts, '10:35')
-    expect(rows.map((r) => r.kind)).toEqual(['below', 'plane', 'distance', 'headed'])
+    expect(rows.map((r) => r.kind)).toEqual(['source', 'below', 'plane', 'distance', 'headed'])
     expect(row('below', rows).title).toBe('Still on the ground in Rockford')
     expect(row('below', rows).detail).toMatch(/^Passes 35 mi from home at /)
   })
@@ -432,18 +437,19 @@ describe('a real plane still on the ground at its departure airport (the website
     }
     // In a replay the map has the schedule's plane in the air, flying into the sunset: the same leg has a sky row then.
     expect(row('sky', rowsAt(dusk(true), '17:35')).title).toBe('Flying into the night')
-    expect(rowsAt(dusk(false), '17:35').map((r) => r.kind)).toEqual(['below', 'plane', 'distance', 'headed'])
+    expect(rowsAt(dusk(false), '17:35').map((r) => r.kind)).toEqual(['source', 'below', 'plane', 'distance', 'headed'])
   })
 
-  it('says nothing of it before the plan’s takeoff: an on-time plane taxiing out reads as before', () => {
-    // 10:05, ten minutes before the plan's takeoff: what's below the plane at the gate, and nothing flown yet.
+  it('says "On the ground in Rockford" before the plan’s takeoff, as an on-time plane at its gate is (live or scheduled design §3, §4.2)', () => {
+    // 10:05, ten minutes before the plan's takeoff: on the ground, with nothing flown yet, and its times guesses.
     const theFacts = atTheGate('10:05')
-    expect(headline(theFacts, at('10:05'))).toBe('Over Alpha')
+    expect(headline(theFacts, at('10:05'))).toBe('On the ground in Rockford')
     const rows = rowsAt(theFacts, '10:05')
-    expect(row('below', rows).title).toBe('Over Alpha')
-    expect(row('below', rows).detail).toMatch(/^Passes 35 mi from home at \d/)
-    expect(row('distance', rows).title).toBe('0 mi flown · 1,382 to go')
-    expect(row('distance', rows).detail).toMatch(/^Halfway at \d/)
+    expect(rows.map((r) => r.kind)).toEqual(['source', 'below', 'plane', 'distance', 'headed'])
+    expect(row('below', rows).title).toBe('On the ground in Rockford')
+    expect(row('below', rows).detail).toMatch(/^Passes 35 mi from home at about \d/)
+    expect(row('distance', rows).title).toBe('1,382 mi to go')
+    expect(row('distance', rows).detail).toMatch(/^Halfway at about \d/)
   })
 
   it('leads the headline before a crossing the schedule’s times have it make', () => {
@@ -456,7 +462,7 @@ describe('a real plane still on the ground at its departure airport (the website
   it('has a sentence for screen readers that names nothing below it', () => {
     // It lands three hours after the moment it takes off, as if that were now, and 7 minutes later reaches the gate.
     expect(cardSummary(atTheGate('10:35'), at('10:35'), 'Alex'))
-      .toBe(`TST1 to E20, still on the ground, 20 minutes behind schedule. Lands about 9:42${AM} your time. Opens the full map.`)
+      .toBe(`TST1 to E20, still on the ground, 20 minutes behind schedule. Lands about 9:42${AM} your time. Tracked live. Opens the full map.`)
   })
 
   it('in a replay, reads where the map has the plane: the schedule’s, as it has no record', () => {
@@ -488,8 +494,8 @@ describe('a real plane still at its departure airport: nothing passed, and its t
     const soFar = tripSoFar(atTheGate('10:28', { geography: border }), at('10:28'))
     expect(soFar.flights).toEqual([])
     expect(soFar.totals).toBe('Day 1 of 1')
-    // Before the plan's takeoff it's the flight between its gates, as the app has it, and set apart.
-    expect(tripSoFar(atTheGate('10:05', { geography: border }), at('10:05')).flights.map((f) => f.tag)).toEqual(['In the air now'])
+    // Before the plan's takeoff it's at its gate too, and left out (live or scheduled design §3).
+    expect(tripSoFar(atTheGate('10:05', { geography: border }), at('10:05')).flights.map((f) => f.tag)).toEqual([])
     // Once it's seen in the air it's set apart, with what it has passed.
     expect(tripSoFar(facts('10:35', { now: '10:35' }), at('10:35')).flights.map((f) => f.tag)).toEqual(['In the air now'])
   })
@@ -506,7 +512,8 @@ describe('a real plane still at its departure airport: nothing passed, and its t
 
   it('in a replay, lists them where the map has the plane: the schedule’s, as it has no record', () => {
     const soFar = tripSoFar(atTheGate('10:28', { geography: border, isReplay: true }), at('10:28'))
-    expect(soFar.flights.map((f) => f.tag)).toEqual(['In the air'])
+    // With no real path, the replay's flight is by the schedule (live or scheduled design §6).
+    expect(soFar.flights.map((f) => f.tag)).toEqual(['By the schedule'])
     expect(soFar.flights[0]?.events.map((e) => e.text)).toEqual([`Crossed into Bravo · 6:24${AM} L`])
   })
 
@@ -559,7 +566,7 @@ describe('a real plane back at its departure airport after an air return (air re
     const theFacts = backAtTheGate('10:35')
     expect(headline(theFacts, at('10:35'))).toBe('Returned to Rockford')
     const rows = rowsAt(theFacts, '10:35')
-    expect(rows.map((r) => r.kind)).toEqual(['below', 'plane', 'distance', 'headed'])
+    expect(rows.map((r) => r.kind)).toEqual(['source', 'below', 'plane', 'distance', 'headed'])
     expect(row('below', rows).title).toBe('Returned to Rockford')
     expect(row('distance', rows).title).toBe('1,382 mi to go')
   })
@@ -572,7 +579,7 @@ describe('a real plane back at its departure airport after an air return (air re
 
   it('has a sentence for screen readers that says it has returned there, and when it lands', () => {
     expect(cardSummary(backAtTheGate('10:35'), at('10:35'), 'Alex'))
-      .toBe(`TST1 to E20, returned to Rockford. Lands about 9:42${AM} your time. Opens the full map.`)
+      .toBe(`TST1 to E20, returned to Rockford. Lands about 9:42${AM} your time. Tracked live. Opens the full map.`)
   })
 
   it('in a replay, reads where the map has the plane: the schedule’s, as the way out and back isn’t its path', () => {
@@ -610,7 +617,7 @@ describe('a real plane down, not yet at the gate (the landed, not yet at the gat
     const theFacts = landedIn('12:58')
     expect(headline(theFacts, at('12:58'))).toBe('Landed in Anchorage')
     const rows = rowsAt(theFacts, '12:58')
-    expect(rows.map((r) => r.kind)).toEqual(['below', 'plane', 'distance', 'takeoff', 'headed'])
+    expect(rows.map((r) => r.kind)).toEqual(['source', 'below', 'plane', 'distance', 'takeoff', 'headed'])
     expect(row('below', rows)).toMatchObject({ title: 'Landed in Anchorage', detail: null })
     // The plane's row as before: the aircraft's name, with no height or speed.
     expect(row('plane', rows)).toMatchObject({ title: 'Boeing 767-300 · N370UP', detail: null })
@@ -633,7 +640,7 @@ describe('a real plane down, not yet at the gate (the landed, not yet at the gat
     const later = 5 * 3_600_000
     const t = at('12:58') + later
     expect(row('sky', factRows(landedIn('12:58', { later, isReplay: true }), t, t)).title).toBe('Waxing crescent moon, up')
-    expect(factRows(landedIn('12:58', { later }), t, t).map((r) => r.kind)).toEqual(['below', 'plane', 'distance', 'takeoff', 'headed'])
+    expect(factRows(landedIn('12:58', { later }), t, t).map((r) => r.kind)).toEqual(['source', 'below', 'plane', 'distance', 'takeoff', 'headed'])
   })
 
   it('says when it reaches the gate, "at" as the card’s sentence says it, with the weather and the time there under it as before', () => {
@@ -650,9 +657,10 @@ describe('a real plane down, not yet at the gate (the landed, not yet at the gat
       .toEqual([`Closest to home, 35 mi · 8:07${AM} L`, `Out over the Test Sea · 7:51${AM} L`, `Halfway · 7:35${AM} L`, `Crossed into Bravo · 6:55${AM} L`])
   })
 
-  it('keeps the card’s sentence as it was: how it landed, and when it reaches the gate', () => {
+  it('keeps the card’s sentence as it was, how it landed and when it reaches the gate, then says it’s tracked live', () => {
     expect(cardSummary(landedIn('12:58'), at('12:58'), 'Alex')).toBe(
-      `TST1 to Anchorage, landed 20 minutes early. Reaches the gate at 9:02${AM} your time. Latest: closest to home, 35 miles, 51 minutes ago. Opens the full map.`,
+      `TST1 to Anchorage, landed 20 minutes early. Reaches the gate at 9:02${AM} your time. Tracked live. ` +
+        'Latest: closest to home, 35 miles, 51 minutes ago. Opens the full map.',
     )
   })
 
@@ -670,12 +678,13 @@ describe('a real plane down, not yet at the gate (the landed, not yet at the gat
     expect(tripSoFar(landedIn('13:02'), at('13:02')).flights.map((f) => f.tag)).toEqual([null])
   })
 
-  it('of a flight with no live data, reads as it always has: it never knows its touchdown', () => {
+  it('of a flight with no live data, never knows its touchdown, and reads by the schedule as before', () => {
     // 13:18, after the schedule's touchdown at 13:15 and before its gate at 13:22.
     const theFacts = factsOf(equatorFlight(0, 20))
     expect(headline(theFacts, at('13:18'))).toBe('Over the Test Sea')
     expect(row('distance', rowsAt(theFacts, '13:18')).title).toBe('1,382 mi flown · 0 to go')
-    expect(tripSoFar(theFacts, at('13:18')).flights.map((f) => f.tag)).toEqual(['In the air now'])
+    // The list says it's by the schedule (live or scheduled design §4.1).
+    expect(tripSoFar(theFacts, at('13:18')).flights.map((f) => f.tag)).toEqual(['By the schedule'])
   })
 })
 
@@ -699,19 +708,34 @@ describe('the full map’s facts at a moment, with and without live data (Stage 
     expect(factsAtMoment(gate, at('10:35'), at('10:35')).showsLiveCredit).toBe(true)
   })
 
-  it('of a flight with no live data, are the same in a replay as they were, but for the words that say it’s now', () => {
-    // The flight in the air is "In the air now", and in a replay "In the air" (best guesses design §4). The latest event
-    // was "10 min ago", and in a replay it was at a clock time (latest event design §1).
+  it('of a flight with no live data, are the same in a replay as they were once it’s taken off, but for the words that say it’s now', () => {
+    // Now, the rows start with "Not tracked live", and the schedule's guesses read "about" (live or scheduled design
+    // §4.1, §5); a replay has neither (§6). The flight is "By the schedule" in both. The latest event was "About 10 min
+    // ago", and in a replay it was at a clock time (latest event design §1).
+    const unguessed = (text: string) => text.replace(/(at|·) about /g, '$1 ')
     const withoutNow = (moment: FactsAtMoment) => ({
       ...moment,
-      tripSoFar: { ...moment.tripSoFar, flights: moment.tripSoFar.flights.map((f) => ({ ...f, tag: f.tag != null })) },
+      rows: moment.rows.filter((r) => r.kind !== 'source').map((r) => ({ ...r, detail: r.detail && unguessed(r.detail) })),
+      tripSoFar: {
+        ...moment.tripSoFar,
+        flights: moment.tripSoFar.flights.map((f) => ({ ...f, events: f.events.map((e) => ({ ...e, text: unguessed(e.text), isEstimate: null })) })),
+      },
       latestEvent: moment.latestEvent?.title ?? null,
     })
+    const guesses = (moment: FactsAtMoment) => moment.tripSoFar.flights.flatMap((f) => f.events.map((e) => e.isEstimate))
     for (const leg of [equatorFlight(0, 20), equatorLiveLeg(null, at('11:10'))]) {
-      for (const t of ['10:05', '10:35', '11:10', '12:07', '13:20']) {
+      for (const t of ['10:35', '11:10', '12:07', '13:20']) {
         const replayed = factsAtMoment(factsOf(leg, { isReplay: true }), at(t), at('11:10'))
-        expect(withoutNow(replayed)).toEqual(withoutNow(factsAtMoment(factsOf(leg), at(t), at('11:10'))))
+        const now = factsAtMoment(factsOf(leg), at(t), at('11:10'))
+        expect(withoutNow(replayed)).toEqual(withoutNow(now))
+        expect(now.rows[0]?.title).toBe('Not tracked live')
+        expect(guesses(now).every((isEstimate) => isEstimate)).toBe(true)
+        expect(guesses(replayed).some((isEstimate) => isEstimate)).toBe(false)
       }
+      // Before the schedule's takeoff at 10:15 it's due to take off now (§4.2), where a replay has the schedule's plane
+      // taxiing out, as before.
+      expect(factsAtMoment(factsOf(leg), at('10:05'), at('11:10')).headline).toBe(`Scheduled to take off about 6:15${AM} L`)
+      expect(factsAtMoment(factsOf(leg, { isReplay: true }), at('10:05'), at('11:10')).headline).toBe('Over Alpha')
     }
     expect(factsAtMoment(factsOf(equatorFlight(0, 20), { isReplay: true }), at('11:10'), at('11:10')).latestEvent?.when).toBe(`7:00${AM} L`)
   })

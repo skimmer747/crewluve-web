@@ -9,7 +9,9 @@ import { makeFactsStore } from '../facts/factsStore'
 import { makeTripFacts, type FactsOptions, type TripFacts } from '../facts/tripFacts'
 import { factsAtMoment } from '../facts/tripFactsRows'
 import { buildLegs, type Leg } from '../engine/legs'
-import { estimatedArrival, landedFlight, liveMapFlights, returnedFlight, stillOnGroundFlight, withLiveTimes } from '../engine/liveLegs'
+import {
+  atGateFlight, estimatedArrival, landedFlight, liveMapFlights, returnedFlight, scheduleOnlyFlight, stillOnGroundFlight, withLiveTimes,
+} from '../engine/liveLegs'
 import { safeSnapshot, type Snapshot } from '../engine/snapshot'
 import type { Schedule } from '../engine/types'
 import type { MapFlight } from '../map/mapFlight'
@@ -80,6 +82,8 @@ export function PilotPages({
   // every card, at each new schedule, each new answer, and each minute while there's one, as an estimate moves by itself.
   const hasLive = live != null && live.flights.size > 0
   const minute = hasLive ? Math.floor(now / 60_000) : 0
+  // Crewlu Cloud hasn't answered since the page opened: nothing yet says where a flight comes from (live or scheduled design §2).
+  const isAwaitingLive = live?.isAwaiting === true
   const built = useMemo<{ s: Schedule; legs: Leg[]; flights: ReadonlyMap<string, MapFlight> } | null>(() => {
     const summary = schedule.schedule
     if (!summary) return null
@@ -127,7 +131,7 @@ export function PilotPages({
   // Asked for before the early return below, so the hooks run in the same order on every render.
   const weather = useWeather(weatherPlace(snap, airports, unit), loadWeather)
   // snap is only set with ready, so the legs are always there; the fallback is for the type checker.
-  const tripMap = snap ? tripMapFor(snap, ready?.legs ?? [], airports, ready?.flights) : null
+  const tripMap = snap ? tripMapFor(snap, ready?.legs ?? [], airports, ready?.flights, isAwaitingLive) : null
   const land = useLand(tripMap != null)
   // The page the address asks for, and the legs the Schedule page lists. A wide window shows both pages side by side
   // (slice 3C §3).
@@ -174,9 +178,14 @@ export function PilotPages({
   // And the flight under way while its real plane is down, not yet at the gate: the narrative says it has landed (the
   // landed, not yet at the gate design §3, Todd, 17 Nov 2026).
   const down = ready ? landedFlight(ready.legs, ready.flights, now) : null
+  // The flight under way seen at its gate before the plan's takeoff, and the one by the schedule alone: the narrative
+  // says "is on the ground in", "is due to take off" or "should be flying" (live or scheduled design §4).
+  const atGate = ready ? atGateFlight(ready.legs, ready.flights, now) : null
+  const bySchedule = ready ? scheduleOnlyFlight(ready.legs, ready.flights, now) : null
   const status = {
     snap, now, viewerTz, homeTz, h24, airports, weather, demo, celebrateKey, footer, notice, quickStatus, tripMap, land, facts,
     onOpenMap: mapPage.show, estimatedArrival: estimated, stillOnGroundFlight: onGround, returnedFlight: returned, landedFlight: down,
+    atGateFlight: atGate, scheduleOnlyFlight: bySchedule, isAwaitingLive,
   }
   // Whose time is whose, for every time's hover tip and the key (time labels design §3.5): the viewer's zone, the moment
   // shown, and the zones of the trip's cities.

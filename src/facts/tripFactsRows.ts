@@ -1,13 +1,17 @@
 import { yours } from '../copy/clockLabel'
 import {
   aircraftText, allFlownText, averageSpeedText, chaseText, closestToHomeText, cockpitEventText, cockpitGapText, flownText, flyingInto,
-  groundSunText, halfwayText, heightAndSpeedText, landsText, midLine, moonText, timeDifferenceText, toGoText,
+  groundSunText, halfwayText, heightAndSpeedText, landsText, midLine, moonText, NOT_TRACKED_LINES, timeDifferenceText,
+  toGoText,
 } from '../copy/facts'
 import { longestText, milesText, onTheWayText, soFarText } from '../copy/factsTrip'
 import { daysText } from '../copy/format'
-import { dayPhrase, gateLine, landedText, landingLine, nextDepartureChip, takeoffLine } from '../copy/tripMap'
+import {
+  dayPhrase, gateLine, landedText, landingLine, nextDepartureChip, NOT_TRACKED_LIVE, takeoffLine, TRACKED_LIVE,
+} from '../copy/tripMap'
 import { landingWeatherText, takeoffWeatherText } from '../copy/weather'
 import { airborneWindow } from '../map/flightProgress'
+import { legTracking } from '../map/flightTracking'
 import { METERS_PER_MILE } from '../map/greatCircle'
 import { dayCount, destinationsOf, legDistanceMeters, legInMotion, nextFlight, pilotLocation, type MapLeg } from '../map/tripMap'
 import { HOUR } from '../time/zoned'
@@ -19,8 +23,8 @@ import { legPlane, type PlanePosition } from './planePosition'
 import { chase, cockpitHorizonOnLeg, moonSight, nextGroundSunEvent, sunAltitudeOnLeg } from './sky'
 import { takeoffOf } from './takeoff'
 import {
-  atDepartureText, belowText, forecastFor, isLandedBeforeGate, isRecapOver, isStillOnGround, lastSeenText, latestEvent, sheetHeadline, showsLiveData,
-  tripSoFar,
+  atDepartureOf, atDepartureText, belowText, forecastFor, isGuessedFromSchedule, isLandedBeforeGate, isRecapOver,
+  lastSeenText, latestEvent, sheetHeadline, showsLiveData, tripSoFar,
   type TripFacts,
 } from './tripFacts'
 import { longestFlight, totalsSoFar, wholeTotals, type TripTotals } from './tripTotals'
@@ -28,7 +32,8 @@ import { longestFlight, totalsSoFar, wholeTotals, type TripTotals } from './trip
 /**
  * The panel's rows (Stage 2 spec §5), as the app's TripFacts+Rows: in flight, "now, then where to"; on a layover, where
  * they are, the next flight and the trip so far; at home, the trip ahead and its forecast; after a recap's trip, the
- * trip. A row with nothing to say is left out. A flight with live data has the plane's row second (Stage 3 spec §8).
+ * trip. A row with nothing to say is left out. In flight, how the flight is known comes first (live or scheduled design
+ * §4.1), and a flight with live data has the plane's row right after what's below (Stage 3 spec §8).
  */
 
 const notNull = <T>(value: T | null): value is T => value != null
@@ -43,31 +48,54 @@ const compared = (facts: TripFacts, distance: number) => {
 function flightRows(facts: TripFacts, leg: MapLeg, t: number, now: number): FactRow[] {
   const plane = legPlane(leg, t, facts.isReplay)
   return [
-    belowRow(facts, leg, t), planeRow(leg, plane), skyRow(facts, leg, t), distanceRow(facts, leg, plane, t), takeoffRow(facts, leg, t),
-    headedRow(facts, leg, t, now),
+    sourceRow(facts, leg, t), belowRow(facts, leg, t), planeRow(leg, plane), skyRow(facts, leg, t),
+    distanceRow(facts, leg, plane, t), takeoffRow(facts, leg, t), headedRow(facts, leg, t, now),
   ].filter(notNull)
 }
 
 /**
+ * How the flight is known now (live or scheduled design §4.1): "Tracked live" while Crewlu Cloud sees it, "Not tracked
+ * live" with why the plane may not be where it's drawn by the schedule alone. None for a best guess, whose place has
+ * "Last tracked near …" under it, while the first answer is on its way, and in a replay.
+ */
+function sourceRow(facts: TripFacts, leg: MapLeg, t: number): FactRow | null {
+  if (facts.isReplay) return null
+  switch (legTracking(leg, t)) {
+    case 'live':
+      return factRow('source', 'Broadcast', TRACKED_LIVE)
+    case 'notTracked':
+      return factRow('source', 'CalendarBlank', NOT_TRACKED_LIVE, NOT_TRACKED_LINES)
+    default:
+      return null
+  }
+}
+
+/**
  * What's below, then where a plane that's out of sight was last seen, then the closest point to home. The first of them
- * that there is leads the row. A real plane still at its departure airport says so in place of what's below (the
- * website's own, Todd, 16 Nov 2026), or that it has returned there after an air return (air return design §3). One down, not yet at the gate, says "Landed in Anchorage", alone: the rest goes
+ * that there is leads the row. A plane on the ground at its departure airport (live or scheduled design §3) says so in
+ * place of what's below: when it's scheduled to take off by the schedule alone, with the takeoff's icon (§4.2), that
+ * its real plane is on the ground there (the website's own, Todd, 16 Nov 2026), or that it has returned there after an
+ * air return (air return design §3). One down, not yet at the gate, says "Landed in Anchorage", alone: the rest goes
  * with what's below (the landed, not yet at the gate design §3, Todd, 17 Nov 2026).
  */
 function belowRow(facts: TripFacts, leg: MapLeg, t: number): FactRow | null {
   if (isLandedBeforeGate(facts, leg, t)) return factRow('below', 'MapPin', landedText(leg.destination.city))
-  const where = isStillOnGround(facts, leg, t) ? atDepartureText(leg, t) : belowText(facts, leg, t)
+  const at = atDepartureOf(facts, leg, t)
+  const where = at ? atDepartureText(at, leg, facts.viewerTz, facts.h24) : belowText(facts, leg, t)
   const lines = [where, lastSeenText(facts, leg, t), closestToHomeLine(facts, leg, t)].filter(notNull)
-  return lines.length > 0 ? factRow('below', 'MapPin', lines[0], lines.slice(1)) : null
+  if (lines.length === 0) return null
+  // Due to take off by the schedule, the row is the takeoff's (live or scheduled design §4.2).
+  return factRow('below', at === 'due' ? 'AirplaneTakeoff' : 'MapPin', lines[0], lines.slice(1))
 }
 
 /**
  * "Passes 40 mi from home at 1:05 PM", or "Closest to home was 40 mi at 1:05 PM" once it's passed. Where nobody saw the
- * real plane it's a best guess, and its time reads "about" (best guesses design §2).
+ * real plane it's a best guess, and its time reads "about" (best guesses design §2), as it does for a flight by the
+ * schedule alone, now (live or scheduled design §5).
  *
- * The website's own (Todd, 16 Nov 2026): a real plane still on the ground at its departure airport has passed nothing,
- * and its time is a guess from a takeoff that hasn't happened: "about", and left out once that guess has gone by, as
- * halfway's is.
+ * The website's own (Todd, 16 Nov 2026): a plane on the ground at its departure airport (live or scheduled design §3)
+ * has passed nothing, and its time is a guess from a takeoff that hasn't happened: "about", and left out once that
+ * guess has gone by, as halfway's is.
  */
 function closestToHomeLine(facts: TripFacts, leg: MapLeg, t: number): string | null {
   const story = facts.stories[leg.id]
@@ -76,9 +104,10 @@ function closestToHomeLine(facts: TripFacts, leg: MapLeg, t: number): string | n
   const distance = closest.fraction * story.length
   const time = legTimeAtDistance(leg, distance)
   if (time == null) return null
-  const onGround = isStillOnGround(facts, leg, t)
+  const onGround = atDepartureOf(facts, leg, t) != null
   if (onGround && time <= t) return null
-  return closestToHomeText(roundedMiles(closest.meters), time, t, facts.viewerTz, facts.h24, onGround || !isSeenAt(leg, distance))
+  const isGuess = onGround || isGuessedFromSchedule(facts, leg, t) || !isSeenAt(leg, distance)
+  return closestToHomeText(roundedMiles(closest.meters), time, t, facts.viewerTz, facts.h24, isGuess)
 }
 
 /**
@@ -96,13 +125,13 @@ function planeRow(leg: MapLeg, plane: PlanePosition): FactRow | null {
 
 /**
  * The sky from the cockpit: the next sunrise or sunset, how much sooner or later the pilot sees it than the ground ("The
- * pilot sees it 31 min before the ground does", time labels design §3.6), chasing the sun, the moon. Left out while the real plane is still
- * at its departure airport after the plan's takeoff time, as nothing says "flying" then (the website's own, Todd, 16
- * Nov 2026): its times would be the schedule's, for a plane that hasn't left. And once it's down, until the gate, as at
- * the gate (the landed, not yet at the gate design §3, Todd, 17 Nov 2026).
+ * pilot sees it 31 min before the ground does", time labels design §3.6), chasing the sun, the moon. Left out while a
+ * plane is on the ground at its departure airport (live or scheduled design §3), as nothing says "flying" then (the
+ * website's own, Todd, 16 Nov 2026): its times would be the schedule's, for a plane that hasn't left. And once it's
+ * down, until the gate, as at the gate (the landed, not yet at the gate design §3, Todd, 17 Nov 2026).
  */
 function skyRow(facts: TripFacts, leg: MapLeg, t: number): FactRow | null {
-  if (isStillOnGround(facts, leg, t) || isLandedBeforeGate(facts, leg, t)) return null
+  if (atDepartureOf(facts, leg, t) != null || isLandedBeforeGate(facts, leg, t)) return null
   const next = (facts.sunEvents[leg.id] ?? []).find((e) => e.time > t) ?? null
   const chasing = chase(leg, t)
   const moon = moonSight(leg, t)
@@ -120,10 +149,11 @@ function skyRow(facts: TripFacts, leg: MapLeg, t: number): FactRow | null {
 
 /**
  * "1,140 mi flown · 3,010 to go": flown along the path so far, and to go along the rest of it, which for a real plane is
- * the great circle from where it is to the arrival airport (Stage 3 spec §8). A real plane still at its departure airport
- * has flown nothing yet: "2,788 mi to go", and its halfway time is a guess from a takeoff that hasn't happened, "about"
- * (the website's own, Todd, 16 Nov 2026). One down, not yet at the gate, has nothing to go: "2,788 mi flown" (the landed,
- * not yet at the gate design §3, Todd, 17 Nov 2026).
+ * the great circle from where it is to the arrival airport (Stage 3 spec §8). A plane on the ground at its departure
+ * airport (live or scheduled design §3) has flown nothing yet: "2,788 mi to go", and its halfway time is a guess from a
+ * takeoff that hasn't happened, "about" (the website's own, Todd, 16 Nov 2026), as it is for a flight by the schedule
+ * alone, now (live or scheduled design §5). One down, not yet at the gate, has nothing to go: "2,788 mi flown" (the
+ * landed, not yet at the gate design §3, Todd, 17 Nov 2026).
  */
 function distanceRow(facts: TripFacts, leg: MapLeg, plane: PlanePosition, t: number): FactRow {
   const length = legPathLength(leg)
@@ -132,12 +162,13 @@ function distanceRow(facts: TripFacts, leg: MapLeg, plane: PlanePosition, t: num
   const halfwayAt = legHalfwayTime(leg)
   // The schedule's speed is told only of a flight with no live data: a real plane's row has its own.
   const window = hasLiveData(leg) ? null : airborneWindow(leg.start, leg.end)
-  const onGround = isStillOnGround(facts, leg, t)
+  const onGround = atDepartureOf(facts, leg, t) != null
   const title = onGround ? toGoText(Math.round(total))
     : isLandedBeforeGate(facts, leg, t) ? allFlownText(flown)
     : flownText(flown, Math.round(total) - flown)
+  const isHalfwayGuess = onGround || isGuessedFromSchedule(facts, leg, t) || !isSeenAt(leg, length / 2)
   return factRow('distance', 'Path', title, [
-    halfwayAt != null && halfwayAt > t ? halfwayText(halfwayAt, facts.viewerTz, facts.h24, onGround || !isSeenAt(leg, length / 2)) : null,
+    halfwayAt != null && halfwayAt > t ? halfwayText(halfwayAt, facts.viewerTz, facts.h24, isHalfwayGuess) : null,
     window ? averageSpeedText(total / ((window.end - window.start) / HOUR)) : null,
     compared(facts, total),
   ])
@@ -146,12 +177,12 @@ function distanceRow(facts: TripFacts, leg: MapLeg, plane: PlanePosition, t: num
 /**
  * "Took off Taipei 7:42 PM · 6:42 AM L" once the plane is off the ground (time labels design §3.3), then the weather it
  * took off in, "84°F and clear at takeoff". The real plane's takeoff where it was seen, else the schedule's, "about".
- * Left out before it, while a real plane is still at its departure airport or back there after an air return, and where
+ * Left out before it, while a plane is on the ground at its departure airport (live or scheduled design §3), and where
  * the leg has no takeoff to tell (`takeoffOf`): a real plane first seen too far out.
  */
 function takeoffRow(facts: TripFacts, leg: MapLeg, t: number): FactRow | null {
   const takeoff = takeoffOf(leg)
-  if (isStillOnGround(facts, leg, t) || !takeoff || takeoff.time > t) return null
+  if (atDepartureOf(facts, leg, t) != null || !takeoff || takeoff.time > t) return null
   const weather = facts.takeoffForecasts[leg.id] ?? null
   const title = takeoffLine(leg, takeoff.time, !takeoff.isSeen, facts.viewerTz, facts.h24)
   return factRow('takeoff', 'AirplaneTakeoff', title, [weather ? takeoffWeatherText(weather) : null], weather != null)

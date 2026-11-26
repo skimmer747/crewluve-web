@@ -1,7 +1,7 @@
 import { mapFlightProgress } from '../map/mapFlight'
 import type { MapLeg } from '../map/tripMap'
 import { yours } from './clockLabel'
-import { about, landsAt, liveLabelText, returnedText } from './tripMap'
+import { about, landsAt, liveLabelText, MAY_BE_AT_GATE, returnedText } from './tripMap'
 
 /**
  * Which plane: of a flight Crewlu Cloud has live data for at the moment, the real one, or the ghost where an on-schedule
@@ -30,7 +30,7 @@ export function planePopupWords(leg: MapLeg, plane: PlaneKind, t: number, isRepl
     // Not tracked live, often at the gate with its transponder off: the real plane may not have left yet (Todd, 20 Nov 2026).
     const title = `${capitalized(name)} · by the schedule`
     if (isReplay) return { title, lines: [`Where the schedule had it at ${time(t)}`] }
-    return { title, lines: ["Not tracked live, so it's shown where the schedule has it", "If it's running late, it may still be at the gate"] }
+    return { title, lines: ["Not tracked live, so it's shown where the schedule has it", MAY_BE_AT_GATE] }
   }
   const title = `${capitalized(name)} · real plane`
   if (isReplay) return { title, lines: [`Where it was at ${time(t)}`] }

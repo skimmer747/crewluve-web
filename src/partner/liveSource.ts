@@ -38,6 +38,13 @@ export interface LiveSource {
   readonly flights: ReadonlyMap<string, LiveFlight>
   /** Crewlu Cloud's clock minus this browser's, as of the last answer, so a wrong clock here doesn't age a fix. */
   readonly clockOffset: number
+  /**
+   * Crewlu Cloud has answered since the source was made, or a call to it failed (live or scheduled design §2). Until
+   * then a flight with no live data may yet have some, and the page says nothing of where it comes from. Once true it
+   * stays true for the source's life, a new connection's included: its flights read as not tracked until its own
+   * answer comes.
+   */
+  readonly hasAnswered: boolean
   /** Crewlu Cloud's time when this browser's clock says `t`. Fix ages and windows are measured against it. */
   serverTime(t: number): number
   /** The summary's flight legs, whenever they change: the 30-second check asks while one's window is open. */
@@ -52,7 +59,8 @@ export interface LiveSource {
    */
   ask(): Promise<void>
   /**
-   * Hears each change of `flights`. Returns what stops it. An answer that moves only Crewlu Cloud's clock tells no one:
+   * Hears each change of `flights`, and the first answer whatever it holds. Returns what stops it. An answer that
+   * moves only Crewlu Cloud's clock tells no one:
    * the page's own clock ages a fix.
    */
   subscribe(listener: () => void): () => void
@@ -67,6 +75,7 @@ const sameFlights = (a: ReadonlyMap<string, LiveFlight>, b: ReadonlyMap<string, 
 export function makeLiveSource({ door, device, onSharingEnded, now = Date.now }: LiveSourceOptions): LiveSource {
   let flights: ReadonlyMap<string, LiveFlight> = new Map()
   let clockOffset = 0
+  let hasAnswered = false
   let legs: LiveLeg[] = []
   /** The last answer's cursor, sent back so only the trail points since then come. */
   let cursor: number | null = null
@@ -88,10 +97,17 @@ export function makeLiveSource({ door, device, onSharingEnded, now = Date.now }:
     }
   }
 
+  /** Tells every listener. */
+  function tell() {
+    for (const listener of [...listeners]) callBack(listener)
+  }
+
   function setFlights(next: ReadonlyMap<string, LiveFlight>) {
     if (sameFlights(flights, next)) return
     flights = next
-    for (const listener of [...listeners]) callBack(listener)
+    // The listener reads `hasAnswered`: a change of flights is an answer, told once with it.
+    hasAnswered = true
+    tell()
   }
 
   /** Forgets the flights and the cursor: they were another connection's, or sharing has ended. */
@@ -182,6 +198,11 @@ export function makeLiveSource({ door, device, onSharingEnded, now = Date.now }:
     asking = { connection: current, call }
     void askCrewluCloud().finally(() => {
       asking = null
+      // The first answer is told even when it brings no flights: the page waits for it (live or scheduled design §2).
+      if (!hasAnswered) {
+        hasAnswered = true
+        tell()
+      }
       settle()
     })
     return call
@@ -204,6 +225,9 @@ export function makeLiveSource({ door, device, onSharingEnded, now = Date.now }:
     },
     get clockOffset() {
       return clockOffset
+    },
+    get hasAnswered() {
+      return hasAnswered
     },
     serverTime,
     watch(next) {

@@ -1,15 +1,20 @@
 import {
   belowWords, cockpitCountdown, eventTitle, eventWhen, flightTitle, inTheAirTag, LANDED_TAG, lastSeenLine, milestoneHeadline, milestoneLine,
-  spokenLastSeen, spokenLatestEvent, stillOnGroundText,
+  onTheGroundText, scheduledTakeoffText, spokenLastSeen, spokenLatestEvent, stillOnGroundText,
 } from '../copy/facts'
 import { longestText, recapChip, recapSummary, soFarText, totalsTiles, type RecapTile } from '../copy/factsTrip'
 import { shortTimeText } from '../copy/format'
-import { landedText, landingCountdown, liveSummary, panelHeadline, returnedText, tripMapSummary } from '../copy/tripMap'
+import {
+  BY_THE_SCHEDULE, landedText, landingCountdown, liveSummary, panelHeadline, returnedText, spokenDueClause,
+  spokenSource, tripMapSummary,
+} from '../copy/tripMap'
 import type { LandingForecast } from '../data/weather'
 import { pointAtDistance } from '../map/flightPath'
+import { scheduledTakeoff } from '../map/flightProgress'
+import { isBySchedule, isSeenAtDeparture, legAtDeparture, legTracking, type AtDeparture } from '../map/flightTracking'
 import type { GeoPoint } from '../map/greatCircle'
 import {
-  currentLeg, dayCount, isMoving, legInMotion, legLandedBeforeGate, legReturned, legStillOnGround, type AirportMark, type MapLeg, type TripMap,
+  currentLeg, dayCount, isMoving, legInMotion, legLandedBeforeGate, type AirportMark, type MapLeg, type TripMap,
 } from '../map/tripMap'
 import { MINUTE } from '../time/zoned'
 import type { Comparison } from './comparisons'
@@ -169,6 +174,9 @@ export function factsMilestones(facts: TripFacts, leg: MapLeg): Milestone[] {
  */
 export function toldMilestones(facts: TripFacts, leg: MapLeg, t: number): Milestone[] {
   const all = factsMilestones(facts, leg)
+  // Nobody saw a flight by the schedule alone: each of its events is the schedule's guess (live or scheduled design
+  // §5).
+  if (isGuessedFromSchedule(facts, leg, t)) return all.map((m) => ({ ...m, isEstimate: true }))
   const knots = leg.flight?.path.knots ?? []
   const lastSeen = knots[knots.length - 1]
   if (!lastSeen) return all
@@ -226,21 +234,42 @@ export function lastSeenText(facts: TripFacts, leg: MapLeg, t: number): string |
 }
 
 /**
- * Whether the real plane of `leg`, the leg between its gates at `t`, is still on the ground at its departure airport.
- * The facts then say so in place of what's below, and count nothing as flown: "Still on the ground in Rockford" (the
- * website's own, Todd, 16 Nov 2026). Now only: a replay reads where the map has the plane, as the app does.
+ * Whether `leg`, the leg between its gates at `t`, is on the ground at its departure airport, and how that's told (live
+ * or scheduled design §3): by the schedule before its takeoff, or its real plane seen there. The facts then say so in
+ * place of what's below, count nothing as flown, and pass nothing. Now only: a replay reads where the map has the
+ * plane.
  */
-export function isStillOnGround(facts: TripFacts, leg: MapLeg, t: number): boolean {
-  return !facts.isReplay && legStillOnGround(leg, t)
+export function atDepartureOf(facts: TripFacts, leg: MapLeg, t: number): AtDeparture | null {
+  return facts.isReplay ? null : legAtDeparture(leg, t)
 }
 
 /**
- * What the facts say in place of what's below while `isStillOnGround` holds: "Still on the ground in Rockford" (the
- * website's own, Todd, 16 Nov 2026), or "Returned to Rockford" once the plane is back there after an air return (air
- * return design §3).
+ * What the facts say in place of what's below while `atDepartureOf` holds (live or scheduled design §4.2): "Scheduled
+ * to take off about 3:14 PM L", "On the ground in Louisville", "Still on the ground in Louisville" (the website's own,
+ * Todd, 16 Nov 2026), or "Returned to Rockford" (air return design §3).
  */
-export const atDepartureText = (leg: MapLeg, t: number): string =>
-  legReturned(leg, t) ? returnedText(leg.origin.city) : stillOnGroundText(leg.origin.city)
+export function atDepartureText(at: AtDeparture, leg: MapLeg, viewerTz: string, h24: boolean): string {
+  switch (at) {
+    case 'due':
+      return scheduledTakeoffText(scheduledTakeoff(leg.start, leg.end), viewerTz, h24)
+    case 'atGate':
+      return onTheGroundText(leg.origin.city)
+    case 'stillAtGate':
+      return stillOnGroundText(leg.origin.city)
+    case 'returned':
+      return returnedText(leg.origin.city)
+  }
+}
+
+/**
+ * Whether `leg`'s guessed times at `t` are the schedule's alone (live or scheduled design §5): it's between its gates
+ * now and known by the schedule. Its events, halfway and closest point to home then read "about", as an unseen
+ * stretch's do. Now only, and only the flight between its gates: earlier flights, the recap and a replay read as
+ * before.
+ */
+export function isGuessedFromSchedule(facts: TripFacts, leg: MapLeg, t: number): boolean {
+  return !facts.isReplay && isMoving(leg, t) && isBySchedule(legTracking(leg, t))
+}
 
 /**
  * Whether the real plane of `leg`, the leg between its gates at `t`, has landed and isn't at the gate yet. The facts then
@@ -262,16 +291,18 @@ export const showsLiveData = (facts: TripFacts): boolean => facts.map.legs.some(
  * `includesEvents` is false beside the latest event's banner, which shows the milestone already (latest event design
  * §2); the shared cases read the headline with them.
  *
- * The website's own (Todd, 16 Nov 2026): a real plane still on the ground at its departure airport is "Still on the
- * ground in Rockford", ahead of all of them, or "Returned to Rockford" once it's back there after an air return (air
- * return design §3). It has crossed nothing yet, whatever the schedule's times say. And at the
- * other end, down and not yet at the gate, "Landed in Anchorage", ahead of them too (the landed, not yet at the gate
- * design §3, Todd, 17 Nov 2026).
+ * A plane on the ground at its departure airport (live or scheduled design §3) says so ahead of all of them:
+ * "Scheduled to take off about 3:14 PM L" by the schedule alone, "On the ground in Louisville" or "Still on the ground
+ * in Louisville" (the website's own, Todd, 16 Nov 2026) for its real plane, or "Returned to Rockford" once it's back
+ * there after an air return (air return design §3). It has crossed nothing yet, whatever the schedule's times say. And
+ * at the other end, down and not yet at the gate, "Landed in Anchorage", ahead of them too (the landed, not yet at the
+ * gate design §3, Todd, 17 Nov 2026).
  */
 export function headline(facts: TripFacts, t: number, includesEvents = true): string | null {
   const leg = legInMotion(facts.map, t)
   if (!leg || leg.kind !== 'flight') return null
-  if (isStillOnGround(facts, leg, t)) return atDepartureText(leg, t)
+  const at = atDepartureOf(facts, leg, t)
+  if (at) return atDepartureText(at, leg, facts.viewerTz, facts.h24)
   if (isLandedBeforeGate(facts, leg, t)) return landedText(leg.destination.city)
   const recent = includesEvents ? toldMilestones(facts, leg, t).filter((m) => m.time <= t && t - m.time < MILESTONE_HEADLINE_MS).pop() : null
   if (recent) return milestoneHeadline(recent)
@@ -289,12 +320,12 @@ const newestOf = (told: Milestone[]): Milestone | null =>
  * long ago, and its sentence for screen readers. It stays until the next. Null on the ground, on a drive, and before the
  * flight's first event. One held past 2 hours out of tracking range isn't told yet (`toldMilestones`, long gap design §3).
  *
- * The website's own (Todd, 16 Nov 2026): none for a real plane still on the ground at its departure airport after the
- * plan's takeoff time, which has passed nothing yet, whatever the schedule's times say.
+ * None for a plane on the ground at its departure airport (live or scheduled design §3), which has passed nothing yet,
+ * whatever the schedule's times say (the website's own, Todd, 16 Nov 2026).
  */
 export function latestEvent(facts: TripFacts, t: number): LatestEvent | null {
   const leg = legInMotion(facts.map, t)
-  if (!leg || leg.kind !== 'flight' || isStillOnGround(facts, leg, t)) return null
+  if (!leg || leg.kind !== 'flight' || atDepartureOf(facts, leg, t) != null) return null
   const newest = newestOf(toldMilestones(facts, leg, t).filter((m) => m.time <= t))
   if (!newest) return null
   const { viewerTz, h24, isReplay } = facts
@@ -336,24 +367,38 @@ export function hasTripSoFarRow(facts: TripFacts, t: number): boolean {
 }
 
 /**
+ * The tag on the flight between its gates (live or scheduled design §4.1, §6): "By the schedule" for one known by the
+ * schedule alone, now, or with no real path, in a replay; else "In the air now", or "In the air" in a replay. In a
+ * replay its events aren't marked as guesses even when it's tagged "By the schedule": "about" is for now only (§5, §6).
+ */
+function flightTag(facts: TripFacts, leg: MapLeg, t: number): string {
+  const bySchedule = facts.isReplay ? leg.flight?.path.isReal !== true : isBySchedule(legTracking(leg, t))
+  return bySchedule ? BY_THE_SCHEDULE : inTheAirTag(facts.isReplay)
+}
+
+/**
  * The trip so far, or the recap (§5.2, §5.5; best guesses design §4): the flight between its gates, set apart and listed
  * even before its first event, then each earlier flight with an event, newest first. Under each, its events, newest
  * first, so the latest is at the top, but for those held past 2 hours out of tracking range (`toldMilestones`, long gap
  * design §3). Then the totals, unless the rows already have them.
  *
- * The website's own (Todd, 16 Nov 2026): a real plane still on the ground at its departure airport after the plan's
- * takeoff time has passed none of its flight's events, whatever the schedule's times say, and its flight is left out
- * until it takes off, with no "In the air now". Down and not yet at the gate, it's tagged "Landed" (the landed, not yet
- * at the gate design §3, Todd, 17 Nov 2026).
+ * A real plane seen at its departure airport has passed none of its flight's events, whatever the schedule's times
+ * say, and its flight is left out until it takes off, with no "In the air now": after the plan's takeoff time (the
+ * website's own, Todd, 16 Nov 2026), and before it too (live or scheduled design §4.2). A flight by the schedule alone
+ * is tagged "By the schedule" (live or scheduled design §4.1). Down and not yet at the gate, it's tagged "Landed" (the
+ * landed, not yet at the gate design §3, Todd, 17 Nov 2026).
  *
  * The newest event of the flight between its gates, by time as the banner has it, is `isCurrent`, drawn bold (time
  * labels design §3.4). Older flights have none.
  */
 export function tripSoFar(facts: TripFacts, t: number): TripSoFar {
-  const started = facts.map.legs.filter((l) => l.kind === 'flight' && l.start <= t && !isStillOnGround(facts, l, t)).reverse()
+  // A real plane seen at its departure airport is left out until it takes off; one due by the schedule is listed.
+  const started = facts.map.legs
+    .filter((l) => l.kind === 'flight' && l.start <= t && !isSeenAtDeparture(atDepartureOf(facts, l, t)))
+    .reverse()
   const flights = started.flatMap((leg) => {
     const told = toldMilestones(facts, leg, t).filter((m) => m.time <= t)
-    const tag = !isMoving(leg, t) ? null : isLandedBeforeGate(facts, leg, t) ? LANDED_TAG : inTheAirTag(facts.isReplay)
+    const tag = !isMoving(leg, t) ? null : isLandedBeforeGate(facts, leg, t) ? LANDED_TAG : flightTag(facts, leg, t)
     const newest = tag == null ? null : newestOf(told)
     const events = told
       .reverse()
@@ -369,8 +414,9 @@ export function tripSoFar(facts: TripFacts, t: number): TripSoFar {
 }
 
 /**
- * The card as one sentence for screen readers, ending with what it opens (§6.4, §6.5). In flight the latest event's
- * banner comes after the flight's words, as its own sentence (latest event design §3).
+ * The card as one sentence for screen readers, ending with what it opens (§6.4, §6.5). In flight the flight's words end
+ * with how it's known, "Tracked live." or "Not tracked live, so it's shown where the schedule has it." (live or
+ * scheduled design §7), and the latest event's banner comes after them, as its own sentence (latest event design §3).
  */
 export function cardSummary(facts: TripFacts, now: number, name: string): string {
   const { map, viewerTz, h24 } = facts
@@ -395,9 +441,14 @@ export function cardSummary(facts: TripFacts, now: number, name: string): string
     // their names, so a state and a country that share a name are both said.
     const isOverWhereLastTracked = seenCity == null && samePlace(seenPlace, place)
     const live = liveSummary(leg, now, viewerTz, h24, isOverWhereLastTracked ? null : (place?.name ?? null), lastSeen)
-    if (live) return `${live} ${ending}`
-    const over = place ? `, over ${place.name}` : ''
-    return `${lead} ${leg.destination.city}${over}. Lands at ${shortTimeText(leg.end, viewerTz, h24)} your time. Estimated from the schedule. ${ending}`
+    const source = spokenSource(leg, now)
+    if (live) return [live, source, ending].filter(Boolean).join(' ')
+    // By the schedule alone (live or scheduled design §7): when it's due to take off, else what's below, then the
+    // source.
+    const due = spokenDueClause(leg, now, viewerTz, h24)
+    const over = !due && place ? `, over ${place.name}` : ''
+    const lands = `Lands at ${shortTimeText(leg.end, viewerTz, h24)} your time.`
+    return [`${lead} ${leg.destination.city}${due}${over}. ${lands}`, source, ending].filter(Boolean).join(' ')
   }
   return tripMapSummary(map, now, name, viewerTz, h24)
 }

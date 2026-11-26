@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { buildLegs, type Leg } from '../../src/engine/legs'
 import {
-  estimatedArrival, isEstimatedArrival, landedFlight, liveMapFlights, returnedFlight, stillOnGroundFlight, watchedFlights, withLiveTimes,
+  atGateFlight, estimatedArrival, isEstimatedArrival, landedFlight, liveMapFlights, returnedFlight, scheduleOnlyFlight,
+  stillOnGroundFlight, watchedFlights, withLiveTimes,
 } from '../../src/engine/liveLegs'
 import { resolveStatus } from '../../src/engine/status'
 import type { Schedule } from '../../src/engine/types'
@@ -11,7 +12,7 @@ import { mapFlightProgress } from '../../src/map/mapFlight'
 import { toSchedule } from '../../src/partner/convert'
 import type { PartnerSummary, SummaryLeg } from '../../src/partner/summary'
 import { airport, at, LIVE_CASES, made } from '../map/liveCases'
-import { backAtTheGate } from '../map/liveTrip'
+import { atTheGate, backAtTheGate, FLYING, placeOf as tripPlaceOf, SCHEDULE as TRIP } from '../map/liveTrip'
 import { fix, liveFlight, MINUTE, point, START } from '../map/madeUpFlights'
 
 /** Where an airport is: the shared cases' airports, and no others. */
@@ -344,5 +345,36 @@ describe('a real plane down, not yet at the gate (the landed, not yet at the gat
     expect(landedAt(IN_THE_AIR, 52)).toBeNull()
     expect(landedAt(atTheGate, 25)).toBeNull()
     expect(landedAt(null, 103)).toBeNull()
+  })
+})
+
+describe('the flight by the schedule alone, and the one at its gate, for the status sentence (live or scheduled design §4)', () => {
+  const legs = buildLegs(TRIP)
+  const flightsWith = (live: LiveFlight | null) =>
+    liveMapFlights(TRIP, new Map(live ? [['f1', live]] : []), 0, tripPlaceOf)
+  const when = (minutes: number) => START + minutes * MINUTE
+
+  it('names a flight with no live data, due before the schedule’s takeoff and not after', () => {
+    expect(scheduleOnlyFlight(legs, flightsWith(null), when(5))).toEqual({ id: 'f1', isDue: true })
+    expect(scheduleOnlyFlight(legs, flightsWith(null), when(30))).toEqual({ id: 'f1', isDue: false })
+  })
+
+  it('names one whose fix on the ground is over 3 minutes old, and none Crewlu Cloud sees or has a best guess of', () => {
+    expect(scheduleOnlyFlight(legs, flightsWith(atTheGate(5)), when(9))).toEqual({ id: 'f1', isDue: true })
+    expect(scheduleOnlyFlight(legs, flightsWith(atTheGate(5)), when(5))).toBeNull()
+    expect(scheduleOnlyFlight(legs, flightsWith(FLYING), when(59))).toBeNull()
+    expect(scheduleOnlyFlight(legs, flightsWith(FLYING), when(62))).toBeNull()
+  })
+
+  it('names none outside the gate times', () => {
+    expect(scheduleOnlyFlight(legs, flightsWith(null), when(-5))).toBeNull()
+    expect(scheduleOnlyFlight(legs, flightsWith(null), when(120))).toBeNull()
+  })
+
+  it('names the flight whose real plane is at its gate before the plan’s takeoff, and not after it', () => {
+    expect(atGateFlight(legs, flightsWith(atTheGate(5)), when(5))).toBe('f1')
+    expect(atGateFlight(legs, flightsWith(atTheGate(25)), when(25))).toBeNull()
+    expect(atGateFlight(legs, flightsWith(null), when(5))).toBeNull()
+    expect(atGateFlight(legs, flightsWith(FLYING), when(59))).toBeNull()
   })
 })

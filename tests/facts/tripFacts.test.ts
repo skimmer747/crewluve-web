@@ -80,15 +80,15 @@ describe('the latest event (latest event design §1)', () => {
     // Before the first event.
     expect(latestEvent(facts, t('10:59'))).toBeNull()
     expect(latestEvent(facts, Date.parse('2026-03-20T11:00:30Z'))).toEqual({
-      title: 'Crossed into Bravo', when: 'Just now', sentence: 'Latest: crossed into Bravo, just now.',
+      title: 'Crossed into Bravo', when: 'About now', sentence: 'Latest: crossed into Bravo, about now.',
     })
-    expect(latestEvent(facts, t('11:12'))?.when).toBe('12 min ago')
+    expect(latestEvent(facts, t('11:12'))?.when).toBe('About 12 min ago')
     // It stays until the next.
     expect(latestEvent(facts, t('11:44'))?.title).toBe('Crossed into Bravo')
     expect(latestEvent(facts, t('11:46'))?.title).toBe('Halfway')
     expect(latestEvent(facts, t('12:10'))?.title).toBe('Out over the Test Sea')
     expect(latestEvent(facts, t('12:40'))).toEqual({
-      title: 'Closest to home, 35 mi', when: '19 min ago', sentence: 'Latest: closest to home, 35 miles, 19 minutes ago.',
+      title: 'Closest to home, 35 mi', when: 'About 19 min ago', sentence: 'Latest: closest to home, 35 miles, about 19 minutes ago.',
     })
     // It has reached the gate.
     expect(latestEvent(facts, t('13:30'))).toBeNull()
@@ -97,7 +97,9 @@ describe('the latest event (latest event design §1)', () => {
   it('before the story is ready, is none, and the card’s sentence says nothing of it', () => {
     const facts = equatorFacts(null)
     expect(latestEvent(facts, t('11:10'))).toBeNull()
-    expect(cardSummary(facts, t('11:10'), 'Alex')).toBe(`TST1 to E20. Lands at 9:22${AM} your time. Estimated from the schedule. Opens the full map.`)
+    expect(cardSummary(facts, t('11:10'), 'Alex')).toBe(
+      `TST1 to E20. Lands at 9:22${AM} your time. Not tracked live, so it's shown where the schedule has it. Opens the full map.`,
+    )
   })
 
   it('in a replay, says its clock time', () => {
@@ -155,11 +157,12 @@ describe('the trip so far (Stage 2 spec §5.2, §5.5; best guesses design §4)',
     expect(soFar.flights.map((f) => f.title)).toEqual(['TST1 · E0 → E20'])
     // Newest first, so the latest is at the top, and the flight is the one in the air.
     expect(soFar.flights[0].events.map((e) => e.text)).toEqual([
-      `Closest to home, 35 mi · 8:21${AM} L`, `Out over the Test Sea · 8:03${AM} L`, `Halfway · 7:45${AM} L`, `Crossed into Bravo · 7:00${AM} L`,
+      `Closest to home, 35 mi · about 8:21${AM} L`, `Out over the Test Sea · about 8:03${AM} L`, `Halfway · about 7:45${AM} L`,
+      `Crossed into Bravo · about 7:00${AM} L`,
     ])
-    // The schedule is told as it is.
-    expect(soFar.flights[0].events.map((e) => e.isEstimate)).toEqual([false, false, false, false])
-    expect(soFar.flights[0].tag).toBe('In the air now')
+    // Not tracked live, each is the schedule's guess (live or scheduled design §5).
+    expect(soFar.flights[0].events.map((e) => e.isEstimate)).toEqual([true, true, true, true])
+    expect(soFar.flights[0].tag).toBe('By the schedule')
     expect(soFar.totalsTitle).toBe('Trip so far')
     expect(soFar.totals).toBe('Day 1 of 1 · 1,036 mi')
   })
@@ -170,11 +173,11 @@ describe('the trip so far (Stage 2 spec §5.2, §5.5; best guesses design §4)',
 
   it('lists the flight in the air before its first event, and an earlier flight only with an event', () => {
     // The equator flight has left the gate at 10:00 and crosses into Bravo at 11:00.
-    expect(tripSoFar(equatorFacts(), t('10:30')).flights).toEqual([{ id: 'eq', title: 'TST1 · E0 → E20', tag: 'In the air now', events: [] }])
+    expect(tripSoFar(equatorFacts(), t('10:30')).flights).toEqual([{ id: 'eq', title: 'TST1 · E0 → E20', tag: 'By the schedule', events: [] }])
     // On the ground in Cologne the first flight is done, and with no story it has no event.
     const europe = makeTripFacts(europeMap(at(12)), { geography: null, comparisons: null, viewerTz: NY, h24: false })
     expect(tripSoFar(europe, at(12)).flights).toEqual([])
-    expect(tripSoFar(europe, at(4)).flights.map((f) => [f.title, f.tag])).toEqual([['UPS201 · Louisville → Cologne', 'In the air now']])
+    expect(tripSoFar(europe, at(4)).flights.map((f) => [f.title, f.tag])).toEqual([['UPS201 · Louisville → Cologne', 'By the schedule']])
   })
 
   it('lists earlier flights plain underneath the flight in the air, newest first', () => {
@@ -182,7 +185,7 @@ describe('the trip so far (Stage 2 spec §5.2, §5.5; best guesses design §4)',
     const facts = makeTripFacts(europeMap(at(60)), { geography: appGeography(), comparisons: null, viewerTz: NY, h24: false })
     const soFar = tripSoFar(facts, at(60))
     expect(soFar.flights.map((f) => [f.title, f.tag])).toEqual([
-      ['UPS203 · Dubai → Louisville', 'In the air now'], ['UPS202 · Cologne → Dubai', null], ['UPS201 · Louisville → Cologne', null],
+      ['UPS203 · Dubai → Louisville', 'By the schedule'], ['UPS202 · Cologne → Dubai', null], ['UPS201 · Louisville → Cologne', null],
     ])
     expect(soFar.flights.slice(1).every((f) => f.events.length > 0)).toBe(true)
   })
@@ -231,12 +234,12 @@ describe('the trip so far (Stage 2 spec §5.2, §5.5; best guesses design §4)',
 describe('the card’s words (Stage 2 spec §6.4, §6.5)', () => {
   it('in flight, adds the place below to the spoken summary, and the latest event', () => {
     expect(cardSummary(equatorFacts(), t('11:10'), 'Alex')).toBe(
-      `TST1 to E20, over Bravo. Lands at 9:22${AM} your time. Estimated from the schedule. Latest: crossed into Bravo, 10 minutes ago. ` +
-        'Opens the full map.',
+      `TST1 to E20, over Bravo. Lands at 9:22${AM} your time. Not tracked live, so it's shown where the schedule has it. ` +
+        'Latest: crossed into Bravo, about 10 minutes ago. Opens the full map.',
     )
     // Before its first event.
     expect(cardSummary(equatorFacts(), t('10:50'), 'Alex')).toBe(
-      `TST1 to E20, over Alpha. Lands at 9:22${AM} your time. Estimated from the schedule. Opens the full map.`,
+      `TST1 to E20, over Alpha. Lands at 9:22${AM} your time. Not tracked live, so it's shown where the schedule has it. Opens the full map.`,
     )
   })
 

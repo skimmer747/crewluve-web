@@ -1,7 +1,8 @@
 import { HOUR } from '../time/zoned'
 import {
-  isMoving, legInMotion, legLandedBeforeGate, legReturned, legStillOnGround, pilotLocation, type AirportMark, type GroundStop, type TripMap,
+  isMoving, legInMotion, legLandedBeforeGate, pilotLocation, type AirportMark, type GroundStop, type TripMap,
 } from './tripMap'
+import { isBySchedule, isSeenAtDeparture, legAtDeparture, legTracking } from './flightTracking'
 
 /**
  * What the pilot is doing at a moment of the trip map, and where (the app's activity markers design §2.2), as the app's
@@ -60,19 +61,20 @@ export function activityAt(map: TripMap, t: number): TripActivity | null {
 }
 
 /**
- * Where the pilot's flight waits at `now`, while it's between its gates and its real plane is still on the ground at its
- * departure airport: that airport, which the line under the timeline names in place of "Flying to" (the website's own,
- * Todd, 16 Nov 2026). Null otherwise. Now only: a replay's moment is flying, as the map has the plane.
+ * Where the pilot's flight is on the ground at `now`, while it's between its gates and its real plane is seen at its
+ * departure airport: at its gate before the plan's takeoff, still there after it, or back after an air return (live or
+ * scheduled design §3). The line under the timeline names it in place of "Flying to". Null otherwise. Now only: a
+ * replay's moment flies as the map has the plane.
  */
-export function stillOnGroundIn(map: TripMap, now: number): AirportMark | null {
+export function atDepartureAirport(map: TripMap, now: number): AirportMark | null {
   const flight = map.legs.find((l) => l.kind === 'flight' && isMoving(l, now))
-  return flight && legStillOnGround(flight, now) ? flight.origin : null
+  return flight && isSeenAtDeparture(legAtDeparture(flight, now)) ? flight.origin : null
 }
 
 /**
  * Where the pilot's flight is down at `now`, while it's between its gates and its real plane has landed: its arrival
  * airport, which the line under the timeline names in place of "Flying to" (the landed, not yet at the gate design §3,
- * Todd, 17 Nov 2026). Null otherwise. Now only, as `stillOnGroundIn` is.
+ * Todd, 17 Nov 2026). Null otherwise. Now only, as `atDepartureAirport` is.
  */
 export function landedIn(map: TripMap, now: number): AirportMark | null {
   const flight = map.legs.find((l) => l.kind === 'flight' && isMoving(l, now))
@@ -81,7 +83,7 @@ export function landedIn(map: TripMap, now: number): AirportMark | null {
 
 /**
  * A flight between its gates whose real plane is on the ground now, as the line under the timeline names it in place of
- * "Flying to", as the app's FlightOnGround: still at its departure airport after the plan's takeoff time, `stillIn`
+ * "Flying to", as the app's FlightOnGround: at its departure airport, before or after the plan's takeoff time, `stillIn`
  * ("On the ground in Rockford"); back there after an air return, `returnedTo` ("Returned to Rockford", air return
  * design §3); or down at its arrival airport before the gate, `landedIn` ("Landed in Anchorage").
  */
@@ -93,16 +95,40 @@ export interface FlightOnGround {
 
 /**
  * Where the flight between its gates at `now` has its real plane on the ground, as the line under the timeline names it.
- * Null otherwise. Now only, as `stillOnGroundIn` and `landedIn` are.
+ * Null otherwise. Now only, as `atDepartureAirport` and `landedIn` are.
  */
 export function flightOnGround(map: TripMap, now: number): FlightOnGround | null {
   const arrival = landedIn(map, now)
   if (arrival) return { kind: 'landedIn', airport: arrival }
-  const departure = stillOnGroundIn(map, now)
+  const departure = atDepartureAirport(map, now)
   if (!departure) return null
   const flight = map.legs.find((l) => l.kind === 'flight' && isMoving(l, now))
-  return { kind: flight && legReturned(flight, now) ? 'returnedTo' : 'stillIn', airport: departure }
+  return { kind: flight && legAtDeparture(flight, now) === 'returned' ? 'returnedTo' : 'stillIn', airport: departure }
 }
+
+/**
+ * The flight between its gates at `now` known by the schedule alone, as the line under the timeline names it in place of
+ * "Flying to" (live or scheduled design §4.1, §4.2): before the schedule's takeoff, `dueTo` ("Scheduled to fly to
+ * Honolulu"); after it, `shouldBeFlyingTo` ("Should be flying to Honolulu"). Null otherwise. Now only.
+ */
+export interface FlightBySchedule {
+  kind: 'dueTo' | 'shouldBeFlyingTo'
+  /** Where it's going. */
+  airport: AirportMark
+}
+
+export function flightBySchedule(map: TripMap, now: number): FlightBySchedule | null {
+  const flight = map.legs.find((l) => l.kind === 'flight' && isMoving(l, now))
+  if (!flight || !isBySchedule(legTracking(flight, now))) return null
+  return { kind: legAtDeparture(flight, now) === 'due' ? 'dueTo' : 'shouldBeFlyingTo', airport: flight.destination }
+}
+
+/** What the line under the timeline names of the flight between its gates now, in place of the activity's words. */
+export type FlightNow = FlightOnGround | FlightBySchedule
+
+/** The real plane on the ground first, else the flight by the schedule alone. Now only. */
+export const flightNow = (map: TripMap, now: number): FlightNow | null =>
+  flightOnGround(map, now) ?? flightBySchedule(map, now)
 
 /**
  * Before the first departure, home for a next trip, or base while the pilot waits there, else home or base by where

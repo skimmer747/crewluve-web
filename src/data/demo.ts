@@ -5,6 +5,7 @@ export type DemoScene =
   | 'home' | 'driving-to-work' | 'base' | 'flying' | 'turn' | 'layover' | 'delayed'
   | 'last-leg' | 'driving-home' | 'commuting-home' | 'reserve' | 'training' | 'nothing-ahead' | 'recap'
   | 'live-ahead' | 'live-ocean-gap' | 'live-on-ground-late' | 'live-landed' | 'live-long-gap' | 'live-returned'
+  | 'schedule-at-gate'
 
 export type DemoVariant = 'driver' | 'jumpseater'
 
@@ -30,13 +31,16 @@ export const DEMO_SCENES: Record<DemoScene, { variant: DemoVariant; offset: numb
   // faded past a stretch nobody saw on the way to Anchorage; still at Rockford's gate 20 minutes after the plan's
   // takeoff; down in Anchorage a minute ago, not yet at the gate; and out of tracking range for 2 h 8 min on the way to
   // Anchorage, 87 minutes from its gate (long gap design §3); and back at Rockford after an air return, 50 minutes after
-  // the plan's takeoff (air return design §3). `flying` stays the schedule's alone.
+  // the plan's takeoff (air return design §3). `flying` stays the schedule's alone, not tracked live.
   'live-ahead': { variant: 'driver', offset: 100 },
   'live-ocean-gap': { variant: 'driver', offset: 460 },
   'live-on-ground-late': { variant: 'driver', offset: 260 },
   'live-landed': { variant: 'driver', offset: 541 },
   'live-long-gap': { variant: 'driver', offset: 463 },
   'live-returned': { variant: 'driver', offset: 290 },
+  // The schedule's plane alone, 5 minutes after the Louisville gate and 10 before its takeoff: "Not tracked live" and
+  // "Scheduled to take off about …" (live or scheduled design §4.2).
+  'schedule-at-gate': { variant: 'driver', offset: 65 },
 }
 
 export const DEFAULT_SCENE: DemoScene = 'flying'

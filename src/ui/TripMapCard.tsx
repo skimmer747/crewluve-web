@@ -127,6 +127,7 @@ export function TripMapCard(p: TripMapCardProps) {
 
 function InFlightBar({ leg, now, viewerTz, h24, onOpenTracking }: TripMapCardProps & { leg: MapLeg }) {
   const local = arrivalLocalTime(leg, viewerTz, h24)
+  const status = flightStatus(leg, now)
   return (
     <div class="inflight-bar">
       <div class="inflight-flight">
@@ -136,8 +137,8 @@ function InFlightBar({ leg, now, viewerTz, h24, onOpenTracking }: TripMapCardPro
             {leg.flightNumber}
           </button>
         ) : leg.flightNumber && <span class="inflight-number">{leg.flightNumber}</span>}
-        {/* The real plane's label, or "In flight" (Stage 3 spec §9). */}
-        <span class="inflight-status">{flightStatus(leg, now)}</span>
+        {/* "Live · 12 min ahead", "Not tracked live", or nothing until the first answer (live or scheduled design §4.1). */}
+        {status && <span class="inflight-status">{status}</span>}
       </div>
       <div class="inflight-arrival">
         {/* "Lands 3:30 PM L", or "At the gate 8:47 AM L" once the real plane is down (Todd, 17 Nov 2026). */}
